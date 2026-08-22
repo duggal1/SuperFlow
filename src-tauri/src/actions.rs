@@ -429,6 +429,34 @@ pub(crate) async fn process_transcription_output(
     let mut post_processed_text: Option<String> = None;
     let mut post_process_prompt: Option<String> = None;
 
+    // Intelligence Awareness: inside an aware surface (Gmail/Slack) with the
+    // toggle on, the transcript is an INSTRUCTION — compose finished text from
+    // page context instead of pasting raw dictation. Captured at finalize
+    // time; the user is still in the same app seconds after dictating.
+    if settings.intelligence_awareness_enabled {
+        let snapshot = crate::context::capture::capture_snapshot();
+        if snapshot.is_aware_surface() {
+            match crate::intelligence::compose_aware_reply(&settings, &snapshot, transcription)
+                .await
+            {
+                crate::intelligence::AwarenessOutcome::Composed(text) => {
+                    debug!("Awareness composed {} chars for {}", text.len(), snapshot.surface.as_str());
+                    return ProcessedTranscription {
+                        final_text: text.clone(),
+                        post_processed_text: Some(text),
+                        post_process_prompt: None,
+                    };
+                }
+                crate::intelligence::AwarenessOutcome::Skipped(reason) => {
+                    debug!("Awareness skipped: {reason}");
+                }
+                crate::intelligence::AwarenessOutcome::Failed(e) => {
+                    error!("Awareness composition failed, using raw transcription: {e}");
+                }
+            }
+        }
+    }
+
     // Resolve the language the transcription actually ran in (the persisted
     // intent coerced against the loaded model's capabilities) so OpenCC keys off
     // the effective language rather than a possibly-stale intent.
