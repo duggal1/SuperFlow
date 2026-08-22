@@ -16,13 +16,32 @@ pub const GHOSTTY_BUNDLE_ID: &str = "com.mitchellh.ghostty";
 /// Apple Terminal bundle identifier (macOS).
 pub const APPLE_TERMINAL_BUNDLE_ID: &str = "com.apple.Terminal";
 
+/// Terminal bundle identifiers classified as [`Surface::Terminal`]. Kept as a
+/// superset with `file_refs::TERMINAL_BUNDLE_IDS`: a terminal that classifies
+/// as Other would bail out of smart file references before its own bundle
+/// list is ever consulted.
+pub const TERMINAL_BUNDLE_IDS: &[&str] = &[
+    GHOSTTY_BUNDLE_ID,
+    APPLE_TERMINAL_BUNDLE_ID,
+    "com.googlecode.iterm2",
+    "dev.warp.Warp-Stable",
+    "net.kovidgoyal.kitty",
+    "io.alacritty",
+    "com.github.wez.wezterm",
+    "org.wezterm",
+];
+
 /// Bundle-id prefixes of code editors whose focused text we can inspect.
-pub const EDITOR_BUNDLE_PREFIXES: &[&str] = &["com.microsoft.VSCode"];
+pub const EDITOR_BUNDLE_PREFIXES: &[&str] = &[
+    "com.microsoft.VSCode",
+    "com.vscodium.codium",
+    "com.todesktop.230313mzl4w4u92", // Cursor
+];
 
 /// Classify a native (non-browser) bundle id into a developer surface.
 pub fn classify_native_bundle(bundle_id: Option<&str>) -> Option<Surface> {
     let bundle = bundle_id?;
-    if bundle == GHOSTTY_BUNDLE_ID || bundle == APPLE_TERMINAL_BUNDLE_ID {
+    if TERMINAL_BUNDLE_IDS.contains(&bundle) {
         return Some(Surface::Terminal);
     }
     if EDITOR_BUNDLE_PREFIXES
@@ -70,11 +89,7 @@ fn host_is(host: &str, domains: &[&str]) -> bool {
         .any(|domain| host == *domain || host.ends_with(&format!(".{domain}")))
 }
 
-pub fn classify(
-    bundle_id: Option<&str>,
-    url: Option<&str>,
-    title: Option<&str>,
-) -> Surface {
+pub fn classify(bundle_id: Option<&str>, url: Option<&str>, title: Option<&str>) -> Surface {
     if let Some(url) = url {
         if let Some(host) = url_host(url) {
             if host_is(&host, &["gmail.com", "mail.google.com"]) {
@@ -121,7 +136,10 @@ mod tests {
             classify(None, Some("https://mail.google.com/mail/u/0/#inbox"), None),
             Surface::Gmail
         );
-        assert_eq!(classify(None, Some("https://gmail.com/"), None), Surface::Gmail);
+        assert_eq!(
+            classify(None, Some("https://gmail.com/"), None),
+            Surface::Gmail
+        );
     }
 
     #[test]
@@ -139,11 +157,19 @@ mod tests {
     #[test]
     fn title_fallback_when_url_missing() {
         assert_eq!(
-            classify(Some("com.google.Chrome"), None, Some("Inbox (2) - me@gmail.com - Gmail")),
+            classify(
+                Some("com.google.Chrome"),
+                None,
+                Some("Inbox (2) - me@gmail.com - Gmail")
+            ),
             Surface::Gmail
         );
         assert_eq!(
-            classify(Some("com.google.Chrome"), None, Some("Design | My Team - Slack")),
+            classify(
+                Some("com.google.Chrome"),
+                None,
+                Some("Design | My Team - Slack")
+            ),
             Surface::Slack
         );
     }
@@ -166,7 +192,10 @@ mod tests {
             url_host("https://mail.google.com:443/mail/u/0").as_deref(),
             Some("mail.google.com")
         );
-        assert_eq!(url_host("http://SLACK.com/client").as_deref(), Some("slack.com"));
+        assert_eq!(
+            url_host("http://SLACK.com/client").as_deref(),
+            Some("slack.com")
+        );
         assert_eq!(url_host("not-a-url"), None);
     }
 
@@ -183,11 +212,19 @@ mod tests {
     #[test]
     fn developer_bundles_classify() {
         assert_eq!(
-            classify_native_bundle(Some(GHOSTTY_BUNDLE_ID)),
+            classify_native_bundle(Some("com.mitchellh.ghostty")),
             Some(Surface::Terminal)
         );
         assert_eq!(
-            classify_native_bundle(Some(APPLE_TERMINAL_BUNDLE_ID)),
+            classify_native_bundle(Some("com.apple.Terminal")),
+            Some(Surface::Terminal)
+        );
+        assert_eq!(
+            classify_native_bundle(Some("com.googlecode.iterm2")),
+            Some(Surface::Terminal)
+        );
+        assert_eq!(
+            classify_native_bundle(Some("dev.warp.Warp-Stable")),
             Some(Surface::Terminal)
         );
         assert_eq!(
@@ -196,6 +233,10 @@ mod tests {
         );
         assert_eq!(
             classify_native_bundle(Some("com.microsoft.VSCodeInsiders")),
+            Some(Surface::Editor)
+        );
+        assert_eq!(
+            classify_native_bundle(Some("com.vscodium.codium")),
             Some(Surface::Editor)
         );
         assert_eq!(

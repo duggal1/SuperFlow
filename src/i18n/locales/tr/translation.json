@@ -29,8 +29,7 @@
     "customModelDescription": "Resmi olarak desteklenmiyor",
     "modelCard": {
       "accuracy": "doğruluk",
-      "speed": "hız",
-      "quant": "Kuantizasyon"
+      "speed": "hız"
     },
     "models": {
       "small": {
@@ -150,7 +149,8 @@
       "translate": "İngilizce'ye çevir",
       "singleLanguage": "Yalnızca bu dili destekler",
       "languageOnly": "Yalnızca {{language}}",
-      "streaming": "Konuşurken canlı transkripsiyon gösterir"
+      "streaming": "Konuşurken canlı transkripsiyon gösterir",
+      "autoDetect": "Auto-detect"
     },
     "cancel": "İptal",
     "cancelDownload": "İndirmeyi iptal et",
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Dolgu Sözcüklerini Kaldır",
         "description": "Transkripsiyonlardaki yaygın duraksama sözcüklerini kaldırır. Bunları korumak için kapatın."
+      },
+      "techLexicon": {
+        "title": "Teknik terimler",
+        "description": "Transkripsiyonlarda \"Next.js\" ve \"Tailwind CSS\" gibi teknik terimleri otomatik düzeltir. Çevrimdışı çalışır."
+      },
+      "fileReferences": {
+        "title": "Akıllı dosya referansları",
+        "description": "Terminalde veya düzenleyicide dikte ederken söylenen dosya adları (\"hero dot tsx\") gerçek proje yollarıyla değiştirilir. Çevrimdışı çalışır."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

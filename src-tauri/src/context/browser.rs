@@ -110,7 +110,12 @@ fn cf_string_to_string(string: CFStringRef) -> Option<String> {
     }
     let mut buffer = [0u8; 2048];
     let ok = unsafe {
-        CFStringGetCString(string, buffer.as_mut_ptr(), buffer.len() as isize, K_CF_STRING_ENCODING_UTF8)
+        CFStringGetCString(
+            string,
+            buffer.as_mut_ptr(),
+            buffer.len() as isize,
+            K_CF_STRING_ENCODING_UTF8,
+        )
     };
     if !ok {
         return None;
@@ -174,8 +179,7 @@ pub struct TabInfo {
 
 fn window_url_safari(window: AXUIElementRef) -> Option<String> {
     let url = copy_attribute(window, ax_attr!("AXURL"))?;
-    let absolute =
-        CfRef::take(unsafe { CFURLCopyAbsoluteURL(url.0 as CFURLRef) })?;
+    let absolute = CfRef::take(unsafe { CFURLCopyAbsoluteURL(url.0 as CFURLRef) })?;
     let string = CfRef::take(unsafe { CFURLGetString(absolute.0 as CFStringRef) })?;
     string.as_string()
 }

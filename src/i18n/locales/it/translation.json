@@ -29,8 +29,7 @@
     "customModelDescription": "Non ufficialmente supportato",
     "modelCard": {
       "accuracy": "accuratezza",
-      "speed": "velocità",
-      "quant": "Quantizzazione"
+      "speed": "velocità"
     },
     "models": {
       "small": {
@@ -150,7 +149,8 @@
       "translate": "Traduci in inglese",
       "singleLanguage": "Supporta solo questa lingua",
       "languageOnly": "Solo {{language}}",
-      "streaming": "Mostra la trascrizione in tempo reale mentre parli"
+      "streaming": "Mostra la trascrizione in tempo reale mentre parli",
+      "autoDetect": "Auto-detect"
     },
     "cancel": "Annulla",
     "cancelDownload": "Annulla download",
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Rimuovi le parole riempitive",
         "description": "Rimuove le parole di esitazione più comuni dalle trascrizioni. Disattiva per mantenerle."
+      },
+      "techLexicon": {
+        "title": "Termini tecnici",
+        "description": "Corregge automaticamente il vocabolario tecnico come \"Next.js\" e \"Tailwind CSS\" nelle trascrizioni. Funziona offline."
+      },
+      "fileReferences": {
+        "title": "Riferimenti intelligenti ai file",
+        "description": "Detta in un terminale o editor: i nomi dei file dettati come \"hero dot tsx\" vengono sostituiti con i percorsi reali del progetto. Funziona offline."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

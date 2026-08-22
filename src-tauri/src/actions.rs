@@ -440,7 +440,11 @@ pub(crate) async fn process_transcription_output(
                 .await
             {
                 crate::intelligence::AwarenessOutcome::Composed(text) => {
-                    debug!("Awareness composed {} chars for {}", text.len(), snapshot.surface.as_str());
+                    debug!(
+                        "Awareness composed {} chars for {}",
+                        text.len(),
+                        snapshot.surface.as_str()
+                    );
                     return ProcessedTranscription {
                         final_text: text.clone(),
                         post_processed_text: Some(text),
@@ -471,7 +475,10 @@ pub(crate) async fn process_transcription_output(
     // project when dictating into a terminal or editor. Local-only, best-effort.
     if settings.smart_file_references_enabled {
         if let Some(resolved) = crate::file_refs::maybe_resolve(&final_text) {
-            debug!("Smart file reference resolved: '{}' → '{}'", final_text, resolved);
+            debug!(
+                "Smart file reference resolved: '{}' → '{}'",
+                final_text, resolved
+            );
             final_text = resolved;
         }
     }

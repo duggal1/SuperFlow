@@ -29,8 +29,7 @@
     "customModelDescription": "Не се поддържа официално",
     "modelCard": {
       "accuracy": "точност",
-      "speed": "скорост",
-      "quant": "Квантизация"
+      "speed": "скорост"
     },
     "models": {
       "small": {
@@ -152,7 +151,8 @@
       "languageOnly": "Само {{language}}",
       "translation": "Може да превежда на английски",
       "translate": "Превод на английски",
-      "streaming": "Показва транскрипция на живо, докато говорите"
+      "streaming": "Показва транскрипция на живо, докато говорите",
+      "autoDetect": "Auto-detect"
     },
     "legacy": "Наследен"
   },
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Премахване на думи паразити",
         "description": "Премахва често срещаните думи за колебание от транскрипциите. Изключете, за да ги запазите."
+      },
+      "techLexicon": {
+        "title": "Технически термини",
+        "description": "Автоматично коригира технически термини като \"Next.js\" и \"Tailwind CSS\" в транскрипциите. Работи офлайн."
+      },
+      "fileReferences": {
+        "title": "Интелигентни препратки към файлове",
+        "description": "Когато диктувате в терминал или редактор, изговорените имена на файлове като \"hero dot tsx\" се заменят с истински пътове на проекта. Работи офлайн."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

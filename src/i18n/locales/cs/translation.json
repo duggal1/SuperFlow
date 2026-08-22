@@ -29,8 +29,7 @@
     "customModelDescription": "Oficiálně nepodporováno",
     "modelCard": {
       "accuracy": "přesnost",
-      "speed": "rychlost",
-      "quant": "Kvantizace"
+      "speed": "rychlost"
     },
     "models": {
       "small": {
@@ -150,7 +149,8 @@
       "translate": "Přeložit do angličtiny",
       "singleLanguage": "Podporuje pouze tento jazyk",
       "languageOnly": "Pouze {{language}}",
-      "streaming": "Zobrazuje přepis živě, jak mluvíte"
+      "streaming": "Zobrazuje přepis živě, jak mluvíte",
+      "autoDetect": "Auto-detect"
     },
     "cancel": "Zrušit",
     "cancelDownload": "Zrušit stahování",
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Odstranit výplňová slova",
         "description": "Odstraňuje běžná slova vyjadřující váhání z přepisů. Vypnutím je zachováte."
+      },
+      "techLexicon": {
+        "title": "Technické termíny",
+        "description": "Automaticky opravuje technické termíny jako \"Next.js\" a \"Tailwind CSS\" v přepisech. Funguje offline."
+      },
+      "fileReferences": {
+        "title": "Chytré odkazy na soubory",
+        "description": "Při diktování do terminálu nebo editoru se vyslovené názvy souborů (např. hero dot tsx) nahradí skutečnými cestami projektu. Funguje offline."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

@@ -150,8 +150,7 @@ pub fn focused_element_text(pid: i32) -> Option<String> {
     let text = cf_string_to_string(value.0 as CFStringRef)?;
 
     let sanitized = sanitize(&text);
-    (!sanitized.trim().is_empty())
-        .then(|| keep_tail(&sanitized, MAX_CHARS).to_string())
+    (!sanitized.trim().is_empty()).then(|| keep_tail(&sanitized, MAX_CHARS).to_string())
 }
 
 #[cfg(test)]

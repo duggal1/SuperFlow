@@ -29,8 +29,7 @@
     "customModelDescription": "Официально не поддерживается",
     "modelCard": {
       "accuracy": "точность",
-      "speed": "скорость",
-      "quant": "Квантование"
+      "speed": "скорость"
     },
     "models": {
       "small": {
@@ -150,7 +149,8 @@
       "translate": "Перевод на английский",
       "singleLanguage": "Поддерживает только этот язык",
       "languageOnly": "Только {{language}}",
-      "streaming": "Показывает транскрипцию в реальном времени во время речи"
+      "streaming": "Показывает транскрипцию в реальном времени во время речи",
+      "autoDetect": "Auto-detect"
     },
     "cancel": "Отмена",
     "cancelDownload": "Отменить загрузку",
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Удалять слова-паразиты",
         "description": "Удаляет распространённые слова-заминки из расшифровок. Отключите, чтобы сохранить их."
+      },
+      "techLexicon": {
+        "title": "Технические термины",
+        "description": "Автоматически исправляет технические термины, такие как «Next.js» и «Tailwind CSS», в транскрипциях. Работает офлайн."
+      },
+      "fileReferences": {
+        "title": "Умные ссылки на файлы",
+        "description": "При диктовке в терминале или редакторе произнесённые имена файлов, например «hero dot tsx», заменяются реальными путями проекта. Работает офлайн."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

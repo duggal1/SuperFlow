@@ -29,8 +29,7 @@
     "customModelDescription": "Офіційно не підтримується",
     "modelCard": {
       "accuracy": "точність",
-      "speed": "швидкість",
-      "quant": "Квантування"
+      "speed": "швидкість"
     },
     "models": {
       "small": {
@@ -150,7 +149,8 @@
       "translate": "Перекласти на англійську",
       "singleLanguage": "Підтримує лише цю мову",
       "languageOnly": "Лише {{language}}",
-      "streaming": "Показує транскрипцію в реальному часі під час мовлення"
+      "streaming": "Показує транскрипцію в реальному часі під час мовлення",
+      "autoDetect": "Auto-detect"
     },
     "cancel": "Скасувати",
     "cancelDownload": "Скасувати завантаження",
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Видаляти слова-паразити",
         "description": "Видаляє поширені слова-вагання з транскрипцій. Вимкніть, щоб зберегти їх."
+      },
+      "techLexicon": {
+        "title": "Технічні терміни",
+        "description": "Автоматично виправляє технічні терміни, як-от «Next.js» і «Tailwind CSS», у транскрипціях. Працює офлайн."
+      },
+      "fileReferences": {
+        "title": "Розумні посилання на файли",
+        "description": "Під час диктування в терміналі чи редакторі вимовлені назви файлів, як-от «hero dot tsx», замінюються реальними шляхами проєкту. Працює офлайн."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

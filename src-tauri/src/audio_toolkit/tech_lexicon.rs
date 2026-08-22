@@ -77,7 +77,10 @@ mod tests {
     #[test]
     fn corrects_misheard_framework_names() {
         assert_eq!(apply("built with next year"), "built with Next.js");
-        assert_eq!(apply("styled using tail winds"), "styled using Tailwind CSS");
+        assert_eq!(
+            apply("styled using tail winds"),
+            "styled using Tailwind CSS"
+        );
     }
 
     #[test]
@@ -114,7 +117,10 @@ mod tests {
     fn corrects_spoken_file_extensions() {
         assert_eq!(apply("edit hero dot tsx"), "edit hero .tsx");
         assert_eq!(apply("open main dot rs"), "open main .rs");
-        assert_eq!(apply("check the package dot json"), "check the package .json");
+        assert_eq!(
+            apply("check the package dot json"),
+            "check the package .json"
+        );
     }
 
     #[test]

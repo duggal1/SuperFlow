@@ -164,6 +164,12 @@ const settingUpdaters: {
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
   filler_word_removal_enabled: (value) =>
     commands.changeFillerWordRemovalEnabledSetting(value as boolean),
+  tech_lexicon_enabled: (value) =>
+    commands.changeTechLexiconEnabledSetting(value as boolean),
+  smart_file_references_enabled: (value) =>
+    commands.changeSmartFileReferencesEnabledSetting(value as boolean),
+  intelligence_awareness_enabled: (value) =>
+    commands.changeIntelligenceAwarenessEnabledSetting(value as boolean),
   show_tray_icon: (value) =>
     commands.changeShowTrayIconSetting(value as boolean),
   transcribe_accelerator: (value) =>

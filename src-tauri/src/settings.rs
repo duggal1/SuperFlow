@@ -827,7 +827,11 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         .into_iter()
         .chain(BUILTIN_TONE_PROMPTS.iter().cloned())
     {
-        if !settings.post_process_prompts.iter().any(|p| p.id == prompt.id) {
+        if !settings
+            .post_process_prompts
+            .iter()
+            .any(|p| p.id == prompt.id)
+        {
             debug!("Seeding built-in post-process prompt '{}'", prompt.id);
             settings.post_process_prompts.push(prompt);
             changed = true;

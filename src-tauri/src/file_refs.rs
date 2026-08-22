@@ -18,18 +18,35 @@ use std::time::{Duration, Instant};
 
 /// File extensions recognized after a spoken "dot"/direct suffix.
 const EXTENSIONS: &[&str] = &[
-    "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "rs", "go", "rb", "java", "kt", "kts",
-    "swift", "m", "mm", "c", "h", "cpp", "cc", "cxx", "hpp", "cs", "php", "css", "scss",
-    "sass", "less", "html", "htm", "json", "md", "mdx", "txt", "yml", "yaml", "toml", "sql",
-    "sh", "bash", "zsh", "fish", "vue", "svelte", "astro", "prisma", "graphql", "gql", "env",
-    "xml", "ini", "cfg", "conf",
+    "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "rs", "go", "rb", "java", "kt", "kts", "swift",
+    "m", "mm", "c", "h", "cpp", "cc", "cxx", "hpp", "cs", "php", "css", "scss", "sass", "less",
+    "html", "htm", "json", "md", "mdx", "txt", "yml", "yaml", "toml", "sql", "sh", "bash", "zsh",
+    "fish", "vue", "svelte", "astro", "prisma", "graphql", "gql", "env", "xml", "ini", "cfg",
+    "conf",
 ];
 
 /// Directories never indexed (dependency/output noise).
 const IGNORED_DIRS: &[&str] = &[
-    ".git", "node_modules", "target", "dist", "build", "out", ".next", "vendor", "venv",
-    ".venv", "__pycache__", "coverage", ".cache", ".turbo", ".output", ".svelte-kit", "Pods",
-    "DerivedData", ".idea", ".gradle",
+    ".git",
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    "out",
+    ".next",
+    "vendor",
+    "venv",
+    ".venv",
+    "__pycache__",
+    "coverage",
+    ".cache",
+    ".turbo",
+    ".output",
+    ".svelte-kit",
+    "Pods",
+    "DerivedData",
+    ".idea",
+    ".gradle",
 ];
 
 const MAX_INDEX_FILES: usize = 30_000;
@@ -96,11 +113,22 @@ fn project_root(bundle_id: &str) -> Option<PathBuf> {
 fn terminal_project_root() -> Option<PathBuf> {
     let procs = list_processes()?;
     // Terminal app processes: comm is the executable name (max 16 chars).
-    let terminal_names: &[&str] = &["terminal", "ghostty", "iterm2", "warp", "kitty", "alacritty", "wezterm"];
+    let terminal_names: &[&str] = &[
+        "terminal",
+        "ghostty",
+        "iterm2",
+        "warp",
+        "kitty",
+        "alacritty",
+        "wezterm",
+    ];
     let mut queue: VecDeque<i32> = procs
         .iter()
         .filter(|p| {
-            p.comm.starts_with("Terminal") || terminal_names.iter().any(|n| p.comm.eq_ignore_ascii_case(n))
+            p.comm.starts_with("Terminal")
+                || terminal_names
+                    .iter()
+                    .any(|n| p.comm.eq_ignore_ascii_case(n))
         })
         .map(|p| p.pid)
         .collect();
@@ -179,7 +207,12 @@ fn list_processes() -> Option<Vec<ProcInfo>> {
         let comm_raw = parts.next()?.trim();
         // `comm` may be a full path; the executable name is what matches.
         let comm = comm_raw.rsplit('/').next().unwrap_or(comm_raw).to_string();
-        procs.push(ProcInfo { pid, ppid, comm, order });
+        procs.push(ProcInfo {
+            pid,
+            ppid,
+            comm,
+            order,
+        });
     }
     Some(procs)
 }
@@ -203,7 +236,9 @@ fn process_cwd(pid: i32) -> Option<PathBuf> {
 /// Last active workspace folder from the editor's storage.json.
 fn editor_project_root(bundle_id: &str) -> Option<PathBuf> {
     let home = std::env::var("HOME").ok()?;
-    let (_, rel) = EDITOR_STORAGE.iter().find(|(id, _)| bundle_id.starts_with(id))?;
+    let (_, rel) = EDITOR_STORAGE
+        .iter()
+        .find(|(id, _)| bundle_id.starts_with(id))?;
     let path = PathBuf::from(home).join(rel);
     let raw = std::fs::read_to_string(path).ok()?;
     let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
@@ -285,7 +320,11 @@ fn project_index(root: &Path) -> Option<Vec<FileEntry>> {
 
     let mut entries = Vec::new();
     walk(root, root, 0, &mut entries);
-    debug!("file_refs: indexed {} files under {}", entries.len(), root.display());
+    debug!(
+        "file_refs: indexed {} files under {}",
+        entries.len(),
+        root.display()
+    );
 
     if let Ok(mut cache) = INDEX_CACHE.lock() {
         if cache.len() > 8 {
@@ -304,7 +343,9 @@ fn walk(root: &Path, dir: &Path, depth: usize, out: &mut Vec<FileEntry>) {
         return;
     };
     for entry in read.flatten() {
-        let Ok(file_type) = entry.file_type() else { continue };
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
         let name = entry.file_name();
         let name = name.to_string_lossy();
         if file_type.is_dir() {
@@ -342,7 +383,8 @@ fn is_ext(token: &str) -> Option<&'static str> {
 }
 
 fn is_dot_word(token: &str) -> bool {
-    matches!(token, "dot" | "period" | "dotcom")
+    // "doot"/"dots" are common ASR renderings of a spoken "dot".
+    matches!(token, "dot" | "doot" | "dots" | "period")
 }
 
 fn best_match(index: &[FileEntry], filename: &str) -> Option<String> {
@@ -480,7 +522,10 @@ mod tests {
         let dir = std::env::temp_dir().join(format!(
             "superflow_file_refs_test_{}_{}",
             std::process::id(),
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos()
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .subsec_nanos()
         ));
         std::fs::create_dir_all(dir.join("components/landing-page")).unwrap();
         std::fs::create_dir_all(dir.join("node_modules/somepkg")).unwrap();
@@ -518,14 +563,20 @@ mod tests {
     fn spoken_dot_form_resolves() {
         let dir = temp_project();
         let result = resolve_in(&dir, "edit the hero dot tsx file");
-        assert_eq!(result.as_deref(), Some("edit the components/landing-page/hero.tsx file"));
+        assert_eq!(
+            result.as_deref(),
+            Some("edit the components/landing-page/hero.tsx file")
+        );
     }
 
     #[test]
     fn spelled_letters_resolves() {
         let dir = temp_project();
         let result = resolve_in(&dir, "open hero doot t s x now");
-        assert!(result.as_deref().unwrap_or_default().contains("hero.tsx"), "{result:?}");
+        assert!(
+            result.as_deref().unwrap_or_default().contains("hero.tsx"),
+            "{result:?}"
+        );
     }
 
     #[test]
@@ -552,12 +603,13 @@ mod tests {
     }
 
     #[test]
-    fn shallowest_match_wins() {
+    fn tie_break_prefers_shorter_path() {
         let dir = temp_project();
         std::fs::create_dir_all(dir.join("a/b")).unwrap();
         std::fs::write(dir.join("a/b/hero.tsx"), "").unwrap();
+        // Same depth as components/landing-page/hero.tsx; shorter path wins.
         let result = resolve_in(&dir, "open hero dot tsx");
-        assert_eq!(result.as_deref(), Some("open components/landing-page/hero.tsx"));
+        assert_eq!(result.as_deref(), Some("open a/b/hero.tsx"));
     }
 
     #[test]

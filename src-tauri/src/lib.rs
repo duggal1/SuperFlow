@@ -304,6 +304,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                     tray::update_tray_menu(&app_clone, None);
                 });
             }
+            id if id.starts_with("prompt_select:") => {
+                let prompt_id = id.strip_prefix("prompt_select:").unwrap().to_string();
+                if let Err(e) = shortcut::set_post_process_selected_prompt(app.clone(), prompt_id) {
+                    log::error!("Failed to select post-process prompt via tray: {}", e);
+                }
+                tray::update_tray_menu(app, None);
+            }
             _ => {}
         })
         .build(app_handle)
@@ -658,6 +665,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_tech_lexicon_enabled_setting,
             shortcut::change_smart_file_references_enabled_setting,
+            shortcut::change_intelligence_awareness_enabled_setting,
             shortcut::change_app_language_setting,
             shortcut::change_update_checks_setting,
             shortcut::change_show_whats_new_on_update_setting,

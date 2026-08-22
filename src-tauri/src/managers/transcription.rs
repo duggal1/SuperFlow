@@ -1773,20 +1773,15 @@ fn post_process_transcription_text(
             raw
         };
 
-        // Built-in technical vocabulary ("next year" → "Next.js"). Runs after
-        // user words so personal entries always win; applies on every path
-        // including streaming models that receive no decode prompt.
+        // Built-in technical lexicon: canonical spellings for misheard
+        // framework names ("next year" → "Next.js"), spoken file extensions
+        // ("dot tsx" → ".tsx") and path separators ("slash" → "/"). Runs
+        // after user custom words so a user's own correction always wins.
         let corrected = if settings.tech_lexicon_enabled {
             crate::audio_toolkit::tech_lexicon::apply(&corrected)
         } else {
             corrected
         };
-
-        // Built-in technical lexicon: canonical spellings for misheard
-        // framework names, spoken file extensions ("dot tsx" → ".tsx") and
-        // path separators ("slash" → "/"). Runs after user custom words so a
-        // user's own correction always wins.
-        let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
 
         // Last-resort language evidence: confidence-gated detection from the
         // transcribed text itself, constrained to the model's languages. Only

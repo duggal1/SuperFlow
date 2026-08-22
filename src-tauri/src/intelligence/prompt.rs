@@ -149,8 +149,7 @@ mod tests {
             focused_text: Some("~/app/src/components/hero.tsx\n$ ".into()),
             ..ContextSnapshot::other("Ghostty")
         };
-        let (system, user) =
-            build_context_prompts(&snap, "open components hero dot tsx").unwrap();
+        let (system, user) = build_context_prompts(&snap, "open components hero dot tsx").unwrap();
         assert!(system.contains("terminal"));
         assert!(system.contains("visible on screen"));
         assert!(user.contains("hero.tsx"));

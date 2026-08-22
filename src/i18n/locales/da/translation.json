@@ -29,8 +29,7 @@
     "customModelDescription": "Ikke officielt understøttet",
     "modelCard": {
       "accuracy": "nøjagtighed",
-      "speed": "hastighed",
-      "quant": "Kvantificering"
+      "speed": "hastighed"
     },
     "models": {
       "small": {
@@ -153,7 +152,8 @@
       "languageOnly": "Kun {{language}}",
       "translation": "Kan oversætte til engelsk",
       "translate": "Oversæt",
-      "streaming": "Viser live transskription, mens du taler"
+      "streaming": "Viser live transskription, mens du taler",
+      "autoDetect": "Auto-detect"
     }
   },
   "settings": {
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Fjern fyldord",
         "description": "Fjerner almindelige tøveord fra transskriptioner. Slå fra for at beholde dem."
+      },
+      "techLexicon": {
+        "title": "Tekniske termer",
+        "description": "Retter automatisk teknisk ordforråd som \"Next.js\" og \"Tailwind CSS\" i transskriptioner. Fungerer offline."
+      },
+      "fileReferences": {
+        "title": "Smarte filreferencer",
+        "description": "Når du dikterer i en terminal eller editor, erstattes talte filnavne som \"hero dot tsx\" med rigtige projektstier. Fungerer offline."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

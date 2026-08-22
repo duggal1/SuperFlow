@@ -29,8 +29,7 @@
     "customModelDescription": "Stöds inte officiellt",
     "modelCard": {
       "accuracy": "noggrannhet",
-      "speed": "hastighet",
-      "quant": "Kvantisering"
+      "speed": "hastighet"
     },
     "models": {
       "small": {
@@ -152,7 +151,8 @@
       "languageOnly": "Endast {{language}}",
       "translation": "Kan översätta till engelska",
       "translate": "Översätt till engelska",
-      "streaming": "Visar transkription i realtid medan du talar"
+      "streaming": "Visar transkription i realtid medan du talar",
+      "autoDetect": "Auto-detect"
     },
     "legacy": "Äldre"
   },
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Ta bort utfyllnadsord",
         "description": "Tar bort vanliga tvekljud från transkriberingar. Stäng av för att behålla dem."
+      },
+      "techLexicon": {
+        "title": "Tekniska termer",
+        "description": "Korrigerar automatiskt tekniska termer som \"Next.js\" och \"Tailwind CSS\" i transkription. Fungerar offline."
+      },
+      "fileReferences": {
+        "title": "Smarta filreferenser",
+        "description": "Vid diktering i en terminal eller editor ersätts talade filnamn som \"hero dot tsx\" med riktiga projektsökvägar. Fungerar offline."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

@@ -29,8 +29,7 @@
     "customModelDescription": "公式サポート対象外",
     "modelCard": {
       "accuracy": "精度",
-      "speed": "速度",
-      "quant": "量子化"
+      "speed": "速度"
     },
     "models": {
       "small": {
@@ -150,7 +149,8 @@
       "translate": "英語に翻訳",
       "singleLanguage": "この言語のみ対応",
       "languageOnly": "{{language}}のみ",
-      "streaming": "話しながらリアルタイムで文字起こしを表示"
+      "streaming": "話しながらリアルタイムで文字起こしを表示",
+      "autoDetect": "Auto-detect"
     },
     "cancel": "キャンセル",
     "cancelDownload": "ダウンロードをキャンセル",
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "フィラー語を削除",
         "description": "文字起こしから一般的なフィラー語を削除します。残すにはオフにしてください。"
+      },
+      "techLexicon": {
+        "title": "技術用語",
+        "description": "文字起こし内の「Next.js」や「Tailwind CSS」などの技術用語を自動修正します。オフラインで動作します。"
+      },
+      "fileReferences": {
+        "title": "スマートファイル参照",
+        "description": "ターミナルやエディタに音声入力する際、話したファイル名が実在するプロジェクトのパスに変換されます。オフラインで動作します。"
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

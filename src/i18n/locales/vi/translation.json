@@ -29,8 +29,7 @@
     "customModelDescription": "Không được hỗ trợ chính thức",
     "modelCard": {
       "accuracy": "độ chính xác",
-      "speed": "tốc độ",
-      "quant": "Lượng tử hóa"
+      "speed": "tốc độ"
     },
     "models": {
       "small": {
@@ -150,7 +149,8 @@
       "translate": "Dịch sang tiếng Anh",
       "singleLanguage": "Chỉ hỗ trợ ngôn ngữ này",
       "languageOnly": "Chỉ {{language}}",
-      "streaming": "Hiển thị phiên âm trực tiếp khi bạn nói"
+      "streaming": "Hiển thị phiên âm trực tiếp khi bạn nói",
+      "autoDetect": "Auto-detect"
     },
     "cancel": "Hủy",
     "cancelDownload": "Hủy tải xuống",
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Loại bỏ từ đệm",
         "description": "Loại bỏ các từ ngập ngừng phổ biến khỏi bản chép lời. Tắt để giữ lại các từ này."
+      },
+      "techLexicon": {
+        "title": "Thuật ngữ kỹ thuật",
+        "description": "Tự động sửa các thuật ngữ kỹ thuật như \"Next.js\" và \"Tailwind CSS\" trong bản ghi. Hoạt động ngoại tuyến."
+      },
+      "fileReferences": {
+        "title": "Tham chiếu tệp thông minh",
+        "description": "Khi đọc chính tả vào terminal hoặc trình soạn thảo, tên tệp được nói như hero dot tsx sẽ được thay bằng đường dẫn dự án thực tế. Hoạt động ngoại tuyến."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

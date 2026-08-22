@@ -29,8 +29,7 @@
     "customModelDescription": "Niet officieel ondersteund",
     "modelCard": {
       "accuracy": "nauwkeurigheid",
-      "speed": "snelheid",
-      "quant": "Kwantisatie"
+      "speed": "snelheid"
     },
     "models": {
       "small": {
@@ -153,7 +152,8 @@
       "languageOnly": "Alleen {{language}}",
       "translation": "Kan vertalen naar het Engels",
       "translate": "Vertalen",
-      "streaming": "Toont live transcriptie tijdens het spreken"
+      "streaming": "Toont live transcriptie tijdens het spreken",
+      "autoDetect": "Auto-detect"
     }
   },
   "settings": {
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Opvulwoorden verwijderen",
         "description": "Verwijdert veelvoorkomende aarzelwoorden uit transcripties. Schakel dit uit om ze te behouden."
+      },
+      "techLexicon": {
+        "title": "Technische termen",
+        "description": "Corrigeert automatisch technische termen zoals \"Next.js\" en \"Tailwind CSS\" in transcripties. Werkt offline."
+      },
+      "fileReferences": {
+        "title": "Slimme bestandsverwijzingen",
+        "description": "Bij dicteren in een terminal of editor worden gesproken bestandsnamen zoals \"hero dot tsx\" vervangen door echte projectpaden. Werkt offline."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

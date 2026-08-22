@@ -29,8 +29,7 @@
     "customModelDescription": "官方不支援",
     "modelCard": {
       "accuracy": "準確度",
-      "speed": "速度",
-      "quant": "量化"
+      "speed": "速度"
     },
     "models": {
       "small": {
@@ -152,7 +151,8 @@
       "languageOnly": "僅 {{language}}",
       "translation": "可翻譯為英語",
       "translate": "翻譯為英語",
-      "streaming": "在您說話時即時顯示轉錄"
+      "streaming": "在您說話時即時顯示轉錄",
+      "autoDetect": "Auto-detect"
     },
     "legacy": "舊版"
   },
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "移除語助詞",
         "description": "從轉錄中移除常見的語助詞。關閉此選項即可保留這些詞。"
+      },
+      "techLexicon": {
+        "title": "技術術語",
+        "description": "自動修正轉錄中的技術術語，如 \"Next.js\" 和 \"Tailwind CSS\"。離線可用。"
+      },
+      "fileReferences": {
+        "title": "智慧檔案參照",
+        "description": "在終端機或程式碼編輯器中聽寫時，說出的檔案名稱（如 hero dot tsx）會替換為真實的專案路徑。離線可用。"
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

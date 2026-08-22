@@ -63,11 +63,7 @@ pub async fn compose_aware_reply(
     cloud_fallback(settings, &system, &user).await
 }
 
-async fn cloud_fallback(
-    settings: &AppSettings,
-    system: &str,
-    user: &str,
-) -> AwarenessOutcome {
+async fn cloud_fallback(settings: &AppSettings, system: &str, user: &str) -> AwarenessOutcome {
     // Same credential/model plumbing as regular post-processing — a provider
     // configured for post-processing is reused for awareness.
     let Some(provider) = settings.active_post_process_provider().cloned() else {

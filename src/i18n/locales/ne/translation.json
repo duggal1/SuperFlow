@@ -29,8 +29,7 @@
     "customModelDescription": "आधिकारिक रूपमा समर्थित छैन",
     "modelCard": {
       "accuracy": "शुद्धता",
-      "speed": "गति",
-      "quant": "क्वान्टिजेसन"
+      "speed": "गति"
     },
     "models": {
       "small": {
@@ -153,7 +152,8 @@
       "languageOnly": "{{language}} मात्र",
       "translation": "अङ्ग्रेजीमा अनुवाद गर्न सक्छ",
       "translate": "अनुवाद",
-      "streaming": "बोल्दै गर्दा लाइभ ट्रान्सक्रिप्सन देखाउँछ"
+      "streaming": "बोल्दै गर्दा लाइभ ट्रान्सक्रिप्सन देखाउँछ",
+      "autoDetect": "Auto-detect"
     }
   },
   "settings": {
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "फिलर शब्दहरू हटाउनुहोस्",
         "description": "ट्रान्सक्रिप्सनबाट सामान्य हिचकिचाहटका शब्दहरू हटाउँछ। तिनलाई राख्न यो विकल्प बन्द गर्नुहोस्।"
+      },
+      "techLexicon": {
+        "title": "प्राविधिक शब्द",
+        "description": "ट्रान्स्क्रिप्सनमा \"Next.js\" र \"Tailwind CSS\" जस्ता प्राविधिक शब्दहरू स्वतः सुधार्छ। अफलाइन काम गर्छ।"
+      },
+      "fileReferences": {
+        "title": "स्मार्ट फाइल सन्दर्भ",
+        "description": "टर्मिनल वा सम्पादकमा बोल्दा भनिएका फाइल नाम जस्तै hero dot tsx वास्तविक परियोजना मार्गले बदलिन्छ। अफलाइन काम गर्छ।"
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

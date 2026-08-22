@@ -253,9 +253,13 @@ fn apply_match_entries(
             }
             let ngram = build_ngram(ngram_words);
 
-            if let Some((replacement, score)) =
-                find_best_match(&ngram, displays, match_keys, threshold, allow_phonetic_boost)
-            {
+            if let Some((replacement, score)) = find_best_match(
+                &ngram,
+                displays,
+                match_keys,
+                threshold,
+                allow_phonetic_boost,
+            ) {
                 let is_better = best_match
                     .as_ref()
                     .is_none_or(|(_, _, best_score)| score < *best_score);
@@ -959,7 +963,9 @@ mod tests {
 
     #[test]
     fn test_apply_custom_words_handles_unicode_punctuation() {
-        let text = "「Handee。」";
+        // The candidate must be a legitimate fuzzy/exact match for the custom
+        // word; CJK brackets must survive the replacement untouched.
+        let text = "「superflow。」";
         let custom_words = vec!["SuperFlow".to_string()];
         let result = apply_custom_words(text, &custom_words, 0.5);
         assert_eq!(result, "「SuperFlow。」");
@@ -977,7 +983,10 @@ mod tests {
     fn join_merges_extension_tokens() {
         assert_eq!(join_path_tokens("edit hero .tsx"), "edit hero.tsx");
         assert_eq!(join_path_tokens("edit hero .tsx,"), "edit hero.tsx,");
-        assert_eq!(join_path_tokens("open app .json file"), "open app.json file");
+        assert_eq!(
+            join_path_tokens("open app .json file"),
+            "open app.json file"
+        );
     }
 
     #[test]
@@ -986,7 +995,10 @@ mod tests {
             join_path_tokens("src / components / hero .tsx"),
             "src/components/hero.tsx"
         );
-        assert_eq!(join_path_tokens("components /auth guard"), "components/auth guard");
+        assert_eq!(
+            join_path_tokens("components /auth guard"),
+            "components/auth guard"
+        );
         assert_eq!(join_path_tokens("and / or"), "and/or");
     }
 

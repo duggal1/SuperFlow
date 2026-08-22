@@ -1302,6 +1302,18 @@ pub fn change_smart_file_references_enabled_setting(
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_intelligence_awareness_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.intelligence_awareness_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_app_language_setting(app: AppHandle, language: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.app_language = language.clone();

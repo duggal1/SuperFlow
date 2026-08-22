@@ -29,8 +29,7 @@
     "customModelDescription": "לא נתמך באופן רשמי",
     "modelCard": {
       "accuracy": "דיוק",
-      "speed": "מהירות",
-      "quant": "קוונטיזציה"
+      "speed": "מהירות"
     },
     "models": {
       "small": {
@@ -152,7 +151,8 @@
       "languageOnly": "{{language}} בלבד",
       "translation": "יכול לתרגם לאנגלית",
       "translate": "תרגם לאנגלית",
-      "streaming": "מציג תמלול חי תוך כדי דיבור"
+      "streaming": "מציג תמלול חי תוך כדי דיבור",
+      "autoDetect": "Auto-detect"
     },
     "legacy": "מדור קודם"
   },
@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "הסרת מילות מילוי",
         "description": "מסיר מילות היסוס נפוצות מתמלולים. השבת כדי להשאיר אותן."
+      },
+      "techLexicon": {
+        "title": "מונחים טכניים",
+        "description": "מתקן אוטומטית מונחים טכניים כמו \"Next.js\" ו־\"Tailwind CSS\" בתמלילים. עובד ללא אינטרנט."
+      },
+      "fileReferences": {
+        "title": "הפניות קבצים חכמות",
+        "description": "בעת הכתבה למסוף או לעורך, שמות קבצים מדוברים כמו hero dot tsx מוחלפים בנתיבי פרויקט אמיתיים. עובד ללא אינטרנט."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {

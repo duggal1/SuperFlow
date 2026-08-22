@@ -382,6 +382,18 @@
       "fillerWordRemoval": {
         "title": "Remove Filler Words",
         "description": "Removes common hesitation words from transcriptions. Turn off to keep them."
+      },
+      "techLexicon": {
+        "title": "Technical Terms",
+        "description": "Automatically corrects technical vocabulary like \"Next.js\" and \"Tailwind CSS\" in transcriptions. Works offline."
+      },
+      "fileReferences": {
+        "title": "Smart File References",
+        "description": "When dictating into a terminal or code editor, spoken file names like \"hero dot tsx\" are replaced with real project paths. Works offline."
+      },
+      "intelligenceAwareness": {
+        "title": "Intelligence Awareness",
+        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
       }
     },
     "postProcessing": {
