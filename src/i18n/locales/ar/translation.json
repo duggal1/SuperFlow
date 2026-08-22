@@ -440,7 +440,7 @@
       "retranscribe": "إعادة النسخ",
       "retranscribeError": "فشلت إعادة النسخ. يرجى المحاولة مرة أخرى.",
       "transcribing": "جارٍ النسخ...",
-      "transcriptionFailed": "فشل النسخ. يمكنك إعادة النسخ باستخدام أيقونة إعادة المحاولة."
+      "transcriptionFailed": "فشل النسخ. يرجى إعادة النسخ."
     },
     "debug": {
       "title": "تصحيح الأخطاء",
@@ -685,7 +685,9 @@
     "processing": "...جاري المعالجة",
     "transcript": "التفريغ النصي",
     "copy": "نسخ",
-    "copied": "تم النسخ"
+    "copied": "تم النسخ",
+    "transcriptionCanceled": "تم إلغاء النسخ",
+    "undo": "تراجع"
   },
   "whatsNew": {
     "title": "الجديد في SuperFlow v{{version}}"

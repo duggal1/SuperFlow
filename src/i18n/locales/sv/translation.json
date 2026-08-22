@@ -463,7 +463,7 @@
       "retranscribe": "Transkribera igen",
       "retranscribeError": "Misslyckades med att transkribera igen. Försök igen.",
       "transcribing": "Transkriberar...",
-      "transcriptionFailed": "Transkribering misslyckades. Du kan transkribera igen med hjälp av ikonen för nytt försök."
+      "transcriptionFailed": "Transkriptionen misslyckades. Transkribera igen."
     },
     "debug": {
       "title": "Felsökning",
@@ -685,7 +685,9 @@
     "processing": "Bearbetar...",
     "transcript": "Transkript",
     "copy": "Kopiera",
-    "copied": "Kopierat"
+    "copied": "Kopierat",
+    "transcriptionCanceled": "Transkriptionen avbröts",
+    "undo": "Ångra"
   },
   "whatsNew": {
     "title": "Nytt i SuperFlow v{{version}}"

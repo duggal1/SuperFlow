@@ -463,7 +463,7 @@
       "retranscribe": "Yeniden transkribe et",
       "retranscribeError": "Yeniden transkripsiyon başarısız oldu. Lütfen tekrar deneyin.",
       "transcribing": "Transkribe ediliyor...",
-      "transcriptionFailed": "Transkripsiyon başarısız oldu. Yeniden deneme simgesini kullanarak tekrar transkribe edebilirsiniz."
+      "transcriptionFailed": "Yazıya dökme başarısız oldu. Lütfen yeniden yazıma alın."
     },
     "debug": {
       "title": "Hata Ayıklama",
@@ -685,7 +685,9 @@
     "processing": "İşleniyor...",
     "transcript": "Transkript",
     "copy": "Kopyala",
-    "copied": "Kopyalandı"
+    "copied": "Kopyalandı",
+    "transcriptionCanceled": "Transkripsiyon iptal edildi",
+    "undo": "Geri al"
   },
   "whatsNew": {
     "title": "SuperFlow v{{version}} yenilikleri"

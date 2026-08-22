@@ -22,6 +22,25 @@ pub fn hide_result_overlay(app: AppHandle) {
     crate::utils::hide_recording_overlay(&app);
 }
 
+/// Pastes the transcript of the last cancelled dictation (the cancel toast's
+/// Undo button) through the normal paste path, and dismisses the toast.
+#[tauri::command]
+#[specta::specta]
+pub fn undo_canceled_transcription(app: AppHandle) {
+    let Some(text) = crate::utils::take_canceled_transcript() else {
+        return;
+    };
+    crate::utils::hide_recording_overlay(&app);
+    // Paste injects keystrokes — same main-thread requirement as the
+    // transcription pipeline's paste branch.
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        if let Err(e) = crate::utils::paste(text, handle) {
+            log::warn!("Undo paste failed: {e}");
+        }
+    });
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn is_portable() -> bool {

@@ -463,7 +463,7 @@
       "retranscribe": "Transkrybuj ponownie",
       "retranscribeError": "Nie udało się ponownie transkrybować. Spróbuj ponownie.",
       "transcribing": "Transkrybuję...",
-      "transcriptionFailed": "Transkrypcja nie powiodła się. Możesz transkrybować ponownie za pomocą ikony ponowienia."
+      "transcriptionFailed": "Transkrypcja nie powiodła się. Ponów transkrypcję."
     },
     "debug": {
       "title": "Debugowanie",
@@ -685,7 +685,9 @@
     "processing": "Przetwarzanie...",
     "transcript": "Transkrypcja",
     "copy": "Kopiuj",
-    "copied": "Skopiowano"
+    "copied": "Skopiowano",
+    "transcriptionCanceled": "Transkrypcja anulowana",
+    "undo": "Cofnij"
   },
   "whatsNew": {
     "title": "Nowości w SuperFlow v{{version}}"

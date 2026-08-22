@@ -463,7 +463,7 @@
       "retranscribe": "Přepsat znovu",
       "retranscribeError": "Opětovný přepis se nezdařil. Zkuste to prosím znovu.",
       "transcribing": "Přepisuji...",
-      "transcriptionFailed": "Přepis selhal. Můžete zkusit přepis znovu pomocí ikony opakování."
+      "transcriptionFailed": "Přepis se nezdařil. Zkuste přepis znovu."
     },
     "debug": {
       "title": "Ladění",
@@ -685,7 +685,9 @@
     "processing": "Zpracovávám...",
     "transcript": "Přepis",
     "copy": "Kopírovat",
-    "copied": "Zkopírováno"
+    "copied": "Zkopírováno",
+    "transcriptionCanceled": "Přepis byl zrušen",
+    "undo": "Zpět"
   },
   "whatsNew": {
     "title": "Novinky v SuperFlow v{{version}}"

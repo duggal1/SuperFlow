@@ -3,7 +3,7 @@ use crate::managers::transcription::TranscriptionManager;
 use crate::shortcut;
 use crate::TranscriptionCoordinator;
 use log::info;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Manager};
 
 // Re-export all utility modules for easy access
@@ -11,6 +11,26 @@ use tauri::{AppHandle, Manager};
 pub use crate::clipboard::*;
 pub use crate::overlay::*;
 pub use crate::tray::*;
+
+/// Transcript of the most recently cancelled dictation, stashed so the
+/// cancel toast's Undo button can still paste it. Replaced on every new
+/// cancellation; emptied by Undo itself.
+static LAST_CANCELED_TRANSCRIPT: Mutex<Option<String>> = Mutex::new(None);
+
+/// Stashes the transcript of a cancelled dictation for Undo.
+pub fn stash_canceled_transcript(text: String) {
+    if let Ok(mut slot) = LAST_CANCELED_TRANSCRIPT.lock() {
+        *slot = Some(text);
+    }
+}
+
+/// Takes the stashed cancelled transcript (leaving the slot empty).
+pub fn take_canceled_transcript() -> Option<String> {
+    LAST_CANCELED_TRANSCRIPT
+        .lock()
+        .ok()
+        .and_then(|mut slot| slot.take())
+}
 
 #[cfg(any(test, all(target_os = "windows", target_arch = "x86_64")))]
 const IMAGE_FILE_MACHINE_ARM64: u16 = 0xaa64;
@@ -88,9 +108,21 @@ pub fn cancel_current_operation(app: &AppHandle) {
     let tm = app.state::<Arc<TranscriptionManager>>();
     tm.cancel_stream();
 
-    // Update tray icon and hide overlay
+    // Update tray icon, then acknowledge the cancel: play the canceled cue and
+    // show the short "Transcription canceled" toast (with Undo once the
+    // pipeline stashes its transcript). Only when something was actually on
+    // screen — cancelling while idle stays silent.
     change_tray_icon(app, crate::tray::TrayIconState::Idle);
-    hide_recording_overlay(app);
+    let overlay_was_visible = app
+        .get_webview_window("recording_overlay")
+        .map(|window| window.is_visible().unwrap_or(false))
+        .unwrap_or(false);
+    if overlay_was_visible {
+        crate::audio_feedback::play_canceled_sound(app);
+        show_cancel_toast(app, false);
+    } else {
+        hide_recording_overlay(app);
+    }
 
     // Unload model if immediate unload is enabled
     tm.maybe_unload_immediately("cancellation");

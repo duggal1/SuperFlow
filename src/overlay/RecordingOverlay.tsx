@@ -83,6 +83,11 @@ const RecordingOverlay: React.FC = () => {
   const [resultExiting, setResultExiting] = useState(false);
   // Which edges of the body are currently hiding scrolled text.
   const [resultFade, setResultFade] = useState<ResultFade>("none");
+  // Cancel acknowledgment toast: shown when a dictation is cancelled, with
+  // Undo enabled once the pipeline stashes the cancelled transcript.
+  const [cancelToastVisible, setCancelToastVisible] = useState(false);
+  const [cancelToastCanUndo, setCancelToastCanUndo] = useState(false);
+  const [cancelToastExiting, setCancelToastExiting] = useState(false);
   // Auto-dismiss safety net so the floating card can never linger forever.
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Delayed close after the "Copied" confirmation plays.
@@ -93,6 +98,14 @@ const RecordingOverlay: React.FC = () => {
   const resultTextRef = useRef<string | null>(null);
   // Scrollable transcript body — measured for the edge fades.
   const resultBodyRef = useRef<HTMLDivElement>(null);
+  // Cancel-toast timers + visibility mirror for the same listeners.
+  const cancelToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const cancelToastExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const cancelToastVisibleRef = useRef(false);
 
   const clearResultTimer = () => {
     if (resultTimerRef.current !== null) {
@@ -141,6 +154,40 @@ const RecordingOverlay: React.FC = () => {
     }, RESULT_EXIT_MS);
   };
 
+  const clearCancelToastTimers = () => {
+    if (cancelToastTimerRef.current !== null) {
+      clearTimeout(cancelToastTimerRef.current);
+      cancelToastTimerRef.current = null;
+    }
+    if (cancelToastExitTimerRef.current !== null) {
+      clearTimeout(cancelToastExitTimerRef.current);
+      cancelToastExitTimerRef.current = null;
+    }
+  };
+
+  const resetCancelToast = () => {
+    clearCancelToastTimers();
+    cancelToastVisibleRef.current = false;
+    setCancelToastVisible(false);
+    setCancelToastExiting(false);
+    setCancelToastCanUndo(false);
+  };
+
+  // Plays the toast's blur-out, then tears the state down — same backend
+  // grace window as the result card's exit.
+  const startCancelToastExit = () => {
+    clearCancelToastTimers();
+    setCancelToastExiting(true);
+    cancelToastExitTimerRef.current = setTimeout(() => {
+      cancelToastExitTimerRef.current = null;
+      cancelToastVisibleRef.current = false;
+      setCancelToastExiting(false);
+      setCancelToastVisible(false);
+      setCancelToastCanUndo(false);
+      setIsVisible(false);
+    }, RESULT_EXIT_MS);
+  };
+
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
   // user is at the bottom; if they scroll up to read history, auto-follow pauses
@@ -164,8 +211,9 @@ const RecordingOverlay: React.FC = () => {
           smoothedLevelsRef.current = Array(16).fill(0);
           setLevels(Array(WAVE_BARS).fill(0));
           setStreamText({ committed: "", tentative: "" });
-          // A new dictation replaces any result card still on screen.
+          // A new dictation replaces any result card or cancel toast.
           resetResultCard();
+          resetCancelToast();
         }
 
         await syncLanguageFromSettings();
@@ -193,6 +241,13 @@ const RecordingOverlay: React.FC = () => {
 
       const unlistenHide = await listen("hide-overlay", () => {
         setCaptureReady(false);
+        if (cancelToastVisibleRef.current) {
+          // Cancel toast on screen: blur it out inside the backend's grace.
+          if (cancelToastExitTimerRef.current === null) {
+            startCancelToastExit();
+          }
+          return;
+        }
         if (resultTextRef.current === null) {
           setIsVisible(false);
           resetResultCard();
@@ -204,6 +259,23 @@ const RecordingOverlay: React.FC = () => {
           startResultExit();
         }
       });
+
+      const unlistenCancelToast = await listen<boolean>(
+        "show-cancel-toast",
+        (event) => {
+          clearCancelToastTimers();
+          resetResultCard();
+          cancelToastVisibleRef.current = true;
+          setCancelToastVisible(true);
+          setCancelToastExiting(false);
+          setCancelToastCanUndo(event.payload);
+          setIsVisible(false); // only the toast renders
+          cancelToastTimerRef.current = setTimeout(() => {
+            cancelToastTimerRef.current = null;
+            void commands.hideResultOverlay();
+          }, 3_000);
+        },
+      );
 
       const unlistenResult = await listen<string>(
         "show-transcript-result",
@@ -258,6 +330,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenStream();
         unlistenPhase();
         unlistenResult();
+        unlistenCancelToast();
       };
     };
 
@@ -298,7 +371,51 @@ const RecordingOverlay: React.FC = () => {
     measureResultFade(resultBodyRef.current, setResultFade);
   }, [resultText]);
 
-  if (!isVisible) return null;
+  if (!isVisible && !cancelToastVisible) return null;
+
+  // ---- Cancel acknowledgment toast ----
+  // "Transcription canceled" (+ Undo once a transcript is stashed backend-
+  // side). Auto-dismisses after 3s; Undo re-pastes through the normal path.
+  const handleUndoCancel = async () => {
+    if (!cancelToastCanUndo) return;
+    setCancelToastCanUndo(false);
+    clearCancelToastTimers();
+    try {
+      await commands.undoCanceledTranscription();
+    } catch (err) {
+      console.error("Failed to undo canceled transcription:", err);
+    }
+  };
+
+  if (cancelToastVisible) {
+    return (
+      <div dir={direction} className={`ov-stage ${position}`}>
+        <motion.div
+          className="scard scancel"
+          initial={{ opacity: 0, scale: 0.97, filter: "blur(5px)" }}
+          animate={
+            cancelToastExiting
+              ? { opacity: 0, scale: 0.98, filter: "blur(5px)" }
+              : { opacity: 1, scale: 1, filter: "blur(0px)" }
+          }
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <span className="scancel-label">
+            {t("overlay.transcriptionCanceled")}
+          </span>
+          {cancelToastCanUndo && (
+            <button
+              type="button"
+              className="sundo"
+              onClick={() => void handleUndoCancel()}
+            >
+              {t("overlay.undo")}
+            </button>
+          )}
+        </motion.div>
+      </div>
+    );
+  }
 
   // ---- Transcript result card ----
   // Copy puts the full finished dictation on the clipboard, plays the "Copied"

@@ -463,7 +463,7 @@
       "retranscribe": "תמלל מחדש",
       "retranscribeError": "תמלול מחדש נכשל. נסה שוב.",
       "transcribing": "מתמלל...",
-      "transcriptionFailed": "התמלול נכשל. אפשר לתמלל מחדש באמצעות אייקון הניסיון החוזר."
+      "transcriptionFailed": "התמלול נכשל. יש לתמלל שוב."
     },
     "debug": {
       "title": "ניפוי שגיאות",
@@ -685,7 +685,9 @@
     "processing": "מעבד...",
     "transcript": "תמליל",
     "copy": "העתק",
-    "copied": "הועתק"
+    "copied": "הועתק",
+    "transcriptionCanceled": "התמליל בוטל",
+    "undo": "בטל"
   },
   "whatsNew": {
     "title": "חדש ב-SuperFlow v{{version}}"

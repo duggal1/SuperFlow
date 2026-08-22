@@ -463,7 +463,7 @@
       "retranscribe": "Re-transcribir",
       "retranscribeError": "No se pudo re-transcribir. Por favor, inténtalo de nuevo.",
       "transcribing": "Transcribiendo...",
-      "transcriptionFailed": "La transcripción falló. Puedes re-transcribir usando el icono de reintentar."
+      "transcriptionFailed": "La transcripción falló. Vuelva a transcribir."
     },
     "debug": {
       "title": "Depuración",
@@ -685,7 +685,9 @@
     "processing": "Procesando...",
     "transcript": "Transcripción",
     "copy": "Copiar",
-    "copied": "Copiado"
+    "copied": "Copiado",
+    "transcriptionCanceled": "Transcripción cancelada",
+    "undo": "Deshacer"
   },
   "whatsNew": {
     "title": "Nuevo en SuperFlow v{{version}}"

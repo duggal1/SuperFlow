@@ -51,7 +51,7 @@ pub fn play_feedback_sound(app: &AppHandle, sound_type: SoundType) {
         return;
     }
     if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_async(app, path);
+        play_sound_async(app, path, 1.0);
     }
 }
 
@@ -61,35 +61,67 @@ pub fn play_feedback_sound_blocking(app: &AppHandle, sound_type: SoundType) {
         return;
     }
     if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_blocking(app, &path);
+        play_sound_blocking(app, &path, 1.0);
     }
 }
 
 pub fn play_test_sound(app: &AppHandle, sound_type: SoundType) {
     let settings = settings::get_settings(app);
     if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_blocking(app, &path);
+        play_sound_blocking(app, &path, 1.0);
     }
 }
 
-fn play_sound_async(app: &AppHandle, path: PathBuf) {
+/// The cancel cue ships quieter than the theme sounds; ~130% gain sits it
+/// level with start/stop per spec.
+const CANCELED_SOUND_GAIN: f32 = 1.3;
+
+/// Plays the bundled "transcription canceled" cue (mp3 in resources).
+/// Respects the audio-feedback toggle and output device; played at the
+/// user's feedback volume boosted by [`CANCELED_SOUND_GAIN`].
+pub fn play_canceled_sound(app: &AppHandle) {
+    let settings = settings::get_settings(app);
+    if !settings.audio_feedback {
+        return;
+    }
+    let path = app.path().resolve(
+        "resources/transcription-canceled.mp3",
+        tauri::path::BaseDirectory::Resource,
+    );
+    let Ok(path) = path else {
+        warn!("transcription-canceled.mp3 could not be resolved from resources");
+        return;
+    };
     let app_handle = app.clone();
     thread::spawn(move || {
-        if let Err(e) = play_sound_at_path(&app_handle, path.as_path()) {
+        if let Err(e) = play_sound_at_path(&app_handle, path.as_path(), CANCELED_SOUND_GAIN) {
+            error!("Failed to play cancel sound '{}': {}", path.display(), e);
+        }
+    });
+}
+
+fn play_sound_async(app: &AppHandle, path: PathBuf, gain: f32) {
+    let app_handle = app.clone();
+    thread::spawn(move || {
+        if let Err(e) = play_sound_at_path(&app_handle, path.as_path(), gain) {
             error!("Failed to play sound '{}': {}", path.display(), e);
         }
     });
 }
 
-fn play_sound_blocking(app: &AppHandle, path: &Path) {
-    if let Err(e) = play_sound_at_path(app, path) {
+fn play_sound_blocking(app: &AppHandle, path: &Path, gain: f32) {
+    if let Err(e) = play_sound_at_path(app, path, gain) {
         error!("Failed to play sound '{}': {}", path.display(), e);
     }
 }
 
-fn play_sound_at_path(app: &AppHandle, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+fn play_sound_at_path(
+    app: &AppHandle,
+    path: &Path,
+    gain: f32,
+) -> Result<(), Box<dyn std::error::Error>> {
     let settings = settings::get_settings(app);
-    let volume = settings.audio_feedback_volume;
+    let volume = settings.audio_feedback_volume * gain;
     let selected_device = settings.selected_output_device.clone();
     play_audio_file(path, selected_device, volume)
 }

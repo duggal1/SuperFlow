@@ -463,7 +463,7 @@
       "retranscribe": "Opnieuw transcriberen",
       "retranscribeError": "Opnieuw transcriberen mislukt. Probeer het opnieuw.",
       "transcribing": "Transcriberen...",
-      "transcriptionFailed": "Transcriptie mislukt. Je kunt het opnieuw proberen via het herlaad-pictogram."
+      "transcriptionFailed": "Transcriptie mislukt. Transcribeer opnieuw."
     },
     "debug": {
       "title": "Probleemoplossing",
@@ -688,7 +688,9 @@
     "processing": "Verwerken...",
     "transcript": "Transcriptie",
     "copy": "Kopiëren",
-    "copied": "Gekopieerd"
+    "copied": "Gekopieerd",
+    "transcriptionCanceled": "Transcriptie geannuleerd",
+    "undo": "Ongedaan maken"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokkeert mogelijk 1 sneltoets",

@@ -575,3 +575,64 @@
     transparent 100%
   );
 }
+
+/* ============================================================
+   Cancel acknowledgment toast — "Transcription canceled" (+ Undo).
+   Same borderless surface family as the result card. Motion owns
+   entrance/exit (blur-in / blur-out), so the shared pop animation
+   is off here.
+   ============================================================ */
+.scard.scancel {
+  box-sizing: border-box;
+  width: 320px;
+  height: 44px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 8px 0 16px;
+  border-radius: 16px;
+  animation: none;
+}
+/* The Live panel flips .scard to column-reverse for top placement; the toast
+   is a single row on both edges (higher specificity than the flip rule). */
+.ov-stage.top .scard.scancel {
+  flex-direction: row;
+  transform-origin: top center;
+}
+.scancel-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--s-muted);
+  user-select: none;
+}
+/* Quiet ghost Undo — same geometry family as the result card's Copy button
+   (h-28, 7.5px radius) without the loud gradient treatment. */
+.sundo {
+  height: 28px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 7.5px;
+  border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent);
+  background: transparent;
+  font-family: var(--s-font);
+  font-size: 13px;
+  font-weight: 460;
+  letter-spacing: 0.15px;
+  color: var(--color-text);
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    transform 100ms ease;
+}
+.sundo:hover {
+  background: var(--s-hair);
+}
+.sundo:active {
+  transform: scale(0.98);
+}

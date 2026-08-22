@@ -798,7 +798,14 @@ impl ShortcutAction for TranscribeAction {
 
                     if rm.was_cancelled_since(cancel_generation) {
                         debug!("Transcription operation cancelled before output handling");
-                        utils::hide_recording_overlay(&ah);
+                        // A finished dictation survives cancellation — stash it
+                        // for the cancel toast's Undo instead of dropping it.
+                        if let Ok(transcription) = &transcription_result {
+                            utils::stash_canceled_transcript(transcription.clone());
+                            utils::show_cancel_toast(&ah, true);
+                        } else {
+                            utils::hide_recording_overlay(&ah);
+                        }
                         change_tray_icon(&ah, TrayIconState::Idle);
                         return;
                     }
@@ -810,6 +817,16 @@ impl ShortcutAction for TranscribeAction {
                                 transcription_time.elapsed(),
                                 transcription
                             );
+
+                            // A spoken terminal command ("please open four
+                            // claude code ...") consumes the utterance: it
+                            // launches a local agent team instead of pasting.
+                            if crate::voice_terminal::try_handle_voice_command(&transcription) {
+                                debug!("Transcript handled as voice terminal command");
+                                utils::hide_recording_overlay(&ah);
+                                change_tray_icon(&ah, TrayIconState::Idle);
+                                return;
+                            }
 
                             if post_process {
                                 if use_streaming_overlay {
@@ -825,14 +842,18 @@ impl ShortcutAction for TranscribeAction {
                             .await
                             else {
                                 debug!("Transcription operation cancelled during output handling");
-                                utils::hide_recording_overlay(&ah);
+                                // Raw transcript exists even though polishing
+                                // was abandoned — Undo pastes it.
+                                utils::stash_canceled_transcript(transcription.clone());
+                                utils::show_cancel_toast(&ah, true);
                                 change_tray_icon(&ah, TrayIconState::Idle);
                                 return;
                             };
 
                             if rm.was_cancelled_since(cancel_generation) {
                                 debug!("Transcription operation cancelled before paste");
-                                utils::hide_recording_overlay(&ah);
+                                utils::stash_canceled_transcript(processed.final_text.clone());
+                                utils::show_cancel_toast(&ah, true);
                                 change_tray_icon(&ah, TrayIconState::Idle);
                                 return;
                             }
@@ -864,7 +885,8 @@ impl ShortcutAction for TranscribeAction {
                                 ah.run_on_main_thread(move || {
                                     if rm_for_paste.was_cancelled_since(cancel_generation) {
                                         debug!("Transcription operation cancelled before paste");
-                                        utils::hide_recording_overlay(&ah_clone);
+                                        utils::stash_canceled_transcript(final_text);
+                                        utils::show_cancel_toast(&ah_clone, true);
                                         change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         return;
                                     }

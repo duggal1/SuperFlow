@@ -54,11 +54,16 @@ const OVERLAY_STREAM_HEIGHT: f64 = 120.0;
 const OVERLAY_RESULT_WIDTH: f64 = 400.0;
 const OVERLAY_RESULT_HEIGHT: f64 = 240.0;
 
+// Cancel acknowledgment toast: "Transcription canceled" + optional Undo.
+const OVERLAY_CANCEL_WIDTH: f64 = 340.0;
+const OVERLAY_CANCEL_HEIGHT: f64 = 64.0;
+
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
     match state {
         "streaming" => (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT),
         "result" => (OVERLAY_RESULT_WIDTH, OVERLAY_RESULT_HEIGHT),
+        "cancel" => (OVERLAY_CANCEL_WIDTH, OVERLAY_CANCEL_HEIGHT),
         _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
@@ -634,6 +639,20 @@ pub fn show_result_overlay(app_handle: &AppHandle, text: String) {
     let handle = app_handle.clone();
     let _ = app_handle.run_on_main_thread(move || {
         let _ = handle.emit_to("recording_overlay", "show-transcript-result", text);
+    });
+}
+
+/// Shows the cancel acknowledgment toast: a short "Transcription canceled"
+/// pill, with Undo once a stashed transcript exists. The frontend dismisses
+/// it after ~3s (and the pipeline re-emits with `can_undo: true` when the
+/// cancelled dictation's transcript becomes available for Undo).
+pub fn show_cancel_toast(app_handle: &AppHandle, can_undo: bool) {
+    show_overlay_state(app_handle, "cancel");
+    // Queued after show_overlay_state's own main-thread hop, so the resize
+    // lands before the payload does.
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "show-cancel-toast", can_undo);
     });
 }
 

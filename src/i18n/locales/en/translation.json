@@ -463,7 +463,7 @@
       "retranscribe": "Re-transcribe",
       "retranscribeError": "Failed to re-transcribe. Please try again.",
       "transcribing": "Transcribing...",
-      "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon."
+      "transcriptionFailed": "Transcription failed. Please re-transcribe."
     },
     "debug": {
       "title": "Debug",
@@ -688,7 +688,9 @@
     "processing": "Processing...",
     "transcript": "Transcript",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "transcriptionCanceled": "Transcription canceled",
+    "undo": "Undo"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} may be blocking 1 shortcut",

@@ -463,7 +463,7 @@
       "retranscribe": "再文字起こし",
       "retranscribeError": "再文字起こしに失敗しました。もう一度お試しください。",
       "transcribing": "文字起こし中…",
-      "transcriptionFailed": "文字起こしに失敗しました。リトライアイコンを使用して再文字起こしできます。"
+      "transcriptionFailed": "文字起こしに失敗しました。再文字起こししてください。"
     },
     "debug": {
       "title": "デバッグ",
@@ -685,7 +685,9 @@
     "processing": "処理中…",
     "transcript": "文字起こし",
     "copy": "コピー",
-    "copied": "コピーしました"
+    "copied": "コピーしました",
+    "transcriptionCanceled": "文字起こしを取り消しました",
+    "undo": "元に戻す"
   },
   "whatsNew": {
     "title": "SuperFlow v{{version}} の新機能"

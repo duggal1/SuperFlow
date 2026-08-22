@@ -744,6 +744,7 @@ pub fn run(cli_args: CliArgs) {
             show_main_window_command,
             commands::cancel_operation,
             commands::hide_result_overlay,
+            commands::undo_canceled_transcription,
             commands::is_portable,
             commands::get_app_dir_path,
             commands::get_app_settings,

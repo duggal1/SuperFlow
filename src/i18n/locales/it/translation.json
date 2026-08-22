@@ -463,7 +463,7 @@
       "retranscribe": "Ri-trascrivere",
       "retranscribeError": "Impossibile ri-trascrivere. Riprova.",
       "transcribing": "Trascrizione in corso...",
-      "transcriptionFailed": "Trascrizione fallita. Puoi ri-trascrivere usando l'icona di ripetizione."
+      "transcriptionFailed": "Trascrizione non riuscita. Ripeti la trascrizione."
     },
     "debug": {
       "title": "Debug",
@@ -685,7 +685,9 @@
     "processing": "Elaborazione...",
     "transcript": "Trascrizione",
     "copy": "Copia",
-    "copied": "Copiato"
+    "copied": "Copiato",
+    "transcriptionCanceled": "Trascrizione annullata",
+    "undo": "Annulla"
   },
   "whatsNew": {
     "title": "Novità in SuperFlow v{{version}}"

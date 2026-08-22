@@ -463,7 +463,7 @@
       "retranscribe": "重新转录",
       "retranscribeError": "重新转录失败。请重试。",
       "transcribing": "转录中...",
-      "transcriptionFailed": "转录失败。您可以使用重试图标重新转录。"
+      "transcriptionFailed": "转录失败。请重新转录。"
     },
     "debug": {
       "title": "调试",
@@ -685,7 +685,9 @@
     "processing": "处理中...",
     "transcript": "转录",
     "copy": "复制",
-    "copied": "已复制"
+    "copied": "已复制",
+    "transcriptionCanceled": "转录已取消",
+    "undo": "撤销"
   },
   "whatsNew": {
     "title": "SuperFlow v{{version}} 新功能"

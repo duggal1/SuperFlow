@@ -463,7 +463,7 @@
       "retranscribe": "Erneut transkribieren",
       "retranscribeError": "Erneute Transkription fehlgeschlagen. Bitte versuche es erneut.",
       "transcribing": "Transkribiere...",
-      "transcriptionFailed": "Transkription fehlgeschlagen. Du kannst über das Wiederholen-Symbol erneut transkribieren."
+      "transcriptionFailed": "Transkription fehlgeschlagen. Bitte erneut transkribieren."
     },
     "debug": {
       "title": "Debug",
@@ -685,7 +685,9 @@
     "processing": "Verarbeite...",
     "transcript": "Transkript",
     "copy": "Kopieren",
-    "copied": "Kopiert"
+    "copied": "Kopiert",
+    "transcriptionCanceled": "Transkription abgebrochen",
+    "undo": "Rückgängig"
   },
   "whatsNew": {
     "title": "Neu in SuperFlow v{{version}}"

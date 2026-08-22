@@ -463,7 +463,7 @@
       "retranscribe": "Transskribér igen",
       "retranscribeError": "Kunne ikke transskribere igen. Prøv igen.",
       "transcribing": "Transskriberer...",
-      "transcriptionFailed": "Transskription mislykkedes. Du kan transskribere igen ved hjælp af genforsøgsikonet."
+      "transcriptionFailed": "Transskriptionen mislykkedes. Genoptag transskriptionen."
     },
     "debug": {
       "title": "Fejlfinding",
@@ -688,7 +688,9 @@
     "processing": "Behandler...",
     "transcript": "Transskription",
     "copy": "Kopiér",
-    "copied": "Kopieret"
+    "copied": "Kopieret",
+    "transcriptionCanceled": "Transskriptionen blev annulleret",
+    "undo": "Fortryd"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",

@@ -463,7 +463,7 @@
       "retranscribe": "Phiên âm lại",
       "retranscribeError": "Không thể phiên âm lại. Vui lòng thử lại.",
       "transcribing": "Đang phiên âm...",
-      "transcriptionFailed": "Phiên âm thất bại. Bạn có thể phiên âm lại bằng biểu tượng thử lại."
+      "transcriptionFailed": "Chuyển văn bản thất bại. Vui lòng chuyển lại."
     },
     "debug": {
       "title": "Gỡ lỗi",
@@ -685,7 +685,9 @@
     "processing": "Đang xử lý...",
     "transcript": "Bản ghi",
     "copy": "Sao chép",
-    "copied": "Đã sao chép"
+    "copied": "Đã sao chép",
+    "transcriptionCanceled": "Đã hủy phiên chuyển đổi",
+    "undo": "Hoàn tác"
   },
   "whatsNew": {
     "title": "Điểm mới trong SuperFlow v{{version}}"

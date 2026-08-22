@@ -545,6 +545,13 @@ async cancelOperation() : Promise<void> {
 async hideResultOverlay() : Promise<void> {
     await TAURI_INVOKE("hide_result_overlay");
 },
+/**
+ * Pastes the transcript of the last cancelled dictation (the cancel toast's
+ * Undo button) through the normal paste path, and dismisses the toast.
+ */
+async undoCanceledTranscription() : Promise<void> {
+    await TAURI_INVOKE("undo_canceled_transcription");
+},
 async isPortable() : Promise<boolean> {
     return await TAURI_INVOKE("is_portable");
 },
