@@ -837,7 +837,9 @@ impl ShortcutAction for TranscribeAction {
                                 return;
                             }
 
-                            // Save to history if WAV was saved
+                            // Save to history if WAV was saved. The recorded
+                            // sample count is the real audio length (16 kHz
+                            // mono), persisted for WPM / time-saved stats.
                             if wav_saved {
                                 if let Err(err) = hm.save_entry(
                                     file_name,
@@ -845,6 +847,7 @@ impl ShortcutAction for TranscribeAction {
                                     post_process,
                                     processed.post_processed_text.clone(),
                                     processed.post_process_prompt.clone(),
+                                    sample_count as f64 / 16_000.0,
                                 ) {
                                     error!("Failed to save history entry: {}", err);
                                 }
@@ -922,6 +925,7 @@ impl ShortcutAction for TranscribeAction {
                                     post_process,
                                     None,
                                     None,
+                                    sample_count as f64 / 16_000.0,
                                 ) {
                                     Ok(failed_entry) => {
                                         let bg_app = ah.clone();

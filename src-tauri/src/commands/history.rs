@@ -58,15 +58,25 @@ pub async fn retranscribe_entry(
             let _ = tauri::async_runtime::spawn_blocking(move || std::thread::sleep(delay)).await;
         }
 
-        // Make sure the model is (re)loading; transcribe() waits for any
-        // in-progress load before running.
-        transcription_manager.initiate_model_load();
-
+        // Load the exact model the user selected — synchronously, with real
+        // error propagation ("Model not downloaded", "Model not found") instead
+        // of the fire-and-forget race where transcribe() could run before any
+        // engine existed and fail every attempt with "Model is not loaded".
+        // There is no default model: retry always uses settings.selected_model,
+        // the same model dictation uses.
         let tm = Arc::clone(&transcription_manager);
+        let model_id = crate::settings::get_settings(&app).selected_model;
+        if model_id.trim().is_empty() {
+            emit_status("failed");
+            return Err("No transcription model selected".to_string());
+        }
         let attempt_samples = samples.clone();
-        let result = tauri::async_runtime::spawn_blocking(move || tm.transcribe(attempt_samples))
-            .await
-            .map_err(|e| format!("Transcription task panicked: {}", e))?;
+        let result = tauri::async_runtime::spawn_blocking(move || {
+            tm.ensure_model_loaded(&model_id)?;
+            tm.transcribe(attempt_samples)
+        })
+        .await
+        .map_err(|e| format!("Transcription task panicked: {}", e))?;
 
         match result {
             Err(e) => {

@@ -132,23 +132,60 @@ export interface JournalStats {
   savedSeconds: number | null;
 }
 
-/** Compute all journal stats from entries plus measured audio durations. */
+/** Compute all journal stats from entries plus measured audio durations.
+ *
+ * Prefers the per-entry stats persisted by the backend (word_count,
+ * audio_duration_secs, avg_wpm, time_saved_secs) so numbers stay correct even
+ * when recording files are gone; falls back to live word parsing and the
+ * caller-probed `durations` for legacy rows that predate persistence.
+ */
 export const computeJournalStats = (
   entries: HistoryEntry[],
   durations: Record<number, number>,
 ): JournalStats => {
-  const totalWords = entries.reduce(
-    (sum, entry) => sum + countWords(entry.transcription_text),
-    0,
-  );
-  const spokenSeconds = entries.reduce(
-    (sum, entry) => sum + (durations[entry.id] ?? 0),
-    0,
-  );
-  const avgWpm =
-    spokenSeconds >= 15 ? Math.round(totalWords / (spokenSeconds / 60)) : null;
+  let totalWords = 0;
+  let spokenSeconds = 0;
+  // Stored time-saved / WPM accumulators (duration-weighted average).
+  let storedSavedSeconds = 0;
+  let hasStoredSaved = false;
+  let wpmDurationWeighted = 0;
+  let storedWpmDurationSum = 0;
+
+  for (const entry of entries) {
+    const words =
+      entry.word_count > 0
+        ? entry.word_count
+        : countWords(entry.transcription_text);
+    totalWords += words;
+
+    const duration = entry.audio_duration_secs ?? durations[entry.id];
+    if (duration !== undefined) {
+      spokenSeconds += duration;
+      if (entry.time_saved_secs !== null) {
+        storedSavedSeconds += entry.time_saved_secs;
+        hasStoredSaved = true;
+      }
+      if (entry.avg_wpm !== null && entry.avg_wpm > 0) {
+        wpmDurationWeighted += entry.avg_wpm * duration;
+        storedWpmDurationSum += duration;
+      }
+    }
+  }
+
   const dayStreak = computeDayStreak(entries.map((entry) => entry.timestamp));
-  const savedSeconds =
-    spokenSeconds > 0 ? timeSavedSeconds(totalWords, spokenSeconds) : null;
+
+  const avgWpm =
+    storedWpmDurationSum >= 15
+      ? Math.round(wpmDurationWeighted / storedWpmDurationSum)
+      : spokenSeconds >= 15
+        ? Math.round(totalWords / (spokenSeconds / 60))
+        : null;
+
+  const savedSeconds = hasStoredSaved
+    ? Math.max(0, Math.round(storedSavedSeconds))
+    : spokenSeconds > 0
+      ? timeSavedSeconds(totalWords, spokenSeconds)
+      : null;
+
   return { totalWords, avgWpm, dayStreak, savedSeconds };
 };

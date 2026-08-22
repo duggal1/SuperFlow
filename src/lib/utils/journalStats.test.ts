@@ -78,7 +78,17 @@ assert.equal(timeSavedSeconds(80, 60), 60);
 assert.equal(timeSavedSeconds(10, 100), 0);
 
 // --- computeJournalStats ---
-const mkHistEntry = (id: number, timestamp: number, text: string) => ({
+const mkHistEntry = (
+  id: number,
+  timestamp: number,
+  text: string,
+  stored?: {
+    word_count: number;
+    audio_duration_secs: number | null;
+    avg_wpm: number | null;
+    time_saved_secs: number | null;
+  },
+) => ({
   id,
   file_name: `f${id}.wav`,
   timestamp,
@@ -88,6 +98,11 @@ const mkHistEntry = (id: number, timestamp: number, text: string) => ({
   post_processed_text: null,
   post_process_prompt: null,
   post_process_requested: false,
+  // Legacy-row shape when no persisted stats are given.
+  word_count: stored?.word_count ?? 0,
+  audio_duration_secs: stored?.audio_duration_secs ?? null,
+  avg_wpm: stored?.avg_wpm ?? null,
+  time_saved_secs: stored?.time_saved_secs ?? null,
 });
 const hist = [
   mkHistEntry(1, day(0), "one two three four"),
@@ -104,5 +119,30 @@ assert.equal(noDurations.dayStreak, 2);
 const withDurations = computeJournalStats(hist, { 1: 12, 2: 6 });
 assert.equal(withDurations.savedSeconds, 0);
 assert.equal(withDurations.avgWpm, 20);
+
+// Persisted stats win over live probing — even when the recording files are
+// gone and the durations map is empty. Stored per-entry values:
+// entry 1: 4 words / (12s/60) min = 20 WPM, saved 4/40*60-12 = -6 -> clamped 0
+// entry 2: 2 words / (6s/60) min = 20 WPM, saved 2/40*60-6 = -3 -> clamped 0
+const withStored = computeJournalStats(
+  [
+    mkHistEntry(1, day(0), "one two three four", {
+      word_count: 4,
+      audio_duration_secs: 12,
+      avg_wpm: 20,
+      time_saved_secs: 0,
+    }),
+    mkHistEntry(2, day(1), "five six", {
+      word_count: 2,
+      audio_duration_secs: 6,
+      avg_wpm: 20,
+      time_saved_secs: 30,
+    }),
+  ],
+  {},
+);
+assert.equal(withStored.totalWords, 6);
+assert.equal(withStored.avgWpm, 20); // duration-weighted average of stored WPMs
+assert.equal(withStored.savedSeconds, 30); // sum of stored per-entry savings
 
 console.log("journalStats: all assertions passed");

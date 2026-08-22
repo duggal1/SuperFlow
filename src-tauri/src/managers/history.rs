@@ -96,8 +96,7 @@ fn compute_entry_stats(
     match audio_duration_secs {
         Some(duration) if duration > 0.0 && word_count > 0 => {
             let avg_wpm = word_count as f64 / (duration / 60.0);
-            let time_saved_secs =
-                ((word_count as f64 / TYPING_WPM) * 60.0 - duration).max(0.0);
+            let time_saved_secs = ((word_count as f64 / TYPING_WPM) * 60.0 - duration).max(0.0);
             (word_count, Some(avg_wpm), Some(time_saved_secs))
         }
         _ => (word_count, None, None),
@@ -316,10 +315,11 @@ impl HistoryManager {
 
         // Stats key off the final text (post-processed when present) — that is
         // what the user actually produced.
-        let final_text = post_processed_text.as_deref().unwrap_or(&transcription_text);
+        let final_text = post_processed_text
+            .as_deref()
+            .unwrap_or(&transcription_text);
         let duration_secs = Some(audio_duration_secs).filter(|d| *d > 0.0);
-        let (word_count, avg_wpm, time_saved_secs) =
-            compute_entry_stats(final_text, duration_secs);
+        let (word_count, avg_wpm, time_saved_secs) = compute_entry_stats(final_text, duration_secs);
 
         let conn = self.get_connection()?;
         conn.execute(
@@ -404,9 +404,10 @@ impl HistoryManager {
                 |row| row.get(0),
             )
             .optional()?;
-        let final_text = post_processed_text.as_deref().unwrap_or(&transcription_text);
-        let (word_count, avg_wpm, time_saved_secs) =
-            compute_entry_stats(final_text, duration_secs);
+        let final_text = post_processed_text
+            .as_deref()
+            .unwrap_or(&transcription_text);
+        let (word_count, avg_wpm, time_saved_secs) = compute_entry_stats(final_text, duration_secs);
 
         let updated = conn.execute(
             "UPDATE transcription_history

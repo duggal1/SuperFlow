@@ -1,231 +1,5029 @@
 {
-  "version": 1,
+  "version": 2,
   "entries": [
-    { "canonical": "Next.js", "aliases": ["next js", "next year", "next j s", "nextjs"] },
-    { "canonical": "React", "aliases": ["re act"] },
-    { "canonical": "Tailwind CSS", "aliases": ["tail winds", "tailwindcss", "tail wind css"] },
-    { "canonical": "TypeScript", "aliases": ["type script"] },
-    { "canonical": "JavaScript", "aliases": ["java script"] },
-    { "canonical": "Node.js", "aliases": ["node js", "node j s", "nodejs"] },
-    { "canonical": "Express.js", "aliases": ["express js", "express j s"] },
-    { "canonical": "npm", "aliases": ["n p m"] },
-    { "canonical": "pnpm", "aliases": ["p n p m"] },
-    { "canonical": "Vite", "aliases": ["veet", "vight"] },
-    { "canonical": "Webpack", "aliases": ["web pack"] },
-    { "canonical": "ESLint", "aliases": ["es lint"] },
-    { "canonical": "Angular", "aliases": [] },
-    { "canonical": "Astro", "aliases": [] },
-    { "canonical": "SvelteKit", "aliases": ["svelte kit"] },
-    { "canonical": "React Native", "aliases": ["react native"] },
-    { "canonical": "Electron", "aliases": [] },
-    { "canonical": "Tauri", "aliases": ["tauri app"] },
-    { "canonical": "tRPC", "aliases": ["t r p c", "tea rpc"] },
-    { "canonical": "Zustand", "aliases": ["zoo stand", "zustand store"] },
-    { "canonical": "Redux", "aliases": [] },
-    { "canonical": "shadcn/ui", "aliases": ["shad cn", "shad cn ui", "shadow cn"] },
-    { "canonical": "Radix UI", "aliases": ["radix ui", "radix u i"] },
-    { "canonical": "Storybook", "aliases": ["story book"] },
-    { "canonical": "Playwright", "aliases": ["play right"] },
-    { "canonical": "Cypress", "aliases": [] },
-    { "canonical": "Vitest", "aliases": ["v test", "vie test"] },
-    { "canonical": "Jest", "aliases": [] },
-    { "canonical": "Python", "aliases": ["python"] },
-    { "canonical": "Django", "aliases": ["jango"] },
-    { "canonical": "Flask", "aliases": [] },
-    { "canonical": "FastAPI", "aliases": ["fast api", "fast a p i"] },
-    { "canonical": "SQLAlchemy", "aliases": ["sql alchemy", "sequel alchemy"] },
-    { "canonical": "Pandas", "aliases": [] },
-    { "canonical": "NumPy", "aliases": ["num pie", "num py"] },
-    { "canonical": "Jupyter", "aliases": ["jupiter notebook"] },
-    { "canonical": "pip", "aliases": ["p i p"] },
-    { "canonical": "uv", "aliases": [] },
-    { "canonical": "Poetry", "aliases": [] },
-    { "canonical": "Rust", "aliases": ["rust lang", "rust language"] },
-    { "canonical": "Cargo", "aliases": ["cargo build"] },
-    { "canonical": "Tokio", "aliases": [] },
-    { "canonical": "Axum", "aliases": [] },
-    { "canonical": "Actix", "aliases": [] },
-    { "canonical": "Serde", "aliases": [] },
-    { "canonical": "Golang", "aliases": ["go lang", "go language"] },
-    { "canonical": "Ruby", "aliases": [] },
-    { "canonical": "Rails", "aliases": ["ruby on rails"] },
-    { "canonical": "PHP", "aliases": ["p h p"] },
-    { "canonical": "Laravel", "aliases": [] },
-    { "canonical": "Kotlin", "aliases": [] },
-    { "canonical": "Swift", "aliases": ["swift lang", "swift language"] },
-    { "canonical": "SwiftUI", "aliases": ["swift ui"] },
-    { "canonical": "Java", "aliases": [] },
-    { "canonical": "Spring Boot", "aliases": ["springboot"] },
-    { "canonical": "C++", "aliases": ["c plus plus", "c plusplus"] },
-    { "canonical": "C#", "aliases": ["c sharp", "c hash"] },
-    { "canonical": "GraphQL", "aliases": ["graph q l", "graph ql"] },
-    { "canonical": "REST API", "aliases": ["rest api", "restful api"] },
-    { "canonical": "WebSocket", "aliases": ["web socket"] },
-    { "canonical": "gRPC", "aliases": ["g r p c", "grpc"] },
-    { "canonical": "JSON", "aliases": ["j son"] },
-    { "canonical": "YAML", "aliases": ["yam mel", "ya mel", "yam ul"] },
-    { "canonical": "TOML", "aliases": ["tom mel", "toe mel"] },
-    { "canonical": "XML", "aliases": [] },
-    { "canonical": "CSV", "aliases": [] },
-    { "canonical": "HTML", "aliases": [] },
-    { "canonical": "CSS", "aliases": [] },
-    { "canonical": "SQL", "aliases": ["sequel", "s q l"] },
-    { "canonical": "PostgreSQL", "aliases": ["postgres", "post gres", "post gre s q l", "postgres sql"] },
-    { "canonical": "MySQL", "aliases": ["my s q l", "my sequel"] },
-    { "canonical": "SQLite", "aliases": ["s q lite", "sq lite"] },
-    { "canonical": "MongoDB", "aliases": ["mongo db", "mongo"] },
-    { "canonical": "Redis", "aliases": [] },
-    { "canonical": "DynamoDB", "aliases": ["dynamo db", "dynamo"] },
-    { "canonical": "Supabase", "aliases": ["super base"] },
-    { "canonical": "Firebase", "aliases": ["fire base"] },
-    { "canonical": "PlanetScale", "aliases": ["planet scale"] },
-    { "canonical": "Turso", "aliases": [] },
-    { "canonical": "Neon", "aliases": [] },
-    { "canonical": "Drizzle ORM", "aliases": ["drizzle", "driz zle", "drizzle o r m"] },
-    { "canonical": "Prisma", "aliases": ["prisma o r m"] },
-    { "canonical": "Sequelize", "aliases": [] },
-    { "canonical": "Mongoose", "aliases": ["mongoose"] },
-    { "canonical": "Docker", "aliases": [] },
-    { "canonical": "Docker Compose", "aliases": ["docker compose"] },
-    { "canonical": "Kubernetes", "aliases": ["kuber neties", "k 8 s", "kubernetes"] },
-    { "canonical": "Terraform", "aliases": ["terra form"] },
-    { "canonical": "Ansible", "aliases": [] },
-    { "canonical": "Helm", "aliases": [] },
-    { "canonical": "nginx", "aliases": ["engine x", "n g i n x"] },
-    { "canonical": "Apache", "aliases": [] },
-    { "canonical": "AWS", "aliases": ["a w s", "amazon web services"] },
-    { "canonical": "GCP", "aliases": ["g c p", "google cloud"] },
-    { "canonical": "Azure", "aliases": [] },
-    { "canonical": "Cloudflare", "aliases": ["cloud flare"] },
-    { "canonical": "Vercel", "aliases": ["ver cell", "versel"] },
-    { "canonical": "Netlify", "aliases": ["net lif y"] },
-    { "canonical": "Railway", "aliases": [] },
-    { "canonical": "Render", "aliases": [] },
-    { "canonical": "Heroku", "aliases": ["heroku"] },
-    { "canonical": "S3", "aliases": ["s 3", "amazon s 3"] },
-    { "canonical": "Lambda", "aliases": ["aws lambda"] },
-    { "canonical": "OpenAI", "aliases": ["open a i", "open ai"] },
-    { "canonical": "Anthropic", "aliases": ["anthropic"] },
-    { "canonical": "Claude", "aliases": ["cloud ai"] },
-    { "canonical": "ChatGPT", "aliases": ["chat gpt", "chat g p t", "chat gbt"] },
-    { "canonical": "GPT", "aliases": ["g p t"] },
-    { "canonical": "Gemini", "aliases": [] },
-    { "canonical": "LangChain", "aliases": ["lang chain"] },
-    { "canonical": "LangGraph", "aliases": ["lang graph"] },
-    { "canonical": "LangSmith", "aliases": ["lang smith"] },
-    { "canonical": "Hugging Face", "aliases": ["hugging face", "huggingface"] },
-    { "canonical": "PyTorch", "aliases": ["py torch", "pie torch"] },
-    { "canonical": "TensorFlow", "aliases": ["tensor flow"] },
-    { "canonical": "scikit-learn", "aliases": ["scikit learn", "sigh kit learn"] },
-    { "canonical": "Ollama", "aliases": ["oh lama", "o llama"] },
-    { "canonical": "Whisper", "aliases": [] },
-    { "canonical": "Parakeet", "aliases": [] },
-    { "canonical": "Nemotron", "aliases": [] },
-    { "canonical": "LLM", "aliases": ["l l m"] },
-    { "canonical": "API", "aliases": ["a p i"] },
-    { "canonical": "JWT", "aliases": ["j w t", "jawt"] },
-    { "canonical": "OAuth", "aliases": ["o auth", "oath"] },
-    { "canonical": "CI/CD", "aliases": ["c i c d", "ci cd", "see eye see dee"] },
-    { "canonical": "GitHub", "aliases": ["git hub"] },
-    { "canonical": "GitLab", "aliases": ["git lab"] },
-    { "canonical": "GitHub Actions", "aliases": ["git hub actions"] },
-    { "canonical": "Git", "aliases": [] },
-    { "canonical": "HTTP", "aliases": [] },
-    { "canonical": "HTTPS", "aliases": [] },
-    { "canonical": "SSH", "aliases": [] },
-    { "canonical": "DNS", "aliases": [] },
-    { "canonical": "CDN", "aliases": [] },
-    { "canonical": "localhost", "aliases": ["local host"] },
-    { "canonical": "regex", "aliases": ["reg ex", "regular expressions"] },
-    { "canonical": "VS Code", "aliases": ["vs code", "vscode", "visual studio code"] },
-    { "canonical": "Cursor", "aliases": [] },
-    { "canonical": "Xcode", "aliases": ["ex code", "excode"] },
-    { "canonical": "JetBrains", "aliases": ["jet brains"] },
-    { "canonical": "IntelliJ", "aliases": ["intel ij", "intelli j"] },
-    { "canonical": "Ghostty", "aliases": ["ghost tea"] },
-    { "canonical": "iTerm2", "aliases": ["i term", "i term 2", "iterm"] },
-    { "canonical": "Warp", "aliases": [] },
-    { "canonical": "zsh", "aliases": ["z shell", "z e s h"] },
-    { "canonical": "bash", "aliases": [] },
-    { "canonical": "fish shell", "aliases": ["fish shell"] },
-    { "canonical": "macOS", "aliases": ["mac os", "mac o s", "mac os x"] },
-    { "canonical": "Linux", "aliases": ["linnex", "linn ux"] },
-    { "canonical": "Ubuntu", "aliases": ["oo bun too"] },
-    { "canonical": "Arch Linux", "aliases": ["arch linux"] },
-    { "canonical": "Homebrew", "aliases": ["home brew"] },
-    { "canonical": "Figma", "aliases": [] },
-    { "canonical": "Slack", "aliases": [] },
-    { "canonical": "Notion", "aliases": [] },
-    { "canonical": "Linear", "aliases": [] },
-    { "canonical": "Jira", "aliases": ["jera", "jeera"] },
-    { "canonical": "Postman", "aliases": ["post man"] },
-    { "canonical": "Insomnia", "aliases": [] },
-    { "canonical": "Sentry", "aliases": [] },
-    { "canonical": "Datadog", "aliases": ["data dog"] },
-    { "canonical": "Grafana", "aliases": ["gra fana"] },
-    { "canonical": "Prometheus", "aliases": ["prometheus"] },
-    { "canonical": "Elasticsearch", "aliases": ["elastic search"] },
-    { "canonical": "RabbitMQ", "aliases": ["rabbit m q", "rabbit mq"] },
-    { "canonical": "Kafka", "aliases": [] },
-    { "canonical": "GraphQL Yoga", "aliases": ["graph q l yoga"] },
-    { "canonical": "Apollo", "aliases": [] },
-    { "canonical": "Sentry SDK", "aliases": [] },
-    { "canonical": "Stripe", "aliases": [] },
-    { "canonical": "PayPal", "aliases": ["pay pal"] },
-    { "canonical": "Twilio", "aliases": ["twilio"] },
-    { "canonical": "Tailwind merge", "aliases": ["tailwind merge"] },
-    { "canonical": "Framer Motion", "aliases": ["framer motion"] },
-    { "canonical": "Three.js", "aliases": ["three js", "three j s"] },
-    { "canonical": "D3.js", "aliases": ["d 3 js", "dee three js"] },
-    { "canonical": "WebGL", "aliases": ["web g l"] },
-    { "canonical": "WebAssembly", "aliases": ["web assembly", "wasm"] },
-    { "canonical": "WebSockets", "aliases": ["web sockets"] },
-    { "canonical": "PWA", "aliases": ["p w a"] },
-    { "canonical": "SEO", "aliases": [] },
-    { "canonical": "SSR", "aliases": ["s s r"] },
-    { "canonical": "ORM", "aliases": ["o r m"] },
-    { "canonical": "MVC", "aliases": ["m v c"] },
-    { "canonical": "TDD", "aliases": ["t d d"] },
-    { "canonical": "SOLID", "aliases": [] },
-    { "canonical": ".tsx", "aliases": ["dot tsx", "dot t s x"] },
-    { "canonical": ".ts", "aliases": ["dot ts", "dot t s"] },
-    { "canonical": ".jsx", "aliases": ["dot jsx", "dot j s x"] },
-    { "canonical": ".js", "aliases": ["dot js", "dot j s"] },
-    { "canonical": ".mjs", "aliases": ["dot mjs", "dot m j s"] },
-    { "canonical": ".cjs", "aliases": ["dot cjs", "dot c j s"] },
-    { "canonical": ".json", "aliases": ["dot json", "dot j son"] },
-    { "canonical": ".rs", "aliases": ["dot rs", "dot r s"] },
-    { "canonical": ".py", "aliases": ["dot py", "dot p y"] },
-    { "canonical": ".rb", "aliases": ["dot rb", "dot r b"] },
-    { "canonical": ".go", "aliases": ["dot go"] },
-    { "canonical": ".java", "aliases": ["dot java"] },
-    { "canonical": ".kt", "aliases": ["dot kt", "dot k t"] },
-    { "canonical": ".swift", "aliases": ["dot swift"] },
-    { "canonical": ".php", "aliases": ["dot php"] },
-    { "canonical": ".cs", "aliases": ["dot cs", "dot c s"] },
-    { "canonical": ".cpp", "aliases": ["dot cpp"] },
-    { "canonical": ".c", "aliases": ["dot c"] },
-    { "canonical": ".h", "aliases": ["dot h"] },
-    { "canonical": ".md", "aliases": ["dot md", "dot m d"] },
-    { "canonical": ".mdx", "aliases": ["dot mdx", "dot m d x"] },
-    { "canonical": ".txt", "aliases": ["dot txt"] },
-    { "canonical": ".css", "aliases": ["dot css"] },
-    { "canonical": ".scss", "aliases": ["dot scss"] },
-    { "canonical": ".less", "aliases": ["dot less"] },
-    { "canonical": ".html", "aliases": ["dot html"] },
-    { "canonical": ".htm", "aliases": ["dot htm"] },
-    { "canonical": ".xml", "aliases": ["dot xml"] },
-    { "canonical": ".yml", "aliases": ["dot yml", "dot y m l"] },
-    { "canonical": ".yaml", "aliases": ["dot yaml"] },
-    { "canonical": ".toml", "aliases": ["dot toml"] },
-    { "canonical": ".sql", "aliases": ["dot sql"] },
-    { "canonical": ".sh", "aliases": ["dot sh", "dot s h"] },
-    { "canonical": ".bash", "aliases": ["dot bash"] },
-    { "canonical": ".zsh", "aliases": ["dot zsh"] },
-    { "canonical": ".env", "aliases": ["dot env"] },
-    { "canonical": ".lock", "aliases": ["dot lock"] },
-    { "canonical": ".svg", "aliases": ["dot svg"] },
-    { "canonical": ".csv", "aliases": ["dot csv"] },
-    { "canonical": "/", "aliases": ["slash", "forward slash"] }
+    {
+      "canonical": "Next.js",
+      "aliases": [
+        "next js",
+        "nextjs",
+        "next j s",
+        "next jay ess",
+        "next dot js",
+        "next dot jay ess",
+        "next jazz",
+        "next jays",
+        "next js framework",
+        "next javascript",
+        "next year js",
+        "next yeah ess"
+      ]
+    },
+    {
+      "canonical": "React",
+      "aliases": [
+        "react",
+        "re act",
+        "ree act",
+        "react js",
+        "reactjs",
+        "react j s",
+        "react jay ess",
+        "react javascript",
+        "react framework",
+        "react library"
+      ]
+    },
+    {
+      "canonical": "React DOM",
+      "aliases": [
+        "react dom",
+        "react domm",
+        "react d o m",
+        "react document object model",
+        "react dom library"
+      ]
+    },
+    {
+      "canonical": "React Native",
+      "aliases": [
+        "react native",
+        "reactnative",
+        "react native js",
+        "react native javascript",
+        "react natively"
+      ]
+    },
+    {
+      "canonical": "TypeScript",
+      "aliases": [
+        "type script",
+        "typescript",
+        "type-script",
+        "type script js",
+        "type script javascript",
+        "type scrip",
+        "type skip",
+        "types script"
+      ]
+    },
+    {
+      "canonical": "JavaScript",
+      "aliases": [
+        "java script",
+        "javascript",
+        "java-script",
+        "java scripts",
+        "java scripted",
+        "java script language",
+        "js",
+        "j s"
+      ]
+    },
+    {
+      "canonical": "Tailwind CSS",
+      "aliases": [
+        "tailwind css",
+        "tailwindcss",
+        "tail wind css",
+        "tail winds",
+        "tail wind",
+        "tail wind s",
+        "tail wins",
+        "tail winds css",
+        "tailwind",
+        "tailwind styles",
+        "tailwind classes",
+        "tailwind class"
+      ]
+    },
+    {
+      "canonical": "Tailwind Merge",
+      "aliases": [
+        "tailwind merge",
+        "tail wind merge",
+        "tailwind merge library",
+        "tail wind merge library",
+        "tailwind merge package",
+        "tail wind merge package"
+      ]
+    },
+    {
+      "canonical": "Tailwind Variants",
+      "aliases": [
+        "tailwind variants",
+        "tail wind variants",
+        "tailwind variant",
+        "tail wind variant",
+        "tailwind variants library"
+      ]
+    },
+    {
+      "canonical": "Node.js",
+      "aliases": [
+        "node js",
+        "nodejs",
+        "node j s",
+        "node jay ess",
+        "node dot js",
+        "node javascript",
+        "node runtime",
+        "node server",
+        "node"
+      ]
+    },
+    {
+      "canonical": "Express.js",
+      "aliases": [
+        "express js",
+        "expressjs",
+        "express j s",
+        "express jay ess",
+        "express dot js",
+        "express javascript",
+        "express server",
+        "express framework"
+      ]
+    },
+    {
+      "canonical": "Fastify",
+      "aliases": [
+        "fastify",
+        "fast if i",
+        "fastify js",
+        "fastify javascript",
+        "fastify server",
+        "fast if y"
+      ]
+    },
+    {
+      "canonical": "NestJS",
+      "aliases": [
+        "nest js",
+        "nestjs",
+        "nest j s",
+        "nest jay ess",
+        "nest javascript",
+        "nest framework",
+        "nest js framework"
+      ]
+    },
+    {
+      "canonical": "Hono",
+      "aliases": [
+        "hono",
+        "hono js",
+        "hono javascript",
+        "ho no",
+        "hono framework"
+      ]
+    },
+    {
+      "canonical": "Deno",
+      "aliases": [
+        "deno",
+        "de no",
+        "deeno",
+        "deno runtime",
+        "deno js",
+        "deno javascript"
+      ]
+    },
+    {
+      "canonical": "Bun",
+      "aliases": [
+        "bun",
+        "bun js",
+        "bunjs",
+        "bun runtime",
+        "bun javascript",
+        "boon",
+        "bunn"
+      ]
+    },
+    {
+      "canonical": "Vite",
+      "aliases": [
+        "vite",
+        "veet",
+        "vight",
+        "vite js",
+        "vitejs",
+        "vite build",
+        "vite bundler",
+        "vite dev server"
+      ]
+    },
+    {
+      "canonical": "Webpack",
+      "aliases": [
+        "webpack",
+        "web pack",
+        "webpack js",
+        "web pack js",
+        "webpack bundler",
+        "web pack bundler"
+      ]
+    },
+    {
+      "canonical": "Turbopack",
+      "aliases": [
+        "turbopack",
+        "turbo pack",
+        "turbo pack bundler",
+        "turbo package",
+        "turbo pack js",
+        "turbo packer"
+      ]
+    },
+    {
+      "canonical": "Rollup",
+      "aliases": [
+        "rollup",
+        "roll up",
+        "rollup bundler",
+        "roll up bundler",
+        "rollup js"
+      ]
+    },
+    {
+      "canonical": "esbuild",
+      "aliases": [
+        "esbuild",
+        "es build",
+        "e s build",
+        "es build bundler",
+        "e s build bundler"
+      ]
+    },
+    {
+      "canonical": "SWC",
+      "aliases": [
+        "swc",
+        "s w c",
+        "s double u c",
+        "swc compiler",
+        "swc javascript"
+      ]
+    },
+    {
+      "canonical": "Babel",
+      "aliases": [
+        "babel",
+        "babble",
+        "babble js",
+        "babel js",
+        "babel javascript",
+        "babel compiler"
+      ]
+    },
+    {
+      "canonical": "ESLint",
+      "aliases": [
+        "eslint",
+        "es lint",
+        "e s lint",
+        "es lint js",
+        "eslint javascript",
+        "eslint linter"
+      ]
+    },
+    {
+      "canonical": "Prettier",
+      "aliases": [
+        "prettier",
+        "prettier formatter",
+        "prettier js",
+        "prettier javascript",
+        "prettier code formatter",
+        "prettier formatting"
+      ]
+    },
+    {
+      "canonical": "PostCSS",
+      "aliases": [
+        "post css",
+        "postcss",
+        "post c s s",
+        "post css processor"
+      ]
+    },
+    {
+      "canonical": "Sass",
+      "aliases": [
+        "sass",
+        "s a s s",
+        "sass css",
+        "sass stylesheet",
+        "sass preprocessor"
+      ]
+    },
+    {
+      "canonical": "SCSS",
+      "aliases": [
+        "scss",
+        "s c s s",
+        "s css",
+        "sass css",
+        "scss styles"
+      ]
+    },
+    {
+      "canonical": "TanStack Query",
+      "aliases": [
+        "tanstack query",
+        "tan stack query",
+        "tan stack",
+        "tanstack",
+        "tan stake query",
+        "tan stack query",
+        "ten stack query",
+        "tan stat query",
+        "tan get query",
+        "tan stack queries",
+        "tanstack queries",
+        "tan stack data",
+        "react query",
+        "react-query",
+        "react queries",
+        "tanstack react query",
+        "tan stack react query"
+      ]
+    },
+    {
+      "canonical": "TanStack Router",
+      "aliases": [
+        "tanstack router",
+        "tan stack router",
+        "tanstack routing",
+        "tan stack routing",
+        "tan stake router",
+        "ten stack router",
+        "tan stack route",
+        "tanstack route"
+      ]
+    },
+    {
+      "canonical": "TanStack Table",
+      "aliases": [
+        "tanstack table",
+        "tan stack table",
+        "tanstack tables",
+        "tan stack tables",
+        "tan stake table",
+        "ten stack table"
+      ]
+    },
+    {
+      "canonical": "Redux",
+      "aliases": [
+        "redux",
+        "re ducks",
+        "ree ducks",
+        "redux js",
+        "redux javascript",
+        "redux store",
+        "redux state"
+      ]
+    },
+    {
+      "canonical": "Redux Toolkit",
+      "aliases": [
+        "redux toolkit",
+        "redux tool kit",
+        "redux tools",
+        "redux toolkit js",
+        "rtk",
+        "r t k",
+        "redux rtk"
+      ]
+    },
+    {
+      "canonical": "Zustand",
+      "aliases": [
+        "zustand",
+        "zoo stand",
+        "zoo standoff",
+        "zoo stan",
+        "zoo stand store",
+        "zustand store",
+        "zoo stand state",
+        "zoo stand js"
+      ]
+    },
+    {
+      "canonical": "MobX",
+      "aliases": [
+        "mobx",
+        "mob x",
+        "mobbex",
+        "mob ex",
+        "mob x state",
+        "mobx store"
+      ]
+    },
+    {
+      "canonical": "Jotai",
+      "aliases": [
+        "jotai",
+        "jo tie",
+        "joe tie",
+        "jot eye",
+        "jotai state"
+      ]
+    },
+    {
+      "canonical": "Recoil",
+      "aliases": [
+        "recoil",
+        "ree coil",
+        "re coil",
+        "recoil state"
+      ]
+    },
+    {
+      "canonical": "React Router",
+      "aliases": [
+        "react router",
+        "react-router",
+        "react routing",
+        "react route",
+        "react router dom",
+        "react route er"
+      ]
+    },
+    {
+      "canonical": "React Hook Form",
+      "aliases": [
+        "react hook form",
+        "react hooks form",
+        "react hook forms",
+        "react form",
+        "react-hook-form",
+        "react hook form library"
+      ]
+    },
+    {
+      "canonical": "shadcn/ui",
+      "aliases": [
+        "shadcn ui",
+        "shad cn ui",
+        "shad cn",
+        "shad c n",
+        "shadow cn",
+        "shadow c n",
+        "shad can",
+        "shad can ui",
+        "shad seen ui",
+        "shad sin",
+        "shad ui",
+        "shad cn components",
+        "shad cn component",
+        "shadcn components",
+        "shad c n components"
+      ]
+    },
+    {
+      "canonical": "Radix UI",
+      "aliases": [
+        "radix ui",
+        "radix u i",
+        "radix",
+        "radics ui",
+        "radix you i",
+        "radix components",
+        "radix primitives"
+      ]
+    },
+    {
+      "canonical": "Storybook",
+      "aliases": [
+        "storybook",
+        "story book",
+        "story books",
+        "storybook js",
+        "story book js",
+        "storybook components",
+        "storybook ui"
+      ]
+    },
+    {
+      "canonical": "Playwright",
+      "aliases": [
+        "playwright",
+        "play right",
+        "play rite",
+        "play write",
+        "play right js",
+        "playwright testing",
+        "playwright test"
+      ]
+    },
+    {
+      "canonical": "Cypress",
+      "aliases": [
+        "cypress",
+        "cy press",
+        "sigh press",
+        "cypress testing",
+        "cypress test"
+      ]
+    },
+    {
+      "canonical": "Vitest",
+      "aliases": [
+        "vitest",
+        "v test",
+        "vee test",
+        "vie test",
+        "vit test",
+        "vite test",
+        "vite testing",
+        "vite test runner"
+      ]
+    },
+    {
+      "canonical": "Jest",
+      "aliases": [
+        "jest",
+        "jest js",
+        "jest testing",
+        "jest test",
+        "jest tests",
+        "js test runner"
+      ]
+    },
+    {
+      "canonical": "Testing Library",
+      "aliases": [
+        "testing library",
+        "react testing library",
+        "rtl",
+        "r t l",
+        "testing-library",
+        "testing library react"
+      ]
+    },
+    {
+      "canonical": "Figma",
+      "aliases": [
+        "figma",
+        "fig ma",
+        "figma design",
+        "figma file",
+        "figma ui"
+      ]
+    },
+    {
+      "canonical": "Framer Motion",
+      "aliases": [
+        "framer motion",
+        "framer",
+        "framer animations",
+        "framer motion react",
+        "motion react",
+        "motion library"
+      ]
+    },
+    {
+      "canonical": "Motion",
+      "aliases": [
+        "motion",
+        "motion react",
+        "motion js",
+        "motion library",
+        "motion for react"
+      ]
+    },
+    {
+      "canonical": "Three.js",
+      "aliases": [
+        "three js",
+        "threejs",
+        "three j s",
+        "three jay ess",
+        "three dot js",
+        "three javascript"
+      ]
+    },
+    {
+      "canonical": "D3.js",
+      "aliases": [
+        "d3 js",
+        "d 3 js",
+        "dee three js",
+        "d three js",
+        "d3",
+        "d three"
+      ]
+    },
+    {
+      "canonical": "WebGL",
+      "aliases": [
+        "webgl",
+        "web g l",
+        "web g l graphics",
+        "web graphics library"
+      ]
+    },
+    {
+      "canonical": "WebGPU",
+      "aliases": [
+        "webgpu",
+        "web gpu",
+        "web g p u",
+        "web graphics processing unit"
+      ]
+    },
+    {
+      "canonical": "WebAssembly",
+      "aliases": [
+        "web assembly",
+        "webassembly",
+        "wasm",
+        "w a s m",
+        "web asembly",
+        "web assembly runtime"
+      ]
+    },
+    {
+      "canonical": "WASM",
+      "aliases": [
+        "wasm",
+        "w a s m",
+        "w a s m runtime",
+        "web assembly"
+      ]
+    },
+    {
+      "canonical": "Astro",
+      "aliases": [
+        "astro",
+        "astro js",
+        "astrojs",
+        "astro framework"
+      ]
+    },
+    {
+      "canonical": "Svelte",
+      "aliases": [
+        "svelte",
+        "svelt",
+        "svelt js",
+        "svelte js",
+        "sveltejs"
+      ]
+    },
+    {
+      "canonical": "SvelteKit",
+      "aliases": [
+        "svelte kit",
+        "sveltekit",
+        "svelte kit js",
+        "svelte kit framework",
+        "svelte kits"
+      ]
+    },
+    {
+      "canonical": "Angular",
+      "aliases": [
+        "angular",
+        "angular js",
+        "angularjs",
+        "angular framework"
+      ]
+    },
+    {
+      "canonical": "Vue",
+      "aliases": [
+        "vue",
+        "view",
+        "vue js",
+        "vuejs",
+        "vue javascript"
+      ]
+    },
+    {
+      "canonical": "Nuxt",
+      "aliases": [
+        "nuxt",
+        "nuxt js",
+        "nuxtjs",
+        "newxt",
+        "nucks"
+      ]
+    },
+    {
+      "canonical": "Remix",
+      "aliases": [
+        "remix",
+        "remix js",
+        "remixjs",
+        "remix framework"
+      ]
+    },
+    {
+      "canonical": "Gatsby",
+      "aliases": [
+        "gatsby",
+        "gatsby js",
+        "gatsbyjs"
+      ]
+    },
+    {
+      "canonical": "SolidJS",
+      "aliases": [
+        "solid js",
+        "solidjs",
+        "solid jay ess",
+        "solid javascript"
+      ]
+    },
+    {
+      "canonical": "Qwik",
+      "aliases": [
+        "qwik",
+        "quick",
+        "quick js",
+        "qwik js"
+      ]
+    },
+    {
+      "canonical": "Expo",
+      "aliases": [
+        "expo",
+        "expo react native",
+        "expo cli"
+      ]
+    },
+    {
+      "canonical": "Electron",
+      "aliases": [
+        "electron",
+        "electron js",
+        "electronjs",
+        "electron framework",
+        "electron desktop"
+      ]
+    },
+    {
+      "canonical": "Tauri",
+      "aliases": [
+        "tauri",
+        "tauri app",
+        "tauri js",
+        "tauri desktop",
+        "tory",
+        "tari"
+      ]
+    },
+    {
+      "canonical": "tRPC",
+      "aliases": [
+        "trpc",
+        "t r p c",
+        "t rpc",
+        "tee rpc",
+        "tea rpc",
+        "t r p c api",
+        "t rpc api",
+        "trpc api",
+        "trpc server",
+        "trpc client"
+      ]
+    },
+    {
+      "canonical": "GraphQL",
+      "aliases": [
+        "graphql",
+        "graph ql",
+        "graph q l",
+        "graph query",
+        "graph query language",
+        "graph q language",
+        "graphql api",
+        "graphql server",
+        "graphql client"
+      ]
+    },
+    {
+      "canonical": "GraphQL Yoga",
+      "aliases": [
+        "graphql yoga",
+        "graph q l yoga",
+        "graph query yoga",
+        "graphql yoga server"
+      ]
+    },
+    {
+      "canonical": "Apollo Client",
+      "aliases": [
+        "apollo client",
+        "apollo",
+        "apollo graphql",
+        "apollo graph q l",
+        "apollo client graphql"
+      ]
+    },
+    {
+      "canonical": "Apollo Server",
+      "aliases": [
+        "apollo server",
+        "apollo graphql server",
+        "apollo backend"
+      ]
+    },
+    {
+      "canonical": "REST API",
+      "aliases": [
+        "rest api",
+        "restful api",
+        "rest api endpoint",
+        "rest endpoint",
+        "restful endpoint",
+        "rest service",
+        "r e s t api"
+      ]
+    },
+    {
+      "canonical": "API",
+      "aliases": [
+        "api",
+        "a p i",
+        "a p i endpoint",
+        "api endpoint",
+        "application programming interface"
+      ]
+    },
+    {
+      "canonical": "SDK",
+      "aliases": [
+        "sdk",
+        "s d k",
+        "software development kit",
+        "sdk package",
+        "sdk library"
+      ]
+    },
+    {
+      "canonical": "CLI",
+      "aliases": [
+        "cli",
+        "c l i",
+        "command line interface",
+        "command line",
+        "terminal cli"
+      ]
+    },
+    {
+      "canonical": "WebSocket",
+      "aliases": [
+        "websocket",
+        "web socket",
+        "web sockets",
+        "web socket connection",
+        "websocket connection"
+      ]
+    },
+    {
+      "canonical": "WebRTC",
+      "aliases": [
+        "webrtc",
+        "web rtc",
+        "web r t c",
+        "web real time communication"
+      ]
+    },
+    {
+      "canonical": "gRPC",
+      "aliases": [
+        "grpc",
+        "g r p c",
+        "g r p c api",
+        "gee r p c",
+        "grpc service",
+        "grpc server",
+        "grpc client"
+      ]
+    },
+    {
+      "canonical": "Protocol Buffers",
+      "aliases": [
+        "protocol buffers",
+        "protobuf",
+        "protobufs",
+        "proto buffers",
+        "proto buffer",
+        "protocol buffer"
+      ]
+    },
+    {
+      "canonical": "OpenAPI",
+      "aliases": [
+        "open api",
+        "openapi",
+        "open a p i",
+        "open api spec",
+        "openapi specification"
+      ]
+    },
+    {
+      "canonical": "Swagger",
+      "aliases": [
+        "swagger",
+        "swagger docs",
+        "swagger documentation",
+        "swagger api",
+        "swagger ui"
+      ]
+    },
+    {
+      "canonical": "JSON",
+      "aliases": [
+        "json",
+        "j son",
+        "j son",
+        "jason",
+        "jay son",
+        "javascript object notation"
+      ]
+    },
+    {
+      "canonical": "JSON Schema",
+      "aliases": [
+        "json schema",
+        "jason schema",
+        "j son schema",
+        "json schemas",
+        "json specification"
+      ]
+    },
+    {
+      "canonical": "YAML",
+      "aliases": [
+        "yaml",
+        "yam l",
+        "yam el",
+        "ya ml",
+        "yammel",
+        "yaml file"
+      ]
+    },
+    {
+      "canonical": "TOML",
+      "aliases": [
+        "toml",
+        "tom mel",
+        "tom l",
+        "toe mel",
+        "toml config"
+      ]
+    },
+    {
+      "canonical": "XML",
+      "aliases": [
+        "xml",
+        "x m l",
+        "extensible markup language"
+      ]
+    },
+    {
+      "canonical": "HTML",
+      "aliases": [
+        "html",
+        "h t m l",
+        "h t m l five",
+        "hyper text markup language",
+        "html five",
+        "html5"
+      ]
+    },
+    {
+      "canonical": "CSS",
+      "aliases": [
+        "css",
+        "c s s",
+        "see ess ess",
+        "cascading style sheets",
+        "css styles",
+        "css stylesheet"
+      ]
+    },
+    {
+      "canonical": "SQL",
+      "aliases": [
+        "sql",
+        "s q l",
+        "sequel",
+        "sequel language",
+        "sql query",
+        "database query"
+      ]
+    },
+    {
+      "canonical": "PostgreSQL",
+      "aliases": [
+        "postgres",
+        "postgresql",
+        "post gres",
+        "post grez",
+        "post grass",
+        "postgress",
+        "postgress sql",
+        "postgres sql",
+        "post grey sql",
+        "post gray sql",
+        "p g sql",
+        "postgres database"
+      ]
+    },
+    {
+      "canonical": "MySQL",
+      "aliases": [
+        "mysql",
+        "my sql",
+        "my s q l",
+        "my sequel",
+        "mysequel",
+        "my sql database"
+      ]
+    },
+    {
+      "canonical": "SQLite",
+      "aliases": [
+        "sqlite",
+        "sq lite",
+        "s q lite",
+        "sequel lite",
+        "sql lite",
+        "s q l lite",
+        "sqlite database"
+      ]
+    },
+    {
+      "canonical": "MongoDB",
+      "aliases": [
+        "mongodb",
+        "mongo db",
+        "mongo d b",
+        "mongo",
+        "mongo database",
+        "mongo database"
+      ]
+    },
+    {
+      "canonical": "Redis",
+      "aliases": [
+        "redis",
+        "reedis",
+        "re dis",
+        "redis cache",
+        "redis database"
+      ]
+    },
+    {
+      "canonical": "DynamoDB",
+      "aliases": [
+        "dynamodb",
+        "dynamo db",
+        "dynamo",
+        "dynamo database",
+        "dynamo d b"
+      ]
+    },
+    {
+      "canonical": "Supabase",
+      "aliases": [
+        "supabase",
+        "superbase",
+        "super base",
+        "super bass",
+        "supabase database",
+        "supabase backend"
+      ]
+    },
+    {
+      "canonical": "Firebase",
+      "aliases": [
+        "firebase",
+        "fire base",
+        "firebass",
+        "firebase backend",
+        "firebase database"
+      ]
+    },
+    {
+      "canonical": "PlanetScale",
+      "aliases": [
+        "planetscale",
+        "planet scale",
+        "planet scales",
+        "planet sql",
+        "planet database"
+      ]
+    },
+    {
+      "canonical": "Neon",
+      "aliases": [
+        "neon",
+        "neon database",
+        "neon sql",
+        "neon postgres",
+        "neon postgresql"
+      ]
+    },
+    {
+      "canonical": "Turso",
+      "aliases": [
+        "turso",
+        "turso database",
+        "turso db"
+      ]
+    },
+    {
+      "canonical": "Drizzle ORM",
+      "aliases": [
+        "drizzle",
+        "drizzle orm",
+        "drizzle o r m",
+        "driz zel",
+        "drizzle or m",
+        "drizzle database",
+        "drizzle orm library",
+        "drizzle library",
+        "drizzle sql",
+        "drizzle schema"
+      ]
+    },
+    {
+      "canonical": "Prisma",
+      "aliases": [
+        "prisma",
+        "prisma orm",
+        "prisma o r m",
+        "prisma database",
+        "prisma schema",
+        "prisma client"
+      ]
+    },
+    {
+      "canonical": "SQLAlchemy",
+      "aliases": [
+        "sqlalchemy",
+        "sql alchemy",
+        "sql alchemy",
+        "sequel alchemy",
+        "sql alchemy orm",
+        "sql alchemy library"
+      ]
+    },
+    {
+      "canonical": "Sequelize",
+      "aliases": [
+        "sequelize",
+        "sequel eyes",
+        "sequelize",
+        "sequel izer",
+        "sequelize orm"
+      ]
+    },
+    {
+      "canonical": "Mongoose",
+      "aliases": [
+        "mongoose",
+        "mongo use",
+        "mongoos",
+        "mongoose orm",
+        "mongoose library"
+      ]
+    },
+    {
+      "canonical": "ORM",
+      "aliases": [
+        "orm",
+        "o r m",
+        "object relational mapping",
+        "object relational mapper",
+        "orm library"
+      ]
+    },
+    {
+      "canonical": "AWS",
+      "aliases": [
+        "aws",
+        "a w s",
+        "amazon web services",
+        "amazon cloud",
+        "amazon web service"
+      ]
+    },
+    {
+      "canonical": "GCP",
+      "aliases": [
+        "gcp",
+        "g c p",
+        "google cloud",
+        "google cloud platform",
+        "gee c p"
+      ]
+    },
+    {
+      "canonical": "Azure",
+      "aliases": [
+        "azure",
+        "azur",
+        "microsoft azure",
+        "azure cloud"
+      ]
+    },
+    {
+      "canonical": "Cloudflare",
+      "aliases": [
+        "cloudflare",
+        "cloud flare",
+        "cloud flair",
+        "cloud flare worker",
+        "cloudflare worker"
+      ]
+    },
+    {
+      "canonical": "Vercel",
+      "aliases": [
+        "vercel",
+        "ver cel",
+        "versel",
+        "ver sell",
+        "vercell",
+        "vercel deploy",
+        "vercel hosting"
+      ]
+    },
+    {
+      "canonical": "Netlify",
+      "aliases": [
+        "netlify",
+        "net lif y",
+        "netlify hosting",
+        "netlify deploy"
+      ]
+    },
+    {
+      "canonical": "Railway",
+      "aliases": [
+        "railway",
+        "rail way",
+        "railway deploy",
+        "railway hosting"
+      ]
+    },
+    {
+      "canonical": "Render",
+      "aliases": [
+        "render",
+        "render cloud",
+        "render hosting",
+        "render deploy"
+      ]
+    },
+    {
+      "canonical": "Heroku",
+      "aliases": [
+        "heroku",
+        "hero ku",
+        "hero koo",
+        "heroku cloud"
+      ]
+    },
+    {
+      "canonical": "AWS Lambda",
+      "aliases": [
+        "aws lambda",
+        "a w s lambda",
+        "amazon lambda",
+        "lambda function",
+        "aws lambda function",
+        "lambda"
+      ]
+    },
+    {
+      "canonical": "S3",
+      "aliases": [
+        "s3",
+        "s 3",
+        "s three",
+        "s tree",
+        "amazon s3",
+        "amazon s 3",
+        "aws s3",
+        "aws s three",
+        "s3 bucket",
+        "s 3 bucket"
+      ]
+    },
+    {
+      "canonical": "EC2",
+      "aliases": [
+        "ec2",
+        "e c two",
+        "e c 2",
+        "amazon ec2",
+        "aws ec2",
+        "ec2 instance"
+      ]
+    },
+    {
+      "canonical": "RDS",
+      "aliases": [
+        "rds",
+        "r d s",
+        "aws rds",
+        "amazon rds",
+        "rds database"
+      ]
+    },
+    {
+      "canonical": "CloudFront",
+      "aliases": [
+        "cloudfront",
+        "cloud front",
+        "cloud front cdn",
+        "aws cloudfront"
+      ]
+    },
+    {
+      "canonical": "Kubernetes",
+      "aliases": [
+        "kubernetes",
+        "kuberneties",
+        "kubernetees",
+        "kuber netes",
+        "kuber net ease",
+        "koo ber net ease",
+        "koo ber netties",
+        "coober netes",
+        "cuberneties",
+        "kube netes",
+        "kube net ease",
+        "kube",
+        "k 8 s",
+        "k8s",
+        "k eight s",
+        "kube orchestration"
+      ]
+    },
+    {
+      "canonical": "Docker",
+      "aliases": [
+        "docker",
+        "docker container",
+        "dockerized",
+        "docker container",
+        "docker image",
+        "dockerfile"
+      ]
+    },
+    {
+      "canonical": "Docker Compose",
+      "aliases": [
+        "docker compose",
+        "docker-compose",
+        "docker compose file",
+        "docker composed"
+      ]
+    },
+    {
+      "canonical": "Dockerfile",
+      "aliases": [
+        "docker file",
+        "dockerfile",
+        "docker files",
+        "docker file config"
+      ]
+    },
+    {
+      "canonical": "Terraform",
+      "aliases": [
+        "terraform",
+        "terra form",
+        "terra-form",
+        "terraform cloud",
+        "terraform infrastructure"
+      ]
+    },
+    {
+      "canonical": "Ansible",
+      "aliases": [
+        "ansible",
+        "an sibble",
+        "ansible automation"
+      ]
+    },
+    {
+      "canonical": "Helm",
+      "aliases": [
+        "helm",
+        "helm charts",
+        "helm chart",
+        "kubernetes helm"
+      ]
+    },
+    {
+      "canonical": "Nginx",
+      "aliases": [
+        "nginx",
+        "n gin x",
+        "n g i n x",
+        "engine x",
+        "engine-x",
+        "nginix",
+        "ngin x",
+        "nginx server"
+      ]
+    },
+    {
+      "canonical": "Apache",
+      "aliases": [
+        "apache",
+        "apache server",
+        "apache http server"
+      ]
+    },
+    {
+      "canonical": "Git",
+      "aliases": [
+        "git",
+        "git version control",
+        "git repo",
+        "git repository"
+      ]
+    },
+    {
+      "canonical": "GitHub",
+      "aliases": [
+        "github",
+        "git hub",
+        "git hub",
+        "git hub repo",
+        "github repo"
+      ]
+    },
+    {
+      "canonical": "GitLab",
+      "aliases": [
+        "gitlab",
+        "git lab",
+        "git lab repo"
+      ]
+    },
+    {
+      "canonical": "GitHub Actions",
+      "aliases": [
+        "github actions",
+        "git hub actions",
+        "git hub action",
+        "github action",
+        "github workflows",
+        "git hub workflow"
+      ]
+    },
+    {
+      "canonical": "GitLab CI",
+      "aliases": [
+        "gitlab ci",
+        "git lab c i",
+        "gitlab see eye",
+        "gitlab continuous integration"
+      ]
+    },
+    {
+      "canonical": "CI/CD",
+      "aliases": [
+        "ci cd",
+        "c i c d",
+        "see eye see dee",
+        "continuous integration continuous deployment",
+        "continuous integration and deployment",
+        "ci pipeline",
+        "cd pipeline"
+      ]
+    },
+    {
+      "canonical": "npm",
+      "aliases": [
+        "npm",
+        "n p m",
+        "node package manager",
+        "npm install",
+        "npm package manager",
+        "n p m install"
+      ]
+    },
+    {
+      "canonical": "pnpm",
+      "aliases": [
+        "pnpm",
+        "p n p m",
+        "pee en pee em",
+        "pnpm package manager",
+        "pnpm install",
+        "p n p m install"
+      ]
+    },
+    {
+      "canonical": "Yarn",
+      "aliases": [
+        "yarn",
+        "yarn package manager",
+        "yarn install",
+        "yarn add",
+        "yarn workspace"
+      ]
+    },
+    {
+      "canonical": "Bun",
+      "aliases": [
+        "bun",
+        "bun package manager",
+        "bun install",
+        "bun runtime",
+        "bun js"
+      ]
+    },
+    {
+      "canonical": "pip",
+      "aliases": [
+        "pip",
+        "p i p",
+        "python pip",
+        "pip install",
+        "pip package manager"
+      ]
+    },
+    {
+      "canonical": "uv",
+      "aliases": [
+        "uv",
+        "u v",
+        "uv python",
+        "uv package manager"
+      ]
+    },
+    {
+      "canonical": "Poetry",
+      "aliases": [
+        "poetry",
+        "poetry python",
+        "python poetry",
+        "poetry package manager"
+      ]
+    },
+    {
+      "canonical": "Python",
+      "aliases": [
+        "python",
+        "pie thon",
+        "pie thun",
+        "python language",
+        "python programming"
+      ]
+    },
+    {
+      "canonical": "Django",
+      "aliases": [
+        "django",
+        "jango",
+        "d jango",
+        "jango python",
+        "django framework"
+      ]
+    },
+    {
+      "canonical": "Flask",
+      "aliases": [
+        "flask",
+        "flask python",
+        "flask framework"
+      ]
+    },
+    {
+      "canonical": "FastAPI",
+      "aliases": [
+        "fastapi",
+        "fast api",
+        "fast a p i",
+        "fast a pee",
+        "fastapi python",
+        "fast api python"
+      ]
+    },
+    {
+      "canonical": "Pandas",
+      "aliases": [
+        "pandas",
+        "panda",
+        "python pandas",
+        "pandas library"
+      ]
+    },
+    {
+      "canonical": "NumPy",
+      "aliases": [
+        "numpy",
+        "num py",
+        "num pie",
+        "num p y",
+        "numpy python"
+      ]
+    },
+    {
+      "canonical": "SciPy",
+      "aliases": [
+        "scipy",
+        "sigh pie",
+        "sci py",
+        "sci p y"
+      ]
+    },
+    {
+      "canonical": "scikit-learn",
+      "aliases": [
+        "scikit learn",
+        "sci kit learn",
+        "sigh kit learn",
+        "sky kit learn",
+        "scikit",
+        "sk learn"
+      ]
+    },
+    {
+      "canonical": "Jupyter",
+      "aliases": [
+        "jupyter",
+        "jupiter",
+        "jupiter notebook",
+        "jupyter notebook",
+        "jupyter lab",
+        "jupyterlab"
+      ]
+    },
+    {
+      "canonical": "PyTorch",
+      "aliases": [
+        "pytorch",
+        "py torch",
+        "pie torch",
+        "pie torch",
+        "python torch"
+      ]
+    },
+    {
+      "canonical": "TensorFlow",
+      "aliases": [
+        "tensorflow",
+        "tensor flow",
+        "tensor-flow",
+        "tensor flows"
+      ]
+    },
+    {
+      "canonical": "Rust",
+      "aliases": [
+        "rust",
+        "rust lang",
+        "rust language",
+        "rust programming",
+        "rust programming language"
+      ]
+    },
+    {
+      "canonical": "Cargo",
+      "aliases": [
+        "cargo",
+        "cargo build",
+        "cargo run",
+        "cargo package manager",
+        "rust cargo"
+      ]
+    },
+    {
+      "canonical": "Tokio",
+      "aliases": [
+        "tokio",
+        "toe kee o",
+        "tokyo",
+        "rust tokio"
+      ]
+    },
+    {
+      "canonical": "Axum",
+      "aliases": [
+        "axum",
+        "axum rust",
+        "axe um",
+        "axum framework"
+      ]
+    },
+    {
+      "canonical": "Actix",
+      "aliases": [
+        "actix",
+        "act ticks",
+        "actix web",
+        "actix rust"
+      ]
+    },
+    {
+      "canonical": "Serde",
+      "aliases": [
+        "serde",
+        "sir dee",
+        "ser day",
+        "rust serde"
+      ]
+    },
+    {
+      "canonical": "Go",
+      "aliases": [
+        "go",
+        "golang",
+        "go lang",
+        "go language",
+        "go programming language"
+      ]
+    },
+    {
+      "canonical": "Golang",
+      "aliases": [
+        "golang",
+        "go lang",
+        "go language",
+        "go-lang"
+      ]
+    },
+    {
+      "canonical": "Ruby",
+      "aliases": [
+        "ruby",
+        "ruby language",
+        "ruby programming"
+      ]
+    },
+    {
+      "canonical": "Ruby on Rails",
+      "aliases": [
+        "ruby on rails",
+        "rails",
+        "ruby rails",
+        "rails framework",
+        "rails app"
+      ]
+    },
+    {
+      "canonical": "PHP",
+      "aliases": [
+        "php",
+        "p h p",
+        "pee h p",
+        "php language"
+      ]
+    },
+    {
+      "canonical": "Laravel",
+      "aliases": [
+        "laravel",
+        "lara vel",
+        "laravel php",
+        "laravel framework"
+      ]
+    },
+    {
+      "canonical": "Java",
+      "aliases": [
+        "java",
+        "java language",
+        "java programming"
+      ]
+    },
+    {
+      "canonical": "Spring Boot",
+      "aliases": [
+        "spring boot",
+        "springboot",
+        "spring boot java",
+        "spring framework",
+        "spring"
+      ]
+    },
+    {
+      "canonical": "Kotlin",
+      "aliases": [
+        "kotlin",
+        "cotton",
+        "kotlin language",
+        "kotlin android"
+      ]
+    },
+    {
+      "canonical": "Swift",
+      "aliases": [
+        "swift",
+        "swift language",
+        "swift programming",
+        "swift lang"
+      ]
+    },
+    {
+      "canonical": "SwiftUI",
+      "aliases": [
+        "swift ui",
+        "swiftui",
+        "swift u i",
+        "swift ui framework"
+      ]
+    },
+    {
+      "canonical": "C++",
+      "aliases": [
+        "c plus plus",
+        "c plusplus",
+        "c plus",
+        "see plus plus",
+        "cpp",
+        "c p p"
+      ]
+    },
+    {
+      "canonical": "C#",
+      "aliases": [
+        "c sharp",
+        "c sharp language",
+        "c hash",
+        "see sharp",
+        "c hash language",
+        "csharp"
+      ]
+    },
+    {
+      "canonical": "Java Virtual Machine",
+      "aliases": [
+        "jvm",
+        "j v m",
+        "java virtual machine",
+        "java vm"
+      ]
+    },
+    {
+      "canonical": "Docker Registry",
+      "aliases": [
+        "docker registry",
+        "docker repo",
+        "container registry",
+        "docker image registry"
+      ]
+    },
+    {
+      "canonical": "Redis",
+      "aliases": [
+        "redis",
+        "re dis",
+        "reedis",
+        "redis cache",
+        "redis server"
+      ]
+    },
+    {
+      "canonical": "RabbitMQ",
+      "aliases": [
+        "rabbitmq",
+        "rabbit mq",
+        "rabbit m q",
+        "rabbit queue",
+        "rabbit message queue"
+      ]
+    },
+    {
+      "canonical": "Kafka",
+      "aliases": [
+        "kafka",
+        "apache kafka",
+        "kafka streaming",
+        "kafka broker"
+      ]
+    },
+    {
+      "canonical": "Elasticsearch",
+      "aliases": [
+        "elasticsearch",
+        "elastic search",
+        "elastic",
+        "elastic search engine"
+      ]
+    },
+    {
+      "canonical": "OpenSearch",
+      "aliases": [
+        "opensearch",
+        "open search",
+        "open search engine"
+      ]
+    },
+    {
+      "canonical": "Prometheus",
+      "aliases": [
+        "prometheus",
+        "prometheus monitoring",
+        "prometheus metrics"
+      ]
+    },
+    {
+      "canonical": "Grafana",
+      "aliases": [
+        "grafana",
+        "gra fana",
+        "graffana",
+        "grafana dashboard"
+      ]
+    },
+    {
+      "canonical": "Datadog",
+      "aliases": [
+        "datadog",
+        "data dog",
+        "data dog monitoring",
+        "datadog monitoring"
+      ]
+    },
+    {
+      "canonical": "Sentry",
+      "aliases": [
+        "sentry",
+        "sentry io",
+        "sentry monitoring",
+        "sentry sdk"
+      ]
+    },
+    {
+      "canonical": "Postman",
+      "aliases": [
+        "postman",
+        "post man",
+        "postman api",
+        "postman testing"
+      ]
+    },
+    {
+      "canonical": "Insomnia",
+      "aliases": [
+        "insomnia",
+        "insomnia api",
+        "insomnia rest"
+      ]
+    },
+    {
+      "canonical": "Stripe",
+      "aliases": [
+        "stripe",
+        "stripe api",
+        "stripe payments",
+        "stripe sdk"
+      ]
+    },
+    {
+      "canonical": "PayPal",
+      "aliases": [
+        "paypal",
+        "pay pal",
+        "paypal api"
+      ]
+    },
+    {
+      "canonical": "Twilio",
+      "aliases": [
+        "twilio",
+        "twilio api",
+        "twilio sms",
+        "twilio voice"
+      ]
+    },
+    {
+      "canonical": "OpenAI",
+      "aliases": [
+        "openai",
+        "open ai",
+        "open a i",
+        "open eye",
+        "open ai api",
+        "open ai sdk"
+      ]
+    },
+    {
+      "canonical": "Anthropic",
+      "aliases": [
+        "anthropic",
+        "anthropic ai",
+        "anthropic api"
+      ]
+    },
+    {
+      "canonical": "Claude",
+      "aliases": [
+        "claude",
+        "clod",
+        "cloud",
+        "claud ai",
+        "claude ai"
+      ]
+    },
+    {
+      "canonical": "ChatGPT",
+      "aliases": [
+        "chatgpt",
+        "chat gpt",
+        "chat g p t",
+        "chat gee p tee",
+        "chat gbt",
+        "chat g p",
+        "chat g p t ai"
+      ]
+    },
+    {
+      "canonical": "GPT",
+      "aliases": [
+        "gpt",
+        "g p t",
+        "gee p tee",
+        "g p t model",
+        "g p t api"
+      ]
+    },
+    {
+      "canonical": "GPT-4",
+      "aliases": [
+        "gpt 4",
+        "g p t 4",
+        "gpt four",
+        "g p t four"
+      ]
+    },
+    {
+      "canonical": "GPT-4o",
+      "aliases": [
+        "gpt 4o",
+        "g p t 4 o",
+        "gpt four oh",
+        "g p t four o"
+      ]
+    },
+    {
+      "canonical": "GPT-5",
+      "aliases": [
+        "gpt 5",
+        "g p t 5",
+        "gpt five",
+        "g p t five"
+      ]
+    },
+    {
+      "canonical": "Gemini",
+      "aliases": [
+        "gemini",
+        "geminy",
+        "gemini ai",
+        "google gemini"
+      ]
+    },
+    {
+      "canonical": "Llama",
+      "aliases": [
+        "llama",
+        "llama ai",
+        "lama",
+        "llama model",
+        "meta llama"
+      ]
+    },
+    {
+      "canonical": "Mistral",
+      "aliases": [
+        "mistral",
+        "mistral ai",
+        "mistral model"
+      ]
+    },
+    {
+      "canonical": "Ollama",
+      "aliases": [
+        "ollama",
+        "o llama",
+        "oh llama",
+        "ollama ai",
+        "ollama runtime"
+      ]
+    },
+    {
+      "canonical": "Hugging Face",
+      "aliases": [
+        "hugging face",
+        "huggingface",
+        "hugging faces",
+        "hugging face hub",
+        "hugging face transformers"
+      ]
+    },
+    {
+      "canonical": "LangChain",
+      "aliases": [
+        "langchain",
+        "lang chain",
+        "lang chain ai",
+        "langchain js",
+        "langchain javascript",
+        "lang chain framework"
+      ]
+    },
+    {
+      "canonical": "LangGraph",
+      "aliases": [
+        "langgraph",
+        "lang graph",
+        "lang graph ai",
+        "lang graph js"
+      ]
+    },
+    {
+      "canonical": "LangSmith",
+      "aliases": [
+        "langsmith",
+        "lang smith",
+        "lang smith ai",
+        "langsmith tracing"
+      ]
+    },
+    {
+      "canonical": "Whisper",
+      "aliases": [
+        "whisper",
+        "whisper ai",
+        "openai whisper",
+        "whisper speech recognition",
+        "whisper stt"
+      ]
+    },
+    {
+      "canonical": "Parakeet",
+      "aliases": [
+        "parakeet",
+        "para keet",
+        "para kit",
+        "parakeet ai",
+        "parakeet speech recognition"
+      ]
+    },
+    {
+      "canonical": "Nemotron",
+      "aliases": [
+        "nemotron",
+        "nemo tron",
+        "nematron",
+        "nemo tron ai",
+        "nvidia nemotron"
+      ]
+    },
+    {
+      "canonical": "LLM",
+      "aliases": [
+        "llm",
+        "l l m",
+        "large language model",
+        "language model",
+        "large language models"
+      ]
+    },
+    {
+      "canonical": "STT",
+      "aliases": [
+        "stt",
+        "s t t",
+        "speech to text",
+        "speech-to-text",
+        "speech recognition",
+        "automatic speech recognition"
+      ]
+    },
+    {
+      "canonical": "TTS",
+      "aliases": [
+        "tts",
+        "t t s",
+        "text to speech",
+        "text-to-speech",
+        "speech synthesis"
+      ]
+    },
+    {
+      "canonical": "ASR",
+      "aliases": [
+        "asr",
+        "a s r",
+        "automatic speech recognition",
+        "speech recognition model"
+      ]
+    },
+    {
+      "canonical": "RAG",
+      "aliases": [
+        "rag",
+        "r a g",
+        "retrieval augmented generation",
+        "retrieval augmented generative",
+        "rag pipeline",
+        "rag system"
+      ]
+    },
+    {
+      "canonical": "Embedding",
+      "aliases": [
+        "embedding",
+        "embeddings",
+        "vector embedding",
+        "text embedding",
+        "semantic embedding"
+      ]
+    },
+    {
+      "canonical": "Vector Database",
+      "aliases": [
+        "vector database",
+        "vector db",
+        "vector d b",
+        "vector store",
+        "vector datastore"
+      ]
+    },
+    {
+      "canonical": "Pinecone",
+      "aliases": [
+        "pinecone",
+        "pine cone",
+        "pine cone database",
+        "pinecone vector database"
+      ]
+    },
+    {
+      "canonical": "Weaviate",
+      "aliases": [
+        "weaviate",
+        "weave eight",
+        "weave ate",
+        "weaviate database"
+      ]
+    },
+    {
+      "canonical": "Chroma",
+      "aliases": [
+        "chroma",
+        "chroma db",
+        "chroma database",
+        "chroma vector database"
+      ]
+    },
+    {
+      "canonical": "JWT",
+      "aliases": [
+        "jwt",
+        "j w t",
+        "jawt",
+        "jot",
+        "json web token",
+        "json web tokens"
+      ]
+    },
+    {
+      "canonical": "OAuth",
+      "aliases": [
+        "oauth",
+        "o auth",
+        "oath",
+        "oh auth",
+        "oauth two",
+        "oauth 2",
+        "oauth 2.0"
+      ]
+    },
+    {
+      "canonical": "OIDC",
+      "aliases": [
+        "oidc",
+        "o i d c",
+        "openid connect",
+        "open id connect"
+      ]
+    },
+    {
+      "canonical": "HTTP",
+      "aliases": [
+        "http",
+        "h t t p",
+        "h t p",
+        "hypertext transfer protocol"
+      ]
+    },
+    {
+      "canonical": "HTTPS",
+      "aliases": [
+        "https",
+        "h t t p s",
+        "h t t p s secure",
+        "secure http",
+        "http secure"
+      ]
+    },
+    {
+      "canonical": "SSH",
+      "aliases": [
+        "ssh",
+        "s s h",
+        "secure shell",
+        "ssh connection"
+      ]
+    },
+    {
+      "canonical": "DNS",
+      "aliases": [
+        "dns",
+        "d n s",
+        "domain name system",
+        "domain name service"
+      ]
+    },
+    {
+      "canonical": "CDN",
+      "aliases": [
+        "cdn",
+        "c d n",
+        "content delivery network",
+        "content distribution network"
+      ]
+    },
+    {
+      "canonical": "TCP",
+      "aliases": [
+        "tcp",
+        "t c p",
+        "transmission control protocol"
+      ]
+    },
+    {
+      "canonical": "UDP",
+      "aliases": [
+        "udp",
+        "u d p",
+        "user datagram protocol"
+      ]
+    },
+    {
+      "canonical": "IP",
+      "aliases": [
+        "ip",
+        "i p",
+        "ip address",
+        "internet protocol"
+      ]
+    },
+    {
+      "canonical": "IPv4",
+      "aliases": [
+        "ipv4",
+        "i p v 4",
+        "i p v four",
+        "ip version 4"
+      ]
+    },
+    {
+      "canonical": "IPv6",
+      "aliases": [
+        "ipv6",
+        "i p v 6",
+        "i p v six",
+        "ip version 6"
+      ]
+    },
+    {
+      "canonical": "localhost",
+      "aliases": [
+        "localhost",
+        "local host",
+        "local host server",
+        "local host port"
+      ]
+    },
+    {
+      "canonical": "localhost:3000",
+      "aliases": [
+        "local host three thousand",
+        "local host port three thousand",
+        "localhost 3000",
+        "localhost three thousand"
+      ]
+    },
+    {
+      "canonical": "localhost:5173",
+      "aliases": [
+        "local host five one seven three",
+        "local host port five one seven three",
+        "localhost 5173"
+      ]
+    },
+    {
+      "canonical": "VS Code",
+      "aliases": [
+        "vs code",
+        "vscode",
+        "visual studio code",
+        "visual studio",
+        "vee ess code",
+        "vs code editor"
+      ]
+    },
+    {
+      "canonical": "Cursor",
+      "aliases": [
+        "cursor",
+        "cursor editor",
+        "cursor ai",
+        "cursor ide"
+      ]
+    },
+    {
+      "canonical": "Xcode",
+      "aliases": [
+        "xcode",
+        "ex code",
+        "excode",
+        "x code",
+        "apple xcode"
+      ]
+    },
+    {
+      "canonical": "JetBrains",
+      "aliases": [
+        "jetbrains",
+        "jet brains",
+        "jet brain",
+        "jetbrains ide"
+      ]
+    },
+    {
+      "canonical": "IntelliJ",
+      "aliases": [
+        "intellij",
+        "intelli j",
+        "intel ij",
+        "intelli jay",
+        "intellij idea"
+      ]
+    },
+    {
+      "canonical": "Ghostty",
+      "aliases": [
+        "ghostty",
+        "ghost tea",
+        "ghosty",
+        "ghost terminal",
+        "ghostty terminal"
+      ]
+    },
+    {
+      "canonical": "iTerm2",
+      "aliases": [
+        "iterm",
+        "i term",
+        "i term two",
+        "i term 2",
+        "iterm2",
+        "i term terminal"
+      ]
+    },
+    {
+      "canonical": "Warp",
+      "aliases": [
+        "warp",
+        "warp terminal",
+        "warp cli"
+      ]
+    },
+    {
+      "canonical": "zsh",
+      "aliases": [
+        "zsh",
+        "z shell",
+        "z e s h",
+        "z-shell"
+      ]
+    },
+    {
+      "canonical": "bash",
+      "aliases": [
+        "bash",
+        "b a s h",
+        "bash shell",
+        "bourne again shell"
+      ]
+    },
+    {
+      "canonical": "fish shell",
+      "aliases": [
+        "fish shell",
+        "fish",
+        "fish terminal",
+        "fish shell"
+      ]
+    },
+    {
+      "canonical": "macOS",
+      "aliases": [
+        "macos",
+        "mac os",
+        "mac o s",
+        "mac os x",
+        "mac os ten",
+        "apple macos"
+      ]
+    },
+    {
+      "canonical": "Linux",
+      "aliases": [
+        "linux",
+        "linnux",
+        "linnex",
+        "linn ux",
+        "linux os"
+      ]
+    },
+    {
+      "canonical": "Ubuntu",
+      "aliases": [
+        "ubuntu",
+        "oo boon too",
+        "oo bun too",
+        "you bun too",
+        "ubuntu linux"
+      ]
+    },
+    {
+      "canonical": "Arch Linux",
+      "aliases": [
+        "arch linux",
+        "arch",
+        "archlinux",
+        "arch linux os"
+      ]
+    },
+    {
+      "canonical": "Homebrew",
+      "aliases": [
+        "homebrew",
+        "home brew",
+        "homebrew package manager",
+        "brew",
+        "brew install"
+      ]
+    },
+    {
+      "canonical": "Monorepo",
+      "aliases": [
+        "monorepo",
+        "mono repo",
+        "mono-repo",
+        "monolithic repo",
+        "workspace repo"
+      ]
+    },
+    {
+      "canonical": "Turborepo",
+      "aliases": [
+        "turborepo",
+        "turbo repo",
+        "turbo-repo",
+        "turbo repository"
+      ]
+    },
+    {
+      "canonical": "Nx",
+      "aliases": [
+        "nx",
+        "n x",
+        "n x monorepo",
+        "n x build system",
+        "nx workspace"
+      ]
+    },
+    {
+      "canonical": "PWA",
+      "aliases": [
+        "pwa",
+        "p w a",
+        "progressive web app",
+        "progressive web application"
+      ]
+    },
+    {
+      "canonical": "SSR",
+      "aliases": [
+        "ssr",
+        "s s r",
+        "server side rendering",
+        "server-side rendering"
+      ]
+    },
+    {
+      "canonical": "SSG",
+      "aliases": [
+        "ssg",
+        "s s g",
+        "static site generation",
+        "static site generator"
+      ]
+    },
+    {
+      "canonical": "ISR",
+      "aliases": [
+        "isr",
+        "i s r",
+        "incremental static regeneration"
+      ]
+    },
+    {
+      "canonical": "CSR",
+      "aliases": [
+        "csr",
+        "c s r",
+        "client side rendering",
+        "client-side rendering"
+      ]
+    },
+    {
+      "canonical": "SPA",
+      "aliases": [
+        "spa",
+        "s p a",
+        "single page application",
+        "single-page application"
+      ]
+    },
+    {
+      "canonical": "MVC",
+      "aliases": [
+        "mvc",
+        "m v c",
+        "model view controller",
+        "model-view-controller"
+      ]
+    },
+    {
+      "canonical": "MVVM",
+      "aliases": [
+        "mvvm",
+        "m v v m",
+        "model view viewmodel",
+        "model-view-viewmodel"
+      ]
+    },
+    {
+      "canonical": "TDD",
+      "aliases": [
+        "tdd",
+        "t d d",
+        "test driven development",
+        "test-driven development"
+      ]
+    },
+    {
+      "canonical": "BDD",
+      "aliases": [
+        "bdd",
+        "b d d",
+        "behavior driven development",
+        "behavior-driven development"
+      ]
+    },
+    {
+      "canonical": "SOLID",
+      "aliases": [
+        "solid",
+        "solid principles",
+        "solid programming",
+        "solid design principles"
+      ]
+    },
+    {
+      "canonical": "DRY",
+      "aliases": [
+        "dry",
+        "d r y",
+        "don't repeat yourself"
+      ]
+    },
+    {
+      "canonical": "KISS",
+      "aliases": [
+        "kiss",
+        "k i s s",
+        "keep it simple stupid"
+      ]
+    },
+    {
+      "canonical": "YAGNI",
+      "aliases": [
+        "yagni",
+        "yagny",
+        "y a g n i",
+        "you aren't gonna need it"
+      ]
+    },
+    {
+      "canonical": "regex",
+      "aliases": [
+        "regex",
+        "reg ex",
+        "regular expression",
+        "regular expressions",
+        "regx",
+        "reg ex pattern"
+      ]
+    },
+    {
+      "canonical": "UUID",
+      "aliases": [
+        "uuid",
+        "u u i d",
+        "unique identifier",
+        "universal unique identifier",
+        "u uid"
+      ]
+    },
+    {
+      "canonical": "URL",
+      "aliases": [
+        "url",
+        "u r l",
+        "uniform resource locator",
+        "web url",
+        "url address"
+      ]
+    },
+    {
+      "canonical": "URI",
+      "aliases": [
+        "uri",
+        "u r i",
+        "uniform resource identifier"
+      ]
+    },
+    {
+      "canonical": "CRUD",
+      "aliases": [
+        "crud",
+        "c r u d",
+        "create read update delete",
+        "create read update and delete"
+      ]
+    },
+    {
+      "canonical": "Webhooks",
+      "aliases": [
+        "webhooks",
+        "web hooks",
+        "web hook",
+        "webhook api",
+        "webhook endpoint"
+      ]
+    },
+    {
+      "canonical": "Microservices",
+      "aliases": [
+        "microservices",
+        "micro services",
+        "micro-service architecture",
+        "microservice architecture"
+      ]
+    },
+    {
+      "canonical": "Serverless",
+      "aliases": [
+        "serverless",
+        "server less",
+        "serverless architecture",
+        "serverless functions"
+      ]
+    },
+    {
+      "canonical": "Container",
+      "aliases": [
+        "container",
+        "containers",
+        "docker container",
+        "containerized application"
+      ]
+    },
+    {
+      "canonical": "Kubernetes Pod",
+      "aliases": [
+        "kubernetes pod",
+        "kube pod",
+        "k8s pod",
+        "pod",
+        "container pod"
+      ]
+    },
+    {
+      "canonical": "Kubernetes Deployment",
+      "aliases": [
+        "kubernetes deployment",
+        "kube deployment",
+        "k8s deployment",
+        "deployment yaml"
+      ]
+    },
+    {
+      "canonical": "Kubernetes Service",
+      "aliases": [
+        "kubernetes service",
+        "kube service",
+        "k8s service"
+      ]
+    },
+    {
+      "canonical": "Ingress",
+      "aliases": [
+        "ingress",
+        "kubernetes ingress",
+        "ingress controller"
+      ]
+    },
+    {
+      "canonical": "JWT Token",
+      "aliases": [
+        "jwt token",
+        "j w t token",
+        "json web token"
+      ]
+    },
+    {
+      "canonical": "Access Token",
+      "aliases": [
+        "access token",
+        "api access token",
+        "bearer token"
+      ]
+    },
+    {
+      "canonical": "Refresh Token",
+      "aliases": [
+        "refresh token",
+        "refresh-token",
+        "auth refresh token"
+      ]
+    },
+    {
+      "canonical": "Bearer Token",
+      "aliases": [
+        "bearer token",
+        "bearer auth",
+        "bearer authorization"
+      ]
+    },
+    {
+      "canonical": "CORS",
+      "aliases": [
+        "cors",
+        "c o r s",
+        "cross origin resource sharing",
+        "cross-origin resource sharing"
+      ]
+    },
+    {
+      "canonical": "CSRF",
+      "aliases": [
+        "csrf",
+        "c s r f",
+        "cross site request forgery",
+        "cross-site request forgery"
+      ]
+    },
+    {
+      "canonical": "XSS",
+      "aliases": [
+        "xss",
+        "x s s",
+        "cross site scripting",
+        "cross-site scripting"
+      ]
+    },
+    {
+      "canonical": "SQL Injection",
+      "aliases": [
+        "sql injection",
+        "sql inject",
+        "sequel injection",
+        "database injection"
+      ]
+    },
+    {
+      "canonical": "Rate Limiting",
+      "aliases": [
+        "rate limiting",
+        "rate limit",
+        "api rate limit",
+        "request throttling",
+        "throttling"
+      ]
+    },
+    {
+      "canonical": "Load Balancer",
+      "aliases": [
+        "load balancer",
+        "load-balancer",
+        "load balance",
+        "application load balancer",
+        "network load balancer"
+      ]
+    },
+    {
+      "canonical": "Reverse Proxy",
+      "aliases": [
+        "reverse proxy",
+        "reverse-proxy",
+        "proxy server",
+        "http proxy"
+      ]
+    },
+    {
+      "canonical": "Caching",
+      "aliases": [
+        "caching",
+        "cache",
+        "cached",
+        "application cache",
+        "http cache",
+        "browser cache",
+        "redis cache"
+      ]
+    },
+    {
+      "canonical": "Memoization",
+      "aliases": [
+        "memoization",
+        "memoisation",
+        "memo",
+        "function memoization"
+      ]
+    },
+    {
+      "canonical": "Debounce",
+      "aliases": [
+        "debounce",
+        "debouncing",
+        "debounce function"
+      ]
+    },
+    {
+      "canonical": "Throttle",
+      "aliases": [
+        "throttle",
+        "throttling",
+        "throttle function"
+      ]
+    },
+    {
+      "canonical": "Promise",
+      "aliases": [
+        "promise",
+        "promises",
+        "javascript promise"
+      ]
+    },
+    {
+      "canonical": "Async Await",
+      "aliases": [
+        "async await",
+        "async/await",
+        "async and await",
+        "async await javascript"
+      ]
+    },
+    {
+      "canonical": "Callback",
+      "aliases": [
+        "callback",
+        "call back",
+        "callback function"
+      ]
+    },
+    {
+      "canonical": "Closure",
+      "aliases": [
+        "closure",
+        "closures",
+        "javascript closure"
+      ]
+    },
+    {
+      "canonical": "Hoisting",
+      "aliases": [
+        "hoisting",
+        "javascript hoisting"
+      ]
+    },
+    {
+      "canonical": "Destructuring",
+      "aliases": [
+        "destructuring",
+        "destructure",
+        "object destructuring",
+        "array destructuring"
+      ]
+    },
+    {
+      "canonical": "Spread Operator",
+      "aliases": [
+        "spread operator",
+        "spread syntax",
+        "spread",
+        "three dots operator"
+      ]
+    },
+    {
+      "canonical": "Optional Chaining",
+      "aliases": [
+        "optional chaining",
+        "optional chain",
+        "question dot operator"
+      ]
+    },
+    {
+      "canonical": "Nullish Coalescing",
+      "aliases": [
+        "nullish coalescing",
+        "nullish operator",
+        "double question mark operator"
+      ]
+    },
+    {
+      "canonical": "Generics",
+      "aliases": [
+        "generics",
+        "generic types",
+        "generic type",
+        "typescript generics"
+      ]
+    },
+    {
+      "canonical": "Interface",
+      "aliases": [
+        "interface",
+        "interfaces",
+        "typescript interface",
+        "type interface"
+      ]
+    },
+    {
+      "canonical": "Type Alias",
+      "aliases": [
+        "type alias",
+        "type aliases",
+        "typescript type alias"
+      ]
+    },
+    {
+      "canonical": "Union Type",
+      "aliases": [
+        "union type",
+        "union types",
+        "typescript union"
+      ]
+    },
+    {
+      "canonical": "Intersection Type",
+      "aliases": [
+        "intersection type",
+        "intersection types",
+        "typescript intersection"
+      ]
+    },
+    {
+      "canonical": "Type Guard",
+      "aliases": [
+        "type guard",
+        "type guards",
+        "typescript type guard"
+      ]
+    },
+    {
+      "canonical": "Type Inference",
+      "aliases": [
+        "type inference",
+        "typescript inference",
+        "inferred type"
+      ]
+    },
+    {
+      "canonical": "Generative AI",
+      "aliases": [
+        "generative ai",
+        "generative artificial intelligence",
+        "gen ai",
+        "genai",
+        "gen a i"
+      ]
+    },
+    {
+      "canonical": "Machine Learning",
+      "aliases": [
+        "machine learning",
+        "machine-learning",
+        "ml",
+        "m l"
+      ]
+    },
+    {
+      "canonical": "Deep Learning",
+      "aliases": [
+        "deep learning",
+        "deep-learning",
+        "dl",
+        "d l"
+      ]
+    },
+    {
+      "canonical": "Neural Network",
+      "aliases": [
+        "neural network",
+        "neural networks",
+        "neural net",
+        "neural nets"
+      ]
+    },
+    {
+      "canonical": "Transformer",
+      "aliases": [
+        "transformer",
+        "transformer model",
+        "transformers",
+        "transformer architecture"
+      ]
+    },
+    {
+      "canonical": "Attention",
+      "aliases": [
+        "attention",
+        "attention mechanism",
+        "self attention",
+        "self-attention"
+      ]
+    },
+    {
+      "canonical": "Fine-tuning",
+      "aliases": [
+        "fine tuning",
+        "fine-tuning",
+        "fine tune",
+        "fine tuned",
+        "model fine tuning"
+      ]
+    },
+    {
+      "canonical": "Quantization",
+      "aliases": [
+        "quantization",
+        "quantisation",
+        "model quantization",
+        "quantized model"
+      ]
+    },
+    {
+      "canonical": "Inference",
+      "aliases": [
+        "inference",
+        "model inference",
+        "inference runtime",
+        "ai inference"
+      ]
+    },
+    {
+      "canonical": "Prompt Engineering",
+      "aliases": [
+        "prompt engineering",
+        "prompt engineer",
+        "prompt design",
+        "prompt engineering ai"
+      ]
+    },
+    {
+      "canonical": "Context Window",
+      "aliases": [
+        "context window",
+        "context windows",
+        "model context window",
+        "context length",
+        "token context"
+      ]
+    },
+    {
+      "canonical": "Tokenization",
+      "aliases": [
+        "tokenization",
+        "tokenisation",
+        "tokenizer",
+        "tokenization model"
+      ]
+    },
+    {
+      "canonical": "Tokenizer",
+      "aliases": [
+        "tokenizer",
+        "tokeniser",
+        "tokenizer library",
+        "text tokenizer"
+      ]
+    },
+    {
+      "canonical": "MCP",
+      "aliases": [
+        "mcp",
+        "m c p",
+        "model context protocol",
+        "model context protocol server",
+        "model context protocol client"
+      ]
+    },
+    {
+      "canonical": "SDK",
+      "aliases": [
+        "sdk",
+        "s d k",
+        "software development kit",
+        "developer kit"
+      ]
+    },
+    {
+      "canonical": "IDE",
+      "aliases": [
+        "ide",
+        "i d e",
+        "integrated development environment"
+      ]
+    },
+    {
+      "canonical": "REPL",
+      "aliases": [
+        "repl",
+        "r e p l",
+        "read eval print loop"
+      ]
+    },
+    {
+      "canonical": "JSONL",
+      "aliases": [
+        "jsonl",
+        "json l",
+        "j son l",
+        "json lines",
+        "json lines format"
+      ]
+    },
+    {
+      "canonical": "Markdown",
+      "aliases": [
+        "markdown",
+        "mark down",
+        "markdown file",
+        "markdown syntax",
+        "md"
+      ]
+    },
+    {
+      "canonical": "MDX",
+      "aliases": [
+        "mdx",
+        "m d x",
+        "markdown jsx",
+        "markdown js"
+      ]
+    },
+    {
+      "canonical": ".ts",
+      "aliases": [
+        "dot ts",
+        "dot t s",
+        "ts file",
+        "typescript file"
+      ]
+    },
+    {
+      "canonical": ".tsx",
+      "aliases": [
+        "dot tsx",
+        "dot t s x",
+        "tsx file",
+        "typescript jsx",
+        "typescript react file"
+      ]
+    },
+    {
+      "canonical": ".js",
+      "aliases": [
+        "dot js",
+        "dot j s",
+        "js file",
+        "javascript file"
+      ]
+    },
+    {
+      "canonical": ".jsx",
+      "aliases": [
+        "dot jsx",
+        "dot j s x",
+        "jsx file",
+        "javascript react file"
+      ]
+    },
+    {
+      "canonical": ".mjs",
+      "aliases": [
+        "dot mjs",
+        "dot m j s",
+        "mjs file",
+        "module js"
+      ]
+    },
+    {
+      "canonical": ".cjs",
+      "aliases": [
+        "dot cjs",
+        "dot c j s",
+        "cjs file",
+        "common js file"
+      ]
+    },
+    {
+      "canonical": ".json",
+      "aliases": [
+        "dot json",
+        "dot j son",
+        "json file",
+        "jason file"
+      ]
+    },
+    {
+      "canonical": ".env",
+      "aliases": [
+        "dot env",
+        "dot e n v",
+        "env file",
+        "environment file",
+        "environment variables file"
+      ]
+    },
+    {
+      "canonical": ".gitignore",
+      "aliases": [
+        "dot gitignore",
+        "git ignore file",
+        "git ignore",
+        "git ignore file"
+      ]
+    },
+    {
+      "canonical": ".npmrc",
+      "aliases": [
+        "dot npmrc",
+        "npm rc",
+        "npm config file",
+        "n p m r c"
+      ]
+    },
+    {
+      "canonical": ".yml",
+      "aliases": [
+        "dot yml",
+        "dot y m l",
+        "yml file",
+        "yaml file"
+      ]
+    },
+    {
+      "canonical": ".yaml",
+      "aliases": [
+        "dot yaml",
+        "yaml file",
+        "yam l file"
+      ]
+    },
+    {
+      "canonical": ".toml",
+      "aliases": [
+        "dot toml",
+        "toml file",
+        "tom mel file"
+      ]
+    },
+    {
+      "canonical": ".sql",
+      "aliases": [
+        "dot sql",
+        "dot s q l",
+        "sql file",
+        "sequel file"
+      ]
+    },
+    {
+      "canonical": ".md",
+      "aliases": [
+        "dot md",
+        "dot m d",
+        "markdown file",
+        "md file"
+      ]
+    },
+    {
+      "canonical": ".mdx",
+      "aliases": [
+        "dot mdx",
+        "dot m d x",
+        "mdx file"
+      ]
+    },
+    {
+      "canonical": ".css",
+      "aliases": [
+        "dot css",
+        "dot c s s",
+        "css file"
+      ]
+    },
+    {
+      "canonical": ".scss",
+      "aliases": [
+        "dot scss",
+        "dot s c s s",
+        "scss file"
+      ]
+    },
+    {
+      "canonical": ".html",
+      "aliases": [
+        "dot html",
+        "html file",
+        "h t m l file"
+      ]
+    },
+    {
+      "canonical": ".svg",
+      "aliases": [
+        "dot svg",
+        "dot s v g",
+        "svg file",
+        "vector file"
+      ]
+    },
+    {
+      "canonical": ".csv",
+      "aliases": [
+        "dot csv",
+        "dot c s v",
+        "csv file"
+      ]
+    },
+    {
+      "canonical": "package.json",
+      "aliases": [
+        "package json",
+        "package dot json",
+        "package j son",
+        "npm package json"
+      ]
+    },
+    {
+      "canonical": "tsconfig.json",
+      "aliases": [
+        "ts config json",
+        "tsconfig json",
+        "ts config dot json",
+        "typescript config",
+        "typescript configuration"
+      ]
+    },
+    {
+      "canonical": "vite.config.ts",
+      "aliases": [
+        "vite config ts",
+        "vite config",
+        "vite configuration",
+        "vite config dot ts"
+      ]
+    },
+    {
+      "canonical": "next.config.js",
+      "aliases": [
+        "next config js",
+        "next config",
+        "next configuration",
+        "next config dot js"
+      ]
+    },
+    {
+      "canonical": "Cargo.toml",
+      "aliases": [
+        "cargo toml",
+        "cargo dot toml",
+        "cargo config",
+        "cargo manifest"
+      ]
+    },
+    {
+      "canonical": "README",
+      "aliases": [
+        "readme",
+        "read me",
+        "read me file",
+        "readme file"
+      ]
+    },
+    {
+      "canonical": "Git branch",
+      "aliases": [
+        "git branch",
+        "git branches",
+        "branch",
+        "source control branch"
+      ]
+    },
+    {
+      "canonical": "Git commit",
+      "aliases": [
+        "git commit",
+        "commit",
+        "git commits",
+        "source control commit"
+      ]
+    },
+    {
+      "canonical": "Git merge",
+      "aliases": [
+        "git merge",
+        "merge",
+        "git merges"
+      ]
+    },
+    {
+      "canonical": "Git rebase",
+      "aliases": [
+        "git rebase",
+        "rebase",
+        "git re basing",
+        "rebase branch"
+      ]
+    },
+    {
+      "canonical": "Git stash",
+      "aliases": [
+        "git stash",
+        "stash",
+        "git stashed changes"
+      ]
+    },
+    {
+      "canonical": "Pull Request",
+      "aliases": [
+        "pull request",
+        "pull-request",
+        "pull req",
+        "pr",
+        "p r",
+        "code review request"
+      ]
+    },
+    {
+      "canonical": "Code Review",
+      "aliases": [
+        "code review",
+        "code-review",
+        "review the code",
+        "pull request review"
+      ]
+    },
+    {
+      "canonical": "Issue",
+      "aliases": [
+        "issue",
+        "github issue",
+        "gitlab issue",
+        "bug ticket"
+      ]
+    },
+    {
+      "canonical": "Branch Protection",
+      "aliases": [
+        "branch protection",
+        "protected branch",
+        "branch rules"
+      ]
+    },
+    {
+      "canonical": "Environment Variable",
+      "aliases": [
+        "environment variable",
+        "environment variables",
+        "env variable",
+        "env vars",
+        "environment config"
+      ]
+    },
+    {
+      "canonical": "Secret",
+      "aliases": [
+        "secret",
+        "secrets",
+        "api secret",
+        "secret key",
+        "environment secret"
+      ]
+    },
+    {
+      "canonical": "API Key",
+      "aliases": [
+        "api key",
+        "a p i key",
+        "api token",
+        "developer key"
+      ]
+    },
+    {
+      "canonical": "Database Migration",
+      "aliases": [
+        "database migration",
+        "db migration",
+        "database migrations",
+        "migration",
+        "sql migration",
+        "schema migration"
+      ]
+    },
+    {
+      "canonical": "Database Schema",
+      "aliases": [
+        "database schema",
+        "db schema",
+        "schema",
+        "database structure",
+        "sql schema"
+      ]
+    },
+    {
+      "canonical": "Primary Key",
+      "aliases": [
+        "primary key",
+        "primary-key",
+        "database primary key",
+        "p key"
+      ]
+    },
+    {
+      "canonical": "Foreign Key",
+      "aliases": [
+        "foreign key",
+        "foreign-key",
+        "database foreign key",
+        "f key"
+      ]
+    },
+    {
+      "canonical": "Index",
+      "aliases": [
+        "index",
+        "database index",
+        "sql index",
+        "db index"
+      ]
+    },
+    {
+      "canonical": "Transaction",
+      "aliases": [
+        "transaction",
+        "database transaction",
+        "sql transaction",
+        "db transaction"
+      ]
+    },
+    {
+      "canonical": "Connection Pool",
+      "aliases": [
+        "connection pool",
+        "database connection pool",
+        "db connection pool"
+      ]
+    },
+    {
+      "canonical": "Query",
+      "aliases": [
+        "query",
+        "database query",
+        "sql query",
+        "queries"
+      ]
+    },
+    {
+      "canonical": "Mutation",
+      "aliases": [
+        "mutation",
+        "graphql mutation",
+        "data mutation"
+      ]
+    },
+    {
+      "canonical": "Middleware",
+      "aliases": [
+        "middleware",
+        "middle ware",
+        "middleware function",
+        "server middleware"
+      ]
+    },
+    {
+      "canonical": "Controller",
+      "aliases": [
+        "controller",
+        "api controller",
+        "route controller"
+      ]
+    },
+    {
+      "canonical": "Repository",
+      "aliases": [
+        "repository",
+        "repo",
+        "data repository",
+        "repository layer"
+      ]
+    },
+    {
+      "canonical": "Service Layer",
+      "aliases": [
+        "service layer",
+        "service-layer",
+        "business logic layer"
+      ]
+    },
+    {
+      "canonical": "Dependency Injection",
+      "aliases": [
+        "dependency injection",
+        "dependency-injection",
+        "di",
+        "d i",
+        "inversion of control"
+      ]
+    },
+    {
+      "canonical": "Dependency",
+      "aliases": [
+        "dependency",
+        "dependencies",
+        "package dependency",
+        "npm dependency"
+      ]
+    },
+    {
+      "canonical": "Package",
+      "aliases": [
+        "package",
+        "npm package",
+        "node package",
+        "software package"
+      ]
+    },
+    {
+      "canonical": "Library",
+      "aliases": [
+        "library",
+        "code library",
+        "javascript library",
+        "software library"
+      ]
+    },
+    {
+      "canonical": "Framework",
+      "aliases": [
+        "framework",
+        "web framework",
+        "javascript framework",
+        "frontend framework",
+        "backend framework"
+      ]
+    },
+    {
+      "canonical": "Compiler",
+      "aliases": [
+        "compiler",
+        "code compiler",
+        "typescript compiler",
+        "javascript compiler"
+      ]
+    },
+    {
+      "canonical": "Bundler",
+      "aliases": [
+        "bundler",
+        "bundle",
+        "javascript bundler",
+        "module bundler"
+      ]
+    },
+    {
+      "canonical": "Transpiler",
+      "aliases": [
+        "transpiler",
+        "trans compiler",
+        "javascript transpiler",
+        "code transpiler"
+      ]
+    },
+    {
+      "canonical": "Linter",
+      "aliases": [
+        "linter",
+        "lint",
+        "code lint",
+        "javascript linter"
+      ]
+    },
+    {
+      "canonical": "Formatter",
+      "aliases": [
+        "formatter",
+        "code formatter",
+        "javascript formatter",
+        "prettier formatter"
+      ]
+    },
+    {
+      "canonical": "Dependency Graph",
+      "aliases": [
+        "dependency graph",
+        "dependency tree",
+        "package dependency graph",
+        "module graph"
+      ]
+    },
+    {
+      "canonical": "Hot Module Replacement",
+      "aliases": [
+        "hot module replacement",
+        "hot reload",
+        "hot reloading",
+        "hmr",
+        "h m r",
+        "hot module reload"
+      ]
+    },
+    {
+      "canonical": "Tree Shaking",
+      "aliases": [
+        "tree shaking",
+        "tree-shaking",
+        "tree shake",
+        "tree shaker"
+      ]
+    },
+    {
+      "canonical": "Code Splitting",
+      "aliases": [
+        "code splitting",
+        "code-splitting",
+        "bundle splitting",
+        "chunk splitting"
+      ]
+    },
+    {
+      "canonical": "Lazy Loading",
+      "aliases": [
+        "lazy loading",
+        "lazy-load",
+        "lazy load",
+        "dynamic loading"
+      ]
+    },
+    {
+      "canonical": "Dynamic Import",
+      "aliases": [
+        "dynamic import",
+        "dynamic imports",
+        "lazy import",
+        "async import"
+      ]
+    },
+    {
+      "canonical": "Server Component",
+      "aliases": [
+        "server component",
+        "server components",
+        "react server component",
+        "server-side component"
+      ]
+    },
+    {
+      "canonical": "Client Component",
+      "aliases": [
+        "client component",
+        "client components",
+        "react client component",
+        "client-side component"
+      ]
+    },
+    {
+      "canonical": "Server Action",
+      "aliases": [
+        "server action",
+        "server actions",
+        "next server action",
+        "server-side action"
+      ]
+    },
+    {
+      "canonical": "API Route",
+      "aliases": [
+        "api route",
+        "api routes",
+        "endpoint route",
+        "backend route"
+      ]
+    },
+    {
+      "canonical": "Route Handler",
+      "aliases": [
+        "route handler",
+        "route handlers",
+        "next route handler",
+        "api route handler"
+      ]
+    },
+    {
+      "canonical": "Middleware",
+      "aliases": [
+        "middleware",
+        "middleware layer",
+        "middleware handler",
+        "request middleware"
+      ]
+    },
+    {
+      "canonical": "Hydration",
+      "aliases": [
+        "hydration",
+        "react hydration",
+        "server hydration",
+        "hydrate"
+      ]
+    },
+    {
+      "canonical": "Hydration Mismatch",
+      "aliases": [
+        "hydration mismatch",
+        "hydration error",
+        "react hydration error",
+        "server client mismatch"
+      ]
+    },
+    {
+      "canonical": "Virtual DOM",
+      "aliases": [
+        "virtual dom",
+        "virtual d o m",
+        "virtual document object model"
+      ]
+    },
+    {
+      "canonical": "DOM",
+      "aliases": [
+        "dom",
+        "d o m",
+        "document object model"
+      ]
+    },
+    {
+      "canonical": "Shadow DOM",
+      "aliases": [
+        "shadow dom",
+        "shadow d o m",
+        "web component shadow dom"
+      ]
+    },
+    {
+      "canonical": "Web Components",
+      "aliases": [
+        "web components",
+        "web component",
+        "custom elements",
+        "web components api"
+      ]
+    },
+    {
+      "canonical": "Custom Element",
+      "aliases": [
+        "custom element",
+        "custom elements",
+        "web custom element"
+      ]
+    },
+    {
+      "canonical": "Accessibility",
+      "aliases": [
+        "accessibility",
+        "accessible",
+        "a11y",
+        "a eleven y",
+        "web accessibility"
+      ]
+    },
+    {
+      "canonical": "ARIA",
+      "aliases": [
+        "aria",
+        "a r i a",
+        "wai aria",
+        "aria attributes",
+        "accessible rich internet applications"
+      ]
+    },
+    {
+      "canonical": "SEO",
+      "aliases": [
+        "seo",
+        "s e o",
+        "search engine optimization",
+        "search optimization"
+      ]
+    },
+    {
+      "canonical": "Open Graph",
+      "aliases": [
+        "open graph",
+        "open-graph",
+        "og metadata",
+        "og tags"
+      ]
+    },
+    {
+      "canonical": "Meta Tags",
+      "aliases": [
+        "meta tags",
+        "meta tag",
+        "html meta tags",
+        "seo meta tags"
+      ]
+    },
+    {
+      "canonical": "Canonical URL",
+      "aliases": [
+        "canonical url",
+        "canonical link",
+        "canonical tag",
+        "seo canonical"
+      ]
+    },
+    {
+      "canonical": "Sitemap",
+      "aliases": [
+        "sitemap",
+        "site map",
+        "xml sitemap",
+        "sitemap xml"
+      ]
+    },
+    {
+      "canonical": "robots.txt",
+      "aliases": [
+        "robots txt",
+        "robots dot txt",
+        "robots file",
+        "robot txt",
+        "seo robots"
+      ]
+    },
+    {
+      "canonical": "HTML Tag",
+      "aliases": [
+        "html tag",
+        "html tags",
+        "markup tag",
+        "element tag"
+      ]
+    },
+    {
+      "canonical": "div",
+      "aliases": [
+        "div",
+        "div tag",
+        "dive",
+        "d iv"
+      ]
+    },
+    {
+      "canonical": "span",
+      "aliases": [
+        "span",
+        "span tag",
+        "s p a n"
+      ]
+    },
+    {
+      "canonical": "section",
+      "aliases": [
+        "section",
+        "section tag",
+        "section element"
+      ]
+    },
+    {
+      "canonical": "article",
+      "aliases": [
+        "article",
+        "article tag",
+        "article element"
+      ]
+    },
+    {
+      "canonical": "header",
+      "aliases": [
+        "header",
+        "header tag",
+        "header element"
+      ]
+    },
+    {
+      "canonical": "footer",
+      "aliases": [
+        "footer",
+        "footer tag",
+        "footer element"
+      ]
+    },
+    {
+      "canonical": "main",
+      "aliases": [
+        "main",
+        "main tag",
+        "main element"
+      ]
+    },
+    {
+      "canonical": "nav",
+      "aliases": [
+        "nav",
+        "nav tag",
+        "navigation tag"
+      ]
+    },
+    {
+      "canonical": "button",
+      "aliases": [
+        "button",
+        "button tag",
+        "button element"
+      ]
+    },
+    {
+      "canonical": "input",
+      "aliases": [
+        "input",
+        "input tag",
+        "input element"
+      ]
+    },
+    {
+      "canonical": "textarea",
+      "aliases": [
+        "textarea",
+        "text area",
+        "textarea tag"
+      ]
+    },
+    {
+      "canonical": "form",
+      "aliases": [
+        "form",
+        "form tag",
+        "form element"
+      ]
+    },
+    {
+      "canonical": "label",
+      "aliases": [
+        "label",
+        "label tag",
+        "form label"
+      ]
+    },
+    {
+      "canonical": "select",
+      "aliases": [
+        "select",
+        "select tag",
+        "select element",
+        "dropdown select"
+      ]
+    },
+    {
+      "canonical": "option",
+      "aliases": [
+        "option",
+        "option tag",
+        "select option"
+      ]
+    },
+    {
+      "canonical": "table",
+      "aliases": [
+        "table",
+        "table tag",
+        "html table"
+      ]
+    },
+    {
+      "canonical": "thead",
+      "aliases": [
+        "thead",
+        "t head",
+        "table head"
+      ]
+    },
+    {
+      "canonical": "tbody",
+      "aliases": [
+        "tbody",
+        "t body",
+        "table body"
+      ]
+    },
+    {
+      "canonical": "tfoot",
+      "aliases": [
+        "tfoot",
+        "t foot",
+        "table footer"
+      ]
+    },
+    {
+      "canonical": "tr",
+      "aliases": [
+        "tr",
+        "t r",
+        "table row"
+      ]
+    },
+    {
+      "canonical": "td",
+      "aliases": [
+        "td",
+        "t d",
+        "table data cell"
+      ]
+    },
+    {
+      "canonical": "th",
+      "aliases": [
+        "th",
+        "t h",
+        "table header cell"
+      ]
+    },
+    {
+      "canonical": "ul",
+      "aliases": [
+        "ul",
+        "u l",
+        "unordered list"
+      ]
+    },
+    {
+      "canonical": "ol",
+      "aliases": [
+        "ol",
+        "o l",
+        "ordered list"
+      ]
+    },
+    {
+      "canonical": "li",
+      "aliases": [
+        "li",
+        "l i",
+        "list item"
+      ]
+    },
+    {
+      "canonical": "pre",
+      "aliases": [
+        "pre",
+        "pre tag",
+        "preformatted"
+      ]
+    },
+    {
+      "canonical": "code",
+      "aliases": [
+        "code",
+        "code tag",
+        "code element"
+      ]
+    },
+    {
+      "canonical": "blockquote",
+      "aliases": [
+        "blockquote",
+        "block quote",
+        "quote tag"
+      ]
+    },
+    {
+      "canonical": "Markdown Heading",
+      "aliases": [
+        "markdown heading",
+        "markdown header",
+        "hash heading",
+        "md heading"
+      ]
+    },
+    {
+      "canonical": "Markdown Link",
+      "aliases": [
+        "markdown link",
+        "markdown hyperlink",
+        "md link"
+      ]
+    },
+    {
+      "canonical": "Markdown Code Fence",
+      "aliases": [
+        "markdown code fence",
+        "code fence",
+        "triple backticks",
+        "markdown backticks"
+      ]
+    },
+    {
+      "canonical": "Backtick",
+      "aliases": [
+        "backtick",
+        "back tick",
+        "back ticks",
+        "grave accent"
+      ]
+    },
+    {
+      "canonical": "CamelCase",
+      "aliases": [
+        "camel case",
+        "camelcase",
+        "camel casing"
+      ]
+    },
+    {
+      "canonical": "PascalCase",
+      "aliases": [
+        "pascal case",
+        "pascalcase",
+        "pascal casing"
+      ]
+    },
+    {
+      "canonical": "snake_case",
+      "aliases": [
+        "snake case",
+        "snake_case",
+        "snake casing"
+      ]
+    },
+    {
+      "canonical": "kebab-case",
+      "aliases": [
+        "kebab case",
+        "kebab-case",
+        "dash case"
+      ]
+    },
+    {
+      "canonical": "SCREAMING_SNAKE_CASE",
+      "aliases": [
+        "screaming snake case",
+        "upper snake case",
+        "constant case"
+      ]
+    },
+    {
+      "canonical": "PascalCase",
+      "aliases": [
+        "pascal case",
+        "pascalcase",
+        "pascal casing"
+      ]
+    },
+    {
+      "canonical": "localhost",
+      "aliases": [
+        "local host",
+        "local host address",
+        "local machine",
+        "local server"
+      ]
+    },
+    {
+      "canonical": "port",
+      "aliases": [
+        "port",
+        "server port",
+        "network port",
+        "localhost port"
+      ]
+    },
+    {
+      "canonical": "port 3000",
+      "aliases": [
+        "port three thousand",
+        "port 3000",
+        "three thousand port",
+        "server port three thousand"
+      ]
+    },
+    {
+      "canonical": "port 5173",
+      "aliases": [
+        "port five one seven three",
+        "port 5173",
+        "five one seven three port"
+      ]
+    },
+    {
+      "canonical": "port 1420",
+      "aliases": [
+        "port fourteen twenty",
+        "port one four two zero",
+        "port 1420",
+        "fourteen twenty port"
+      ]
+    },
+    {
+      "canonical": "Tauri CLI",
+      "aliases": [
+        "tauri cli",
+        "tauri c l i",
+        "tauri command line",
+        "tauri command line interface"
+      ]
+    },
+    {
+      "canonical": "Vite Dev Server",
+      "aliases": [
+        "vite dev server",
+        "vite development server",
+        "vite server",
+        "vite dev"
+      ]
+    },
+    {
+      "canonical": "Next.js App Router",
+      "aliases": [
+        "next js app router",
+        "next app router",
+        "nextjs app router",
+        "next router",
+        "app router"
+      ]
+    },
+    {
+      "canonical": "Next.js Pages Router",
+      "aliases": [
+        "next pages router",
+        "next js pages router",
+        "pages router",
+        "next pages"
+      ]
+    },
+    {
+      "canonical": "React Server Components",
+      "aliases": [
+        "react server components",
+        "react server component",
+        "rsc",
+        "r s c",
+        "server components react"
+      ]
+    },
+    {
+      "canonical": "React Hooks",
+      "aliases": [
+        "react hooks",
+        "react hook",
+        "hooks",
+        "react hooks api"
+      ]
+    },
+    {
+      "canonical": "useState",
+      "aliases": [
+        "use state",
+        "useState",
+        "use state hook",
+        "use state react"
+      ]
+    },
+    {
+      "canonical": "useEffect",
+      "aliases": [
+        "use effect",
+        "useEffect",
+        "use effect hook",
+        "use effect react"
+      ]
+    },
+    {
+      "canonical": "useMemo",
+      "aliases": [
+        "use memo",
+        "useMemo",
+        "use memo hook"
+      ]
+    },
+    {
+      "canonical": "useCallback",
+      "aliases": [
+        "use callback",
+        "useCallback",
+        "use callback hook"
+      ]
+    },
+    {
+      "canonical": "useRef",
+      "aliases": [
+        "use ref",
+        "useRef",
+        "use ref hook"
+      ]
+    },
+    {
+      "canonical": "useContext",
+      "aliases": [
+        "use context",
+        "useContext",
+        "use context hook"
+      ]
+    },
+    {
+      "canonical": "useReducer",
+      "aliases": [
+        "use reducer",
+        "useReducer",
+        "use reducer hook"
+      ]
+    },
+    {
+      "canonical": "useLayoutEffect",
+      "aliases": [
+        "use layout effect",
+        "useLayoutEffect",
+        "use layout effect hook"
+      ]
+    },
+    {
+      "canonical": "useImperativeHandle",
+      "aliases": [
+        "use imperative handle",
+        "useImperativeHandle",
+        "use imperative handle hook"
+      ]
+    },
+    {
+      "canonical": "useId",
+      "aliases": [
+        "use id",
+        "useId",
+        "use id hook"
+      ]
+    },
+    {
+      "canonical": "useTransition",
+      "aliases": [
+        "use transition",
+        "useTransition",
+        "use transition hook"
+      ]
+    },
+    {
+      "canonical": "useDeferredValue",
+      "aliases": [
+        "use deferred value",
+        "useDeferredValue",
+        "use deferred hook"
+      ]
+    },
+    {
+      "canonical": "Context API",
+      "aliases": [
+        "context api",
+        "react context",
+        "context api react",
+        "react context api"
+      ]
+    },
+    {
+      "canonical": "Suspense",
+      "aliases": [
+        "suspense",
+        "react suspense",
+        "suspense boundary"
+      ]
+    },
+    {
+      "canonical": "Error Boundary",
+      "aliases": [
+        "error boundary",
+        "error boundaries",
+        "react error boundary"
+      ]
+    },
+    {
+      "canonical": "JSX",
+      "aliases": [
+        "jsx",
+        "j s x",
+        "jay ess ex",
+        "javascript xml",
+        "react jsx"
+      ]
+    },
+    {
+      "canonical": "TSX",
+      "aliases": [
+        "tsx",
+        "t s x",
+        "typescript jsx",
+        "type script jsx"
+      ]
+    },
+    {
+      "canonical": "TypeScript Compiler",
+      "aliases": [
+        "typescript compiler",
+        "ts compiler",
+        "tsc",
+        "t s c",
+        "type script compiler"
+      ]
+    },
+    {
+      "canonical": "tsc",
+      "aliases": [
+        "tsc",
+        "t s c",
+        "typescript compiler",
+        "t s compiler"
+      ]
+    },
+    {
+      "canonical": "npm install",
+      "aliases": [
+        "npm install",
+        "n p m install",
+        "npm i",
+        "npm eye",
+        "install npm package"
+      ]
+    },
+    {
+      "canonical": "npm run dev",
+      "aliases": [
+        "npm run dev",
+        "n p m run dev",
+        "npm run development",
+        "npm dev"
+      ]
+    },
+    {
+      "canonical": "pnpm install",
+      "aliases": [
+        "pnpm install",
+        "p n p m install",
+        "pnpm i",
+        "p n p m eye"
+      ]
+    },
+    {
+      "canonical": "pnpm dev",
+      "aliases": [
+        "pnpm dev",
+        "p n p m dev",
+        "pnpm development"
+      ]
+    },
+    {
+      "canonical": "bun install",
+      "aliases": [
+        "bun install",
+        "bun i",
+        "boon install",
+        "bun package install"
+      ]
+    },
+    {
+      "canonical": "bun dev",
+      "aliases": [
+        "bun dev",
+        "boon dev",
+        "bun development"
+      ]
+    },
+    {
+      "canonical": "git push",
+      "aliases": [
+        "git push",
+        "git push origin",
+        "push to git",
+        "push git"
+      ]
+    },
+    {
+      "canonical": "git pull",
+      "aliases": [
+        "git pull",
+        "pull git",
+        "git fetch and merge"
+      ]
+    },
+    {
+      "canonical": "git clone",
+      "aliases": [
+        "git clone",
+        "clone git repo",
+        "clone repository"
+      ]
+    },
+    {
+      "canonical": "git fetch",
+      "aliases": [
+        "git fetch",
+        "fetch git",
+        "git fetch origin"
+      ]
+    },
+    {
+      "canonical": "git checkout",
+      "aliases": [
+        "git checkout",
+        "checkout branch",
+        "git check out"
+      ]
+    },
+    {
+      "canonical": "git switch",
+      "aliases": [
+        "git switch",
+        "switch branch",
+        "git switch branch"
+      ]
+    },
+    {
+      "canonical": "git log",
+      "aliases": [
+        "git log",
+        "git history",
+        "git commit history"
+      ]
+    },
+    {
+      "canonical": "git diff",
+      "aliases": [
+        "git diff",
+        "git difference",
+        "git changes"
+      ]
+    },
+    {
+      "canonical": "git status",
+      "aliases": [
+        "git status",
+        "git stats",
+        "repository status"
+      ]
+    },
+    {
+      "canonical": "git reset",
+      "aliases": [
+        "git reset",
+        "reset git",
+        "git hard reset",
+        "git soft reset"
+      ]
+    },
+    {
+      "canonical": "git cherry-pick",
+      "aliases": [
+        "git cherry pick",
+        "cherry pick git",
+        "git cherry-pick commit"
+      ]
+    },
+    {
+      "canonical": "pull request",
+      "aliases": [
+        "pull request",
+        "pull req",
+        "pr",
+        "p r",
+        "pull request github"
+      ]
+    },
+    {
+      "canonical": "code review",
+      "aliases": [
+        "code review",
+        "review code",
+        "code reviewer",
+        "review the pull request"
+      ]
+    },
+    {
+      "canonical": "/",
+      "aliases": [
+        "slash",
+        "forward slash"
+      ]
+    },
+    {
+      "canonical": ".rs",
+      "aliases": [
+        "dot rs",
+        "dot r s",
+        "rust file",
+        "dot rust"
+      ]
+    },
+    {
+      "canonical": ".py",
+      "aliases": [
+        "dot py",
+        "dot p y",
+        "python file"
+      ]
+    },
+    {
+      "canonical": ".rb",
+      "aliases": [
+        "dot rb",
+        "dot r b"
+      ]
+    },
+    {
+      "canonical": ".go",
+      "aliases": [
+        "dot go"
+      ]
+    },
+    {
+      "canonical": ".java",
+      "aliases": [
+        "dot java"
+      ]
+    },
+    {
+      "canonical": ".kt",
+      "aliases": [
+        "dot kt",
+        "dot k t"
+      ]
+    },
+    {
+      "canonical": ".kts",
+      "aliases": [
+        "dot k t s"
+      ]
+    },
+    {
+      "canonical": ".swift",
+      "aliases": [
+        "dot swift"
+      ]
+    },
+    {
+      "canonical": ".php",
+      "aliases": [
+        "dot php"
+      ]
+    },
+    {
+      "canonical": ".cs",
+      "aliases": [
+        "dot cs",
+        "dot c sharp file"
+      ]
+    },
+    {
+      "canonical": ".cpp",
+      "aliases": [
+        "dot cpp",
+        "dot c plus plus"
+      ]
+    },
+    {
+      "canonical": ".cc",
+      "aliases": [
+        "dot c c"
+      ]
+    },
+    {
+      "canonical": ".c",
+      "aliases": [
+        "dot c"
+      ]
+    },
+    {
+      "canonical": ".h",
+      "aliases": [
+        "dot h"
+      ]
+    },
+    {
+      "canonical": ".hpp",
+      "aliases": [
+        "dot h p p"
+      ]
+    },
+    {
+      "canonical": ".txt",
+      "aliases": [
+        "dot txt"
+      ]
+    },
+    {
+      "canonical": ".less",
+      "aliases": [
+        "dot less"
+      ]
+    },
+    {
+      "canonical": ".htm",
+      "aliases": [
+        "dot h t m"
+      ]
+    },
+    {
+      "canonical": ".xml",
+      "aliases": [
+        "dot xml"
+      ]
+    },
+    {
+      "canonical": ".ini",
+      "aliases": [
+        "dot i n i"
+      ]
+    },
+    {
+      "canonical": ".cfg",
+      "aliases": [
+        "dot cfg"
+      ]
+    },
+    {
+      "canonical": ".conf",
+      "aliases": [
+        "dot conf"
+      ]
+    },
+    {
+      "canonical": ".sh",
+      "aliases": [
+        "dot sh",
+        "dot s h",
+        "shell script file"
+      ]
+    },
+    {
+      "canonical": ".bash",
+      "aliases": [
+        "dot bash"
+      ]
+    },
+    {
+      "canonical": ".zsh",
+      "aliases": [
+        "dot zsh"
+      ]
+    },
+    {
+      "canonical": ".lock",
+      "aliases": [
+        "dot lock"
+      ]
+    }
   ]
 }

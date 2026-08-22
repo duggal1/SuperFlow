@@ -422,6 +422,10 @@ mod tests {
             post_processed_text: post_processed.map(|text| text.to_string()),
             post_process_prompt: None,
             post_process_requested: false,
+            word_count: 0,
+            audio_duration_secs: None,
+            avg_wpm: None,
+            time_saved_secs: None,
         }
     }
 

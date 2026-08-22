@@ -57,6 +57,23 @@ pub fn len() -> usize {
     entries().len()
 }
 
+/// Canonical display forms for decode-time vocabulary biasing (whisper
+/// initial_prompt). Capped so the prompt stays a small fraction of the
+/// decoder's context budget.
+pub fn vocabulary_hint() -> Vec<String> {
+    const MAX_CHARS: usize = 900;
+    let mut out = Vec::new();
+    let mut total = 0usize;
+    for (canonical, _) in entries() {
+        if total + canonical.len() + 2 > MAX_CHARS {
+            break;
+        }
+        total += canonical.len() + 2;
+        out.push(canonical.clone());
+    }
+    out
+}
+
 /// Applies the built-in technical lexicon to transcribed text.
 pub fn apply(text: &str) -> String {
     if text.is_empty() {
@@ -76,7 +93,9 @@ mod tests {
 
     #[test]
     fn corrects_misheard_framework_names() {
-        assert_eq!(apply("built with next year"), "built with Next.js");
+        // v2 dropped bare "next year" (prose collision risk); live aliases
+        // carry the same intent.
+        assert_eq!(apply("built with next jays"), "built with Next.js");
         assert_eq!(
             apply("styled using tail winds"),
             "styled using Tailwind CSS"
@@ -90,8 +109,8 @@ mod tests {
 
     #[test]
     fn preserves_case_pattern() {
-        assert_eq!(apply("NEXT YEAR app"), "NEXT.JS app");
-        assert_eq!(apply("Next year app"), "Next.js app");
+        assert_eq!(apply("NEXT JAYS app"), "NEXT.JS app");
+        assert_eq!(apply("Next jays app"), "Next.js app");
     }
 
     #[test]
@@ -117,9 +136,10 @@ mod tests {
     fn corrects_spoken_file_extensions() {
         assert_eq!(apply("edit hero dot tsx"), "edit hero .tsx");
         assert_eq!(apply("open main dot rs"), "open main .rs");
+        // v2 carries a dedicated package.json entry that consumes the phrase.
         assert_eq!(
             apply("check the package dot json"),
-            "check the package .json"
+            "check the package.json"
         );
     }
 
@@ -136,5 +156,36 @@ mod tests {
     fn does_not_fire_on_nearby_prose_words() {
         assert_eq!(apply("he slashed prices today"), "he slashed prices today");
         assert_eq!(apply("the dot of the sentence"), "the dot of the sentence");
+    }
+
+    #[test]
+    fn skeleton_matching_does_not_overfire() {
+        // A stray small word glued into the n-gram must not be swallowed.
+        assert_eq!(
+            apply("deploy it to coober netees"),
+            "deploy it to Kubernetes"
+        );
+        // Generic words must not morph into longer entries via skeletons.
+        assert_eq!(apply("list the components"), "list the components");
+    }
+
+    #[test]
+    fn phonetic_matching_never_fires_on_short_prose() {
+        assert_eq!(
+            apply("i will rest at the sea shore"),
+            "i will rest at the sea shore"
+        );
+        // Single common-word entries deliberately win in dev dictation:
+        // "Bun" the runtime vastly outweighs bread in this context.
+        assert_eq!(apply("a bun in the oven"), "a Bun in the oven");
+    }
+
+    #[test]
+    fn vocabulary_hint_covers_the_modern_stack() {
+        let hint = vocabulary_hint();
+        // Capped by MAX_CHARS, so bound the count instead of entry totals.
+        assert!(!hint.is_empty());
+        assert!(hint.len() < 200);
+        assert!(hint.iter().any(|t| t == "Next.js"));
     }
 }

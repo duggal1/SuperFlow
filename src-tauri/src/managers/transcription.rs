@@ -765,6 +765,47 @@ impl TranscriptionManager {
         current_model.clone()
     }
 
+    /// Block until `model_id` is loaded and ready to transcribe.
+    ///
+    /// Unlike [`initiate_model_load`](Self::initiate_model_load) (fire-and-forget,
+    /// races its caller), this resolves every race deterministically: it waits
+    /// out any in-flight load, checks whether the exact requested model is
+    /// already resident, loads synchronously when not, and propagates the real
+    /// load error ("Model not downloaded", "Model not found") instead of the
+    /// downstream "Model is not loaded" symptom. This is the path background
+    /// retries must use — a retry has no UI lifecycle to piggyback on, so it
+    /// owns the full load step itself.
+    pub fn ensure_model_loaded(&self, model_id: &str) -> Result<()> {
+        loop {
+            // Wait out any in-flight load, then re-evaluate under no lock.
+            {
+                let mut is_loading = self.is_loading.lock().unwrap();
+                while *is_loading {
+                    is_loading = self.loading_condvar.wait(is_loading).unwrap();
+                }
+            }
+
+            let reload_pending = self.reload_model_on_next_use.load(Ordering::Acquire);
+            if !reload_pending
+                && self.is_model_loaded()
+                && self.get_current_model().as_deref() == Some(model_id)
+            {
+                return Ok(());
+            }
+
+            match self.try_start_loading() {
+                Some(guard) => {
+                    let result = self.load_model(model_id);
+                    drop(guard); // clears the flag + wakes all waiters, even on error
+                    return result;
+                }
+                // Another thread claimed the loading slot between our wait and
+                // our claim attempt; loop back and wait for it to finish.
+                None => continue,
+            }
+        }
+    }
+
     /// The compute backend the currently-loaded engine is bound to, for
     /// diagnostics (e.g. confirming `--device-index` actually bound a GPU rather
     /// than falling back to CPU/auto). transcribe-cpp (whisper-family) reports
@@ -1291,18 +1332,29 @@ impl TranscriptionManager {
             let transcribe_result = catch_unwind(AssertUnwindSafe(|| -> Result<String> {
                 match &mut engine {
                     LoadedEngine::TranscribeCpp(session) => {
-                        // Custom words become the initial prompt ONLY for models
-                        // that accept one (whisper family). Attaching the
-                        // whisper run extension to a non-whisper arch is rejected
-                        // with INVALID_ARG, so skip it there and let the fuzzy
-                        // post-correction handle custom words instead.
-                        let family = if settings.custom_words.is_empty() || !model_is_whisper {
+                        // Vocabulary biasing for whisper-family decoders: the
+                        // built-in technical lexicon plus user custom words go
+                        // into initial_prompt so names like "Next.js" or
+                        // "Kubernetes" are spelled correctly at the source
+                        // instead of relying on post-correction. Non-whisper
+                        // archs (Parakeet, Nemotron) reject the whisper
+                        // extension; their accuracy rides on the fuzzy
+                        // post-correction path instead.
+                        let family = if !model_is_whisper {
                             None
                         } else {
-                            Some(RunExtension::Whisper(WhisperRunOptions {
-                                initial_prompt: Some(settings.custom_words.join(", ")),
-                                ..Default::default()
-                            }))
+                            let mut vocab = crate::audio_toolkit::tech_lexicon::vocabulary_hint();
+                            for word in &settings.custom_words {
+                                if !vocab.contains(word) {
+                                    vocab.push(word.clone());
+                                }
+                            }
+                            (!vocab.is_empty()).then(|| {
+                                RunExtension::Whisper(WhisperRunOptions {
+                                    initial_prompt: Some(vocab.join(", ")),
+                                    ..Default::default()
+                                })
+                            })
                         };
 
                         let run_plan = transcribe_cpp_run_plan(

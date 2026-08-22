@@ -26,7 +26,38 @@ fn build_match_key(word: &str) -> String {
 struct CustomWordMatchKey {
     word_index: usize,
     key: String,
+    /// Vowel-collapsed consonant skeleton of `key` for phonetic fallback
+    /// matching (built-in lexicon only). Empty when the key is too short.
+    skeleton: String,
 }
+
+/// Maps ASR-equivalent consonants to a shared letter and drops vowels and
+/// glide consonants: c/k/q → "k", z → "s", vowels/h/w/y removed, adjacent
+/// duplicates collapsed. "kubernetes" and "coobernetees" both become
+/// "kbrnts", so one entry covers mishearings no alias list can enumerate.
+fn consonant_skeleton(key: &str) -> String {
+    let mut out = String::new();
+    let mut prev = '\0';
+    for ch in key.chars() {
+        let mapped = match ch {
+            'c' | 'k' | 'q' => 'k',
+            'z' => 's',
+            'a' | 'e' | 'i' | 'o' | 'u' | 'h' | 'w' | 'y' => continue,
+            other => other,
+        };
+        if mapped != prev {
+            out.push(mapped);
+            prev = mapped;
+        }
+    }
+    out
+}
+
+/// Phonetic fallback fires only on substantial words; short candidates are
+/// left to the strict orthographic path so prose stays untouched.
+const SKELETON_MIN_CHARS: usize = 5;
+/// Max normalized skeleton edit distance for a phonetic match.
+const SKELETON_THRESHOLD: f64 = 0.25;
 
 fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWordMatchKey> {
     let primary_key = build_match_key(word);
@@ -37,9 +68,15 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
     // scripts. Unicode custom words remain available to models that accept
     // them as native decode prompts; they are simply skipped by this fallback.
     if is_supported_fuzzy_key(&primary_key) {
+        let skeleton = if primary_key.chars().count() >= SKELETON_MIN_CHARS {
+            consonant_skeleton(&primary_key)
+        } else {
+            String::new()
+        };
         keys.push(CustomWordMatchKey {
             word_index,
             key: primary_key.clone(),
+            skeleton,
         });
     }
 
@@ -49,6 +86,7 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
             keys.push(CustomWordMatchKey {
                 word_index,
                 key: expanded_key,
+                skeleton: String::new(),
             });
         }
     }
@@ -112,6 +150,44 @@ fn find_best_match<'a>(
             1.0
         };
 
+        // Phonetic fallback (built-in lexicon only): compare consonant
+        // skeletons so unenumerated mishearings ("coober netees" →
+        // Kubernetes) still match. Guards: substantial words only, similar
+        // raw lengths (a stray small word glued into the n-gram must not
+        // sneak past), matching first skeleton consonant (the anchor), and
+        // a sane orthographic ceiling so wild guesses never fire.
+        let score = if !custom_word_key.skeleton.is_empty() {
+            let candidate_skeleton = consonant_skeleton(candidate);
+            let raw_len_ok = {
+                let diff = (candidate.chars().count() as i64
+                    - custom_word_key.key.chars().count() as i64)
+                    .abs();
+                diff as f64 <= (max_len * 0.2).max(2.0)
+            };
+            let anchored = candidate_skeleton.starts_with(&custom_word_key.skeleton);
+            if raw_len_ok
+                && anchored
+                && candidate_skeleton.chars().count() >= 3
+                && candidate.len() >= SKELETON_MIN_CHARS
+                && levenshtein_score <= 0.5
+            {
+                let skel_dist = levenshtein(&candidate_skeleton, &custom_word_key.skeleton);
+                let skel_max = (candidate_skeleton.chars().count())
+                    .max(custom_word_key.skeleton.chars().count())
+                    as f64;
+                let skeleton_score = skel_dist as f64 / skel_max.max(1.0);
+                if skeleton_score < SKELETON_THRESHOLD && skeleton_score < levenshtein_score {
+                    skeleton_score * 1.1
+                } else {
+                    levenshtein_score
+                }
+            } else {
+                levenshtein_score
+            }
+        } else {
+            levenshtein_score
+        };
+
         // Soundex is an English/ASCII phonetic algorithm. Numeric terms can
         // still use edit distance, but must not receive a phonetic boost.
         // The boost is disabled for the built-in lexicon: on short common
@@ -123,9 +199,9 @@ fn find_best_match<'a>(
 
         // Combine scores: favor phonetic matches, but also consider string similarity
         let combined_score = if phonetic_match {
-            levenshtein_score * 0.3 // Give significant boost to phonetic matches
+            score * 0.3 // Give significant boost to phonetic matches
         } else {
-            levenshtein_score
+            score
         };
 
         // Accept if the score is good enough (configurable threshold)
@@ -203,9 +279,15 @@ pub fn apply_alias_entries(
                 .collect::<Vec<_>>()
                 .concat();
             if is_supported_fuzzy_key(&key) && seen.insert(key.clone()) {
+                let skeleton = if key.chars().count() >= SKELETON_MIN_CHARS {
+                    consonant_skeleton(&key)
+                } else {
+                    String::new()
+                };
                 match_keys.push(CustomWordMatchKey {
                     word_index: entry_index,
                     key,
+                    skeleton,
                 });
             }
         };

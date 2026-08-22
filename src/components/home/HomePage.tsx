@@ -211,12 +211,6 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
   };
 
   const words = countWords(entry.transcription_text);
-  const meta = [
-    hasText ? t("home.words", { count: words }) : null,
-    duration !== undefined ? formatClock(duration) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <article className="px-4 py-4">
@@ -227,6 +221,8 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
         }
       `}</style>
 
+      {/* Single header row: time + status chips on the left; word badge,
+          duration and every action aligned horizontally on the right. */}
       <div className="flex items-center justify-between gap-3">
         <span className="flex min-w-0 items-center gap-2">
           <span className="shrink-0 text-sm font-medium tracking-tight text-stone-100">
@@ -246,11 +242,51 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
             </span>
           )}
         </span>
-        {!busy && hasText && meta && (
-          <span className="shrink-0 text-xs tracking-wide text-mid-gray">
-            {meta}
-          </span>
-        )}
+        <span className="flex shrink-0 items-center gap-1">
+          {!busy && hasText && (
+            <>
+              <span className="inline-flex items-center rounded-[3.5px] bg-sky-500/[0.11] px-1.5 py-0.5 text-[11px] font-medium leading-none tracking-tight text-sky-400">
+                {t("home.words", { count: words })}
+              </span>
+              {duration !== undefined && (
+                <span className="px-1 text-xs tabular-nums tracking-wide text-mid-gray">
+                  {formatClock(duration)}
+                </span>
+              )}
+            </>
+          )}
+          <div className="-mr-1 flex items-center gap-0.5">
+            <ActionIconButton
+              onClick={handleCopy}
+              disabled={!hasText || busy}
+              title={t("settings.history.copyToClipboard")}
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </ActionIconButton>
+            <ActionIconButton
+              onClick={handleTogglePlayback}
+              title={playing ? t("home.pause") : t("home.play")}
+            >
+              {playing ? <Pause size={14} /> : <Play size={14} />}
+            </ActionIconButton>
+            {!hasText && !busy && (
+              <ActionIconButton
+                onClick={handleRetry}
+                title={t("settings.history.retranscribe")}
+              >
+                <ArrowCounterClockwise size={14} />
+              </ActionIconButton>
+            )}
+            <ActionIconButton
+              onClick={handleDelete}
+              disabled={busy}
+              danger
+              title={t("settings.history.delete")}
+            >
+              <Trash size={14} />
+            </ActionIconButton>
+          </div>
+        </span>
       </div>
 
       {busy ? (
@@ -265,40 +301,6 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
           {entry.transcription_text}
         </p>
       ) : null}
-
-      <div className="mt-3 flex items-center justify-end border-t border-divider pt-2">
-        <div className="-mr-1 flex items-center gap-0.5">
-          <ActionIconButton
-            onClick={handleCopy}
-            disabled={!hasText || busy}
-            title={t("settings.history.copyToClipboard")}
-          >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-          </ActionIconButton>
-          <ActionIconButton
-            onClick={handleTogglePlayback}
-            title={playing ? t("home.pause") : t("home.play")}
-          >
-            {playing ? <Pause size={16} /> : <Play size={16} />}
-          </ActionIconButton>
-          {!hasText && !busy && (
-            <ActionIconButton
-              onClick={handleRetry}
-              title={t("settings.history.retranscribe")}
-            >
-              <ArrowCounterClockwise size={16} />
-            </ActionIconButton>
-          )}
-          <ActionIconButton
-            onClick={handleDelete}
-            disabled={busy}
-            danger
-            title={t("settings.history.delete")}
-          >
-            <Trash size={16} />
-          </ActionIconButton>
-        </div>
-      </div>
     </article>
   );
 };
@@ -500,7 +502,7 @@ export const HomePage: React.FC = () => {
                 key={cell.key}
                 className="flex min-w-0 flex-col items-center gap-2 px-4 py-5"
               >
-                <cell.icon size={32} className="text-stone-400" />
+                <cell.icon size={24} weight="light" className="text-stone-400" />
                 <span className="truncate text-xl font-medium tracking-tight text-stone-50">
                   {cell.value}
                 </span>
