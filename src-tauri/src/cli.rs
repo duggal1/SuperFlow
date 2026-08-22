@@ -60,4 +60,11 @@ pub struct CliArgs {
     /// Emit --transcribe-file results as JSON.
     #[arg(long)]
     pub json: bool,
+
+    /// One-shot context capture agent: performs a single Accessibility
+    /// snapshot, prints it as JSON on stdout, and exits. Invoked by the app as
+    /// a short-lived subprocess so AX faults can never take the app down.
+    /// Internal — do not use interactively.
+    #[arg(long)]
+    pub context_agent: bool,
 }

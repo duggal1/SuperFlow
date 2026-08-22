@@ -27,6 +27,7 @@ mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
 mod utils;
+mod voice_terminal;
 
 pub use cli::CliArgs;
 #[cfg(debug_assertions)]
@@ -150,10 +151,6 @@ fn should_force_show_permissions_window(app: &AppHandle) -> bool {
 }
 
 fn initialize_core_logic(app_handle: &AppHandle) {
-    // Context capture performs Accessibility calls, which are only valid on
-    // the main thread — register the handle it uses to hop over.
-    context::capture::set_main_dispatcher(app_handle.clone());
-
     // Note: Enigo (keyboard/mouse simulation) is NOT initialized here.
     // The frontend is responsible for calling the `initialize_enigo` command
     // after onboarding completes. This avoids triggering permission dialogs
@@ -188,6 +185,55 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
+
+    // Automatic recovery sweep: every saved recording whose transcription
+    // never produced text runs back through the three-layer fallback chain
+    // (fresh-load retries, then an alternate downloaded model), so a failure
+    // never survives an app restart. Waits briefly so the launch-time model
+    // load is not contended, and processes entries sequentially.
+    {
+        let app = app_handle.clone();
+        let history = Arc::clone(&history_manager);
+        let transcription = Arc::clone(&transcription_manager);
+        tauri::async_runtime::spawn(async move {
+            let _ = tauri::async_runtime::spawn_blocking(|| {
+                std::thread::sleep(std::time::Duration::from_secs(8))
+            })
+            .await;
+
+            if crate::settings::get_settings(&app)
+                .selected_model
+                .trim()
+                .is_empty()
+            {
+                return;
+            }
+
+            let Ok(ids) = history.get_failed_entry_ids().await else {
+                log::warn!("Startup recovery: failed to list stranded recordings");
+                return;
+            };
+            if ids.is_empty() {
+                return;
+            }
+            log::info!(
+                "Startup recovery: re-transcribing {} recording(s) with no text",
+                ids.len()
+            );
+            for id in ids {
+                if let Err(e) = commands::history::retranscribe_entry(
+                    app.clone(),
+                    Arc::clone(&history),
+                    Arc::clone(&transcription),
+                    id,
+                )
+                .await
+                {
+                    log::warn!("Startup recovery failed for entry {}: {}", id, e);
+                }
+            }
+        });
+    }
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command
@@ -595,6 +641,15 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run(cli_args: CliArgs) {
+    // Context-agent mode: a one-shot Accessibility capture subprocess spawned
+    // by the running app (see `context::capture`). It must short-circuit
+    // before ANY app machinery initializes — this process exists only to
+    // isolate AX faults away from the main app.
+    if cli_args.context_agent {
+        context::capture::run_context_agent();
+        return;
+    }
+
     // Avoid ggml-metal residency-set teardown assertions when a native engine
     // outlives the Tauri shutdown sequence (#1902). This must happen before
     // transcribe-cpp initializes its Metal device. Advanced users can restore

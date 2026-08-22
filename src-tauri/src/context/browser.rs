@@ -33,6 +33,7 @@ extern "C" {
         value: *mut CFTypeRef,
     ) -> AxError;
     fn CFRelease(cf: CFTypeRef);
+    fn CFRetain(cf: CFTypeRef);
     fn CFArrayGetCount(array: CFArrayRef) -> isize;
     fn CFArrayGetValueAtIndex(array: CFArrayRef, index: isize) -> CFTypeRef;
     fn CFURLCopyAbsoluteURL(url: CFURLRef) -> CFURLRef;
@@ -79,6 +80,17 @@ struct CfRef(CFTypeRef);
 impl CfRef {
     fn take(raw: CFTypeRef) -> Option<Self> {
         (!raw.is_null()).then(|| Self(raw))
+    }
+
+    /// Take ownership of a non-owning borrow (e.g. an element borrowed from a
+    /// CFArray) by retaining it. The returned handle keeps the object alive
+    /// independently of its original container.
+    fn retained(raw: CFTypeRef) -> Option<Self> {
+        if raw.is_null() {
+            return None;
+        }
+        unsafe { CFRetain(raw) };
+        Some(Self(raw))
     }
 }
 
@@ -143,28 +155,36 @@ fn element_value_string(element: AXUIElementRef) -> Option<String> {
 
 /// Breadth-first search for the first descendant whose role equals `role`.
 /// Bounded in depth and node count so pathological trees can't stall capture.
+///
+/// Ownership: `CFArrayGetValueAtIndex` yields NON-owning borrows whose
+/// backing array dies with its [`CfRef`]. Every enqueued node is therefore
+/// retained into an owned handle — a raw pointer must never outlive the scope
+/// that produced it (this exact pattern caused fatal `_AXUIElementValidate`
+/// SIGTRAPs; see crash report 2026-08-22-202121).
 fn find_descendant_by_role(
     root: AXUIElementRef,
     role: &str,
     max_depth: usize,
     max_nodes: usize,
-) -> Option<AXUIElementRef> {
-    let mut queue = std::collections::VecDeque::from([(root, 0usize)]);
+) -> Option<CfRef> {
+    let mut queue: std::collections::VecDeque<(CfRef, usize)> = std::collections::VecDeque::new();
+    queue.push_back((CfRef::retained(root as CFTypeRef)?, 0usize));
+
     let mut visited = 0usize;
     while let Some((element, depth)) = queue.pop_front() {
         if depth > max_depth || visited >= max_nodes {
             return None;
         }
         visited += 1;
-        if element_role(element).as_deref() == Some(role) {
+        if element_role(element.as_element()).as_deref() == Some(role) {
             return Some(element);
         }
-        if let Some(children) = copy_attribute(element, ax_attr!("AXChildren")) {
+        if let Some(children) = copy_attribute(element.as_element(), ax_attr!("AXChildren")) {
             let count = unsafe { CFArrayGetCount(children.as_array()) };
             for index in 0..count {
                 let child = unsafe { CFArrayGetValueAtIndex(children.as_array(), index) };
-                if !child.is_null() {
-                    queue.push_back((child as AXUIElementRef, depth + 1));
+                if let Some(owned) = CfRef::retained(child) {
+                    queue.push_back((owned, depth + 1));
                 }
             }
         }
@@ -185,9 +205,11 @@ fn window_url_safari(window: AXUIElementRef) -> Option<String> {
 }
 
 fn window_url_chromium(window: AXUIElementRef) -> Option<String> {
+    // Owned handles: toolbar and field each keep their own reference alive
+    // independent of any parent attribute fetch.
     let toolbar = find_descendant_by_role(window, "AXToolbar", 2, 64)?;
-    let field = find_descendant_by_role(toolbar, "AXTextField", 8, 256)?;
-    let value = element_value_string(field)?;
+    let field = find_descendant_by_role(toolbar.as_element(), "AXTextField", 8, 256)?;
+    let value = element_value_string(field.as_element())?;
     // The omnibox holds the URL while browsing; only trust URL-shaped values.
     (value.starts_with("http://") || value.starts_with("https://")).then_some(value)
 }
@@ -213,9 +235,11 @@ pub fn frontmost_tab(bundle_id: Option<&str>, pid: i32) -> Option<TabInfo> {
     let _app_guard = CfRef(pid_attr as CFTypeRef);
 
     // Prefer the app's own focused window; fall back to its main window.
-    let window = copy_attribute(focused_app.as_element(), ax_attr!("AXFocusedWindow"))
-        .or_else(|| copy_attribute(focused_app.as_element(), ax_attr!("AXMainWindow")))?
-        .as_element();
+    // The owned handle is bound for the function's duration — the raw
+    // element must never outlive it.
+    let window_handle = copy_attribute(focused_app.as_element(), ax_attr!("AXFocusedWindow"))
+        .or_else(|| copy_attribute(focused_app.as_element(), ax_attr!("AXMainWindow")))?;
+    let window = window_handle.as_element();
 
     let title = copy_attribute(window, ax_attr!("AXTitle")).and_then(|t| t.as_string());
 
