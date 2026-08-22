@@ -124,6 +124,8 @@
   justify-content: center; /* horizontal centering, kept for both forms */
   align-items: flex-end; /* bottom placement: flush to the bottom edge */
   font-family: var(--s-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 .ov-stage.top {
   align-items: flex-start; /* top placement: flush to the top edge */
@@ -475,22 +477,25 @@
 }
 
 /* ============================================================
-   Transcript result card — shown ONLY when the paste failed, so a
-   dictation that landed nowhere is still one click from the
-   clipboard. Reuses .scard (surface, hairline border, pop-in) and
-   adds a header row + masked-fade transcript body.
+   Transcript result card — shown when a dictation lands nowhere
+   pasteable. Motion (RecordingOverlay.tsx) owns the blur-in /
+   blur-out entrance and exit, so the shared .scard pop animation
+   is off here. Ultra-clean surface: no border, no shadow, one
+   larger radius, quiet label, capped scrollable body.
    ============================================================ */
 .scard.sresult {
   /* Tailwind preflight is NOT loaded in this webview, so box-sizing defaults to
-     content-box. With padding + border that made the real card ~414px wide
-     inside the 400px overlay window — slicing off both rounded side edges.
-     border-box keeps the declared width as the true outer width. */
+     content-box. With padding that made the real card ~414px wide inside the
+     400px overlay window — slicing off both rounded side edges. border-box
+     keeps the declared width as the true outer width. */
   box-sizing: border-box;
   width: 384px;
   max-height: 224px;
-  border-radius: 14px;
-  gap: 10px;
-  padding: 12px 18px 14px;
+  border: none;
+  border-radius: 18px;
+  gap: 12px;
+  padding: 16px 20px 18px;
+  animation: none;
 }
 /* The Live panel flips to column-reverse for top placement; the result card
    keeps its natural order (header above body) on both edges. */
@@ -505,25 +510,28 @@
   gap: 12px;
   flex: none;
 }
+/* Quiet natural-case label — hierarchy via color alone, no caps, no tracking. */
 .sresult-label {
-  font-size: 11px;
-  font-weight: 590;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--s-muted);
   user-select: none;
 }
 .sresult-body {
   min-height: 0;
+  /* 150 + header (~28) + gap (12) + padding (34) = the card's 224px cap. */
+  max-height: 150px;
   overflow-y: auto;
   overscroll-behavior: contain;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   letter-spacing: -0.011em;
   white-space: pre-wrap;
   overflow-wrap: break-word;
   color: color-mix(in srgb, var(--color-text) 92%, transparent);
   scrollbar-width: none; /* Firefox */
+  -webkit-font-smoothing: antialiased;
 }
 /* Hide the scrollbar (WebKit) — scrollability is signalled by the edge fade. */
 .sresult-body::-webkit-scrollbar {
@@ -531,22 +539,39 @@
 }
 
 /*
- * Ultra-clean edge fade, restrained variant: one continuous transition at each
- * edge, no artificial opacity stops — the center stays 100% crisp.
+ * Edge fades, applied per edge by RecordingOverlay.tsx based on which edges
+ * are actually hiding scrolled text. One continuous transition at each edge,
+ * no artificial opacity stops — the middle stays 100% crisp.
  */
-.musk-fade {
+.sresult-body.fade-bottom {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
+}
+.sresult-body.fade-top {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 24px);
+}
+.sresult-body.fade-both {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,
-    #000 18%,
-    #000 82%,
+    #000 24px,
+    #000 calc(100% - 24px),
     transparent 100%
   );
   mask-image: linear-gradient(
     to bottom,
     transparent 0,
-    #000 18%,
-    #000 82%,
+    #000 24px,
+    #000 calc(100% - 24px),
     transparent 100%
   );
 }

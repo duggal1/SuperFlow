@@ -21,10 +21,31 @@ type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 9;
 
-// Display cap for the result card body. The full transcript is always copied;
-// past this many words the preview truncates and the top/bottom edge fade
-// signals that there is more than what is on screen.
-const MAX_RESULT_WORDS = 40;
+// How long the result card plays its blur-out before React tears it down. The
+// backend hides the native panel ~300ms after emitting "hide-overlay"; the
+// exit must land inside that grace window.
+const RESULT_EXIT_MS = 240;
+
+// Which edges of the result-card body get the mask fade: only edges that are
+// actually hiding scrolled content stay faded, so short transcripts render
+// fully crisp.
+type ResultFade = "none" | "top" | "bottom" | "both";
+
+// Measures which edges of the transcript body are hiding scrolled text.
+// Module-level so both the layout effect and the scroll handler share one
+// stable implementation.
+const measureResultFade = (
+  el: HTMLDivElement | null,
+  setFade: (fade: ResultFade) => void,
+) => {
+  if (!el || el.scrollHeight <= el.clientHeight + 1) {
+    setFade("none");
+    return;
+  }
+  const atTop = el.scrollTop <= 1;
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+  setFade(atTop ? "bottom" : atBottom ? "top" : "both");
+};
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -57,10 +78,21 @@ const RecordingOverlay: React.FC = () => {
   // True right after a successful copy — swaps the button to "Copied" before
   // the card dismisses itself.
   const [copied, setCopied] = useState(false);
+  // True while the card plays its blur-out exit (between "hide-overlay" and
+  // the native panel hiding itself).
+  const [resultExiting, setResultExiting] = useState(false);
+  // Which edges of the body are currently hiding scrolled text.
+  const [resultFade, setResultFade] = useState<ResultFade>("none");
   // Auto-dismiss safety net so the floating card can never linger forever.
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Delayed close after the "Copied" confirmation plays.
   const copyCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Blur-out teardown timer (see RESULT_EXIT_MS).
+  const resultExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirror of resultText for event listeners registered once on mount.
+  const resultTextRef = useRef<string | null>(null);
+  // Scrollable transcript body — measured for the edge fades.
+  const resultBodyRef = useRef<HTMLDivElement>(null);
 
   const clearResultTimer = () => {
     if (resultTimerRef.current !== null) {
@@ -76,11 +108,37 @@ const RecordingOverlay: React.FC = () => {
     }
   };
 
+  const clearResultExitTimer = () => {
+    if (resultExitTimerRef.current !== null) {
+      clearTimeout(resultExitTimerRef.current);
+      resultExitTimerRef.current = null;
+    }
+  };
+
   const resetResultCard = () => {
     clearResultTimer();
     clearCopyCloseTimer();
+    clearResultExitTimer();
+    resultTextRef.current = null;
     setResultText(null);
     setCopied(false);
+    setResultExiting(false);
+  };
+
+  // Plays the card's blur-out, then tears the state down. Runs inside the
+  // backend's ~300ms grace between "hide-overlay" and the native hide.
+  const startResultExit = () => {
+    clearResultTimer();
+    clearCopyCloseTimer();
+    setResultExiting(true);
+    resultExitTimerRef.current = setTimeout(() => {
+      resultExitTimerRef.current = null;
+      resultTextRef.current = null;
+      setResultExiting(false);
+      setResultText(null);
+      setCopied(false);
+      setIsVisible(false);
+    }, RESULT_EXIT_MS);
   };
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
@@ -134,9 +192,17 @@ const RecordingOverlay: React.FC = () => {
       });
 
       const unlistenHide = await listen("hide-overlay", () => {
-        setIsVisible(false);
         setCaptureReady(false);
-        resetResultCard();
+        if (resultTextRef.current === null) {
+          setIsVisible(false);
+          resetResultCard();
+          return;
+        }
+        // The result card is on screen: play its blur-out inside the backend's
+        // ~300ms grace before the native panel hides, then tear down state.
+        if (resultExitTimerRef.current === null) {
+          startResultExit();
+        }
       });
 
       const unlistenResult = await listen<string>(
@@ -144,8 +210,11 @@ const RecordingOverlay: React.FC = () => {
         (event) => {
           clearResultTimer();
           clearCopyCloseTimer();
+          clearResultExitTimer();
+          resultTextRef.current = event.payload;
           setResultText(event.payload);
           setCopied(false);
+          setResultExiting(false);
           setIsVisible(true);
           resultTimerRef.current = setTimeout(() => {
             resultTimerRef.current = null;
@@ -218,6 +287,17 @@ const RecordingOverlay: React.FC = () => {
     setOverflowing(false);
   }, [session]);
 
+  // Result-card edge fades depend on whether the finished transcript actually
+  // overflows the scroll cap, and on which edges are hiding scrolled text.
+  // Re-measured whenever a new card arrives; scrolling re-measures live.
+  useLayoutEffect(() => {
+    if (!resultText) {
+      setResultFade("none");
+      return;
+    }
+    measureResultFade(resultBodyRef.current, setResultFade);
+  }, [resultText]);
+
   if (!isVisible) return null;
 
   // ---- Transcript result card ----
@@ -247,61 +327,96 @@ const RecordingOverlay: React.FC = () => {
   };
 
   if (resultText) {
-    // Cap the preview at MAX_RESULT_WORDS. Copy still uses the untouched
-    // resultText, so truncation only ever affects what is rendered.
-    const words = resultText.trim().split(/\s+/).filter(Boolean);
-    const truncated = words.length > MAX_RESULT_WORDS;
-    const displayText = truncated
-      ? `${words.slice(0, MAX_RESULT_WORDS).join(" ")} …`
-      : resultText;
-
+    // The full transcript always renders — Copy uses the untouched resultText
+    // and the body scrolls under edge fades when it outgrows the card.
     return (
       <div dir={direction} className={`ov-stage ${position}`}>
-        <div className="scard sresult">
+        <motion.div
+          className="scard sresult"
+          initial={{ opacity: 0, scale: 0.97, filter: "blur(5px)" }}
+          animate={
+            resultExiting
+              ? { opacity: 0, scale: 0.98, filter: "blur(5px)" }
+              : { opacity: 1, scale: 1, filter: "blur(0px)" }
+          }
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        >
           <div className="sresult-head">
             <span className="sresult-label">{t("overlay.transcript")}</span>
             <motion.button
               type="button"
               onClick={() => void handleCopy()}
-              whileTap={{ scale: 0.96 }}
-              transition={{ duration: 0.12, ease: "easeOut" }}
-              className="flex h-6 flex-none cursor-pointer items-center rounded-md border border-stone-700 bg-stone-800 px-2.5 transition-colors duration-150 hover:border-stone-600 hover:bg-stone-700"
+              className="group relative inline-flex h-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-[7.5px] border border-stone-700/70 bg-[linear-gradient(#1816131a_0%_100%),linear-gradient(#403c38_0%,#1c1917_100%)] px-3.5 py-1 no-underline shadow-[0_0_0_1px_#29252426,inset_0_2px_#ffffff24,inset_0_-0.5px_2px_#00000070,0_2px_8px_#0000000a,0_3px_4px_#00000036] transition-[background,border-color,box-shadow] duration-200 ease-out hover:border-stone-800 hover:bg-[linear-gradient(#12100e1a_0%_100%),linear-gradient(#312d29_0%,#141210_100%)] hover:shadow-[0_0_0_1px_#1c191733,inset_0_2px_#ffffff18,inset_0_-0.5px_2px_#00000085,0_2px_8px_#00000010,0_3px_4px_#00000042] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-600"
+              whileTap={{ scale: 0.985 }}
+              transition={{
+                duration: 0.1,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             >
-              <AnimatePresence mode="wait" initial={false}>
-                {copied ? (
-                  <motion.span
-                    key="copied"
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.14, ease: "easeOut" }}
-                    className="flex items-center gap-1.5 text-[11px] font-medium leading-none tracking-tight text-stone-100"
-                  >
-                    <Check size={12} weight="bold" />
-                    {t("overlay.copied")}
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="copy"
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    transition={{ duration: 0.14, ease: "easeOut" }}
-                    className="flex items-center gap-1.5 text-[11px] font-medium leading-none tracking-tight text-stone-100"
-                  >
-                    <Copy size={12} weight="bold" />
-                    {t("overlay.copy")}
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-[7.5px] bg-stone-950/25 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
+              />
+
+              <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
+                <AnimatePresence initial={false} mode="wait">
+                  {copied ? (
+                    <motion.span
+                      key="copied"
+                      initial={{ opacity: 0, y: 2 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -2 }}
+                      transition={{
+                        duration: 0.14,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 text-[14px] font-[460] tracking-[0.15px] text-stone-50"
+                    >
+                      <Check
+                        aria-hidden="true"
+                        className="size-3.5"
+                        weight="regular"
+                      />
+                      {t("overlay.copied")}
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="copy"
+                      initial={{ opacity: 0, y: -2 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 2 }}
+                      transition={{
+                        duration: 0.14,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 text-[13px] font-[460] tracking-[0.15px] text-stone-50"
+                    >
+                      <Copy
+                        aria-hidden="true"
+                        className="size-3.5"
+                        weight="regular"
+                      />
+                      {t("overlay.copy")}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </span>
             </motion.button>
           </div>
-          {/* Edge fade only when the preview is truncated — short transcripts
-              render fully crisp with no masking. */}
-          <div className={`sresult-body${truncated ? " musk-fade" : ""}`}>
-            {displayText}
+          {/* Edge fades only on edges actually hiding scrolled text — short
+              transcripts render fully crisp with no masking. */}
+          <div
+            ref={resultBodyRef}
+            onScroll={() =>
+              measureResultFade(resultBodyRef.current, setResultFade)
+            }
+            className={`sresult-body${
+              resultFade === "none" ? "" : ` fade-${resultFade}`
+            }`}
+          >
+            {resultText}
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
