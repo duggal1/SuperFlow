@@ -1,0 +1,6 @@
+# This machine builds Apple Intelligence as stubs on purpose: Command Line
+# Tools cannot compile FoundationModels (full Xcode required), and we are not
+# installing Xcode. Setting the flag here keeps build.rs quiet about the
+# fallback it was explicitly told to take.
+[env]
+SUPERFLOW_FORCE_AI_STUB = "1"

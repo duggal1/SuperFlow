@@ -1,0 +1,29 @@
+/* SuperFlow Colors */
+
+/* One coherent dark system — stone neutrals, single blue accent.
+   Each token is defined once here; Tailwind utilities in App.css reference
+   these, so a hex value lives in exactly one place. */
+:root {
+  /* Surfaces */
+  --color-text: #fafaf9; /* stone-50 */
+  --color-background: #1c1917; /* stone-900 — app background */
+  --color-surface: #292524; /* stone-800 — cards */
+  --color-surface-hover: #34302c; /* stone-850 (custom) — card hover */
+  --color-sidebar: #171412; /* stone-910 (custom) — sidebar, just under the app bg */
+  --color-divider: #44403c; /* stone-700 — bottom dividers only */
+
+  /* Brand accent */
+  --color-accent: #2563eb; /* blue-600 */
+
+  --color-logo-primary: #f5f5f4; /* stone-100 — brand mark fill */
+  --color-logo-stroke: #d6d3d1;
+
+  /* Semantic status colors */
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+
+  /* Legacy aliases — existing utilities re-theme through these */
+  --color-background-ui: var(--color-accent);
+  --color-text-stroke: #f6f6f6;
+  --color-mid-gray: #808080;
+}

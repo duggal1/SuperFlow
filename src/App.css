@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "./styles/theme.css";
+
+/* Register the shared color tokens (src/styles/theme.css) as Tailwind
+   utilities */
+@theme inline {
+  --color-text: var(--color-text);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-hover: var(--color-surface-hover);
+  --color-sidebar: var(--color-sidebar);
+  --color-divider: var(--color-divider);
+  --color-accent: var(--color-accent);
+  --color-background-ui: var(--color-background-ui);
+  --color-logo-primary: var(--color-logo-primary);
+  --color-logo-stroke: var(--color-logo-stroke);
+  --color-text-stroke: var(--color-text-stroke);
+  --color-mid-gray: var(--color-mid-gray);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+
+  /* Custom step between stone-800 and stone-700 for hover surfaces */
+  --color-stone-850: #34302c;
+}
+
+:root {
+  /* Typography */
+  font-size: 15px;
+  line-height: 24px;
+  font-weight: 400;
+
+  /* Typography settings */
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
+  letter-spacing: -0.011em;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+
+  /* Scrollbars — stone-750 thumb (between stone-700 #44403c and stone-800
+     #292524), no border, no ring. Hover lightens to stone-700. */
+  --scrollbar-thumb: #37332f; /* stone-750 */
+  --scrollbar-thumb-hover: #44403c; /* stone-700 */
+
+  /* Log console surface — a subtle shade off the app background so the live log
+     viewer reads as a distinct console. In light mode this is a faint gray code
+     block (matching other surfaces); the dark theme overrides it below. */
+  --color-log-surface: color-mix(in srgb, var(--color-background), black 6%);
+
+  /* Apply colors */
+  color: var(--color-text);
+  background-color: var(--color-background);
+}
+
+.container {
+  margin: 0;
+  padding-top: 10vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Interactive elements are pointer-affordant everywhere */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+[role="tab"]:not(:disabled),
+[role="option"]:not(:disabled),
+a:not([data-disabled]),
+summary,
+label:has(input:not(:disabled)),
+select:not(:disabled) {
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Just a bit darker than the (already dark) background, keeping its warm tint */
+    --color-log-surface: color-mix(in srgb, var(--color-background), black 15%);
+  }
+}
+
+/* Custom Scrollbar — stone-750 thumb, borderless, no ring on hover */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Menu popup (dialog) scrollbars — darker thumb with a stone-700 hairline
+   border so it reads inside the stone-700 popup surface. */
+[data-slot="menu-popup"] ::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-slot="menu-popup"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-slot="menu-popup"] ::-webkit-scrollbar-thumb {
+  background-color: var(--color-surface); /* stone-800 */
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--color-divider); /* stone-700 border */
+}
+
+[data-slot="menu-popup"] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-divider); /* stone-700 — lighter on hover */
+}
+
+@layer utilities {
+  .text-stroke {
+    -webkit-text-stroke: 2px var(--color-text-stroke);
+  }
+}
+
+.logo-primary {
+  fill: var(--color-logo-primary);
+}
+
+.logo-stroke {
+  fill: var(--color-logo-stroke);
+  stroke: var(--color-logo-stroke);
+  stroke-width: 1;
+}
