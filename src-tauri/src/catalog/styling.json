@@ -4,19 +4,75 @@
   "description": "Speech-to-text normalization dataset for Tailwind CSS, including phonetic aliases, spoken numbers, CSS terminology, color families, utility prefixes, responsive modifiers, state variants, arbitrary values, and design-engineering vocabulary.",
   "rules": {
     "numeric_normalization": {
-      "50": ["50", "fifty", "fiftee", "fifty"],
-      "100": ["100", "one hundred", "onehundred", "one hundred"],
-      "200": ["200", "two hundred", "twohundred", "two hundred"],
-      "300": ["300", "three hundred", "threehundred", "three hundred"],
-      "400": ["400", "four hundred", "fourhundred", "four hundred"],
-      "500": ["500", "five hundred", "fivehundred", "five hundred"],
-      "600": ["600", "six hundred", "sixhundred", "six hundred", "six hun"],
-      "700": ["700", "seven hundred", "sevenhundred", "seven hundred"],
-      "800": ["800", "eight hundred", "eighthundred", "eight hundred"],
-      "900": ["900", "nine hundred", "ninehundred", "nine hundred"],
-      "950": ["950", "nine fifty", "ninefifty", "nine hundred fifty", "nine hundred and fifty"]
+      "50": [
+        "50",
+        "fifty",
+        "fiftee",
+        "fifty"
+      ],
+      "100": [
+        "100",
+        "one hundred",
+        "onehundred",
+        "one hundred"
+      ],
+      "200": [
+        "200",
+        "two hundred",
+        "twohundred",
+        "two hundred"
+      ],
+      "300": [
+        "300",
+        "three hundred",
+        "threehundred",
+        "three hundred"
+      ],
+      "400": [
+        "400",
+        "four hundred",
+        "fourhundred",
+        "four hundred"
+      ],
+      "500": [
+        "500",
+        "five hundred",
+        "fivehundred",
+        "five hundred"
+      ],
+      "600": [
+        "600",
+        "six hundred",
+        "sixhundred",
+        "six hundred",
+        "six hun"
+      ],
+      "700": [
+        "700",
+        "seven hundred",
+        "sevenhundred",
+        "seven hundred"
+      ],
+      "800": [
+        "800",
+        "eight hundred",
+        "eighthundred",
+        "eight hundred"
+      ],
+      "900": [
+        "900",
+        "nine hundred",
+        "ninehundred",
+        "nine hundred"
+      ],
+      "950": [
+        "950",
+        "nine fifty",
+        "ninefifty",
+        "nine hundred fifty",
+        "nine hundred and fifty"
+      ]
     },
-
     "common_numeric_speech": [
       "one hundred",
       "onehundred",
@@ -59,7 +115,6 @@
       "eighty",
       "ninety"
     ],
-
     "separator_aliases": {
       "-": [
         "dash",
@@ -104,7 +159,6 @@
         "underscore"
       ]
     },
-
     "tailwind_terms": [
       {
         "canonical": "Tailwind CSS",
@@ -161,7 +215,6 @@
         ]
       }
     ],
-
     "color_families": [
       {
         "canonical": "slate",
@@ -651,7 +704,6 @@
         }
       }
     ],
-
     "utility_families": [
       {
         "canonical_prefix": "bg",
@@ -773,7 +825,6 @@
         "pattern": "shadow-{color}-{shade}"
       }
     ],
-
     "explicit_examples": [
       {
         "input": "bg stone six hundred",
@@ -845,7 +896,6 @@
       }
     ]
   },
-
   "common_classes": [
     {
       "canonical": "flex",
@@ -983,7 +1033,6 @@
         "left position zero"
       ]
     },
-
     {
       "canonical": "items-center",
       "aliases": [
@@ -991,7 +1040,10 @@
         "item center",
         "align items center",
         "align items centrally",
-        "items centrally"
+        "items centrally",
+        "keep everything center",
+        "center everything",
+        "align center"
       ]
     },
     {
@@ -1104,7 +1156,6 @@
         "flex shrink"
       ]
     },
-
     {
       "canonical": "space-x",
       "aliases": [
@@ -1146,7 +1197,6 @@
         "row gap"
       ]
     },
-
     {
       "canonical": "p",
       "aliases": [
@@ -1202,7 +1252,6 @@
         "padding left"
       ]
     },
-
     {
       "canonical": "m",
       "aliases": [
@@ -1266,7 +1315,6 @@
         "center horizontally"
       ]
     },
-
     {
       "canonical": "w",
       "aliases": [
@@ -1315,7 +1363,6 @@
         "max height"
       ]
     },
-
     {
       "canonical": "rounded",
       "aliases": [
@@ -1392,7 +1439,6 @@
         "circle radius"
       ]
     },
-
     {
       "canonical": "font-sans",
       "aliases": [
@@ -1419,7 +1465,6 @@
         "code font"
       ]
     },
-
     {
       "canonical": "font-thin",
       "aliases": [
@@ -1494,7 +1539,6 @@
         "font weight nine hundred"
       ]
     },
-
     {
       "canonical": "text-xs",
       "aliases": [
@@ -1594,7 +1638,6 @@
         "text 9 xl"
       ]
     },
-
     {
       "canonical": "leading-none",
       "aliases": [
@@ -1639,7 +1682,6 @@
         "loose line height"
       ]
     },
-
     {
       "canonical": "tracking-tighter",
       "aliases": [
@@ -1683,7 +1725,6 @@
         "widest letter spacing"
       ]
     },
-
     {
       "canonical": "uppercase",
       "aliases": [
@@ -1716,7 +1757,6 @@
         "normal text casing"
       ]
     },
-
     {
       "canonical": "italic",
       "aliases": [
@@ -1733,7 +1773,6 @@
         "normal font style"
       ]
     },
-
     {
       "canonical": "underline",
       "aliases": [
@@ -1750,7 +1789,6 @@
         "underline none"
       ]
     },
-
     {
       "canonical": "text-left",
       "aliases": [
@@ -1781,7 +1819,6 @@
         "justified text"
       ]
     },
-
     {
       "canonical": "whitespace-nowrap",
       "aliases": [
@@ -1822,7 +1859,6 @@
         "always scroll"
       ]
     },
-
     {
       "canonical": "border",
       "aliases": [
@@ -1864,7 +1900,6 @@
         "eight pixel border"
       ]
     },
-
     {
       "canonical": "border-solid",
       "aliases": [
@@ -1900,7 +1935,6 @@
         "no border"
       ]
     },
-
     {
       "canonical": "shadow-sm",
       "aliases": [
@@ -1965,7 +1999,6 @@
         "remove shadow"
       ]
     },
-
     {
       "canonical": "opacity-0",
       "aliases": [
@@ -2007,7 +2040,6 @@
         "full opacity"
       ]
     },
-
     {
       "canonical": "cursor-pointer",
       "aliases": [
@@ -2059,7 +2091,6 @@
         "grabbing cursor"
       ]
     },
-
     {
       "canonical": "select-none",
       "aliases": [
@@ -2090,7 +2121,6 @@
         "enable pointer events"
       ]
     },
-
     {
       "canonical": "transition",
       "aliases": [
@@ -2110,7 +2140,10 @@
       "canonical": "transition-colors",
       "aliases": [
         "transition colors",
-        "color transition"
+        "color transition",
+        "smooth transition colors",
+        "transition colors animation",
+        "smooth color transition"
       ]
     },
     {
@@ -2159,7 +2192,6 @@
         "five hundred milliseconds"
       ]
     },
-
     {
       "canonical": "ease-in",
       "aliases": [
@@ -2192,7 +2224,6 @@
         "linear animation"
       ]
     },
-
     {
       "canonical": "transform",
       "aliases": [
@@ -2234,7 +2265,6 @@
         "half rotation"
       ]
     },
-
     {
       "canonical": "hover",
       "aliases": [
@@ -2290,7 +2320,6 @@
         "peer checked state"
       ]
     },
-
     {
       "canonical": "sm",
       "aliases": [
@@ -2336,7 +2365,6 @@
         "double extra large breakpoint"
       ]
     },
-
     {
       "canonical": "dark",
       "aliases": [
@@ -2355,7 +2383,6 @@
         "light variant"
       ]
     },
-
     {
       "canonical": "space-y-1",
       "aliases": [
@@ -2396,7 +2423,6 @@
         "vertical spacing eight"
       ]
     },
-
     {
       "canonical": "gap-1",
       "aliases": [
@@ -2434,7 +2460,9 @@
       "aliases": [
         "gap six",
         "gap 6",
-        "six gap"
+        "six gap",
+        "gap of six",
+        "gap of sex"
       ]
     },
     {
@@ -2442,7 +2470,8 @@
       "aliases": [
         "gap eight",
         "gap 8",
-        "eight gap"
+        "eight gap",
+        "gap of eight"
       ]
     },
     {
@@ -2461,7 +2490,6 @@
         "twelve gap"
       ]
     },
-
     {
       "canonical": "space-x-2",
       "aliases": [
@@ -2493,9 +2521,30 @@
         "horizontal space eight",
         "horizontal spacing eight"
       ]
+    },
+    {
+      "canonical": "p-6",
+      "aliases": [
+        "six p",
+        "sex p",
+        "padding six"
+      ]
+    },
+    {
+      "canonical": "p-4",
+      "aliases": [
+        "four p",
+        "padding four"
+      ]
+    },
+    {
+      "canonical": "md:flex-row",
+      "aliases": [
+        "in a row on desktop",
+        "row on desktop"
+      ]
     }
   ],
-
   "arbitrary_values": [
     {
       "pattern": "bg-[{value}]",
@@ -2585,7 +2634,6 @@
       ]
     }
   ],
-
   "hex_colors": [
     {
       "canonical": "#ffffff",
@@ -2671,7 +2719,6 @@
       ]
     }
   ],
-
   "high_value_speech_patterns": [
     {
       "input_patterns": [

@@ -276,7 +276,7 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
         .flat_map(|(index, word)| build_custom_word_match_keys(word, index))
         .collect();
 
-    apply_match_entries(text, custom_words, &custom_word_match_keys, threshold, true)
+    apply_match_entries(text, custom_words, &custom_word_match_keys, threshold, true, false)
 }
 
 /// Applies corrections driven by explicit (display form → spoken aliases) pairs.
@@ -323,11 +323,17 @@ pub fn apply_alias_entries(
             if !seen.insert((key.clone(), word_count)) {
                 return;
             }
-            let skeleton = if phonetic && key.chars().count() >= SKELETON_MIN_CHARS {
-                consonant_skeleton(&key)
-            } else {
-                String::new()
-            };
+            // Phonetic fallback only for MULTI-WORD keys: authored spoken
+            // phrases benefit ("coober netees"), while single-token keys
+            // turned every loose consonant neighbor into a rewrite
+            // ("envvar"→never, "it gap"→gap-2). Single-word entries still
+            // match exactly/fuzzily through the orthographic path.
+            let skeleton =
+                if phonetic && word_count >= 2 && key.chars().count() >= SKELETON_MIN_CHARS {
+                    consonant_skeleton(&key)
+                } else {
+                    String::new()
+                };
             match_keys.push(CustomWordMatchKey {
                 word_index: entry_index,
                 key,
@@ -358,7 +364,10 @@ pub fn apply_alias_entries(
         }
     }
 
-    apply_match_entries(text, &displays, &match_keys, threshold, false)
+    // Built-in lexicon entries always render their canonical display form —
+    // shouted input ("PLAYWRIGHT") must not shout the replacement. Only the
+    // user custom-words path inherits source casing.
+    apply_match_entries(text, &displays, &match_keys, threshold, false, true)
 }
 
 fn apply_match_entries(
@@ -367,6 +376,7 @@ fn apply_match_entries(
     match_keys: &[CustomWordMatchKey],
     threshold: f64,
     allow_phonetic_boost: bool,
+    canonical_casing: bool,
 ) -> String {
     let words: Vec<&str> = text.split_whitespace().collect();
 
@@ -438,8 +448,13 @@ fn apply_match_entries(
             let (prefix, _) = extract_punctuation(ngram_words[0]);
             let (_, suffix) = extract_punctuation(ngram_words[n - 1]);
 
-            // Preserve case from first word.
-            let corrected = preserve_case_pattern(ngram_words[0], replacement);
+            // Canonical entries render verbatim; custom words inherit the
+            // speaker's casing pattern.
+            let corrected = if canonical_casing {
+                replacement.clone()
+            } else {
+                preserve_case_pattern(ngram_words[0], replacement)
+            };
 
             result.push(format!("{}{}{}", prefix, corrected, suffix));
             i += n;

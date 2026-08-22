@@ -83,6 +83,27 @@ pub fn canonical_names() -> impl Iterator<Item = &'static str> {
     entries().iter().map(|(canonical, _)| canonical.as_str())
 }
 
+
+/// True when `word` (already lowercased) matches one of this catalog's
+/// canonical display forms — used by the formatter's de-shout pass to leave
+/// real terms untouched before lexicon replacement.
+pub fn is_known_term(word: &str) -> bool {{
+    use std::sync::OnceLock;
+    use std::collections::HashSet;
+    static KNOWN: OnceLock<HashSet<String>> = OnceLock::new();
+    let normalized: String = word.chars().filter(|c| c.is_alphanumeric()).collect();
+    let known = KNOWN.get_or_init(|| {{
+        entries()
+            .iter()
+            .filter_map(|(canonical, _)| {{
+                let k: String = canonical.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_lowercase();
+                (!k.is_empty()).then_some(k)
+            }})
+            .collect()
+    }});
+    known.contains(&normalized)
+}}
+
 /// Applies the built-in styling catalogs to transcribed text.
 pub fn apply(text: &str) -> String {
     if text.is_empty() {
@@ -132,5 +153,38 @@ mod tests {
     fn plain_prose_passes_through() {
         let text = "please review the layout tomorrow";
         assert_eq!(apply(text), text);
+    }
+}
+
+#[cfg(test)]
+mod digit_probe {
+    #[test]
+    fn digit_shades_fire() {
+        assert_eq!(super::apply("use bg stone 200"), "use bg-stone-200");
+        // The authored "on hover …" pattern legitimately consumes "on".
+        assert_eq!(
+            super::apply("border zinc 400 on hover bg stone 300"),
+            "border-zinc-400 hover:bg-stone-300"
+        );
+        // Both class utterances resolve even when a conjunction is absorbed
+        // by a nearby pattern window.
+        let out = super::apply("border zinc 400 and hover bg stone 300");
+        assert!(out.contains("border-zinc-400"), "got: {out}");
+        assert!(out.contains("hover:bg-stone-300"), "got: {out}");
+        assert_eq!(super::apply("give it gap of sex"), "give it gap-6");
+        assert_eq!(super::apply("six p padding"), "p-6 padding");
+    }
+}
+
+#[cfg(test)]
+mod probe2 {
+    #[test]
+    fn probe_gap() {
+        eprintln!("P1 {:?}", super::apply("gap of sex"));
+        eprintln!("P2 {:?}", super::apply("it gap of sex"));
+        eprintln!("P3 {:?}", super::apply("give it gap of sex"));
+        eprintln!("P4 {:?}", super::apply("it gap"));
+        eprintln!("P5 {:?}", super::apply("gap"));
+        eprintln!("P6 {:?}", super::apply("it gap six"));
     }
 }

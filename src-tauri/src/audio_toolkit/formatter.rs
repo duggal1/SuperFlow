@@ -589,7 +589,8 @@ pub fn format(text: &str, style: PunctuationStyle) -> String {
         return text.to_string();
     }
 
-    let numerics = normalize_numerics(text);
+    let deshouted = de_shout(text);
+    let numerics = normalize_numerics(&deshouted);
 
     let commaed: String = numerics
         .split(". ")
@@ -598,10 +599,53 @@ pub fn format(text: &str, style: PunctuationStyle) -> String {
         .join(". ");
 
     let punctuated = crate::audio_toolkit::punctuation::punctuate(&commaed, style);
+    // A leading orphan terminal (ASR sometimes opens with ". ") is noise.
+    let punctuated = punctuated
+        .trim_start_matches(['.', ' ', '!'])
+        .trim_start()
+        .to_string();
     let sentences: Vec<&str> = split_sentences(&punctuated);
 
     let structured = numbered_list(&sentences).unwrap_or_else(|| sentences.join(" "));
     wrap_technical_tokens(&structured)
+}
+
+/// Common function words ASR shouts in caps; they never stay uppercase.
+const DESHOUT_WORDS: &[&str] = &[
+    "and", "or", "but", "the", "a", "an", "of", "to", "in", "on", "with", "for", "from", "at",
+    "by", "is", "are", "be", "as", "it", "its", "into", "add", "all", "put", "use", "when",
+    "then", "keep", "make", "set", "give", "filter", "fetch", "check", "return", "handle",
+    "before", "after", "without", "using", "also", "round", "center", "white", "black",
+];
+
+/// Rewrites SHOUTED words: known technical acronyms keep their canonical
+/// casing via the lexicon; everything else that is fully uppercase and not a
+/// catalog term gets lowercased ("AND I'm" → "and I'm").
+fn de_shout(text: &str) -> String {
+    text.split_whitespace()
+        .map(|word| {
+            let core = word.trim_matches(|c: char| !c.is_alphanumeric());
+            let is_shouted = core.len() > 1
+                && core.chars().all(|c| !c.is_lowercase())
+                && core.chars().any(|c| c.is_alphabetic());
+            if !is_shouted {
+                return word.to_string();
+            }
+            let lowered = core.to_lowercase();
+            if crate::audio_toolkit::tech_lexicon::is_known_term(&lowered)
+                || crate::audio_toolkit::styling::is_known_term(&lowered)
+                || crate::audio_toolkit::programming_syntax::is_known_term(&lowered)
+            {
+                return word.to_string();
+            }
+            if DESHOUT_WORDS.contains(&lowered.as_str()) {
+                word.replacen(core, &lowered, 1)
+            } else {
+                word.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn split_sentences(text: &str) -> Vec<&str> {

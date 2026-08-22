@@ -1,5 +1,7 @@
 use std::{
-    io::Error,
+    fs::File,
+    io::{BufWriter, Error},
+    path::PathBuf,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc, Arc, Mutex,
@@ -22,10 +24,35 @@ use crate::audio_toolkit::{
 enum Cmd {
     /// Begin capturing. Carries the send timestamp so the consumer can log how
     /// long the command sat in the channel, plus a one-shot acknowledgement
-    /// sent only after the first microphone sample chunk is processed.
-    Start(VadPolicy, Instant, mpsc::Sender<()>),
+    /// sent only after the first microphone sample chunk is processed, and an
+    /// optional crash-durability journal path (raw f32 sidecar; deleted on a
+    /// clean stop, kept for recovery when the process dies mid-recording).
+    Start(VadPolicy, Instant, mpsc::Sender<()>, Option<PathBuf>),
     Stop(mpsc::Sender<Vec<f32>>),
     Shutdown,
+}
+
+/// Crash-durability journal: appends every processed sample to a raw
+/// little-endian f32 file as the recording progresses. The real WAV is only
+/// written at key release, so without this a hard crash mid-dictation would
+/// lose the entire recording.
+struct SampleJournal {
+    writer: BufWriter<File>,
+    path: PathBuf,
+}
+
+impl SampleJournal {
+    fn create(path: PathBuf) -> std::io::Result<Self> {
+        let writer =
+            super::utils::create_f32_part(&path).map_err(|e| std::io::Error::other(e.to_string()))?;
+        Ok(Self { writer, path })
+    }
+
+    /// Append processed samples. A failing journal is dropped by the caller:
+    /// losing the safety net must never break recording itself.
+    fn append(&mut self, samples: &[f32]) -> std::io::Result<()> {
+        super::utils::append_f32_part(&mut self.writer, samples)
+    }
 }
 
 enum AudioChunk {
@@ -367,16 +394,21 @@ impl AudioRecorder {
     /// after the first real microphone sample chunk has entered the capture path.
     /// `Stream::play()` returning is not sufficient: some Bluetooth and USB
     /// devices take much longer to begin delivering callbacks.
+    ///
+    /// `journal_path` enables crash-durability: every processed sample is
+    /// appended to that raw f32 file until a clean stop deletes it. If the
+    /// process dies mid-recording, the surviving file is what recovery uses.
     pub fn start(
         &self,
         vad_policy: VadPolicy,
+        journal_path: Option<PathBuf>,
     ) -> Result<mpsc::Receiver<()>, Box<dyn std::error::Error>> {
         let tx = self
             .cmd_tx
             .as_ref()
             .ok_or_else(|| Error::other("Recorder is not open"))?;
         let (ready_tx, ready_rx) = mpsc::channel();
-        tx.send(Cmd::Start(vad_policy, Instant::now(), ready_tx))?;
+        tx.send(Cmd::Start(vad_policy, Instant::now(), ready_tx, journal_path))?;
         Ok(ready_rx)
     }
 
@@ -681,6 +713,9 @@ fn run_consumer(
     let mut processed_samples = Vec::<f32>::new();
     let mut recording = false;
     let mut vad_policy = VadPolicy::Offline;
+    // Crash-durability sidecar for the current session; `None` when journaling
+    // was not requested or already failed once (recording continues without).
+    let mut journal: Option<SampleJournal> = None;
 
     // ---------- latency instrumentation ---------------------------------- //
     // First-chunk arrival exposes the play()->samples-flowing gap; the
@@ -718,6 +753,7 @@ fn run_consumer(
         vad: &Option<VadConfig>,
         audio_cb: &Option<AudioFrameCallback>,
         out_buf: &mut Vec<f32>,
+        journal: &mut Option<SampleJournal>,
     ) {
         if !recording {
             return;
@@ -725,6 +761,19 @@ fn run_consumer(
 
         let mut emit = |buf: &[f32]| {
             out_buf.extend_from_slice(buf);
+            // Mirror every processed sample into the crash-durability
+            // journal. One failure disables the journal for the rest of the
+            // session: the safety net must never break recording itself.
+            let mut journal_failed = false;
+            if let Some(j) = journal.as_mut() {
+                if let Err(e) = j.append(buf) {
+                    log::warn!("Recording journal write failed: {e}; disabling crash protection");
+                    journal_failed = true;
+                }
+            }
+            if journal_failed {
+                *journal = None;
+            }
             if let Some(cb) = audio_cb {
                 cb(buf);
             }
@@ -761,7 +810,7 @@ fn run_consumer(
         // ~100ms on Bluetooth) at every recording start.
         while let Ok(cmd) = cmd_rx.try_recv() {
             match cmd {
-                Cmd::Start(policy, sent_at, ready_tx) => {
+                Cmd::Start(policy, sent_at, ready_tx, journal_path) => {
                     log::debug!(
                         "Cmd::Start processed {:?} after send; capture begins with {} chunk",
                         sent_at.elapsed(),
@@ -779,6 +828,22 @@ fn run_consumer(
                     recording = true;
                     visualizer.reset();
                     frame_resampler.reset();
+                    // Fresh crash-durability journal for this session. A stale
+                    // one cannot exist (a clean stop deletes it; a crashed
+                    // session never reaches Start again in this process).
+                    journal = match journal_path {
+                        Some(path) => match SampleJournal::create(path) {
+                            Ok(j) => {
+                                log::debug!("Recording journal opened at {:?}", j.path);
+                                Some(j)
+                            }
+                            Err(e) => {
+                                log::warn!("Failed to open recording journal: {e}; continuing without crash protection");
+                                None
+                            }
+                        },
+                        None => None,
+                    };
                     // Reconfigure the single VAD engine for this session's policy
                     // and clear its smoothing + recurrent state before it sees
                     // any frames.
@@ -809,6 +874,7 @@ fn run_consumer(
                                 &vad,
                                 &audio_cb,
                                 &mut processed_samples,
+&mut journal,
                             )
                         });
                     }
@@ -828,6 +894,7 @@ fn run_consumer(
                                         &vad,
                                         &audio_cb,
                                         &mut processed_samples,
+&mut journal,
                                     )
                                 });
                             }
@@ -847,10 +914,25 @@ fn run_consumer(
                             &vad,
                             &audio_cb,
                             &mut processed_samples,
+&mut journal,
                         )
                     });
 
                     let _ = reply_tx.send(std::mem::take(&mut processed_samples));
+
+                    // Clean finish: the real WAV is written by the caller, so
+                    // the crash-durability sidecar is now redundant. Deleting
+                    // it here is what keeps only genuinely crashed sessions
+                    // on disk for recovery.
+                    if let Some(j) = journal.take() {
+                        drop(j.writer);
+                        match std::fs::remove_file(&j.path) {
+                            Ok(()) => log::debug!("Recording journal removed: {:?}", j.path),
+                            Err(e) => {
+                                log::warn!("Failed to remove recording journal {:?}: {e}", j.path)
+                            }
+                        }
+                    }
 
                     // Resume the audio callback so the consumer loop can continue
                     // receiving chunks (important for always-on microphone mode).
@@ -903,6 +985,7 @@ fn run_consumer(
                     &vad,
                     &audio_cb,
                     &mut processed_samples,
+&mut journal,
                 )
             });
         }

@@ -152,6 +152,90 @@ fn should_force_show_permissions_window(app: &AppHandle) -> bool {
     false
 }
 
+/// Convert crash-durability journals (`*.f32part`) left by sessions that died
+/// mid-recording into real WAVs with history rows. Audio is journaled to disk
+/// while the user speaks, so a hard crash mid-dictation costs nothing: this
+/// runs before the failed-entry sweep so recovered recordings go through the
+/// full three-layer fallback chain like any other stranded recording.
+fn recover_recording_journals(history_manager: &HistoryManager) {
+    let dir = history_manager.recordings_dir();
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(e) => {
+            log::warn!("Startup recovery: failed to list recordings dir: {}", e);
+            return;
+        }
+    };
+
+    let mut recovered = 0usize;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("f32part") {
+            continue;
+        }
+        let samples = match crate::audio_toolkit::audio::read_f32_part(&path) {
+            Ok(samples) => samples,
+            Err(e) => {
+                log::warn!("Startup recovery: unreadable journal {:?}: {}", path, e);
+                continue;
+            }
+        };
+        // Consumed either way so a torn file can never retry-loop forever.
+        let _ = std::fs::remove_file(&path);
+        if samples.is_empty() {
+            continue;
+        }
+
+        let stem = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| format!("superflow-{}", chrono::Utc::now().timestamp()));
+        let file_name = format!("{stem}.wav");
+        let wav_path = dir.join(&file_name);
+        if wav_path.exists() {
+            continue; // the real recording already made it; stale journal
+        }
+        if let Err(e) = crate::audio_toolkit::save_wav_file(&wav_path, &samples) {
+            log::warn!(
+                "Startup recovery: failed to write WAV for {:?}: {}",
+                wav_path,
+                e
+            );
+            continue;
+        }
+
+        let duration_secs = samples.len() as f64 / 16_000.0;
+        let timestamp = stem
+            .rsplit('-')
+            .next()
+            .and_then(|digits| digits.parse::<i64>().ok())
+            .unwrap_or_else(|| chrono::Utc::now().timestamp());
+        if let Err(e) = history_manager.save_entry_at(
+            file_name,
+            String::new(),
+            false,
+            None,
+            None,
+            duration_secs,
+            timestamp,
+        ) {
+            log::warn!("Startup recovery: failed to save recovered entry: {}", e);
+            continue;
+        }
+        recovered += 1;
+        log::info!(
+            "Startup recovery: restored a crashed {:.0}s dictation from its journal",
+            duration_secs
+        );
+    }
+    if recovered > 0 {
+        log::info!(
+            "Startup recovery: {} crashed recording(s) queued for transcription",
+            recovered
+        );
+    }
+}
+
 fn initialize_core_logic(app_handle: &AppHandle) {
     // Note: Enigo (keyboard/mouse simulation) is NOT initialized here.
     // The frontend is responsible for calling the `initialize_enigo` command
@@ -210,6 +294,12 @@ fn initialize_core_logic(app_handle: &AppHandle) {
             {
                 return;
             }
+
+            // Convert crash-durability journals left by sessions that died
+            // mid-recording into real WAVs + history rows. Runs before the
+            // failed-entry sweep so recovered audio goes through the full
+            // fallback chain like any other stranded recording.
+            recover_recording_journals(&history);
 
             let Ok(ids) = history.get_failed_entry_ids().await else {
                 log::warn!("Startup recovery: failed to list stranded recordings");

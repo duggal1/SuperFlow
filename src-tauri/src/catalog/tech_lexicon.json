@@ -15,7 +15,10 @@
         "next js framework",
         "next javascript",
         "next year js",
-        "next yeah ess"
+        "next yeah ess",
+        "next year",
+        "next years",
+        "next year's"
       ]
     },
     {
@@ -479,7 +482,11 @@
         "shad cn components",
         "shad cn component",
         "shadcn components",
-        "shad c n components"
+        "shad c n components",
+        "shed scene",
+        "shad cn scene",
+        "shadow cn ui",
+        "shed cn"
       ]
     },
     {
@@ -514,8 +521,7 @@
         "play rite",
         "play write",
         "play right js",
-        "playwright testing",
-        "playwright test"
+        "playwright testing"
       ]
     },
     {
@@ -5023,6 +5029,30 @@
       "canonical": ".lock",
       "aliases": [
         "dot lock"
+      ]
+    },
+    {
+      "canonical": "Zod",
+      "aliases": [
+        "zord",
+        "zord schema",
+        "the zod"
+      ]
+    },
+    {
+      "canonical": "WebSockets",
+      "aliases": [
+        "web socket",
+        "websockets"
+      ]
+    },
+    {
+      "canonical": "rounded-2xl",
+      "aliases": [
+        "really round",
+        "very round",
+        "extra round",
+        "big round corners"
       ]
     }
   ]

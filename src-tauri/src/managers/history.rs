@@ -311,6 +311,30 @@ impl HistoryManager {
         audio_duration_secs: f64,
     ) -> Result<HistoryEntry> {
         let timestamp = Utc::now().timestamp();
+        self.save_entry_at(
+            file_name,
+            transcription_text,
+            post_process_requested,
+            post_processed_text,
+            post_process_prompt,
+            audio_duration_secs,
+            timestamp,
+        )
+    }
+
+    /// [`Self::save_entry`] with an explicit recording timestamp — used by
+    /// crash recovery so a restored dictation lands on the day it actually
+    /// happened, not the day it was recovered.
+    pub fn save_entry_at(
+        &self,
+        file_name: String,
+        transcription_text: String,
+        post_process_requested: bool,
+        post_processed_text: Option<String>,
+        post_process_prompt: Option<String>,
+        audio_duration_secs: f64,
+        timestamp: i64,
+    ) -> Result<HistoryEntry> {
         let title = self.format_timestamp_title(timestamp);
 
         // Stats key off the final text (post-processed when present) — that is

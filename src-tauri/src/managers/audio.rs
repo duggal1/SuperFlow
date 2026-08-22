@@ -373,6 +373,11 @@ pub struct AudioRecordingManager {
     /// so the retry re-enumerates. The system-default case is never cached —
     /// the recorder resolves the current default itself, cheaply.
     cached_device: Arc<Mutex<Option<(String, cpal::Device)>>>,
+    /// File stem of the active session's crash-durability journal
+    /// (`superflow-<ts>`). Set on a successful recording start, consumed by
+    /// stop to name the final WAV so the journal, the WAV and the history
+    /// row all reference the same recording even after a crash.
+    journal_stem: Arc<Mutex<Option<String>>>,
 }
 
 impl AudioRecordingManager {
@@ -404,6 +409,7 @@ impl AudioRecordingManager {
             recording_active: Arc::new(AtomicBool::new(false)),
             capture_generation: Arc::new(AtomicU64::new(0)),
             cached_device: Arc::new(Mutex::new(None)),
+            journal_stem: Arc::new(Mutex::new(None)),
         };
 
         // Always-on?  Open immediately.
@@ -796,6 +802,7 @@ impl AudioRecordingManager {
         &self,
         binding_id: &str,
         vad_policy: VadPolicy,
+        journal_path: Option<std::path::PathBuf>,
     ) -> Result<RecordingReadiness, String> {
         let mut state = self.state.lock().unwrap();
 
@@ -815,10 +822,14 @@ impl AudioRecordingManager {
             }
 
             if let Some(rec) = self.recorder.lock().unwrap().as_ref() {
-                match rec.start(vad_policy) {
+                match rec.start(vad_policy, journal_path.clone()) {
                     Ok(receiver) => {
                         let generation = self.capture_generation.fetch_add(1, Ordering::AcqRel) + 1;
                         *self.is_recording.lock().unwrap() = true;
+                        *self.journal_stem.lock().unwrap() = journal_path
+                            .as_ref()
+                            .and_then(|p| p.file_stem())
+                            .map(|s| s.to_string_lossy().into_owned());
                         self.set_state(
                             &mut state,
                             RecordingState::Recording {
@@ -908,7 +919,6 @@ impl AudioRecordingManager {
     pub fn stop_recording(&self, binding_id: &str, cancel_generation: u64) -> Option<Vec<f32>> {
         self.invalidate_recording_readiness();
         let mut state = self.state.lock().unwrap();
-
         match *state {
             RecordingState::Recording {
                 binding_id: ref active,
@@ -981,6 +991,13 @@ impl AudioRecordingManager {
             }
             _ => None,
         }
+    }
+
+    /// Consume the active session's journal stem (the file stem shared by the
+    /// crash-durability sidecar and the final WAV). `None` when the session
+    /// was started without journaling.
+    pub fn take_journal_stem(&self) -> Option<String> {
+        self.journal_stem.lock().unwrap().take()
     }
     pub fn is_recording(&self) -> bool {
         // Lock-free: mirrors the `state` {Recording, Stopping} membership via
