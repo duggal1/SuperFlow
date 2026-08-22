@@ -391,6 +391,13 @@
         "title": "स्मार्ट फाइल सन्दर्भ",
         "description": "टर्मिनल वा सम्पादकमा बोल्दा भनिएका फाइल नाम जस्तै hero dot tsx वास्तविक परियोजना मार्गले बदलिन्छ। अफलाइन काम गर्छ।"
       },
+      "livePunctuation": {
+        "title": "Live Punctuation",
+        "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",
+        "informal": "Informal",
+        "formal": "Formal",
+        "style": "Punctuation style"
+      },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
         "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."

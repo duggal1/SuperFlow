@@ -1,52 +1,41 @@
 //! Built-in Tailwind/styling vocabulary for post-transcription correction.
 //!
-//! Loads `catalog/styling.json` (namespace `tailwind-css-speech-normalization`)
-//! and exposes the same (display form → spoken aliases) contract the technical
-//! lexicon uses, so both catalogs flow through one n-gram fuzzy engine.
+//! Loads BOTH styling catalogs — `catalog/styling.json` (v3, class aliases +
+//! hex colors + high-value speech patterns) and `catalog/stylings.json` (v1,
+//! prefixes, variants, semantic instructions) — through the shared catalog
+//! harvester so every token-level mapping flows into one n-gram fuzzy pass.
 //!
 //! Hex-color aliases are filtered: bare color words ("white", "red") would
 //! rewrite ordinary prose, so only unambiguous spoken forms survive
 //! ("hex white", "standard red", "tailwind blue").
 
-use serde::Deserialize;
+use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use super::catalog::{harvest, AliasPair};
+
 const STYLING_JSON: &str = include_str!("../catalog/styling.json");
-
-#[derive(Deserialize)]
-struct StylingFile {
-    #[allow(dead_code)]
-    version: u32,
-    common_classes: Vec<StylingEntry>,
-    hex_colors: Vec<StylingEntry>,
-    high_value_speech_patterns: Vec<SpeechPattern>,
-}
-
-#[derive(Deserialize)]
-struct StylingEntry {
-    canonical: String,
-    aliases: Vec<String>,
-}
-
-#[derive(Deserialize)]
-struct SpeechPattern {
-    canonical: String,
-    input_patterns: Vec<String>,
-}
+const STYLINGS_JSON: &str = include_str!("../catalog/stylings.json");
 
 /// Bare color words must never become hex codes in normal sentences.
-fn safe_hex_alias(alias: &str) -> bool {
+fn safe_alias_for_hex(canonical: &str, alias: &str) -> bool {
+    if !canonical.starts_with('#') {
+        return true;
+    }
     let lowered = alias.to_lowercase();
-    !(lowered == "white"
-        || lowered == "black"
-        || lowered == "red"
-        || lowered == "orange"
-        || lowered == "yellow"
-        || lowered == "green"
-        || lowered == "cyan"
-        || lowered == "blue"
-        || lowered == "violet"
-        || lowered == "pink")
+    !matches!(
+        lowered.as_str(),
+        "white"
+            | "black"
+            | "red"
+            | "orange"
+            | "yellow"
+            | "green"
+            | "cyan"
+            | "blue"
+            | "violet"
+            | "pink"
+    )
 }
 
 type AliasEntries = Vec<(String, Vec<String>)>;
@@ -55,33 +44,31 @@ static STYLING: OnceLock<AliasEntries> = OnceLock::new();
 
 fn entries() -> &'static AliasEntries {
     STYLING.get_or_init(|| {
-        match serde_json::from_str::<StylingFile>(STYLING_JSON) {
-            Ok(file) => {
-                let mut out: AliasEntries = Vec::new();
-                for entry in file.common_classes {
-                    out.push((entry.canonical, entry.aliases));
-                }
-                for entry in file.hex_colors {
-                    let aliases: Vec<String> = entry
-                        .aliases
-                        .into_iter()
-                        .filter(|alias| safe_hex_alias(alias))
-                        .collect();
-                    // An entry whose every alias was unsafe still keeps its
-                    // canonical self-key so explicit "hex white" style speech
-                    // via other entries stays consistent.
-                    out.push((entry.canonical, aliases));
-                }
-                for pattern in file.high_value_speech_patterns {
-                    out.push((pattern.canonical, pattern.input_patterns));
-                }
-                out
-            }
-            Err(e) => {
-                log::error!("Failed to parse embedded styling catalog: {e}");
-                Vec::new()
+        // Both files are validated up front: a malformed embedded catalog
+        // must never break dictation, so a parse failure degrades to
+        // whatever the other file provided.
+        let mut pairs: Vec<AliasPair> = Vec::new();
+        for source in [STYLING_JSON, STYLINGS_JSON] {
+            match serde_json::from_str::<serde_json::Value>(source) {
+                Ok(document) => harvest(&document, &mut pairs),
+                Err(e) => log::error!("Failed to parse embedded styling catalog: {e}"),
             }
         }
+
+        let mut seen: HashSet<String> = HashSet::new();
+        let mut out: AliasEntries = Vec::with_capacity(pairs.len());
+        for pair in pairs {
+            if !seen.insert(pair.canonical.clone()) {
+                continue;
+            }
+            let aliases: Vec<String> = pair
+                .aliases
+                .into_iter()
+                .filter(|alias| safe_alias_for_hex(&pair.canonical, alias))
+                .collect();
+            out.push((pair.canonical, aliases));
+        }
+        out
     })
 }
 
@@ -90,17 +77,13 @@ pub fn len() -> usize {
     entries().len()
 }
 
-/// Canonical display forms (Tailwind utilities, class names) for decode-time
-/// vocabulary biasing.
+/// Canonical display forms (Tailwind utilities and class tokens) for
+/// decode-time vocabulary biasing.
 pub fn canonical_names() -> impl Iterator<Item = &'static str> {
     entries().iter().map(|(canonical, _)| canonical.as_str())
 }
 
-/// Same strictness as the technical lexicon: near-exact alias or canonical
-/// hits only.
-const MATCH_THRESHOLD: f64 = 0.2;
-
-/// Applies the built-in styling lexicon to transcribed text.
+/// Applies the built-in styling catalogs to transcribed text.
 pub fn apply(text: &str) -> String {
     if text.is_empty() {
         return text.to_string();
@@ -108,13 +91,21 @@ pub fn apply(text: &str) -> String {
     crate::audio_toolkit::text::apply_alias_entries(text, entries(), MATCH_THRESHOLD)
 }
 
+/// Same strictness as the technical lexicon: near-exact alias or canonical
+/// hits only.
+const MATCH_THRESHOLD: f64 = 0.2;
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn catalog_parses_with_substantial_coverage() {
-        assert!(len() > 200, "expected substantial styling entries, got {}", len());
+    fn both_catalogs_load_substantially() {
+        let total = len();
+        assert!(
+            total > 200,
+            "expected substantial styling entries, got {total}"
+        );
     }
 
     #[test]

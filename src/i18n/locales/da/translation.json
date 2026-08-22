@@ -391,6 +391,13 @@
         "title": "Smarte filreferencer",
         "description": "Når du dikterer i en terminal eller editor, erstattes talte filnavne som \"hero dot tsx\" med rigtige projektstier. Fungerer offline."
       },
+      "livePunctuation": {
+        "title": "Live Punctuation",
+        "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",
+        "informal": "Informal",
+        "formal": "Formal",
+        "style": "Punctuation style"
+      },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
         "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."

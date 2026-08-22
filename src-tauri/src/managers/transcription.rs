@@ -1030,6 +1030,11 @@ impl TranscriptionManager {
                 model_id, backend
             );
 
+            // Live punctuation preview is captured once per stream — settings
+            // changing mid-dictation apply from the next dictation on.
+            let live_style = get_settings(&self.app_handle).punctuation_style;
+            let live_punctuation = get_settings(&self.app_handle).live_punctuation_enabled;
+
             let mut perf = StreamPerf::new();
             while let Ok(cmd) = rx.recv() {
                 match cmd {
@@ -1049,7 +1054,18 @@ impl TranscriptionManager {
                                 if update.committed_changed || update.tentative_changed {
                                     let text = stream.text();
                                     perf.record_emit();
-                                    self.emit_stream_text(&text.committed, &text.tentative);
+                                    // The committed prefix stays raw so it never
+                                    // reflows mid-sentence; only the transient
+                                    // tentative tail is formatted for display.
+                                    let tentative = if live_punctuation {
+                                        crate::audio_toolkit::formatter::format(
+                                            &text.tentative,
+                                            live_style,
+                                        )
+                                    } else {
+                                        text.tentative.clone()
+                                    };
+                                    self.emit_stream_text(&text.committed, &tentative);
                                 }
                                 perf.maybe_log();
                             }
@@ -1862,9 +1878,11 @@ fn post_process_transcription_text(
         // after user custom words so a user's own correction always wins.
         let corrected = if settings.tech_lexicon_enabled {
             let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
-            // Styling catalog (Tailwind utilities, spoken class patterns)
-            // rides the same gate — both are pre-built technical vocabulary.
-            crate::audio_toolkit::styling::apply(&corrected)
+            // Styling catalogs (both Tailwind datasets) and the programming
+            // syntax catalog ride the same gate — all pre-built technical
+            // vocabulary, all local.
+            let corrected = crate::audio_toolkit::styling::apply(&corrected);
+            crate::audio_toolkit::programming_syntax::apply(&corrected)
         } else {
             corrected
         };
@@ -1897,7 +1915,15 @@ fn post_process_transcription_text(
 
         // Rejoin the path fragments the lexicon produced ("hero .tsx" →
         // "hero.tsx") after all word-level passes have run.
-        join_path_tokens(&normalize_transcription_output(&without_fillers))
+        // Formatting normalization runs last: numerics, currency, units,
+        // sentence terminals, ordinal lists, and inline-code wrapping.
+        // Enabled by default; the toggle is an opt-out for raw dictation.
+        let formatted = join_path_tokens(&normalize_transcription_output(&without_fillers));
+        if settings.live_punctuation_enabled {
+            crate::audio_toolkit::formatter::format(&formatted, settings.punctuation_style)
+        } else {
+            formatted
+        }
     })
 }
 
@@ -2367,7 +2393,7 @@ mod tests {
             evidence,
             OutputLanguageEvidence::UserSelected("pt".to_string())
         );
-        assert_eq!(result, "eu vi um carro");
+        assert_eq!(result, "Eu vi um carro.");
     }
 
     #[test]
@@ -2390,7 +2416,7 @@ mod tests {
         );
 
         assert_eq!(evidence, OutputLanguageEvidence::Unknown);
-        assert_eq!(result, "um ok");
+        assert_eq!(result, "Um ok.");
     }
 
     #[test]
@@ -2411,7 +2437,7 @@ mod tests {
 
         assert_eq!(
             result,
-            "so the weather forecast said it would probably rain throughout the whole weekend"
+            "So the weather forecast said it would probably rain throughout the whole weekend."
         );
     }
 
@@ -2432,7 +2458,7 @@ mod tests {
 
         assert_eq!(
             result,
-            "eu vi um carro na rua ontem de manhã quando fui ao mercado"
+            "Eu vi um carro na rua ontem de manhã quando fui ao mercado."
         );
     }
 
@@ -2515,7 +2541,7 @@ mod tests {
             &evidence,
             &supported,
         );
-        assert_eq!(result, "eu vi um carro");
+        assert_eq!(result, "Eu vi um carro.");
     }
 
     #[test]

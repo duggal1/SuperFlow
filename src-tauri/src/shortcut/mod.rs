@@ -1302,6 +1302,30 @@ pub fn change_smart_file_references_enabled_setting(
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_live_punctuation_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.live_punctuation_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_punctuation_style_setting(
+    app: AppHandle,
+    style: settings::PunctuationStyle,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.punctuation_style = style;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_intelligence_awareness_enabled_setting(
     app: AppHandle,
     enabled: bool,

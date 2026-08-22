@@ -25,6 +25,7 @@ import { FillerWordRemoval } from "../FillerWordRemoval";
 import { TechLexicon } from "../TechLexicon";
 import { SmartFileReferences } from "../SmartFileReferences";
 import { IntelligenceAwareness } from "../IntelligenceAwareness";
+import { LivePunctuation } from "../LivePunctuation";
 
 export const AdvancedSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -55,6 +56,7 @@ export const AdvancedSettings: React.FC = () => {
         <TechLexicon descriptionMode="tooltip" grouped={true} />
         <SmartFileReferences descriptionMode="tooltip" grouped={true} />
         <IntelligenceAwareness descriptionMode="tooltip" grouped={true} />
+        <LivePunctuation descriptionMode="tooltip" grouped={true} />
         <CustomWords descriptionMode="tooltip" grouped />
         <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>

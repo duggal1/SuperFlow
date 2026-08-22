@@ -1,0 +1,3740 @@
+{
+  "version": 7,
+  "namespace": "developer-voice-normalization-expanded",
+  "purpose": "Extended spoken-language normalization for vibe coding, programming, structured data, configuration, spreadsheets, developer tools, APIs, SQL, JSON, YAML, TOML, XML, shell syntax, paths, Git, Docker, infrastructure, testing, data manipulation, CSS, Tailwind CSS, UI styling, Markdown, and technical instructions.",
+
+  "architecture": {
+    "pipeline": [
+      "speech_to_text",
+      "phonetic_normalization",
+      "spoken_number_normalization",
+      "spoken_symbol_normalization",
+      "technical_term_normalization",
+      "programming_syntax_normalization",
+      "structured_data_normalization",
+      "spreadsheet_syntax_normalization",
+      "css_tailwind_normalization",
+      "intent_preservation",
+      "target_resolution",
+      "instruction_formatting",
+      "final_contextual_normalization"
+    ],
+    "principle": "Do not merely replace words with tokens. Recover what the speaker is attempting to communicate, preserve the intent, and emit canonical syntax when confidence is high.",
+    "priority": [
+      "preserve_user_intent",
+      "preserve_target",
+      "preserve_technical_meaning",
+      "canonicalize_syntax",
+      "avoid_hallucinated_values",
+      "use_context_to_disambiguate",
+      "format_cleanly"
+    ]
+  },
+
+  "intent_model": {
+    "required_fields": [
+      "action",
+      "target",
+      "property",
+      "desired_state",
+      "implementation",
+      "formatted_instruction"
+    ],
+    "actions": {
+      "add": [
+        "add",
+        "put",
+        "insert",
+        "include",
+        "introduce",
+        "bring in"
+      ],
+      "remove": [
+        "remove",
+        "delete",
+        "take out",
+        "get rid of",
+        "drop",
+        "strip"
+      ],
+      "change": [
+        "change",
+        "modify",
+        "update",
+        "edit",
+        "adjust",
+        "alter"
+      ],
+      "replace": [
+        "replace",
+        "swap",
+        "switch",
+        "use instead",
+        "change to"
+      ],
+      "move": [
+        "move",
+        "shift",
+        "relocate",
+        "put above",
+        "put below",
+        "move left",
+        "move right"
+      ],
+      "increase": [
+        "increase",
+        "raise",
+        "make larger",
+        "make bigger",
+        "increase it",
+        "add more"
+      ],
+      "decrease": [
+        "decrease",
+        "reduce",
+        "make smaller",
+        "make less",
+        "lower",
+        "shrink"
+      ],
+      "enable": [
+        "enable",
+        "turn on",
+        "activate",
+        "allow"
+      ],
+      "disable": [
+        "disable",
+        "turn off",
+        "deactivate",
+        "prevent"
+      ],
+      "set": [
+        "set",
+        "make",
+        "use",
+        "change to",
+        "assign"
+      ],
+      "inspect": [
+        "check",
+        "inspect",
+        "look at",
+        "show",
+        "display",
+        "tell me"
+      ]
+    }
+  },
+
+  "programming_language_detection": {
+    "javascript": [
+      "javascript",
+      "java script",
+      "js",
+      "j s",
+      "jay ess"
+    ],
+    "typescript": [
+      "typescript",
+      "type script",
+      "ts",
+      "t s",
+      "tee ess"
+    ],
+    "python": [
+      "python",
+      "pie thon",
+      "py"
+    ],
+    "rust": [
+      "rust",
+      "rust lang",
+      "rust language"
+    ],
+    "go": [
+      "go",
+      "golang",
+      "go lang",
+      "go language"
+    ],
+    "java": [
+      "java",
+      "java language"
+    ],
+    "kotlin": [
+      "kotlin",
+      "kotlin language"
+    ],
+    "swift": [
+      "swift",
+      "swift language"
+    ],
+    "php": [
+      "php",
+      "p h p"
+    ],
+    "ruby": [
+      "ruby",
+      "ruby language"
+    ],
+    "c": [
+      "c language",
+      "see language"
+    ],
+    "cpp": [
+      "c plus plus",
+      "cpp",
+      "c p p"
+    ],
+    "csharp": [
+      "c sharp",
+      "c hash",
+      "csharp"
+    ],
+    "sql": [
+      "sql",
+      "s q l",
+      "sequel"
+    ],
+    "shell": [
+      "shell",
+      "bash",
+      "zsh",
+      "terminal",
+      "command line"
+    ]
+  },
+
+  "javascript_patterns": {
+    "declarations": [
+      {
+        "spoken": "const variable",
+        "canonical": "const"
+      },
+      {
+        "spoken": "let variable",
+        "canonical": "let"
+      },
+      {
+        "spoken": "var variable",
+        "canonical": "var"
+      },
+      {
+        "spoken": "constant",
+        "canonical": "const"
+      },
+      {
+        "spoken": "mutable variable",
+        "canonical": "let"
+      }
+    ],
+    "functions": [
+      {
+        "spoken": "define a function",
+        "canonical": "function"
+      },
+      {
+        "spoken": "function declaration",
+        "canonical": "function"
+      },
+      {
+        "spoken": "anonymous function",
+        "canonical": "() => {}"
+      },
+      {
+        "spoken": "arrow function",
+        "canonical": "=>"
+      },
+      {
+        "spoken": "fat arrow",
+        "canonical": "=>"
+      }
+    ],
+    "conditions": [
+      {
+        "spoken": "if condition",
+        "canonical": "if"
+      },
+      {
+        "spoken": "otherwise",
+        "canonical": "else"
+      },
+      {
+        "spoken": "else if",
+        "canonical": "else if"
+      },
+      {
+        "spoken": "ternary",
+        "canonical": "? :"
+      }
+    ],
+    "loops": [
+      {
+        "spoken": "for loop",
+        "canonical": "for"
+      },
+      {
+        "spoken": "for each",
+        "canonical": "for"
+      },
+      {
+        "spoken": "for of",
+        "canonical": "for...of"
+      },
+      {
+        "spoken": "for in",
+        "canonical": "for...in"
+      },
+      {
+        "spoken": "while loop",
+        "canonical": "while"
+      }
+    ],
+    "async": [
+      {
+        "spoken": "asynchronous",
+        "canonical": "async"
+      },
+      {
+        "spoken": "a sync",
+        "canonical": "async"
+      },
+      {
+        "spoken": "await the result",
+        "canonical": "await"
+      },
+      {
+        "spoken": "a wait",
+        "canonical": "await"
+      },
+      {
+        "spoken": "promise",
+        "canonical": "Promise"
+      }
+    ],
+    "modules": [
+      {
+        "spoken": "import this",
+        "canonical": "import"
+      },
+      {
+        "spoken": "export this",
+        "canonical": "export"
+      },
+      {
+        "spoken": "default export",
+        "canonical": "export default"
+      },
+      {
+        "spoken": "named export",
+        "canonical": "export"
+      },
+      {
+        "spoken": "import from",
+        "canonical": "from"
+      }
+    ]
+  },
+
+  "typescript_patterns": {
+    "type_declarations": [
+      {
+        "spoken": "string type",
+        "canonical": "string"
+      },
+      {
+        "spoken": "number type",
+        "canonical": "number"
+      },
+      {
+        "spoken": "boolean type",
+        "canonical": "boolean"
+      },
+      {
+        "spoken": "unknown type",
+        "canonical": "unknown"
+      },
+      {
+        "spoken": "any type",
+        "canonical": "any"
+      },
+      {
+        "spoken": "never type",
+        "canonical": "never"
+      },
+      {
+        "spoken": "void type",
+        "canonical": "void"
+      },
+      {
+        "spoken": "undefined type",
+        "canonical": "undefined"
+      },
+      {
+        "spoken": "null type",
+        "canonical": "null"
+      }
+    ],
+    "type_composition": [
+      {
+        "spoken": "string or null",
+        "canonical": "string | null"
+      },
+      {
+        "spoken": "string and number",
+        "canonical": "string & number"
+      },
+      {
+        "spoken": "array of strings",
+        "canonical": "string[]"
+      },
+      {
+        "spoken": "array of numbers",
+        "canonical": "number[]"
+      },
+      {
+        "spoken": "optional property",
+        "canonical": "?"
+      },
+      {
+        "spoken": "readonly property",
+        "canonical": "readonly"
+      },
+      {
+        "spoken": "nullable string",
+        "canonical": "string | null"
+      },
+      {
+        "spoken": "nullable number",
+        "canonical": "number | null"
+      }
+    ],
+    "generic_language": [
+      {
+        "spoken": "generic",
+        "canonical": "<T>"
+      },
+      {
+        "spoken": "generic type",
+        "canonical": "<T>"
+      },
+      {
+        "spoken": "type parameter",
+        "canonical": "<T>"
+      },
+      {
+        "spoken": "generic array",
+        "canonical": "Array<T>"
+      },
+      {
+        "spoken": "promise of string",
+        "canonical": "Promise<string>"
+      },
+      {
+        "spoken": "promise of number",
+        "canonical": "Promise<number>"
+      },
+      {
+        "spoken": "record of strings",
+        "canonical": "Record<string, string>"
+      }
+    ],
+    "utility_types": [
+      {
+        "spoken": "partial",
+        "canonical": "Partial"
+      },
+      {
+        "spoken": "pick",
+        "canonical": "Pick"
+      },
+      {
+        "spoken": "omit",
+        "canonical": "Omit"
+      },
+      {
+        "spoken": "readonly utility type",
+        "canonical": "Readonly"
+      },
+      {
+        "spoken": "required utility type",
+        "canonical": "Required"
+      },
+      {
+        "spoken": "record utility type",
+        "canonical": "Record"
+      },
+      {
+        "spoken": "return type utility",
+        "canonical": "ReturnType"
+      },
+      {
+        "spoken": "parameters utility",
+        "canonical": "Parameters"
+      },
+      {
+        "spoken": "non nullable",
+        "canonical": "NonNullable"
+      }
+    ]
+  },
+
+  "object_syntax": {
+    "object_creation": [
+      {
+        "spoken": "open curly close curly",
+        "canonical": "{}"
+      },
+      {
+        "spoken": "empty object",
+        "canonical": "{}"
+      },
+      {
+        "spoken": "object literal",
+        "canonical": "{}"
+      },
+      {
+        "spoken": "open curly",
+        "canonical": "{"
+      },
+      {
+        "spoken": "close curly",
+        "canonical": "}"
+      }
+    ],
+    "properties": [
+      {
+        "spoken": "property colon value",
+        "canonical": "property: value"
+      },
+      {
+        "spoken": "key colon value",
+        "canonical": "key: value"
+      },
+      {
+        "spoken": "name colon string",
+        "canonical": "name: string"
+      },
+      {
+        "spoken": "active colon true",
+        "canonical": "active: true"
+      }
+    ],
+    "property_access": [
+      {
+        "spoken": "dot property",
+        "canonical": "."
+      },
+      {
+        "spoken": "property access",
+        "canonical": "."
+      },
+      {
+        "spoken": "bracket property",
+        "canonical": "[]"
+      },
+      {
+        "spoken": "computed property",
+        "canonical": "[]"
+      }
+    ]
+  },
+
+  "array_syntax": {
+    "patterns": [
+      {
+        "spoken": "empty array",
+        "canonical": "[]"
+      },
+      {
+        "spoken": "open bracket close bracket",
+        "canonical": "[]"
+      },
+      {
+        "spoken": "array with one two three",
+        "canonical": "[1, 2, 3]"
+      },
+      {
+        "spoken": "comma separated list",
+        "canonical": "[]"
+      },
+      {
+        "spoken": "spread array",
+        "canonical": "[...items]"
+      },
+      {
+        "spoken": "three dots items",
+        "canonical": "...items"
+      }
+    ]
+  },
+
+  "destructuring": {
+    "object": [
+      {
+        "spoken": "destructure name and age",
+        "canonical": "{ name, age }"
+      },
+      {
+        "spoken": "destructure user id",
+        "canonical": "{ userId }"
+      },
+      {
+        "spoken": "extract name from object",
+        "canonical": "{ name }"
+      }
+    ],
+    "array": [
+      {
+        "spoken": "destructure first and second",
+        "canonical": "[first, second]"
+      },
+      {
+        "spoken": "take the first item",
+        "canonical": "[first]"
+      },
+      {
+        "spoken": "skip the first item",
+        "canonical": "[, second]"
+      }
+    ]
+  },
+
+  "function_call_syntax": [
+    {
+      "spoken": "call the function with no arguments",
+      "canonical": "()"
+    },
+    {
+      "spoken": "call it with user",
+      "canonical": "(user)"
+    },
+    {
+      "spoken": "call it with user and id",
+      "canonical": "(user, id)"
+    },
+    {
+      "spoken": "pass the user object",
+      "canonical": "(user)"
+    },
+    {
+      "spoken": "pass the user id",
+      "canonical": "(userId)"
+    },
+    {
+      "spoken": "pass three arguments",
+      "canonical": "(arg1, arg2, arg3)"
+    }
+  ],
+
+  "property_modifiers": [
+    {
+      "spoken": "optional property",
+      "canonical": "?"
+    },
+    {
+      "spoken": "readonly property",
+      "canonical": "readonly"
+    },
+    {
+      "spoken": "private property",
+      "canonical": "private"
+    },
+    {
+      "spoken": "public property",
+      "canonical": "public"
+    },
+    {
+      "spoken": "protected property",
+      "canonical": "protected"
+    },
+    {
+      "spoken": "static property",
+      "canonical": "static"
+    },
+    {
+      "spoken": "abstract property",
+      "canonical": "abstract"
+    }
+  ],
+
+  "class_syntax": [
+    {
+      "spoken": "class declaration",
+      "canonical": "class"
+    },
+    {
+      "spoken": "class extends",
+      "canonical": "extends"
+    },
+    {
+      "spoken": "implements interface",
+      "canonical": "implements"
+    },
+    {
+      "spoken": "constructor",
+      "canonical": "constructor"
+    },
+    {
+      "spoken": "static method",
+      "canonical": "static"
+    },
+    {
+      "spoken": "private method",
+      "canonical": "private"
+    },
+    {
+      "spoken": "public method",
+      "canonical": "public"
+    }
+  ],
+
+  "regex_expanded": {
+    "anchors": [
+      {
+        "spoken": "start of string",
+        "canonical": "^"
+      },
+      {
+        "spoken": "beginning of line",
+        "canonical": "^"
+      },
+      {
+        "spoken": "end of string",
+        "canonical": "$"
+      },
+      {
+        "spoken": "end of line",
+        "canonical": "$"
+      }
+    ],
+    "character_classes": [
+      {
+        "spoken": "digit",
+        "canonical": "\\d"
+      },
+      {
+        "spoken": "digits",
+        "canonical": "\\d+"
+      },
+      {
+        "spoken": "word character",
+        "canonical": "\\w"
+      },
+      {
+        "spoken": "word characters",
+        "canonical": "\\w+"
+      },
+      {
+        "spoken": "whitespace",
+        "canonical": "\\s"
+      },
+      {
+        "spoken": "whitespace characters",
+        "canonical": "\\s+"
+      },
+      {
+        "spoken": "anything",
+        "canonical": ".*"
+      },
+      {
+        "spoken": "one or more",
+        "canonical": "+"
+      },
+      {
+        "spoken": "zero or more",
+        "canonical": "*"
+      },
+      {
+        "spoken": "optional",
+        "canonical": "?"
+      }
+    ]
+  },
+
+  "json_extended": {
+    "keywords": [
+      {
+        "spoken": "object",
+        "canonical": "{}"
+      },
+      {
+        "spoken": "array",
+        "canonical": "[]"
+      },
+      {
+        "spoken": "null",
+        "canonical": "null"
+      },
+      {
+        "spoken": "true",
+        "canonical": "true"
+      },
+      {
+        "spoken": "false",
+        "canonical": "false"
+      }
+    ],
+    "structure": [
+      {
+        "spoken": "open JSON object",
+        "canonical": "{"
+      },
+      {
+        "spoken": "close JSON object",
+        "canonical": "}"
+      },
+      {
+        "spoken": "open JSON array",
+        "canonical": "["
+      },
+      {
+        "spoken": "close JSON array",
+        "canonical": "]"
+      },
+      {
+        "spoken": "key colon value",
+        "canonical": "\"key\": value"
+      },
+      {
+        "spoken": "comma next property",
+        "canonical": ","
+      }
+    ],
+    "common_files": [
+      "package.json",
+      "tsconfig.json",
+      "package-lock.json",
+      "composer.json",
+      "manifest.json",
+      "config.json",
+      "settings.json",
+      "schema.json"
+    ]
+  },
+
+  "json_common_property_phrases": [
+    {
+      "spoken": "name value",
+      "canonical": "\"name\":"
+    },
+    {
+      "spoken": "version value",
+      "canonical": "\"version\":"
+    },
+    {
+      "spoken": "description value",
+      "canonical": "\"description\":"
+    },
+    {
+      "spoken": "scripts",
+      "canonical": "\"scripts\":"
+    },
+    {
+      "spoken": "dependencies",
+      "canonical": "\"dependencies\":"
+    },
+    {
+      "spoken": "dev dependencies",
+      "canonical": "\"devDependencies\":"
+    },
+    {
+      "spoken": "peer dependencies",
+      "canonical": "\"peerDependencies\":"
+    },
+    {
+      "spoken": "engines",
+      "canonical": "\"engines\":"
+    },
+    {
+      "spoken": "repository",
+      "canonical": "\"repository\":"
+    },
+    {
+      "spoken": "license",
+      "canonical": "\"license\":"
+    },
+    {
+      "spoken": "main",
+      "canonical": "\"main\":"
+    },
+    {
+      "spoken": "module",
+      "canonical": "\"module\":"
+    },
+    {
+      "spoken": "types",
+      "canonical": "\"types\":"
+    },
+    {
+      "spoken": "exports",
+      "canonical": "\"exports\":"
+    }
+  ],
+
+  "yaml_extended": {
+    "structure": [
+      {
+        "spoken": "key colon value",
+        "canonical": "key: value"
+      },
+      {
+        "spoken": "dash item",
+        "canonical": "- item"
+      },
+      {
+        "spoken": "nested property",
+        "canonical": "    nested: value"
+      },
+      {
+        "spoken": "indent this",
+        "canonical": "increase indentation"
+      },
+      {
+        "spoken": "unindent this",
+        "canonical": "decrease indentation"
+      }
+    ],
+    "common_files": [
+      "docker-compose.yml",
+      "docker-compose.yaml",
+      "github workflow",
+      ".github/workflows/*.yml",
+      "vercel.json",
+      "netlify.toml",
+      "kubernetes manifest"
+    ]
+  },
+
+  "toml_extended": {
+    "structure": [
+      {
+        "spoken": "section",
+        "canonical": "[section]"
+      },
+      {
+        "spoken": "nested section",
+        "canonical": "[section.subsection]"
+      },
+      {
+        "spoken": "key equals value",
+        "canonical": "key = value"
+      },
+      {
+        "spoken": "array of values",
+        "canonical": "[value1, value2]"
+      }
+    ],
+    "common_files": [
+      "Cargo.toml",
+      "pyproject.toml",
+      "fly.toml",
+      "netlify.toml",
+      "wrangler.toml"
+    ]
+  },
+
+  "xml_extended": {
+    "tags": [
+      {
+        "spoken": "open tag",
+        "canonical": "<tag>"
+      },
+      {
+        "spoken": "close tag",
+        "canonical": "</tag>"
+      },
+      {
+        "spoken": "self closing tag",
+        "canonical": "<tag />"
+      },
+      {
+        "spoken": "attribute equals",
+        "canonical": "attribute=\"value\""
+      }
+    ],
+    "common_tags": [
+      "project",
+      "dependency",
+      "configuration",
+      "settings",
+      "item",
+      "property",
+      "value",
+      "resources",
+      "plugin",
+      "module"
+    ]
+  },
+
+  "csv_syntax": {
+    "concepts": [
+      {
+        "spoken": "comma separated",
+        "canonical": ","
+      },
+      {
+        "spoken": "new row",
+        "canonical": "\\n"
+      },
+      {
+        "spoken": "column",
+        "canonical": "column"
+      },
+      {
+        "spoken": "header row",
+        "canonical": "header"
+      },
+      {
+        "spoken": "first column",
+        "canonical": "column A"
+      },
+      {
+        "spoken": "second column",
+        "canonical": "column B"
+      }
+    ]
+  },
+
+  "spreadsheet_syntax": {
+    "column_letters": {
+      "A": [
+        "a",
+        "ay",
+        "column a"
+      ],
+      "B": [
+        "b",
+        "bee",
+        "column b"
+      ],
+      "C": [
+        "c",
+        "see",
+        "column c"
+      ],
+      "D": [
+        "d",
+        "dee",
+        "column d"
+      ],
+      "E": [
+        "e",
+        "ee",
+        "column e"
+      ],
+      "F": [
+        "f",
+        "eff",
+        "column f"
+      ],
+      "G": [
+        "g",
+        "gee",
+        "column g"
+      ],
+      "H": [
+        "h",
+        "aitch",
+        "column h"
+      ],
+      "I": [
+        "i",
+        "eye",
+        "column i"
+      ],
+      "J": [
+        "j",
+        "jay",
+        "column j"
+      ],
+      "K": [
+        "k",
+        "kay",
+        "column k"
+      ],
+      "L": [
+        "l",
+        "el",
+        "column l"
+      ],
+      "M": [
+        "m",
+        "em",
+        "column m"
+      ],
+      "N": [
+        "n",
+        "en",
+        "column n"
+      ],
+      "O": [
+        "o",
+        "oh",
+        "column o"
+      ],
+      "P": [
+        "p",
+        "pee",
+        "column p"
+      ],
+      "Q": [
+        "q",
+        "cue",
+        "column q"
+      ],
+      "R": [
+        "r",
+        "are",
+        "column r"
+      ],
+      "S": [
+        "s",
+        "ess",
+        "column s"
+      ],
+      "T": [
+        "t",
+        "tee",
+        "column t"
+      ],
+      "U": [
+        "u",
+        "you",
+        "column u"
+      ],
+      "V": [
+        "v",
+        "vee",
+        "column v"
+      ],
+      "W": [
+        "w",
+        "double you",
+        "column w"
+      ],
+      "X": [
+        "x",
+        "ex",
+        "column x"
+      ],
+      "Y": [
+        "y",
+        "why",
+        "column y"
+      ],
+      "Z": [
+        "z",
+        "zee",
+        "zed",
+        "column z"
+      ]
+    },
+    "cell_reference_patterns": [
+      {
+        "spoken": "a one",
+        "canonical": "A1"
+      },
+      {
+        "spoken": "a two",
+        "canonical": "A2"
+      },
+      {
+        "spoken": "b one",
+        "canonical": "B1"
+      },
+      {
+        "spoken": "c three",
+        "canonical": "C3"
+      },
+      {
+        "spoken": "d ten",
+        "canonical": "D10"
+      },
+      {
+        "spoken": "column a row one",
+        "canonical": "A1"
+      },
+      {
+        "spoken": "cell a one",
+        "canonical": "A1"
+      },
+      {
+        "spoken": "cell b five",
+        "canonical": "B5"
+      },
+      {
+        "spoken": "cell c ten",
+        "canonical": "C10"
+      },
+      {
+        "spoken": "range a one to a ten",
+        "canonical": "A1:A10"
+      },
+      {
+        "spoken": "a one through a ten",
+        "canonical": "A1:A10"
+      },
+      {
+        "spoken": "a one to c ten",
+        "canonical": "A1:C10"
+      }
+    ],
+
+    "operators": [
+      {
+        "spoken": "equals",
+        "canonical": "="
+      },
+      {
+        "spoken": "plus",
+        "canonical": "+"
+      },
+      {
+        "spoken": "minus",
+        "canonical": "-"
+      },
+      {
+        "spoken": "times",
+        "canonical": "*"
+      },
+      {
+        "spoken": "multiply",
+        "canonical": "*"
+      },
+      {
+        "spoken": "divide",
+        "canonical": "/"
+      },
+      {
+        "spoken": "percent",
+        "canonical": "%"
+      },
+      {
+        "spoken": "greater than",
+        "canonical": ">"
+      },
+      {
+        "spoken": "less than",
+        "canonical": "<"
+      },
+      {
+        "spoken": "greater than or equal to",
+        "canonical": ">="
+      },
+      {
+        "spoken": "less than or equal to",
+        "canonical": "<="
+      },
+      {
+        "spoken": "not equal",
+        "canonical": "<>"
+      }
+    ],
+
+    "common_functions": [
+      {
+        "spoken": "sum",
+        "canonical": "SUM"
+      },
+      {
+        "spoken": "average",
+        "canonical": "AVERAGE"
+      },
+      {
+        "spoken": "mean",
+        "canonical": "AVERAGE"
+      },
+      {
+        "spoken": "count",
+        "canonical": "COUNT"
+      },
+      {
+        "spoken": "count a",
+        "canonical": "COUNTA"
+      },
+      {
+        "spoken": "count if",
+        "canonical": "COUNTIF"
+      },
+      {
+        "spoken": "count ifs",
+        "canonical": "COUNTIFS"
+      },
+      {
+        "spoken": "sum if",
+        "canonical": "SUMIF"
+      },
+      {
+        "spoken": "sum ifs",
+        "canonical": "SUMIFS"
+      },
+      {
+        "spoken": "average if",
+        "canonical": "AVERAGEIF"
+      },
+      {
+        "spoken": "average ifs",
+        "canonical": "AVERAGEIFS"
+      },
+      {
+        "spoken": "max",
+        "canonical": "MAX"
+      },
+      {
+        "spoken": "min",
+        "canonical": "MIN"
+      },
+      {
+        "spoken": "median",
+        "canonical": "MEDIAN"
+      },
+      {
+        "spoken": "round",
+        "canonical": "ROUND"
+      },
+      {
+        "spoken": "round up",
+        "canonical": "ROUNDUP"
+      },
+      {
+        "spoken": "round down",
+        "canonical": "ROUNDDOWN"
+      },
+      {
+        "spoken": "absolute",
+        "canonical": "ABS"
+      },
+      {
+        "spoken": "if",
+        "canonical": "IF"
+      },
+      {
+        "spoken": "and",
+        "canonical": "AND"
+      },
+      {
+        "spoken": "or",
+        "canonical": "OR"
+      },
+      {
+        "spoken": "not",
+        "canonical": "NOT"
+      },
+      {
+        "spoken": "if error",
+        "canonical": "IFERROR"
+      },
+      {
+        "spoken": "lookup",
+        "canonical": "VLOOKUP"
+      },
+      {
+        "spoken": "vertical lookup",
+        "canonical": "VLOOKUP"
+      },
+      {
+        "spoken": "horizontal lookup",
+        "canonical": "HLOOKUP"
+      },
+      {
+        "spoken": "x lookup",
+        "canonical": "XLOOKUP"
+      },
+      {
+        "spoken": "index",
+        "canonical": "INDEX"
+      },
+      {
+        "spoken": "match",
+        "canonical": "MATCH"
+      },
+      {
+        "spoken": "filter",
+        "canonical": "FILTER"
+      },
+      {
+        "spoken": "sort",
+        "canonical": "SORT"
+      },
+      {
+        "spoken": "unique",
+        "canonical": "UNIQUE"
+      },
+      {
+        "spoken": "transpose",
+        "canonical": "TRANSPOSE"
+      },
+      {
+        "spoken": "text join",
+        "canonical": "TEXTJOIN"
+      },
+      {
+        "spoken": "concatenate",
+        "canonical": "CONCATENATE"
+      },
+      {
+        "spoken": "left",
+        "canonical": "LEFT"
+      },
+      {
+        "spoken": "right",
+        "canonical": "RIGHT"
+      },
+      {
+        "spoken": "mid",
+        "canonical": "MID"
+      },
+      {
+        "spoken": "length",
+        "canonical": "LEN"
+      },
+      {
+        "spoken": "lower",
+        "canonical": "LOWER"
+      },
+      {
+        "spoken": "upper",
+        "canonical": "UPPER"
+      },
+      {
+        "spoken": "proper",
+        "canonical": "PROPER"
+      },
+      {
+        "spoken": "trim",
+        "canonical": "TRIM"
+      },
+      {
+        "spoken": "substitute",
+        "canonical": "SUBSTITUTE"
+      },
+      {
+        "spoken": "replace",
+        "canonical": "REPLACE"
+      },
+      {
+        "spoken": "find",
+        "canonical": "FIND"
+      },
+      {
+        "spoken": "search",
+        "canonical": "SEARCH"
+      },
+      {
+        "spoken": "today",
+        "canonical": "TODAY"
+      },
+      {
+        "spoken": "now",
+        "canonical": "NOW"
+      },
+      {
+        "spoken": "date",
+        "canonical": "DATE"
+      }
+    ],
+
+    "spreadsheet_modifiers": [
+      {
+        "spoken": "absolute reference",
+        "canonical": "$A$1"
+      },
+      {
+        "spoken": "lock the row",
+        "canonical": "A$1"
+      },
+      {
+        "spoken": "lock the column",
+        "canonical": "$A1"
+      },
+      {
+        "spoken": "relative reference",
+        "canonical": "A1"
+      },
+      {
+        "spoken": "dollar before the column",
+        "canonical": "$A1"
+      },
+      {
+        "spoken": "dollar before the row",
+        "canonical": "A$1"
+      },
+      {
+        "spoken": "dollar before both",
+        "canonical": "$A$1"
+      }
+    ],
+
+    "spreadsheet_ranges": [
+      {
+        "spoken": "a one through a hundred",
+        "canonical": "A1:A100"
+      },
+      {
+        "spoken": "b two through b fifty",
+        "canonical": "B2:B50"
+      },
+      {
+        "spoken": "a one through d twenty",
+        "canonical": "A1:D20"
+      },
+      {
+        "spoken": "rows one through ten",
+        "canonical": "1:10"
+      },
+      {
+        "spoken": "columns a through d",
+        "canonical": "A:D"
+      }
+    ]
+  },
+
+  "sql_extended": {
+    "keywords": [
+      "SELECT",
+      "FROM",
+      "WHERE",
+      "AND",
+      "OR",
+      "NOT",
+      "IN",
+      "NOT IN",
+      "LIKE",
+      "ILIKE",
+      "BETWEEN",
+      "IS NULL",
+      "IS NOT NULL",
+      "AS",
+      "DISTINCT",
+      "GROUP BY",
+      "ORDER BY",
+      "HAVING",
+      "LIMIT",
+      "OFFSET",
+      "JOIN",
+      "LEFT JOIN",
+      "RIGHT JOIN",
+      "FULL JOIN",
+      "INNER JOIN",
+      "CROSS JOIN",
+      "UNION",
+      "UNION ALL",
+      "INTERSECT",
+      "EXCEPT",
+      "INSERT INTO",
+      "VALUES",
+      "UPDATE",
+      "SET",
+      "DELETE FROM",
+      "CREATE TABLE",
+      "ALTER TABLE",
+      "DROP TABLE",
+      "CREATE INDEX",
+      "DROP INDEX",
+      "CREATE VIEW",
+      "DROP VIEW",
+      "BEGIN",
+      "COMMIT",
+      "ROLLBACK"
+    ],
+    "spoken_aliases": [
+      {
+        "spoken": "select everything",
+        "canonical": "SELECT *"
+      },
+      {
+        "spoken": "select star",
+        "canonical": "SELECT *"
+      },
+      {
+        "spoken": "where active is true",
+        "canonical": "WHERE active = true"
+      },
+      {
+        "spoken": "where active equals true",
+        "canonical": "WHERE active = true"
+      },
+      {
+        "spoken": "where email is not null",
+        "canonical": "WHERE email IS NOT NULL"
+      },
+      {
+        "spoken": "order by created at descending",
+        "canonical": "ORDER BY created_at DESC"
+      },
+      {
+        "spoken": "order by created at ascending",
+        "canonical": "ORDER BY created_at ASC"
+      },
+      {
+        "spoken": "group by user id",
+        "canonical": "GROUP BY user_id"
+      },
+      {
+        "spoken": "limit ten",
+        "canonical": "LIMIT 10"
+      },
+      {
+        "spoken": "offset twenty",
+        "canonical": "OFFSET 20"
+      }
+    ]
+  },
+
+  "sql_comparison_speech": [
+    {
+      "spoken": "equals",
+      "canonical": "="
+    },
+    {
+      "spoken": "not equals",
+      "canonical": "<>"
+    },
+    {
+      "spoken": "not equal",
+      "canonical": "<>"
+    },
+    {
+      "spoken": "greater than",
+      "canonical": ">"
+    },
+    {
+      "spoken": "less than",
+      "canonical": "<"
+    },
+    {
+      "spoken": "greater than or equal",
+      "canonical": ">="
+    },
+    {
+      "spoken": "less than or equal",
+      "canonical": "<="
+    },
+    {
+      "spoken": "like",
+      "canonical": "LIKE"
+    },
+    {
+      "spoken": "case insensitive like",
+      "canonical": "ILIKE"
+    },
+    {
+      "spoken": "is null",
+      "canonical": "IS NULL"
+    },
+    {
+      "spoken": "is not null",
+      "canonical": "IS NOT NULL"
+    }
+  ],
+
+  "git_extended": {
+    "commands": [
+      {
+        "spoken": "git status",
+        "canonical": "git status"
+      },
+      {
+        "spoken": "git add",
+        "canonical": "git add"
+      },
+      {
+        "spoken": "git commit",
+        "canonical": "git commit"
+      },
+      {
+        "spoken": "git push",
+        "canonical": "git push"
+      },
+      {
+        "spoken": "git pull",
+        "canonical": "git pull"
+      },
+      {
+        "spoken": "git fetch",
+        "canonical": "git fetch"
+      },
+      {
+        "spoken": "git clone",
+        "canonical": "git clone"
+      },
+      {
+        "spoken": "git branch",
+        "canonical": "git branch"
+      },
+      {
+        "spoken": "git checkout",
+        "canonical": "git checkout"
+      },
+      {
+        "spoken": "git switch",
+        "canonical": "git switch"
+      },
+      {
+        "spoken": "git merge",
+        "canonical": "git merge"
+      },
+      {
+        "spoken": "git rebase",
+        "canonical": "git rebase"
+      },
+      {
+        "spoken": "git stash",
+        "canonical": "git stash"
+      },
+      {
+        "spoken": "git stash pop",
+        "canonical": "git stash pop"
+      },
+      {
+        "spoken": "git reset",
+        "canonical": "git reset"
+      },
+      {
+        "spoken": "git restore",
+        "canonical": "git restore"
+      },
+      {
+        "spoken": "git revert",
+        "canonical": "git revert"
+      },
+      {
+        "spoken": "git cherry pick",
+        "canonical": "git cherry-pick"
+      },
+      {
+        "spoken": "git diff",
+        "canonical": "git diff"
+      },
+      {
+        "spoken": "git log",
+        "canonical": "git log"
+      },
+      {
+        "spoken": "git show",
+        "canonical": "git show"
+      },
+      {
+        "spoken": "git tag",
+        "canonical": "git tag"
+      }
+    ],
+    "common_branch_language": [
+      {
+        "spoken": "main branch",
+        "canonical": "main"
+      },
+      {
+        "spoken": "master branch",
+        "canonical": "master"
+      },
+      {
+        "spoken": "feature branch",
+        "canonical": "feature"
+      },
+      {
+        "spoken": "development branch",
+        "canonical": "dev"
+      },
+      {
+        "spoken": "create a new branch",
+        "canonical": "git switch -c"
+      },
+      {
+        "spoken": "switch to main",
+        "canonical": "git switch main"
+      },
+      {
+        "spoken": "checkout main",
+        "canonical": "git checkout main"
+      }
+    ],
+    "commit_language": [
+      {
+        "spoken": "commit these changes",
+        "intent": "git commit"
+      },
+      {
+        "spoken": "commit all",
+        "intent": "git add and git commit"
+      },
+      {
+        "spoken": "push the branch",
+        "intent": "git push"
+      },
+      {
+        "spoken": "pull latest changes",
+        "intent": "git pull"
+      }
+    ]
+  },
+
+  "github_language": [
+    {
+      "spoken": "pull request",
+      "canonical": "pull request"
+    },
+    {
+      "spoken": "p r",
+      "canonical": "PR"
+    },
+    {
+      "spoken": "review the pr",
+      "canonical": "review the PR"
+    },
+    {
+      "spoken": "merge the pull request",
+      "canonical": "merge the PR"
+    },
+    {
+      "spoken": "open an issue",
+      "canonical": "open an issue"
+    },
+    {
+      "spoken": "close the issue",
+      "canonical": "close the issue"
+    },
+    {
+      "spoken": "github action",
+      "canonical": "GitHub Action"
+    },
+    {
+      "spoken": "github workflow",
+      "canonical": "GitHub Actions workflow"
+    }
+  ],
+
+  "docker_extended": {
+    "commands": [
+      {
+        "spoken": "docker build",
+        "canonical": "docker build"
+      },
+      {
+        "spoken": "docker run",
+        "canonical": "docker run"
+      },
+      {
+        "spoken": "docker compose up",
+        "canonical": "docker compose up"
+      },
+      {
+        "spoken": "docker compose down",
+        "canonical": "docker compose down"
+      },
+      {
+        "spoken": "docker ps",
+        "canonical": "docker ps"
+      },
+      {
+        "spoken": "docker images",
+        "canonical": "docker images"
+      },
+      {
+        "spoken": "docker pull",
+        "canonical": "docker pull"
+      },
+      {
+        "spoken": "docker push",
+        "canonical": "docker push"
+      },
+      {
+        "spoken": "docker exec",
+        "canonical": "docker exec"
+      },
+      {
+        "spoken": "docker logs",
+        "canonical": "docker logs"
+      },
+      {
+        "spoken": "docker stop",
+        "canonical": "docker stop"
+      },
+      {
+        "spoken": "docker start",
+        "canonical": "docker start"
+      },
+      {
+        "spoken": "docker restart",
+        "canonical": "docker restart"
+      },
+      {
+        "spoken": "docker rm",
+        "canonical": "docker rm"
+      },
+      {
+        "spoken": "docker rmi",
+        "canonical": "docker rmi"
+      }
+    ],
+    "concepts": [
+      {
+        "spoken": "container",
+        "canonical": "container"
+      },
+      {
+        "spoken": "image",
+        "canonical": "image"
+      },
+      {
+        "spoken": "container image",
+        "canonical": "image"
+      },
+      {
+        "spoken": "volume",
+        "canonical": "volume"
+      },
+      {
+        "spoken": "network",
+        "canonical": "network"
+      },
+      {
+        "spoken": "registry",
+        "canonical": "registry"
+      },
+      {
+        "spoken": "docker file",
+        "canonical": "Dockerfile"
+      }
+    ]
+  },
+
+  "npm_pnpm_bun_commands": {
+    "npm": [
+      "npm install",
+      "npm uninstall",
+      "npm update",
+      "npm run",
+      "npm start",
+      "npm test",
+      "npm publish",
+      "npm init",
+      "npm audit",
+      "npm outdated"
+    ],
+    "pnpm": [
+      "pnpm install",
+      "pnpm add",
+      "pnpm remove",
+      "pnpm update",
+      "pnpm dev",
+      "pnpm build",
+      "pnpm lint",
+      "pnpm test",
+      "pnpm exec",
+      "pnpm dlx"
+    ],
+    "bun": [
+      "bun install",
+      "bun add",
+      "bun remove",
+      "bun run",
+      "bun dev",
+      "bun build",
+      "bun test",
+      "bunx"
+    ],
+    "yarn": [
+      "yarn install",
+      "yarn add",
+      "yarn remove",
+      "yarn dev",
+      "yarn build",
+      "yarn test"
+    ]
+  },
+
+  "terminal_paths": [
+    {
+      "spoken": "dot slash",
+      "canonical": "./"
+    },
+    {
+      "spoken": "dot dot slash",
+      "canonical": "../"
+    },
+    {
+      "spoken": "tilde slash",
+      "canonical": "~/"
+    },
+    {
+      "spoken": "root slash",
+      "canonical": "/"
+    },
+    {
+      "spoken": "src slash",
+      "canonical": "src/"
+    },
+    {
+      "spoken": "app slash",
+      "canonical": "app/"
+    },
+    {
+      "spoken": "components slash",
+      "canonical": "components/"
+    },
+    {
+      "spoken": "lib slash",
+      "canonical": "lib/"
+    },
+    {
+      "spoken": "utils slash",
+      "canonical": "utils/"
+    },
+    {
+      "spoken": "hooks slash",
+      "canonical": "hooks/"
+    },
+    {
+      "spoken": "public slash",
+      "canonical": "public/"
+    },
+    {
+      "spoken": "tests slash",
+      "canonical": "tests/"
+    },
+    {
+      "spoken": "test slash",
+      "canonical": "test/"
+    }
+  ],
+
+  "environment_variables": [
+    {
+      "spoken": "database url",
+      "canonical": "DATABASE_URL"
+    },
+    {
+      "spoken": "api key",
+      "canonical": "API_KEY"
+    },
+    {
+      "spoken": "api secret",
+      "canonical": "API_SECRET"
+    },
+    {
+      "spoken": "secret key",
+      "canonical": "SECRET_KEY"
+    },
+    {
+      "spoken": "node environment",
+      "canonical": "NODE_ENV"
+    },
+    {
+      "spoken": "port",
+      "canonical": "PORT"
+    },
+    {
+      "spoken": "next public",
+      "canonical": "NEXT_PUBLIC_"
+    },
+    {
+      "spoken": "next public api url",
+      "canonical": "NEXT_PUBLIC_API_URL"
+    },
+    {
+      "spoken": "supabase url",
+      "canonical": "SUPABASE_URL"
+    },
+    {
+      "spoken": "supabase key",
+      "canonical": "SUPABASE_KEY"
+    },
+    {
+      "spoken": "open ai key",
+      "canonical": "OPENAI_API_KEY"
+    },
+    {
+      "spoken": "anthropic api key",
+      "canonical": "ANTHROPIC_API_KEY"
+    },
+    {
+      "spoken": "stripe secret key",
+      "canonical": "STRIPE_SECRET_KEY"
+    },
+    {
+      "spoken": "github token",
+      "canonical": "GITHUB_TOKEN"
+    }
+  ],
+
+  "api_syntax": {
+    "http_methods": [
+      {
+        "spoken": "get request",
+        "canonical": "GET"
+      },
+      {
+        "spoken": "post request",
+        "canonical": "POST"
+      },
+      {
+        "spoken": "put request",
+        "canonical": "PUT"
+      },
+      {
+        "spoken": "patch request",
+        "canonical": "PATCH"
+      },
+      {
+        "spoken": "delete request",
+        "canonical": "DELETE"
+      },
+      {
+        "spoken": "head request",
+        "canonical": "HEAD"
+      },
+      {
+        "spoken": "options request",
+        "canonical": "OPTIONS"
+      }
+    ],
+    "status_codes": [
+      {
+        "spoken": "two hundred",
+        "canonical": "200"
+      },
+      {
+        "spoken": "two oh one",
+        "canonical": "201"
+      },
+      {
+        "spoken": "two oh four",
+        "canonical": "204"
+      },
+      {
+        "spoken": "four hundred",
+        "canonical": "400"
+      },
+      {
+        "spoken": "four oh one",
+        "canonical": "401"
+      },
+      {
+        "spoken": "four oh three",
+        "canonical": "403"
+      },
+      {
+        "spoken": "four oh four",
+        "canonical": "404"
+      },
+      {
+        "spoken": "four twenty nine",
+        "canonical": "429"
+      },
+      {
+        "spoken": "five hundred",
+        "canonical": "500"
+      },
+      {
+        "spoken": "five oh two",
+        "canonical": "502"
+      },
+      {
+        "spoken": "five oh three",
+        "canonical": "503"
+      }
+    ],
+    "headers": [
+      {
+        "spoken": "content type",
+        "canonical": "Content-Type"
+      },
+      {
+        "spoken": "authorization",
+        "canonical": "Authorization"
+      },
+      {
+        "spoken": "bearer token",
+        "canonical": "Authorization: Bearer"
+      },
+      {
+        "spoken": "accept",
+        "canonical": "Accept"
+      },
+      {
+        "spoken": "user agent",
+        "canonical": "User-Agent"
+      },
+      {
+        "spoken": "cache control",
+        "canonical": "Cache-Control"
+      }
+    ]
+  },
+
+  "api_url_patterns": [
+    {
+      "spoken": "api slash users",
+      "canonical": "/api/users"
+    },
+    {
+      "spoken": "api slash users slash id",
+      "canonical": "/api/users/:id"
+    },
+    {
+      "spoken": "api slash users question mark page equals one",
+      "canonical": "/api/users?page=1"
+    },
+    {
+      "spoken": "api slash users question mark search equals john",
+      "canonical": "/api/users?search=john"
+    },
+    {
+      "spoken": "users slash colon id",
+      "canonical": "/users/:id"
+    },
+    {
+      "spoken": "users slash id in brackets",
+      "canonical": "/users/[id]"
+    }
+  ],
+
+  "environment_file_syntax": [
+    {
+      "spoken": "api key equals value",
+      "canonical": "API_KEY=value"
+    },
+    {
+      "spoken": "database url equals",
+      "canonical": "DATABASE_URL="
+    },
+    {
+      "spoken": "quote the value",
+      "canonical": "\"value\""
+    },
+    {
+      "spoken": "single quoted value",
+      "canonical": "'value'"
+    },
+    {
+      "spoken": "double quoted value",
+      "canonical": "\"value\""
+    }
+  ],
+
+  "markdown_syntax": {
+    "headings": [
+      {
+        "spoken": "heading one",
+        "canonical": "#"
+      },
+      {
+        "spoken": "heading two",
+        "canonical": "##"
+      },
+      {
+        "spoken": "heading three",
+        "canonical": "###"
+      },
+      {
+        "spoken": "heading four",
+        "canonical": "####"
+      }
+    ],
+    "lists": [
+      {
+        "spoken": "bullet point",
+        "canonical": "-"
+      },
+      {
+        "spoken": "bullet",
+        "canonical": "-"
+      },
+      {
+        "spoken": "unordered list",
+        "canonical": "-"
+      },
+      {
+        "spoken": "numbered list",
+        "canonical": "1."
+      }
+    ],
+    "emphasis": [
+      {
+        "spoken": "bold",
+        "canonical": "**text**"
+      },
+      {
+        "spoken": "strong",
+        "canonical": "**text**"
+      },
+      {
+        "spoken": "italic",
+        "canonical": "*text*"
+      },
+      {
+        "spoken": "emphasis",
+        "canonical": "*text*"
+      },
+      {
+        "spoken": "inline code",
+        "canonical": "`text`"
+      },
+      {
+        "spoken": "code block",
+        "canonical": "```"
+      }
+    ],
+    "links": [
+      {
+        "spoken": "link text to url",
+        "canonical": "[text](url)"
+      },
+      {
+        "spoken": "markdown link",
+        "canonical": "[text](url)"
+      },
+      {
+        "spoken": "open link",
+        "canonical": "["
+      },
+      {
+        "spoken": "close link",
+        "canonical": "]"
+      }
+    ]
+  },
+
+  "css_tailwind_core": {
+    "background": {
+      "prefix": "bg",
+      "examples": [
+        "bg-white",
+        "bg-black",
+        "bg-transparent",
+        "bg-stone-500",
+        "bg-stone-600",
+        "bg-stone-700",
+        "bg-stone-800",
+        "bg-zinc-500",
+        "bg-zinc-600",
+        "bg-zinc-700",
+        "bg-zinc-800",
+        "bg-neutral-500",
+        "bg-neutral-600",
+        "bg-neutral-700",
+        "bg-neutral-800",
+        "bg-gray-500",
+        "bg-gray-600",
+        "bg-gray-700",
+        "bg-gray-800",
+        "bg-red-500",
+        "bg-orange-500",
+        "bg-yellow-500",
+        "bg-green-500",
+        "bg-blue-500",
+        "bg-indigo-500",
+        "bg-violet-500",
+        "bg-purple-500",
+        "bg-pink-500",
+        "bg-rose-500"
+      ]
+    },
+    "text": {
+      "examples": [
+        "text-white",
+        "text-black",
+        "text-transparent",
+        "text-stone-500",
+        "text-stone-600",
+        "text-zinc-500",
+        "text-zinc-600",
+        "text-neutral-500",
+        "text-neutral-600",
+        "text-gray-500",
+        "text-gray-600",
+        "text-red-500",
+        "text-green-500",
+        "text-blue-500"
+      ]
+    },
+    "border": {
+      "examples": [
+        "border",
+        "border-0",
+        "border-2",
+        "border-4",
+        "border-white",
+        "border-black",
+        "border-stone-200",
+        "border-stone-600",
+        "border-zinc-200",
+        "border-zinc-600",
+        "border-neutral-200",
+        "border-neutral-600"
+      ]
+    }
+  },
+
+  "tailwind_spacing": {
+    "padding": [
+      "p-0",
+      "p-px",
+      "p-0.5",
+      "p-1",
+      "p-1.5",
+      "p-2",
+      "p-2.5",
+      "p-3",
+      "p-3.5",
+      "p-4",
+      "p-5",
+      "p-6",
+      "p-7",
+      "p-8",
+      "p-9",
+      "p-10",
+      "p-11",
+      "p-12",
+      "p-14",
+      "p-16",
+      "p-20",
+      "p-24",
+      "p-28",
+      "p-32",
+      "p-36",
+      "p-40",
+      "p-44",
+      "p-48",
+      "p-52",
+      "p-56",
+      "p-60",
+      "p-64",
+      "p-72",
+      "p-80",
+      "p-96"
+    ],
+    "horizontal_padding": [
+      "px-0",
+      "px-1",
+      "px-2",
+      "px-3",
+      "px-4",
+      "px-5",
+      "px-6",
+      "px-8",
+      "px-10",
+      "px-12",
+      "px-16",
+      "px-20",
+      "px-24"
+    ],
+    "vertical_padding": [
+      "py-0",
+      "py-1",
+      "py-2",
+      "py-3",
+      "py-4",
+      "py-5",
+      "py-6",
+      "py-8",
+      "py-10",
+      "py-12",
+      "py-16",
+      "py-20",
+      "py-24"
+    ],
+    "gap": [
+      "gap-0",
+      "gap-1",
+      "gap-2",
+      "gap-3",
+      "gap-4",
+      "gap-5",
+      "gap-6",
+      "gap-8",
+      "gap-10",
+      "gap-12",
+      "gap-16",
+      "gap-20",
+      "gap-24"
+    ]
+  },
+
+  "tailwind_typography": {
+    "font_weights": [
+      {
+        "spoken": "thin",
+        "canonical": "font-thin"
+      },
+      {
+        "spoken": "extra light",
+        "canonical": "font-extralight"
+      },
+      {
+        "spoken": "light",
+        "canonical": "font-light"
+      },
+      {
+        "spoken": "normal",
+        "canonical": "font-normal"
+      },
+      {
+        "spoken": "medium",
+        "canonical": "font-medium"
+      },
+      {
+        "spoken": "semibold",
+        "canonical": "font-semibold"
+      },
+      {
+        "spoken": "semi bold",
+        "canonical": "font-semibold"
+      },
+      {
+        "spoken": "bold",
+        "canonical": "font-bold"
+      },
+      {
+        "spoken": "extra bold",
+        "canonical": "font-extrabold"
+      },
+      {
+        "spoken": "black",
+        "canonical": "font-black"
+      }
+    ],
+    "sizes": [
+      {
+        "spoken": "extra small text",
+        "canonical": "text-xs"
+      },
+      {
+        "spoken": "small text",
+        "canonical": "text-sm"
+      },
+      {
+        "spoken": "base text",
+        "canonical": "text-base"
+      },
+      {
+        "spoken": "large text",
+        "canonical": "text-lg"
+      },
+      {
+        "spoken": "extra large text",
+        "canonical": "text-xl"
+      },
+      {
+        "spoken": "two xl text",
+        "canonical": "text-2xl"
+      },
+      {
+        "spoken": "three xl text",
+        "canonical": "text-3xl"
+      },
+      {
+        "spoken": "four xl text",
+        "canonical": "text-4xl"
+      },
+      {
+        "spoken": "five xl text",
+        "canonical": "text-5xl"
+      },
+      {
+        "spoken": "six xl text",
+        "canonical": "text-6xl"
+      },
+      {
+        "spoken": "seven xl text",
+        "canonical": "text-7xl"
+      },
+      {
+        "spoken": "eight xl text",
+        "canonical": "text-8xl"
+      },
+      {
+        "spoken": "nine xl text",
+        "canonical": "text-9xl"
+      }
+    ],
+    "alignment": [
+      {
+        "spoken": "left aligned",
+        "canonical": "text-left"
+      },
+      {
+        "spoken": "center aligned",
+        "canonical": "text-center"
+      },
+      {
+        "spoken": "right aligned",
+        "canonical": "text-right"
+      },
+      {
+        "spoken": "justified",
+        "canonical": "text-justify"
+      }
+    ]
+  },
+
+  "tailwind_layout": {
+    "display": [
+      {
+        "spoken": "flex",
+        "canonical": "flex"
+      },
+      {
+        "spoken": "flexbox",
+        "canonical": "flex"
+      },
+      {
+        "spoken": "grid",
+        "canonical": "grid"
+      },
+      {
+        "spoken": "block",
+        "canonical": "block"
+      },
+      {
+        "spoken": "inline",
+        "canonical": "inline"
+      },
+      {
+        "spoken": "inline block",
+        "canonical": "inline-block"
+      },
+      {
+        "spoken": "hidden",
+        "canonical": "hidden"
+      }
+    ],
+    "flex_direction": [
+      {
+        "spoken": "row",
+        "canonical": "flex-row"
+      },
+      {
+        "spoken": "horizontal",
+        "canonical": "flex-row"
+      },
+      {
+        "spoken": "column",
+        "canonical": "flex-col"
+      },
+      {
+        "spoken": "vertical",
+        "canonical": "flex-col"
+      }
+    ],
+    "alignment": [
+      {
+        "spoken": "items start",
+        "canonical": "items-start"
+      },
+      {
+        "spoken": "items center",
+        "canonical": "items-center"
+      },
+      {
+        "spoken": "items end",
+        "canonical": "items-end"
+      },
+      {
+        "spoken": "justify start",
+        "canonical": "justify-start"
+      },
+      {
+        "spoken": "justify center",
+        "canonical": "justify-center"
+      },
+      {
+        "spoken": "justify end",
+        "canonical": "justify-end"
+      },
+      {
+        "spoken": "justify between",
+        "canonical": "justify-between"
+      },
+      {
+        "spoken": "justify around",
+        "canonical": "justify-around"
+      },
+      {
+        "spoken": "justify evenly",
+        "canonical": "justify-evenly"
+      }
+    ]
+  },
+
+  "tailwind_borders": {
+    "radius": [
+      {
+        "spoken": "no rounding",
+        "canonical": "rounded-none"
+      },
+      {
+        "spoken": "slightly rounded",
+        "canonical": "rounded-sm"
+      },
+      {
+        "spoken": "medium rounded",
+        "canonical": "rounded-md"
+      },
+      {
+        "spoken": "large rounded",
+        "canonical": "rounded-lg"
+      },
+      {
+        "spoken": "extra large rounded",
+        "canonical": "rounded-xl"
+      },
+      {
+        "spoken": "double extra large rounded",
+        "canonical": "rounded-2xl"
+      },
+      {
+        "spoken": "triple extra large rounded",
+        "canonical": "rounded-3xl"
+      },
+      {
+        "spoken": "fully rounded",
+        "canonical": "rounded-full"
+      },
+      {
+        "spoken": "pill",
+        "canonical": "rounded-full"
+      }
+    ],
+    "width": [
+      {
+        "spoken": "no border",
+        "canonical": "border-0"
+      },
+      {
+        "spoken": "one pixel border",
+        "canonical": "border"
+      },
+      {
+        "spoken": "two pixel border",
+        "canonical": "border-2"
+      },
+      {
+        "spoken": "four pixel border",
+        "canonical": "border-4"
+      },
+      {
+        "spoken": "eight pixel border",
+        "canonical": "border-8"
+      }
+    ],
+    "style": [
+      {
+        "spoken": "solid border",
+        "canonical": "border-solid"
+      },
+      {
+        "spoken": "dashed border",
+        "canonical": "border-dashed"
+      },
+      {
+        "spoken": "dotted border",
+        "canonical": "border-dotted"
+      },
+      {
+        "spoken": "double border",
+        "canonical": "border-double"
+      },
+      {
+        "spoken": "no border",
+        "canonical": "border-none"
+      }
+    ]
+  },
+
+  "tailwind_effects": {
+    "shadows": [
+      {
+        "spoken": "small shadow",
+        "canonical": "shadow-sm"
+      },
+      {
+        "spoken": "medium shadow",
+        "canonical": "shadow-md"
+      },
+      {
+        "spoken": "large shadow",
+        "canonical": "shadow-lg"
+      },
+      {
+        "spoken": "extra large shadow",
+        "canonical": "shadow-xl"
+      },
+      {
+        "spoken": "double extra large shadow",
+        "canonical": "shadow-2xl"
+      },
+      {
+        "spoken": "inner shadow",
+        "canonical": "shadow-inner"
+      },
+      {
+        "spoken": "no shadow",
+        "canonical": "shadow-none"
+      }
+    ],
+    "opacity": [
+      {
+        "spoken": "zero opacity",
+        "canonical": "opacity-0"
+      },
+      {
+        "spoken": "twenty five opacity",
+        "canonical": "opacity-25"
+      },
+      {
+        "spoken": "fifty opacity",
+        "canonical": "opacity-50"
+      },
+      {
+        "spoken": "seventy five opacity",
+        "canonical": "opacity-75"
+      },
+      {
+        "spoken": "full opacity",
+        "canonical": "opacity-100"
+      }
+    ]
+  },
+
+  "responsive_tailwind": {
+    "breakpoints": [
+      {
+        "spoken": "small breakpoint",
+        "canonical": "sm:"
+      },
+      {
+        "spoken": "sm",
+        "canonical": "sm:"
+      },
+      {
+        "spoken": "medium breakpoint",
+        "canonical": "md:"
+      },
+      {
+        "spoken": "md",
+        "canonical": "md:"
+      },
+      {
+        "spoken": "large breakpoint",
+        "canonical": "lg:"
+      },
+      {
+        "spoken": "lg",
+        "canonical": "lg:"
+      },
+      {
+        "spoken": "extra large breakpoint",
+        "canonical": "xl:"
+      },
+      {
+        "spoken": "xl",
+        "canonical": "xl:"
+      },
+      {
+        "spoken": "two xl",
+        "canonical": "2xl:"
+      }
+    ],
+    "states": [
+      {
+        "spoken": "hover",
+        "canonical": "hover:"
+      },
+      {
+        "spoken": "on hover",
+        "canonical": "hover:"
+      },
+      {
+        "spoken": "focus",
+        "canonical": "focus:"
+      },
+      {
+        "spoken": "focus visible",
+        "canonical": "focus-visible:"
+      },
+      {
+        "spoken": "active",
+        "canonical": "active:"
+      },
+      {
+        "spoken": "disabled",
+        "canonical": "disabled:"
+      },
+      {
+        "spoken": "group hover",
+        "canonical": "group-hover:"
+      },
+      {
+        "spoken": "peer checked",
+        "canonical": "peer-checked:"
+      },
+      {
+        "spoken": "dark mode",
+        "canonical": "dark:"
+      }
+    ]
+  },
+
+  "testing_syntax": {
+    "jest": [
+      {
+        "spoken": "describe block",
+        "canonical": "describe"
+      },
+      {
+        "spoken": "test case",
+        "canonical": "test"
+      },
+      {
+        "spoken": "it should",
+        "canonical": "it"
+      },
+      {
+        "spoken": "expect",
+        "canonical": "expect"
+      },
+      {
+        "spoken": "to be",
+        "canonical": "toBe"
+      },
+      {
+        "spoken": "to equal",
+        "canonical": "toEqual"
+      },
+      {
+        "spoken": "to contain",
+        "canonical": "toContain"
+      },
+      {
+        "spoken": "to be truthy",
+        "canonical": "toBeTruthy"
+      },
+      {
+        "spoken": "to be falsy",
+        "canonical": "toBeFalsy"
+      },
+      {
+        "spoken": "to be defined",
+        "canonical": "toBeDefined"
+      },
+      {
+        "spoken": "to be null",
+        "canonical": "toBeNull"
+      }
+    ],
+    "vitest": [
+      {
+        "spoken": "vitest describe",
+        "canonical": "describe"
+      },
+      {
+        "spoken": "vitest test",
+        "canonical": "test"
+      },
+      {
+        "spoken": "vitest expect",
+        "canonical": "expect"
+      }
+    ],
+    "playwright": [
+      {
+        "spoken": "click the button",
+        "canonical": "click"
+      },
+      {
+        "spoken": "fill the input",
+        "canonical": "fill"
+      },
+      {
+        "spoken": "expect visible",
+        "canonical": "toBeVisible"
+      },
+      {
+        "spoken": "expect text",
+        "canonical": "toHaveText"
+      },
+      {
+        "spoken": "expect URL",
+        "canonical": "toHaveURL"
+      }
+    ]
+  },
+
+  "api_data_structures": [
+    {
+      "spoken": "request body",
+      "canonical": "body"
+    },
+    {
+      "spoken": "request headers",
+      "canonical": "headers"
+    },
+    {
+      "spoken": "query parameter",
+      "canonical": "query parameter"
+    },
+    {
+      "spoken": "path parameter",
+      "canonical": "path parameter"
+    },
+    {
+      "spoken": "response body",
+      "canonical": "response body"
+    },
+    {
+      "spoken": "response status",
+      "canonical": "status"
+    },
+    {
+      "spoken": "response headers",
+      "canonical": "headers"
+    },
+    {
+      "spoken": "JSON body",
+      "canonical": "application/json"
+    }
+  ],
+
+  "database_concepts": [
+    {
+      "spoken": "table",
+      "canonical": "table"
+    },
+    {
+      "spoken": "row",
+      "canonical": "row"
+    },
+    {
+      "spoken": "record",
+      "canonical": "record"
+    },
+    {
+      "spoken": "column",
+      "canonical": "column"
+    },
+    {
+      "spoken": "primary key",
+      "canonical": "PRIMARY KEY"
+    },
+    {
+      "spoken": "foreign key",
+      "canonical": "FOREIGN KEY"
+    },
+    {
+      "spoken": "unique constraint",
+      "canonical": "UNIQUE"
+    },
+    {
+      "spoken": "not null",
+      "canonical": "NOT NULL"
+    },
+    {
+      "spoken": "default value",
+      "canonical": "DEFAULT"
+    },
+    {
+      "spoken": "index",
+      "canonical": "INDEX"
+    },
+    {
+      "spoken": "composite index",
+      "canonical": "COMPOSITE INDEX"
+    },
+    {
+      "spoken": "database migration",
+      "canonical": "migration"
+    },
+    {
+      "spoken": "schema migration",
+      "canonical": "migration"
+    },
+    {
+      "spoken": "transaction",
+      "canonical": "transaction"
+    }
+  ],
+
+  "orm_language": [
+    {
+      "spoken": "prisma schema",
+      "canonical": "Prisma schema"
+    },
+    {
+      "spoken": "prisma client",
+      "canonical": "Prisma Client"
+    },
+    {
+      "spoken": "drizzle schema",
+      "canonical": "Drizzle schema"
+    },
+    {
+      "spoken": "drizzle orm",
+      "canonical": "Drizzle ORM"
+    },
+    {
+      "spoken": "database relation",
+      "canonical": "relation"
+    },
+    {
+      "spoken": "one to one",
+      "canonical": "1:1"
+    },
+    {
+      "spoken": "one to many",
+      "canonical": "1:N"
+    },
+    {
+      "spoken": "many to many",
+      "canonical": "N:N"
+    }
+  ],
+
+  "url_syntax": {
+    "protocols": [
+      {
+        "spoken": "http",
+        "canonical": "http://"
+      },
+      {
+        "spoken": "https",
+        "canonical": "https://"
+      },
+      {
+        "spoken": "http colon slash slash",
+        "canonical": "http://"
+      },
+      {
+        "spoken": "https colon slash slash",
+        "canonical": "https://"
+      }
+    ],
+    "components": [
+      {
+        "spoken": "question mark",
+        "canonical": "?"
+      },
+      {
+        "spoken": "ampersand",
+        "canonical": "&"
+      },
+      {
+        "spoken": "equals",
+        "canonical": "="
+      },
+      {
+        "spoken": "hash",
+        "canonical": "#"
+      },
+      {
+        "spoken": "fragment",
+        "canonical": "#"
+      },
+      {
+        "spoken": "query parameter",
+        "canonical": "?"
+      }
+    ]
+  },
+
+  "common_config_files": [
+    "package.json",
+    "tsconfig.json",
+    "jsconfig.json",
+    "vite.config.ts",
+    "vite.config.js",
+    "next.config.ts",
+    "next.config.js",
+    "tailwind.config.js",
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "postcss.config.mjs",
+    "eslint.config.js",
+    ".eslintrc",
+    ".eslintrc.json",
+    ".prettierrc",
+    "prettier.config.js",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "Dockerfile",
+    "Cargo.toml",
+    "pyproject.toml",
+    "requirements.txt",
+    "go.mod",
+    "go.sum",
+    "Gemfile",
+    "composer.json",
+    ".env",
+    ".env.local",
+    ".gitignore",
+    ".npmrc",
+    ".yarnrc.yml",
+    "pnpm-workspace.yaml"
+  ],
+
+  "framework_structure": {
+    "nextjs": [
+      "app",
+      "pages",
+      "components",
+      "layout",
+      "page",
+      "loading",
+      "error",
+      "not-found",
+      "route",
+      "middleware",
+      "public",
+      "lib",
+      "hooks"
+    ],
+    "vite": [
+      "src",
+      "main",
+      "App",
+      "public",
+      "vite.config"
+    ],
+    "react": [
+      "components",
+      "props",
+      "state",
+      "context",
+      "provider",
+      "hooks",
+      "children",
+      "events"
+    ]
+  },
+
+  "common_react_language": [
+    {
+      "spoken": "component",
+      "canonical": "component"
+    },
+    {
+      "spoken": "props",
+      "canonical": "props"
+    },
+    {
+      "spoken": "properties",
+      "canonical": "props"
+    },
+    {
+      "spoken": "state",
+      "canonical": "state"
+    },
+    {
+      "spoken": "context",
+      "canonical": "context"
+    },
+    {
+      "spoken": "provider",
+      "canonical": "provider"
+    },
+    {
+      "spoken": "children",
+      "canonical": "children"
+    },
+    {
+      "spoken": "event handler",
+      "canonical": "event handler"
+    },
+    {
+      "spoken": "click handler",
+      "canonical": "onClick"
+    },
+    {
+      "spoken": "change handler",
+      "canonical": "onChange"
+    },
+    {
+      "spoken": "submit handler",
+      "canonical": "onSubmit"
+    },
+    {
+      "spoken": "input handler",
+      "canonical": "onChange"
+    }
+  ],
+
+  "files_and_extensions": [
+    {
+      "spoken": "dot ts",
+      "canonical": ".ts"
+    },
+    {
+      "spoken": "dot tsx",
+      "canonical": ".tsx"
+    },
+    {
+      "spoken": "dot js",
+      "canonical": ".js"
+    },
+    {
+      "spoken": "dot jsx",
+      "canonical": ".jsx"
+    },
+    {
+      "spoken": "dot json",
+      "canonical": ".json"
+    },
+    {
+      "spoken": "dot css",
+      "canonical": ".css"
+    },
+    {
+      "spoken": "dot scss",
+      "canonical": ".scss"
+    },
+    {
+      "spoken": "dot html",
+      "canonical": ".html"
+    },
+    {
+      "spoken": "dot md",
+      "canonical": ".md"
+    },
+    {
+      "spoken": "dot mdx",
+      "canonical": ".mdx"
+    },
+    {
+      "spoken": "dot yaml",
+      "canonical": ".yaml"
+    },
+    {
+      "spoken": "dot yml",
+      "canonical": ".yml"
+    },
+    {
+      "spoken": "dot toml",
+      "canonical": ".toml"
+    },
+    {
+      "spoken": "dot sql",
+      "canonical": ".sql"
+    },
+    {
+      "spoken": "dot env",
+      "canonical": ".env"
+    },
+    {
+      "spoken": "dot sh",
+      "canonical": ".sh"
+    },
+    {
+      "spoken": "dot zsh",
+      "canonical": ".zsh"
+    },
+    {
+      "spoken": "dot py",
+      "canonical": ".py"
+    },
+    {
+      "spoken": "dot rs",
+      "canonical": ".rs"
+    },
+    {
+      "spoken": "dot go",
+      "canonical": ".go"
+    },
+    {
+      "spoken": "dot java",
+      "canonical": ".java"
+    },
+    {
+      "spoken": "dot kt",
+      "canonical": ".kt"
+    },
+    {
+      "spoken": "dot swift",
+      "canonical": ".swift"
+    },
+    {
+      "spoken": "dot rb",
+      "canonical": ".rb"
+    },
+    {
+      "spoken": "dot php",
+      "canonical": ".php"
+    }
+  ],
+
+  "spreadsheet_output_rules": {
+    "rule": "Treat spreadsheet references, formulas, ranges, columns, rows, percentages, currencies, and operators as technical syntax.",
+    "examples": [
+      {
+        "spoken": "sum a one through a ten",
+        "output": "=SUM(A1:A10)"
+      },
+      {
+        "spoken": "average b two through b twenty",
+        "output": "=AVERAGE(B2:B20)"
+      },
+      {
+        "spoken": "if c two is greater than ten",
+        "output": "=IF(C2>10,... )"
+      },
+      {
+        "spoken": "count if d one through d one hundred equals active",
+        "output": "=COUNTIF(D1:D100,\"active\")"
+      },
+      {
+        "spoken": "multiply a one by b one",
+        "output": "=A1*B1"
+      },
+      {
+        "spoken": "divide c two by d two",
+        "output": "=C2/D2"
+      }
+    ]
+  },
+
+  "structured_data_output_rules": {
+    "json": {
+      "rule": "JSON must use double-quoted keys and string values.",
+      "example": {
+        "spoken": "name colon John comma active colon true",
+        "output": "{\"name\":\"John\",\"active\":true}"
+      }
+    },
+    "yaml": {
+      "rule": "YAML uses key-value pairs, indentation, and list markers.",
+      "example": {
+        "spoken": "name colon John new line roles dash admin",
+        "output": "name: John\nroles:\n  - admin"
+      }
+    },
+    "toml": {
+      "rule": "TOML uses sections and equals signs.",
+      "example": {
+        "spoken": "server section port equals three thousand",
+        "output": "[server]\nport = 3000"
+      }
+    },
+    "csv": {
+      "rule": "CSV uses commas between fields and rows separated by newlines."
+    }
+  },
+
+  "speech_cleanup": {
+    "remove_filler": [
+      "uh",
+      "um",
+      "like",
+      "you know",
+      "basically",
+      "actually",
+      "sort of",
+      "kind of"
+    ],
+    "rule": "Remove fillers only when doing so does not alter intent.",
+    "preserve_corrections": [
+      "actually",
+      "wait",
+      "no",
+      "I mean",
+      "sorry",
+      "instead"
+    ]
+  },
+
+  "correction_logic": {
+    "examples": [
+      {
+        "spoken": "make bg stone six hundred actually seven hundred",
+        "output": "Set the background to `bg-stone-700`."
+      },
+      {
+        "spoken": "use p four no p six",
+        "output": "Use `p-6` padding."
+      },
+      {
+        "spoken": "make it rounded lg actually full",
+        "output": "Make the element fully rounded with `rounded-full`."
+      },
+      {
+        "spoken": "use zinc five hundred wait zinc six hundred",
+        "output": "Use `zinc-600`."
+      }
+    ]
+  },
+
+  "context_resolution": {
+    "bg": {
+      "context": [
+        "Tailwind",
+        "CSS",
+        "component",
+        "button",
+        "card",
+        "page",
+        "panel",
+        "section"
+      ],
+      "canonical": "bg"
+    },
+    "border_full": {
+      "meaning": "fully rounded corners",
+      "canonical": "rounded-full"
+    },
+    "full": {
+      "possible_meanings": [
+        "w-full",
+        "h-full",
+        "rounded-full",
+        "opacity-100",
+        "full width",
+        "full height",
+        "full rounding"
+      ],
+      "rule": "Resolve from the property named by surrounding language."
+    },
+    "green": {
+      "possible_meanings": [
+        "bg-green-500",
+        "text-green-500",
+        "border-green-500",
+        "ring-green-500",
+        "semantic green"
+      ],
+      "rule": "Resolve from the target property. Never assume background unless the context indicates a background."
+    }
+  },
+
+  "intent_preserving_examples": [
+    {
+      "input": "bgstone sixhundred",
+      "output": "Set the background to `bg-stone-600`."
+    },
+    {
+      "input": "make the border full",
+      "output": "Make the element fully rounded with `rounded-full`."
+    },
+    {
+      "input": "make it full width",
+      "output": "Make the element full width with `w-full`."
+    },
+    {
+      "input": "make it full height",
+      "output": "Make the element full height with `h-full`."
+    },
+    {
+      "input": "make the text bold",
+      "output": "Make the text bold with `font-bold`."
+    },
+    {
+      "input": "add six padding",
+      "output": "Add `p-6` padding."
+    },
+    {
+      "input": "make bg darker on hover",
+      "output": "Make the background darker on hover."
+    },
+    {
+      "input": "use hover bg stone seven hundred",
+      "output": "Use `hover:bg-stone-700` for the hover background."
+    },
+    {
+      "input": "remove the border",
+      "output": "Remove the border with `border-0`."
+    },
+    {
+      "input": "remove the shadow",
+      "output": "Remove the shadow with `shadow-none`."
+    },
+    {
+      "input": "make the text twenty pixels",
+      "output": "Set the text size to `20px`."
+    },
+    {
+      "input": "add twenty four pixels of gap",
+      "output": "Add `24px` of gap."
+    },
+    {
+      "input": "make the background hash one eight one eight one eight",
+      "output": "Set the background to `#181818`."
+    },
+    {
+      "input": "make the width one half",
+      "output": "Make the width `50%` or use `w-1/2` when Tailwind syntax is intended."
+    },
+    {
+      "input": "make the card white with a subtle border",
+      "output": "Make the card white and add a subtle border."
+    }
+  ],
+
+  "developer_workflow_language": [
+    {
+      "spoken": "run the dev server",
+      "intent": "start development server"
+    },
+    {
+      "spoken": "start the app",
+      "intent": "start application"
+    },
+    {
+      "spoken": "build the app",
+      "intent": "production build"
+    },
+    {
+      "spoken": "run the tests",
+      "intent": "execute test suite"
+    },
+    {
+      "spoken": "run lint",
+      "intent": "lint code"
+    },
+    {
+      "spoken": "format the code",
+      "intent": "format source"
+    },
+    {
+      "spoken": "fix the types",
+      "intent": "resolve type errors"
+    },
+    {
+      "spoken": "fix the build",
+      "intent": "resolve build errors"
+    },
+    {
+      "spoken": "check the console",
+      "intent": "inspect console"
+    },
+    {
+      "spoken": "open the terminal",
+      "intent": "open terminal"
+    },
+    {
+      "spoken": "open the file",
+      "intent": "open file"
+    },
+    {
+      "spoken": "search the codebase",
+      "intent": "search repository"
+    },
+    {
+      "spoken": "find all references",
+      "intent": "find references"
+    }
+  ],
+
+  "final_processing_rules": {
+    "rule_1": "Canonical technical syntax must not be degraded after normalization.",
+    "rule_2": "bg is the preferred Tailwind background prefix.",
+    "rule_3": "Never output background as a Tailwind utility prefix.",
+    "rule_4": "Preserve natural instructions around technical implementations.",
+    "rule_5": "Do not output isolated tokens when the user requested an action.",
+    "rule_6": "Use context before choosing among multiple valid interpretations.",
+    "rule_7": "Do not invent arbitrary values.",
+    "rule_8": "Convert spoken numbers into numeric syntax when technically appropriate.",
+    "rule_9": "Preserve programming punctuation.",
+    "rule_10": "Preserve file paths exactly.",
+    "rule_11": "Preserve environment variable naming.",
+    "rule_12": "Preserve spreadsheet references exactly.",
+    "rule_13": "Preserve JSON syntax.",
+    "rule_14": "Preserve YAML indentation semantics.",
+    "rule_15": "Preserve SQL keyword intent.",
+    "rule_16": "Use inline code for canonical technical fragments.",
+    "rule_17": "Do not turn every response into a Markdown list.",
+    "rule_18": "Do not add explanations unless necessary to preserve intent.",
+    "rule_19": "Do not silently replace the user's preferred shorthand with verbose language.",
+    "rule_20": "Do not treat every ambiguous spoken word as a technical token."
+  },
+
+  "quality_tests": [
+    {
+      "input": "bgstone five hundred",
+      "expected": "Set the background to `bg-stone-500`."
+    },
+    {
+      "input": "bg stone sixhundred",
+      "expected": "Set the background to `bg-stone-600`."
+    },
+    {
+      "input": "bg zinc ninehundred hover zinc eight hundred",
+      "expected": "Resolve the background and hover intent while preserving `bg-zinc-900` and `hover:bg-zinc-800`."
+    },
+    {
+      "input": "make the border full",
+      "expected": "Make the element fully rounded with `rounded-full`."
+    },
+    {
+      "input": "give me twelve pixel gap",
+      "expected": "Add `12px` of gap."
+    },
+    {
+      "input": "sum a one through a ten",
+      "expected": "=SUM(A1:A10)"
+    },
+    {
+      "input": "select star from users where active equals true",
+      "expected": "SELECT * FROM users WHERE active = true"
+    },
+    {
+      "input": "dot slash src slash app slash page dot tsx",
+      "expected": "`./src/app/page.tsx`"
+    },
+    {
+      "input": "package dot json scripts dev",
+      "expected": "package.json → scripts → dev"
+    },
+    {
+      "input": "open curly name colon John comma active colon true close curly",
+      "expected": "{\"name\":\"John\",\"active\":true}"
+    },
+    {
+      "input": "dark bgstone ninehundred",
+      "expected": "`dark:bg-stone-900`"
+    },
+    {
+      "input": "hover bgstone sevenhundred",
+      "expected": "`hover:bg-stone-700`"
+    },
+    {
+      "input": "three dots props",
+      "expected": "`...props`"
+    },
+    {
+      "input": "question dot user question dot profile",
+      "expected": "`user?.profile`"
+    },
+    {
+      "input": "double equals null",
+      "expected": "`== null`"
+    },
+    {
+      "input": "triple equals null",
+      "expected": "`=== null`"
+    },
+    {
+      "input": "slash slash comment",
+      "expected": "`//`"
+    },
+    {
+      "input": "dot dot slash components slash card dot tsx",
+      "expected": "`../components/card.tsx`"
+    },
+    {
+      "input": "a one through c ten",
+      "expected": "A1:C10"
+    },
+    {
+      "input": "dollar before column a one",
+      "expected": "$A1"
+    },
+    {
+      "input": "two hundred thousand dollars",
+      "expected": "$200,000"
+    },
+    {
+      "input": "twenty percent",
+      "expected": "20%"
+    }
+  ]
+}

@@ -1,0 +1,3050 @@
+{
+  "version": 3,
+  "namespace": "tailwind-css-speech-normalization",
+  "description": "Speech-to-text normalization dataset for Tailwind CSS, including phonetic aliases, spoken numbers, CSS terminology, color families, utility prefixes, responsive modifiers, state variants, arbitrary values, and design-engineering vocabulary.",
+  "rules": {
+    "numeric_normalization": {
+      "50": ["50", "fifty", "fiftee", "fifty"],
+      "100": ["100", "one hundred", "onehundred", "one hundred"],
+      "200": ["200", "two hundred", "twohundred", "two hundred"],
+      "300": ["300", "three hundred", "threehundred", "three hundred"],
+      "400": ["400", "four hundred", "fourhundred", "four hundred"],
+      "500": ["500", "five hundred", "fivehundred", "five hundred"],
+      "600": ["600", "six hundred", "sixhundred", "six hundred", "six hun"],
+      "700": ["700", "seven hundred", "sevenhundred", "seven hundred"],
+      "800": ["800", "eight hundred", "eighthundred", "eight hundred"],
+      "900": ["900", "nine hundred", "ninehundred", "nine hundred"],
+      "950": ["950", "nine fifty", "ninefifty", "nine hundred fifty", "nine hundred and fifty"]
+    },
+
+    "common_numeric_speech": [
+      "one hundred",
+      "onehundred",
+      "one hundred",
+      "two hundred",
+      "twohundred",
+      "three hundred",
+      "threehundred",
+      "four hundred",
+      "fourhundred",
+      "five hundred",
+      "fivehundred",
+      "six hundred",
+      "sixhundred",
+      "seven hundred",
+      "sevenhundred",
+      "eight hundred",
+      "eighthundred",
+      "nine hundred",
+      "ninehundred",
+      "nine fifty",
+      "ninefifty",
+      "zero",
+      "one",
+      "two",
+      "three",
+      "four",
+      "five",
+      "six",
+      "seven",
+      "eight",
+      "nine",
+      "ten",
+      "twenty",
+      "thirty",
+      "forty",
+      "fifty",
+      "sixty",
+      "seventy",
+      "eighty",
+      "ninety"
+    ],
+
+    "separator_aliases": {
+      "-": [
+        "dash",
+        "hyphen",
+        "minus",
+        "hyphenated"
+      ],
+      ":": [
+        "colon",
+        "state",
+        "variant",
+        "responsive"
+      ],
+      "/": [
+        "slash",
+        "forward slash"
+      ],
+      "[": [
+        "open bracket",
+        "opening bracket",
+        "left bracket"
+      ],
+      "]": [
+        "close bracket",
+        "closing bracket",
+        "right bracket"
+      ],
+      "#": [
+        "hash",
+        "number sign",
+        "pound"
+      ],
+      ".": [
+        "dot",
+        "period"
+      ],
+      "%": [
+        "percent",
+        "percentage"
+      ],
+      "_": [
+        "underscore"
+      ]
+    },
+
+    "tailwind_terms": [
+      {
+        "canonical": "Tailwind CSS",
+        "aliases": [
+          "tailwind css",
+          "tail wind css",
+          "tailwind",
+          "tail winds",
+          "tail wind",
+          "tailwind styles",
+          "tailwind classes",
+          "tailwind utility classes",
+          "tailwind utilities"
+        ]
+      },
+      {
+        "canonical": "utility class",
+        "aliases": [
+          "utility class",
+          "utility classes",
+          "tailwind utility",
+          "tailwind utilities",
+          "css utility",
+          "utility"
+        ]
+      },
+      {
+        "canonical": "class",
+        "aliases": [
+          "class",
+          "css class",
+          "class name",
+          "class attribute",
+          "tailwind class"
+        ]
+      },
+      {
+        "canonical": "variant",
+        "aliases": [
+          "variant",
+          "variants",
+          "tailwind variant",
+          "state variant",
+          "responsive variant"
+        ]
+      },
+      {
+        "canonical": "responsive",
+        "aliases": [
+          "responsive",
+          "responsive design",
+          "responsive variant",
+          "breakpoint"
+        ]
+      }
+    ],
+
+    "color_families": [
+      {
+        "canonical": "slate",
+        "aliases": [
+          "slate",
+          "slait",
+          "slate color",
+          "slate gray",
+          "slate grey"
+        ],
+        "shades": {
+          "50": "slate-50",
+          "100": "slate-100",
+          "200": "slate-200",
+          "300": "slate-300",
+          "400": "slate-400",
+          "500": "slate-500",
+          "600": "slate-600",
+          "700": "slate-700",
+          "800": "slate-800",
+          "900": "slate-900",
+          "950": "slate-950"
+        }
+      },
+      {
+        "canonical": "gray",
+        "aliases": [
+          "gray",
+          "grey",
+          "grai",
+          "gray color",
+          "grey color"
+        ],
+        "shades": {
+          "50": "gray-50",
+          "100": "gray-100",
+          "200": "gray-200",
+          "300": "gray-300",
+          "400": "gray-400",
+          "500": "gray-500",
+          "600": "gray-600",
+          "700": "gray-700",
+          "800": "gray-800",
+          "900": "gray-900",
+          "950": "gray-950"
+        }
+      },
+      {
+        "canonical": "zinc",
+        "aliases": [
+          "zinc",
+          "zink",
+          "zinc color",
+          "zink color"
+        ],
+        "shades": {
+          "50": "zinc-50",
+          "100": "zinc-100",
+          "200": "zinc-200",
+          "300": "zinc-300",
+          "400": "zinc-400",
+          "500": "zinc-500",
+          "600": "zinc-600",
+          "700": "zinc-700",
+          "800": "zinc-800",
+          "900": "zinc-900",
+          "950": "zinc-950"
+        }
+      },
+      {
+        "canonical": "neutral",
+        "aliases": [
+          "neutral",
+          "neutral color",
+          "neutral gray",
+          "neutral grey"
+        ],
+        "shades": {
+          "50": "neutral-50",
+          "100": "neutral-100",
+          "200": "neutral-200",
+          "300": "neutral-300",
+          "400": "neutral-400",
+          "500": "neutral-500",
+          "600": "neutral-600",
+          "700": "neutral-700",
+          "800": "neutral-800",
+          "900": "neutral-900",
+          "950": "neutral-950"
+        }
+      },
+      {
+        "canonical": "stone",
+        "aliases": [
+          "stone",
+          "stone color",
+          "stohn",
+          "stone gray",
+          "stone grey"
+        ],
+        "shades": {
+          "50": "stone-50",
+          "100": "stone-100",
+          "200": "stone-200",
+          "300": "stone-300",
+          "400": "stone-400",
+          "500": "stone-500",
+          "600": "stone-600",
+          "700": "stone-700",
+          "800": "stone-800",
+          "900": "stone-900",
+          "950": "stone-950"
+        }
+      },
+      {
+        "canonical": "red",
+        "aliases": [
+          "red",
+          "read",
+          "red color"
+        ],
+        "shades": {
+          "50": "red-50",
+          "100": "red-100",
+          "200": "red-200",
+          "300": "red-300",
+          "400": "red-400",
+          "500": "red-500",
+          "600": "red-600",
+          "700": "red-700",
+          "800": "red-800",
+          "900": "red-900",
+          "950": "red-950"
+        }
+      },
+      {
+        "canonical": "orange",
+        "aliases": [
+          "orange",
+          "orinj",
+          "orange color"
+        ],
+        "shades": {
+          "50": "orange-50",
+          "100": "orange-100",
+          "200": "orange-200",
+          "300": "orange-300",
+          "400": "orange-400",
+          "500": "orange-500",
+          "600": "orange-600",
+          "700": "orange-700",
+          "800": "orange-800",
+          "900": "orange-900",
+          "950": "orange-950"
+        }
+      },
+      {
+        "canonical": "amber",
+        "aliases": [
+          "amber",
+          "amber color",
+          "umber",
+          "amber color"
+        ],
+        "shades": {
+          "50": "amber-50",
+          "100": "amber-100",
+          "200": "amber-200",
+          "300": "amber-300",
+          "400": "amber-400",
+          "500": "amber-500",
+          "600": "amber-600",
+          "700": "amber-700",
+          "800": "amber-800",
+          "900": "amber-900",
+          "950": "amber-950"
+        }
+      },
+      {
+        "canonical": "yellow",
+        "aliases": [
+          "yellow",
+          "yelow",
+          "yellow color"
+        ],
+        "shades": {
+          "50": "yellow-50",
+          "100": "yellow-100",
+          "200": "yellow-200",
+          "300": "yellow-300",
+          "400": "yellow-400",
+          "500": "yellow-500",
+          "600": "yellow-600",
+          "700": "yellow-700",
+          "800": "yellow-800",
+          "900": "yellow-900",
+          "950": "yellow-950"
+        }
+      },
+      {
+        "canonical": "lime",
+        "aliases": [
+          "lime",
+          "lyme",
+          "lime color"
+        ],
+        "shades": {
+          "50": "lime-50",
+          "100": "lime-100",
+          "200": "lime-200",
+          "300": "lime-300",
+          "400": "lime-400",
+          "500": "lime-500",
+          "600": "lime-600",
+          "700": "lime-700",
+          "800": "lime-800",
+          "900": "lime-900",
+          "950": "lime-950"
+        }
+      },
+      {
+        "canonical": "green",
+        "aliases": [
+          "green",
+          "grean",
+          "green color",
+          "green shade",
+          "green tone"
+        ],
+        "shades": {
+          "50": "green-50",
+          "100": "green-100",
+          "200": "green-200",
+          "300": "green-300",
+          "400": "green-400",
+          "500": "green-500",
+          "600": "green-600",
+          "700": "green-700",
+          "800": "green-800",
+          "900": "green-900",
+          "950": "green-950"
+        },
+        "semantic_hex": {
+          "green": "#22c55e"
+        }
+      },
+      {
+        "canonical": "emerald",
+        "aliases": [
+          "emerald",
+          "emerold",
+          "emerald color"
+        ],
+        "shades": {
+          "50": "emerald-50",
+          "100": "emerald-100",
+          "200": "emerald-200",
+          "300": "emerald-300",
+          "400": "emerald-400",
+          "500": "emerald-500",
+          "600": "emerald-600",
+          "700": "emerald-700",
+          "800": "emerald-800",
+          "900": "emerald-900",
+          "950": "emerald-950"
+        }
+      },
+      {
+        "canonical": "teal",
+        "aliases": [
+          "teal",
+          "teel",
+          "teal color"
+        ],
+        "shades": {
+          "50": "teal-50",
+          "100": "teal-100",
+          "200": "teal-200",
+          "300": "teal-300",
+          "400": "teal-400",
+          "500": "teal-500",
+          "600": "teal-600",
+          "700": "teal-700",
+          "800": "teal-800",
+          "900": "teal-900",
+          "950": "teal-950"
+        }
+      },
+      {
+        "canonical": "cyan",
+        "aliases": [
+          "cyan",
+          "sigh an",
+          "cyan color",
+          "cyan blue"
+        ],
+        "shades": {
+          "50": "cyan-50",
+          "100": "cyan-100",
+          "200": "cyan-200",
+          "300": "cyan-300",
+          "400": "cyan-400",
+          "500": "cyan-500",
+          "600": "cyan-600",
+          "700": "cyan-700",
+          "800": "cyan-800",
+          "900": "cyan-900",
+          "950": "cyan-950"
+        }
+      },
+      {
+        "canonical": "sky",
+        "aliases": [
+          "sky",
+          "sky blue",
+          "sky color",
+          "ski"
+        ],
+        "shades": {
+          "50": "sky-50",
+          "100": "sky-100",
+          "200": "sky-200",
+          "300": "sky-300",
+          "400": "sky-400",
+          "500": "sky-500",
+          "600": "sky-600",
+          "700": "sky-700",
+          "800": "sky-800",
+          "900": "sky-900",
+          "950": "sky-950"
+        }
+      },
+      {
+        "canonical": "blue",
+        "aliases": [
+          "blue",
+          "blew",
+          "blue color",
+          "blue shade"
+        ],
+        "shades": {
+          "50": "blue-50",
+          "100": "blue-100",
+          "200": "blue-200",
+          "300": "blue-300",
+          "400": "blue-400",
+          "500": "blue-500",
+          "600": "blue-600",
+          "700": "blue-700",
+          "800": "blue-800",
+          "900": "blue-900",
+          "950": "blue-950"
+        },
+        "semantic_hex": {
+          "blue": "#3b82f6"
+        }
+      },
+      {
+        "canonical": "indigo",
+        "aliases": [
+          "indigo",
+          "indigo color",
+          "indigo blue",
+          "in the go"
+        ],
+        "shades": {
+          "50": "indigo-50",
+          "100": "indigo-100",
+          "200": "indigo-200",
+          "300": "indigo-300",
+          "400": "indigo-400",
+          "500": "indigo-500",
+          "600": "indigo-600",
+          "700": "indigo-700",
+          "800": "indigo-800",
+          "900": "indigo-900",
+          "950": "indigo-950"
+        }
+      },
+      {
+        "canonical": "violet",
+        "aliases": [
+          "violet",
+          "violet color",
+          "violate",
+          "violet purple"
+        ],
+        "shades": {
+          "50": "violet-50",
+          "100": "violet-100",
+          "200": "violet-200",
+          "300": "violet-300",
+          "400": "violet-400",
+          "500": "violet-500",
+          "600": "violet-600",
+          "700": "violet-700",
+          "800": "violet-800",
+          "900": "violet-900",
+          "950": "violet-950"
+        }
+      },
+      {
+        "canonical": "purple",
+        "aliases": [
+          "purple",
+          "perple",
+          "purple color",
+          "purple shade"
+        ],
+        "shades": {
+          "50": "purple-50",
+          "100": "purple-100",
+          "200": "purple-200",
+          "300": "purple-300",
+          "400": "purple-400",
+          "500": "purple-500",
+          "600": "purple-600",
+          "700": "purple-700",
+          "800": "purple-800",
+          "900": "purple-900",
+          "950": "purple-950"
+        }
+      },
+      {
+        "canonical": "fuchsia",
+        "aliases": [
+          "fuchsia",
+          "fusha",
+          "fuchsia color",
+          "magenta pink"
+        ],
+        "shades": {
+          "50": "fuchsia-50",
+          "100": "fuchsia-100",
+          "200": "fuchsia-200",
+          "300": "fuchsia-300",
+          "400": "fuchsia-400",
+          "500": "fuchsia-500",
+          "600": "fuchsia-600",
+          "700": "fuchsia-700",
+          "800": "fuchsia-800",
+          "900": "fuchsia-900",
+          "950": "fuchsia-950"
+        }
+      },
+      {
+        "canonical": "pink",
+        "aliases": [
+          "pink",
+          "pink color",
+          "pink shade"
+        ],
+        "shades": {
+          "50": "pink-50",
+          "100": "pink-100",
+          "200": "pink-200",
+          "300": "pink-300",
+          "400": "pink-400",
+          "500": "pink-500",
+          "600": "pink-600",
+          "700": "pink-700",
+          "800": "pink-800",
+          "900": "pink-900",
+          "950": "pink-950"
+        }
+      },
+      {
+        "canonical": "rose",
+        "aliases": [
+          "rose",
+          "rose color",
+          "rose pink",
+          "rows"
+        ],
+        "shades": {
+          "50": "rose-50",
+          "100": "rose-100",
+          "200": "rose-200",
+          "300": "rose-300",
+          "400": "rose-400",
+          "500": "rose-500",
+          "600": "rose-600",
+          "700": "rose-700",
+          "800": "rose-800",
+          "900": "rose-900",
+          "950": "rose-950"
+        }
+      }
+    ],
+
+    "utility_families": [
+      {
+        "canonical_prefix": "bg",
+        "spoken": [
+          "bg",
+          "b g",
+          "background",
+          "background color",
+          "back ground",
+          "backround",
+          "background class"
+        ],
+        "pattern": "bg-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "text",
+        "spoken": [
+          "text",
+          "text color",
+          "font color",
+          "text style",
+          "text class"
+        ],
+        "pattern": "text-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "border",
+        "spoken": [
+          "border",
+          "border color",
+          "border class",
+          "outline border"
+        ],
+        "pattern": "border-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "ring",
+        "spoken": [
+          "ring",
+          "focus ring",
+          "ring color",
+          "outline ring"
+        ],
+        "pattern": "ring-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "divide",
+        "spoken": [
+          "divide",
+          "divider",
+          "divide color",
+          "divide between"
+        ],
+        "pattern": "divide-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "placeholder",
+        "spoken": [
+          "placeholder",
+          "placeholder color",
+          "placeholder text"
+        ],
+        "pattern": "placeholder-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "accent",
+        "spoken": [
+          "accent",
+          "accent color",
+          "accent colour"
+        ],
+        "pattern": "accent-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "caret",
+        "spoken": [
+          "caret",
+          "caret color",
+          "text cursor color"
+        ],
+        "pattern": "caret-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "decoration",
+        "spoken": [
+          "decoration",
+          "text decoration",
+          "underline decoration"
+        ],
+        "pattern": "decoration-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "fill",
+        "spoken": [
+          "fill",
+          "svg fill",
+          "icon fill",
+          "fill color"
+        ],
+        "pattern": "fill-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "stroke",
+        "spoken": [
+          "stroke",
+          "svg stroke",
+          "icon stroke",
+          "stroke color"
+        ],
+        "pattern": "stroke-{color}-{shade}"
+      },
+      {
+        "canonical_prefix": "shadow",
+        "spoken": [
+          "shadow",
+          "box shadow",
+          "shadow color"
+        ],
+        "pattern": "shadow-{color}-{shade}"
+      }
+    ],
+
+    "explicit_examples": [
+      {
+        "input": "bg stone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "input": "background stone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "input": "background stone 600",
+        "output": "bg-stone-600"
+      },
+      {
+        "input": "bg-stone-six-hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "input": "bg stone sixhundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "input": "bg stone 600",
+        "output": "bg-stone-600"
+      },
+      {
+        "input": "b g stone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "input": "text zinc nine hundred",
+        "output": "text-zinc-900"
+      },
+      {
+        "input": "text zink ninehundred",
+        "output": "text-zinc-900"
+      },
+      {
+        "input": "border neutral seven hundred",
+        "output": "border-neutral-700"
+      },
+      {
+        "input": "border stone eight hundred",
+        "output": "border-stone-800"
+      },
+      {
+        "input": "ring blue five hundred",
+        "output": "ring-blue-500"
+      },
+      {
+        "input": "placeholder gray four hundred",
+        "output": "placeholder-gray-400"
+      },
+      {
+        "input": "divide zinc two hundred",
+        "output": "divide-zinc-200"
+      },
+      {
+        "input": "accent green five hundred",
+        "output": "accent-green-500"
+      },
+      {
+        "input": "fill red six hundred",
+        "output": "fill-red-600"
+      },
+      {
+        "input": "stroke blue seven hundred",
+        "output": "stroke-blue-700"
+      }
+    ]
+  },
+
+  "common_classes": [
+    {
+      "canonical": "flex",
+      "aliases": [
+        "flex",
+        "flex layout",
+        "display flex",
+        "flexbox"
+      ]
+    },
+    {
+      "canonical": "grid",
+      "aliases": [
+        "grid",
+        "display grid",
+        "css grid",
+        "grid layout"
+      ]
+    },
+    {
+      "canonical": "block",
+      "aliases": [
+        "block",
+        "display block"
+      ]
+    },
+    {
+      "canonical": "inline",
+      "aliases": [
+        "inline",
+        "display inline"
+      ]
+    },
+    {
+      "canonical": "inline-block",
+      "aliases": [
+        "inline block",
+        "inline-block",
+        "display inline block"
+      ]
+    },
+    {
+      "canonical": "hidden",
+      "aliases": [
+        "hidden",
+        "hide",
+        "display none",
+        "hidden element"
+      ]
+    },
+    {
+      "canonical": "visible",
+      "aliases": [
+        "visible",
+        "visibility visible"
+      ]
+    },
+    {
+      "canonical": "relative",
+      "aliases": [
+        "relative",
+        "position relative",
+        "relative positioning"
+      ]
+    },
+    {
+      "canonical": "absolute",
+      "aliases": [
+        "absolute",
+        "position absolute",
+        "absolute positioning"
+      ]
+    },
+    {
+      "canonical": "fixed",
+      "aliases": [
+        "fixed",
+        "position fixed",
+        "fixed positioning"
+      ]
+    },
+    {
+      "canonical": "sticky",
+      "aliases": [
+        "sticky",
+        "position sticky",
+        "sticky positioning"
+      ]
+    },
+    {
+      "canonical": "static",
+      "aliases": [
+        "static",
+        "position static"
+      ]
+    },
+    {
+      "canonical": "inset-0",
+      "aliases": [
+        "inset zero",
+        "inset 0",
+        "all inset zero",
+        "inset none"
+      ]
+    },
+    {
+      "canonical": "top-0",
+      "aliases": [
+        "top zero",
+        "top 0",
+        "top position zero"
+      ]
+    },
+    {
+      "canonical": "right-0",
+      "aliases": [
+        "right zero",
+        "right 0",
+        "right position zero"
+      ]
+    },
+    {
+      "canonical": "bottom-0",
+      "aliases": [
+        "bottom zero",
+        "bottom 0",
+        "bottom position zero"
+      ]
+    },
+    {
+      "canonical": "left-0",
+      "aliases": [
+        "left zero",
+        "left 0",
+        "left position zero"
+      ]
+    },
+
+    {
+      "canonical": "items-center",
+      "aliases": [
+        "items center",
+        "item center",
+        "align items center",
+        "align items centrally",
+        "items centrally"
+      ]
+    },
+    {
+      "canonical": "items-start",
+      "aliases": [
+        "items start",
+        "align items start",
+        "item start"
+      ]
+    },
+    {
+      "canonical": "items-end",
+      "aliases": [
+        "items end",
+        "align items end",
+        "item end"
+      ]
+    },
+    {
+      "canonical": "justify-center",
+      "aliases": [
+        "justify center",
+        "justify centrally",
+        "justify items center",
+        "center horizontally"
+      ]
+    },
+    {
+      "canonical": "justify-between",
+      "aliases": [
+        "justify between",
+        "justify space between",
+        "space between",
+        "justify items between"
+      ]
+    },
+    {
+      "canonical": "justify-start",
+      "aliases": [
+        "justify start",
+        "justify items start"
+      ]
+    },
+    {
+      "canonical": "justify-end",
+      "aliases": [
+        "justify end",
+        "justify items end"
+      ]
+    },
+    {
+      "canonical": "justify-around",
+      "aliases": [
+        "justify around",
+        "space around"
+      ]
+    },
+    {
+      "canonical": "justify-evenly",
+      "aliases": [
+        "justify evenly",
+        "space evenly"
+      ]
+    },
+    {
+      "canonical": "flex-row",
+      "aliases": [
+        "flex row",
+        "row flex",
+        "horizontal flex"
+      ]
+    },
+    {
+      "canonical": "flex-col",
+      "aliases": [
+        "flex column",
+        "flex col",
+        "column flex",
+        "vertical flex"
+      ]
+    },
+    {
+      "canonical": "flex-wrap",
+      "aliases": [
+        "flex wrap",
+        "wrap flex",
+        "flex wrapping"
+      ]
+    },
+    {
+      "canonical": "flex-nowrap",
+      "aliases": [
+        "flex no wrap",
+        "no wrap",
+        "nowrap"
+      ]
+    },
+    {
+      "canonical": "grow",
+      "aliases": [
+        "grow",
+        "flex grow",
+        "grow element"
+      ]
+    },
+    {
+      "canonical": "shrink",
+      "aliases": [
+        "shrink",
+        "flex shrink"
+      ]
+    },
+
+    {
+      "canonical": "space-x",
+      "aliases": [
+        "space x",
+        "horizontal spacing",
+        "space between horizontal"
+      ]
+    },
+    {
+      "canonical": "space-y",
+      "aliases": [
+        "space y",
+        "vertical spacing",
+        "space between vertical"
+      ]
+    },
+    {
+      "canonical": "gap",
+      "aliases": [
+        "gap",
+        "grid gap",
+        "flex gap",
+        "spacing gap"
+      ]
+    },
+    {
+      "canonical": "gap-x",
+      "aliases": [
+        "gap x",
+        "horizontal gap",
+        "column gap"
+      ]
+    },
+    {
+      "canonical": "gap-y",
+      "aliases": [
+        "gap y",
+        "vertical gap",
+        "row gap"
+      ]
+    },
+
+    {
+      "canonical": "p",
+      "aliases": [
+        "p",
+        "padding",
+        "pad",
+        "padding all"
+      ]
+    },
+    {
+      "canonical": "px",
+      "aliases": [
+        "px",
+        "p x",
+        "padding x",
+        "horizontal padding"
+      ]
+    },
+    {
+      "canonical": "py",
+      "aliases": [
+        "py",
+        "p y",
+        "padding y",
+        "vertical padding"
+      ]
+    },
+    {
+      "canonical": "pt",
+      "aliases": [
+        "pt",
+        "padding top"
+      ]
+    },
+    {
+      "canonical": "pr",
+      "aliases": [
+        "pr",
+        "padding right"
+      ]
+    },
+    {
+      "canonical": "pb",
+      "aliases": [
+        "pb",
+        "padding bottom"
+      ]
+    },
+    {
+      "canonical": "pl",
+      "aliases": [
+        "pl",
+        "padding left"
+      ]
+    },
+
+    {
+      "canonical": "m",
+      "aliases": [
+        "m",
+        "margin"
+      ]
+    },
+    {
+      "canonical": "mx",
+      "aliases": [
+        "mx",
+        "m x",
+        "margin x",
+        "horizontal margin"
+      ]
+    },
+    {
+      "canonical": "my",
+      "aliases": [
+        "my",
+        "m y",
+        "margin y",
+        "vertical margin"
+      ]
+    },
+    {
+      "canonical": "mt",
+      "aliases": [
+        "mt",
+        "margin top"
+      ]
+    },
+    {
+      "canonical": "mr",
+      "aliases": [
+        "mr",
+        "margin right"
+      ]
+    },
+    {
+      "canonical": "mb",
+      "aliases": [
+        "mb",
+        "margin bottom"
+      ]
+    },
+    {
+      "canonical": "ml",
+      "aliases": [
+        "ml",
+        "margin left"
+      ]
+    },
+    {
+      "canonical": "mx-auto",
+      "aliases": [
+        "mx auto",
+        "margin x auto",
+        "horizontal auto margin",
+        "center with auto margin",
+        "center horizontally"
+      ]
+    },
+
+    {
+      "canonical": "w",
+      "aliases": [
+        "w",
+        "width",
+        "width class"
+      ]
+    },
+    {
+      "canonical": "h",
+      "aliases": [
+        "h",
+        "height",
+        "height class"
+      ]
+    },
+    {
+      "canonical": "min-w",
+      "aliases": [
+        "min w",
+        "minimum width",
+        "min width"
+      ]
+    },
+    {
+      "canonical": "max-w",
+      "aliases": [
+        "max w",
+        "maximum width",
+        "max width"
+      ]
+    },
+    {
+      "canonical": "min-h",
+      "aliases": [
+        "min h",
+        "minimum height",
+        "min height"
+      ]
+    },
+    {
+      "canonical": "max-h",
+      "aliases": [
+        "max h",
+        "maximum height",
+        "max height"
+      ]
+    },
+
+    {
+      "canonical": "rounded",
+      "aliases": [
+        "rounded",
+        "border radius",
+        "round corners",
+        "rounded corners"
+      ]
+    },
+    {
+      "canonical": "rounded-none",
+      "aliases": [
+        "rounded none",
+        "no rounded corners",
+        "zero border radius"
+      ]
+    },
+    {
+      "canonical": "rounded-sm",
+      "aliases": [
+        "rounded small",
+        "rounded s m",
+        "small border radius"
+      ]
+    },
+    {
+      "canonical": "rounded-md",
+      "aliases": [
+        "rounded medium",
+        "rounded m d",
+        "medium border radius"
+      ]
+    },
+    {
+      "canonical": "rounded-lg",
+      "aliases": [
+        "rounded large",
+        "rounded l g",
+        "large border radius"
+      ]
+    },
+    {
+      "canonical": "rounded-xl",
+      "aliases": [
+        "rounded extra large",
+        "rounded x l",
+        "rounded x l",
+        "extra large radius"
+      ]
+    },
+    {
+      "canonical": "rounded-2xl",
+      "aliases": [
+        "rounded two x l",
+        "rounded two xl",
+        "rounded double extra large"
+      ]
+    },
+    {
+      "canonical": "rounded-3xl",
+      "aliases": [
+        "rounded three x l",
+        "rounded three xl",
+        "rounded triple extra large"
+      ]
+    },
+    {
+      "canonical": "rounded-full",
+      "aliases": [
+        "rounded full",
+        "full rounded",
+        "pill",
+        "fully rounded",
+        "circle radius"
+      ]
+    },
+
+    {
+      "canonical": "font-sans",
+      "aliases": [
+        "font sans",
+        "sans font",
+        "sans serif font",
+        "font family sans"
+      ]
+    },
+    {
+      "canonical": "font-serif",
+      "aliases": [
+        "font serif",
+        "serif font",
+        "font family serif"
+      ]
+    },
+    {
+      "canonical": "font-mono",
+      "aliases": [
+        "font mono",
+        "monospace font",
+        "mono font",
+        "code font"
+      ]
+    },
+
+    {
+      "canonical": "font-thin",
+      "aliases": [
+        "font thin",
+        "thin font",
+        "font weight one hundred"
+      ]
+    },
+    {
+      "canonical": "font-extralight",
+      "aliases": [
+        "font extra light",
+        "extra light font",
+        "font weight two hundred"
+      ]
+    },
+    {
+      "canonical": "font-light",
+      "aliases": [
+        "font light",
+        "light font",
+        "font weight three hundred"
+      ]
+    },
+    {
+      "canonical": "font-normal",
+      "aliases": [
+        "font normal",
+        "normal font",
+        "regular font",
+        "font weight four hundred"
+      ]
+    },
+    {
+      "canonical": "font-medium",
+      "aliases": [
+        "font medium",
+        "medium font",
+        "font weight five hundred"
+      ]
+    },
+    {
+      "canonical": "font-semibold",
+      "aliases": [
+        "font semibold",
+        "font semi bold",
+        "semi bold font",
+        "font weight six hundred"
+      ]
+    },
+    {
+      "canonical": "font-bold",
+      "aliases": [
+        "font bold",
+        "bold font",
+        "font weight seven hundred"
+      ]
+    },
+    {
+      "canonical": "font-extrabold",
+      "aliases": [
+        "font extra bold",
+        "extra bold font",
+        "font weight eight hundred"
+      ]
+    },
+    {
+      "canonical": "font-black",
+      "aliases": [
+        "font black",
+        "black font",
+        "font weight nine hundred"
+      ]
+    },
+
+    {
+      "canonical": "text-xs",
+      "aliases": [
+        "text xs",
+        "text extra small",
+        "extra small text",
+        "tiny text"
+      ]
+    },
+    {
+      "canonical": "text-sm",
+      "aliases": [
+        "text sm",
+        "text small",
+        "small text"
+      ]
+    },
+    {
+      "canonical": "text-base",
+      "aliases": [
+        "text base",
+        "base text",
+        "normal text"
+      ]
+    },
+    {
+      "canonical": "text-lg",
+      "aliases": [
+        "text lg",
+        "text large",
+        "large text"
+      ]
+    },
+    {
+      "canonical": "text-xl",
+      "aliases": [
+        "text xl",
+        "text extra large",
+        "extra large text"
+      ]
+    },
+    {
+      "canonical": "text-2xl",
+      "aliases": [
+        "text two xl",
+        "text 2 xl",
+        "text double extra large"
+      ]
+    },
+    {
+      "canonical": "text-3xl",
+      "aliases": [
+        "text three xl",
+        "text 3 xl",
+        "text triple extra large"
+      ]
+    },
+    {
+      "canonical": "text-4xl",
+      "aliases": [
+        "text four xl",
+        "text 4 xl"
+      ]
+    },
+    {
+      "canonical": "text-5xl",
+      "aliases": [
+        "text five xl",
+        "text 5 xl"
+      ]
+    },
+    {
+      "canonical": "text-6xl",
+      "aliases": [
+        "text six xl",
+        "text 6 xl"
+      ]
+    },
+    {
+      "canonical": "text-7xl",
+      "aliases": [
+        "text seven xl",
+        "text 7 xl"
+      ]
+    },
+    {
+      "canonical": "text-8xl",
+      "aliases": [
+        "text eight xl",
+        "text 8 xl"
+      ]
+    },
+    {
+      "canonical": "text-9xl",
+      "aliases": [
+        "text nine xl",
+        "text 9 xl"
+      ]
+    },
+
+    {
+      "canonical": "leading-none",
+      "aliases": [
+        "leading none",
+        "line height none",
+        "zero line height"
+      ]
+    },
+    {
+      "canonical": "leading-tight",
+      "aliases": [
+        "leading tight",
+        "tight line height",
+        "tight leading"
+      ]
+    },
+    {
+      "canonical": "leading-snug",
+      "aliases": [
+        "leading snug",
+        "snug line height"
+      ]
+    },
+    {
+      "canonical": "leading-normal",
+      "aliases": [
+        "leading normal",
+        "normal line height"
+      ]
+    },
+    {
+      "canonical": "leading-relaxed",
+      "aliases": [
+        "leading relaxed",
+        "relaxed line height"
+      ]
+    },
+    {
+      "canonical": "leading-loose",
+      "aliases": [
+        "leading loose",
+        "loose line height"
+      ]
+    },
+
+    {
+      "canonical": "tracking-tighter",
+      "aliases": [
+        "tracking tighter",
+        "tighter letter spacing",
+        "very tight tracking"
+      ]
+    },
+    {
+      "canonical": "tracking-tight",
+      "aliases": [
+        "tracking tight",
+        "tight letter spacing"
+      ]
+    },
+    {
+      "canonical": "tracking-normal",
+      "aliases": [
+        "tracking normal",
+        "normal letter spacing"
+      ]
+    },
+    {
+      "canonical": "tracking-wide",
+      "aliases": [
+        "tracking wide",
+        "wide letter spacing"
+      ]
+    },
+    {
+      "canonical": "tracking-wider",
+      "aliases": [
+        "tracking wider",
+        "wider letter spacing"
+      ]
+    },
+    {
+      "canonical": "tracking-widest",
+      "aliases": [
+        "tracking widest",
+        "widest letter spacing"
+      ]
+    },
+
+    {
+      "canonical": "uppercase",
+      "aliases": [
+        "uppercase",
+        "upper case",
+        "all caps",
+        "capital letters"
+      ]
+    },
+    {
+      "canonical": "lowercase",
+      "aliases": [
+        "lowercase",
+        "lower case",
+        "small letters"
+      ]
+    },
+    {
+      "canonical": "capitalize",
+      "aliases": [
+        "capitalize",
+        "capitalized",
+        "capitalize words"
+      ]
+    },
+    {
+      "canonical": "normal-case",
+      "aliases": [
+        "normal case",
+        "normal text casing"
+      ]
+    },
+
+    {
+      "canonical": "italic",
+      "aliases": [
+        "italic",
+        "italics",
+        "italic text"
+      ]
+    },
+    {
+      "canonical": "not-italic",
+      "aliases": [
+        "not italic",
+        "remove italic",
+        "normal font style"
+      ]
+    },
+
+    {
+      "canonical": "underline",
+      "aliases": [
+        "underline",
+        "underlined",
+        "underline text"
+      ]
+    },
+    {
+      "canonical": "no-underline",
+      "aliases": [
+        "no underline",
+        "remove underline",
+        "underline none"
+      ]
+    },
+
+    {
+      "canonical": "text-left",
+      "aliases": [
+        "text left",
+        "align text left",
+        "left aligned text"
+      ]
+    },
+    {
+      "canonical": "text-center",
+      "aliases": [
+        "text center",
+        "center text",
+        "center aligned text"
+      ]
+    },
+    {
+      "canonical": "text-right",
+      "aliases": [
+        "text right",
+        "right aligned text"
+      ]
+    },
+    {
+      "canonical": "text-justify",
+      "aliases": [
+        "text justify",
+        "justified text"
+      ]
+    },
+
+    {
+      "canonical": "whitespace-nowrap",
+      "aliases": [
+        "whitespace no wrap",
+        "no wrap whitespace",
+        "nowrap"
+      ]
+    },
+    {
+      "canonical": "truncate",
+      "aliases": [
+        "truncate",
+        "text truncate",
+        "ellipsis text",
+        "truncate with ellipsis"
+      ]
+    },
+    {
+      "canonical": "overflow-hidden",
+      "aliases": [
+        "overflow hidden",
+        "hide overflow",
+        "hidden overflow"
+      ]
+    },
+    {
+      "canonical": "overflow-auto",
+      "aliases": [
+        "overflow auto",
+        "automatic overflow",
+        "scroll when needed"
+      ]
+    },
+    {
+      "canonical": "overflow-scroll",
+      "aliases": [
+        "overflow scroll",
+        "always scroll"
+      ]
+    },
+
+    {
+      "canonical": "border",
+      "aliases": [
+        "border",
+        "one pixel border",
+        "border width"
+      ]
+    },
+    {
+      "canonical": "border-0",
+      "aliases": [
+        "border zero",
+        "border 0",
+        "no border",
+        "remove border"
+      ]
+    },
+    {
+      "canonical": "border-2",
+      "aliases": [
+        "border two",
+        "border 2",
+        "two pixel border"
+      ]
+    },
+    {
+      "canonical": "border-4",
+      "aliases": [
+        "border four",
+        "border 4",
+        "four pixel border"
+      ]
+    },
+    {
+      "canonical": "border-8",
+      "aliases": [
+        "border eight",
+        "border 8",
+        "eight pixel border"
+      ]
+    },
+
+    {
+      "canonical": "border-solid",
+      "aliases": [
+        "border solid",
+        "solid border"
+      ]
+    },
+    {
+      "canonical": "border-dashed",
+      "aliases": [
+        "border dashed",
+        "dashed border"
+      ]
+    },
+    {
+      "canonical": "border-dotted",
+      "aliases": [
+        "border dotted",
+        "dotted border"
+      ]
+    },
+    {
+      "canonical": "border-double",
+      "aliases": [
+        "border double",
+        "double border"
+      ]
+    },
+    {
+      "canonical": "border-none",
+      "aliases": [
+        "border none",
+        "no border"
+      ]
+    },
+
+    {
+      "canonical": "shadow-sm",
+      "aliases": [
+        "shadow small",
+        "small shadow",
+        "shadow s m"
+      ]
+    },
+    {
+      "canonical": "shadow",
+      "aliases": [
+        "shadow",
+        "default shadow",
+        "box shadow"
+      ]
+    },
+    {
+      "canonical": "shadow-md",
+      "aliases": [
+        "shadow medium",
+        "medium shadow",
+        "shadow m d"
+      ]
+    },
+    {
+      "canonical": "shadow-lg",
+      "aliases": [
+        "shadow large",
+        "large shadow",
+        "shadow l g"
+      ]
+    },
+    {
+      "canonical": "shadow-xl",
+      "aliases": [
+        "shadow extra large",
+        "extra large shadow",
+        "shadow x l"
+      ]
+    },
+    {
+      "canonical": "shadow-2xl",
+      "aliases": [
+        "shadow two xl",
+        "shadow double extra large",
+        "shadow 2 xl"
+      ]
+    },
+    {
+      "canonical": "shadow-inner",
+      "aliases": [
+        "shadow inner",
+        "inner shadow",
+        "inset shadow"
+      ]
+    },
+    {
+      "canonical": "shadow-none",
+      "aliases": [
+        "shadow none",
+        "no shadow",
+        "remove shadow"
+      ]
+    },
+
+    {
+      "canonical": "opacity-0",
+      "aliases": [
+        "opacity zero",
+        "opacity 0",
+        "transparent"
+      ]
+    },
+    {
+      "canonical": "opacity-25",
+      "aliases": [
+        "opacity twenty five",
+        "opacity 25",
+        "twenty five percent opacity"
+      ]
+    },
+    {
+      "canonical": "opacity-50",
+      "aliases": [
+        "opacity fifty",
+        "opacity 50",
+        "fifty percent opacity",
+        "half opacity"
+      ]
+    },
+    {
+      "canonical": "opacity-75",
+      "aliases": [
+        "opacity seventy five",
+        "opacity 75",
+        "seventy five percent opacity"
+      ]
+    },
+    {
+      "canonical": "opacity-100",
+      "aliases": [
+        "opacity one hundred",
+        "opacity 100",
+        "full opacity"
+      ]
+    },
+
+    {
+      "canonical": "cursor-pointer",
+      "aliases": [
+        "cursor pointer",
+        "pointer cursor",
+        "click cursor"
+      ]
+    },
+    {
+      "canonical": "cursor-default",
+      "aliases": [
+        "cursor default",
+        "default cursor"
+      ]
+    },
+    {
+      "canonical": "cursor-not-allowed",
+      "aliases": [
+        "cursor not allowed",
+        "not allowed cursor",
+        "disabled cursor"
+      ]
+    },
+    {
+      "canonical": "cursor-text",
+      "aliases": [
+        "cursor text",
+        "text cursor"
+      ]
+    },
+    {
+      "canonical": "cursor-move",
+      "aliases": [
+        "cursor move",
+        "move cursor"
+      ]
+    },
+    {
+      "canonical": "cursor-grab",
+      "aliases": [
+        "cursor grab",
+        "grab cursor"
+      ]
+    },
+    {
+      "canonical": "cursor-grabbing",
+      "aliases": [
+        "cursor grabbing",
+        "grabbing cursor"
+      ]
+    },
+
+    {
+      "canonical": "select-none",
+      "aliases": [
+        "select none",
+        "disable text selection",
+        "no text selection"
+      ]
+    },
+    {
+      "canonical": "select-text",
+      "aliases": [
+        "select text",
+        "allow text selection"
+      ]
+    },
+    {
+      "canonical": "pointer-events-none",
+      "aliases": [
+        "pointer events none",
+        "disable pointer events",
+        "no pointer events"
+      ]
+    },
+    {
+      "canonical": "pointer-events-auto",
+      "aliases": [
+        "pointer events auto",
+        "enable pointer events"
+      ]
+    },
+
+    {
+      "canonical": "transition",
+      "aliases": [
+        "transition",
+        "css transition",
+        "animate transition"
+      ]
+    },
+    {
+      "canonical": "transition-all",
+      "aliases": [
+        "transition all",
+        "transition everything"
+      ]
+    },
+    {
+      "canonical": "transition-colors",
+      "aliases": [
+        "transition colors",
+        "color transition"
+      ]
+    },
+    {
+      "canonical": "transition-opacity",
+      "aliases": [
+        "transition opacity",
+        "opacity transition"
+      ]
+    },
+    {
+      "canonical": "transition-transform",
+      "aliases": [
+        "transition transform",
+        "transform transition"
+      ]
+    },
+    {
+      "canonical": "duration-150",
+      "aliases": [
+        "duration one fifty",
+        "duration 150",
+        "one hundred fifty milliseconds"
+      ]
+    },
+    {
+      "canonical": "duration-200",
+      "aliases": [
+        "duration two hundred",
+        "duration 200",
+        "two hundred milliseconds"
+      ]
+    },
+    {
+      "canonical": "duration-300",
+      "aliases": [
+        "duration three hundred",
+        "duration 300",
+        "three hundred milliseconds"
+      ]
+    },
+    {
+      "canonical": "duration-500",
+      "aliases": [
+        "duration five hundred",
+        "duration 500",
+        "five hundred milliseconds"
+      ]
+    },
+
+    {
+      "canonical": "ease-in",
+      "aliases": [
+        "ease in",
+        "ease-in",
+        "animation ease in"
+      ]
+    },
+    {
+      "canonical": "ease-out",
+      "aliases": [
+        "ease out",
+        "ease-out",
+        "animation ease out"
+      ]
+    },
+    {
+      "canonical": "ease-in-out",
+      "aliases": [
+        "ease in out",
+        "ease-in-out",
+        "ease in and out"
+      ]
+    },
+    {
+      "canonical": "linear",
+      "aliases": [
+        "linear",
+        "linear easing",
+        "linear animation"
+      ]
+    },
+
+    {
+      "canonical": "transform",
+      "aliases": [
+        "transform",
+        "css transform"
+      ]
+    },
+    {
+      "canonical": "scale-95",
+      "aliases": [
+        "scale ninety five",
+        "scale 95",
+        "scale ninety-five percent"
+      ]
+    },
+    {
+      "canonical": "scale-100",
+      "aliases": [
+        "scale one hundred",
+        "scale 100",
+        "full scale"
+      ]
+    },
+    {
+      "canonical": "scale-105",
+      "aliases": [
+        "scale one zero five",
+        "scale 105",
+        "scale one hundred five",
+        "one hundred five percent scale"
+      ]
+    },
+    {
+      "canonical": "rotate-180",
+      "aliases": [
+        "rotate one eighty",
+        "rotate 180",
+        "rotate one hundred eighty",
+        "half rotation"
+      ]
+    },
+
+    {
+      "canonical": "hover",
+      "aliases": [
+        "hover",
+        "on hover",
+        "hover state"
+      ]
+    },
+    {
+      "canonical": "focus",
+      "aliases": [
+        "focus",
+        "on focus",
+        "focus state"
+      ]
+    },
+    {
+      "canonical": "focus-visible",
+      "aliases": [
+        "focus visible",
+        "focus-visible",
+        "focus visible state"
+      ]
+    },
+    {
+      "canonical": "active",
+      "aliases": [
+        "active",
+        "on active",
+        "active state"
+      ]
+    },
+    {
+      "canonical": "disabled",
+      "aliases": [
+        "disabled",
+        "on disabled",
+        "disabled state"
+      ]
+    },
+    {
+      "canonical": "group-hover",
+      "aliases": [
+        "group hover",
+        "group on hover",
+        "group-hover state"
+      ]
+    },
+    {
+      "canonical": "peer-checked",
+      "aliases": [
+        "peer checked",
+        "peer checked state"
+      ]
+    },
+
+    {
+      "canonical": "sm",
+      "aliases": [
+        "sm",
+        "s m",
+        "small breakpoint",
+        "small screen"
+      ]
+    },
+    {
+      "canonical": "md",
+      "aliases": [
+        "md",
+        "m d",
+        "medium breakpoint",
+        "medium screen"
+      ]
+    },
+    {
+      "canonical": "lg",
+      "aliases": [
+        "lg",
+        "l g",
+        "large breakpoint",
+        "large screen"
+      ]
+    },
+    {
+      "canonical": "xl",
+      "aliases": [
+        "xl",
+        "x l",
+        "extra large breakpoint",
+        "extra large screen"
+      ]
+    },
+    {
+      "canonical": "2xl",
+      "aliases": [
+        "2xl",
+        "two xl",
+        "two x l",
+        "double extra large breakpoint"
+      ]
+    },
+
+    {
+      "canonical": "dark",
+      "aliases": [
+        "dark",
+        "dark mode",
+        "dark theme",
+        "dark variant"
+      ]
+    },
+    {
+      "canonical": "light",
+      "aliases": [
+        "light",
+        "light mode",
+        "light theme",
+        "light variant"
+      ]
+    },
+
+    {
+      "canonical": "space-y-1",
+      "aliases": [
+        "space y one",
+        "vertical space one",
+        "vertical spacing one"
+      ]
+    },
+    {
+      "canonical": "space-y-2",
+      "aliases": [
+        "space y two",
+        "vertical space two",
+        "vertical spacing two"
+      ]
+    },
+    {
+      "canonical": "space-y-4",
+      "aliases": [
+        "space y four",
+        "vertical space four",
+        "vertical spacing four"
+      ]
+    },
+    {
+      "canonical": "space-y-6",
+      "aliases": [
+        "space y six",
+        "vertical space six",
+        "vertical spacing six"
+      ]
+    },
+    {
+      "canonical": "space-y-8",
+      "aliases": [
+        "space y eight",
+        "vertical space eight",
+        "vertical spacing eight"
+      ]
+    },
+
+    {
+      "canonical": "gap-1",
+      "aliases": [
+        "gap one",
+        "gap 1",
+        "one gap"
+      ]
+    },
+    {
+      "canonical": "gap-2",
+      "aliases": [
+        "gap two",
+        "gap 2",
+        "two gap"
+      ]
+    },
+    {
+      "canonical": "gap-3",
+      "aliases": [
+        "gap three",
+        "gap 3",
+        "three gap"
+      ]
+    },
+    {
+      "canonical": "gap-4",
+      "aliases": [
+        "gap four",
+        "gap 4",
+        "four gap"
+      ]
+    },
+    {
+      "canonical": "gap-6",
+      "aliases": [
+        "gap six",
+        "gap 6",
+        "six gap"
+      ]
+    },
+    {
+      "canonical": "gap-8",
+      "aliases": [
+        "gap eight",
+        "gap 8",
+        "eight gap"
+      ]
+    },
+    {
+      "canonical": "gap-10",
+      "aliases": [
+        "gap ten",
+        "gap 10",
+        "ten gap"
+      ]
+    },
+    {
+      "canonical": "gap-12",
+      "aliases": [
+        "gap twelve",
+        "gap 12",
+        "twelve gap"
+      ]
+    },
+
+    {
+      "canonical": "space-x-2",
+      "aliases": [
+        "space x two",
+        "horizontal space two",
+        "horizontal spacing two"
+      ]
+    },
+    {
+      "canonical": "space-x-4",
+      "aliases": [
+        "space x four",
+        "horizontal space four",
+        "horizontal spacing four"
+      ]
+    },
+    {
+      "canonical": "space-x-6",
+      "aliases": [
+        "space x six",
+        "horizontal space six",
+        "horizontal spacing six"
+      ]
+    },
+    {
+      "canonical": "space-x-8",
+      "aliases": [
+        "space x eight",
+        "horizontal space eight",
+        "horizontal spacing eight"
+      ]
+    }
+  ],
+
+  "arbitrary_values": [
+    {
+      "pattern": "bg-[{value}]",
+      "spoken_patterns": [
+        "background hex value",
+        "background hash value",
+        "background color value",
+        "background custom color",
+        "bg custom hex"
+      ]
+    },
+    {
+      "pattern": "text-[{value}]",
+      "spoken_patterns": [
+        "text hex value",
+        "custom text color",
+        "text custom color"
+      ]
+    },
+    {
+      "pattern": "border-[{value}]",
+      "spoken_patterns": [
+        "border custom color",
+        "border hex value",
+        "custom border color"
+      ]
+    },
+    {
+      "pattern": "w-[{value}]",
+      "spoken_patterns": [
+        "custom width",
+        "width arbitrary value",
+        "width bracket value"
+      ]
+    },
+    {
+      "pattern": "h-[{value}]",
+      "spoken_patterns": [
+        "custom height",
+        "height arbitrary value",
+        "height bracket value"
+      ]
+    },
+    {
+      "pattern": "p-[{value}]",
+      "spoken_patterns": [
+        "custom padding",
+        "padding arbitrary value",
+        "padding bracket value"
+      ]
+    },
+    {
+      "pattern": "m-[{value}]",
+      "spoken_patterns": [
+        "custom margin",
+        "margin arbitrary value",
+        "margin bracket value"
+      ]
+    },
+    {
+      "pattern": "top-[{value}]",
+      "spoken_patterns": [
+        "custom top",
+        "top arbitrary value",
+        "top bracket value"
+      ]
+    },
+    {
+      "pattern": "left-[{value}]",
+      "spoken_patterns": [
+        "custom left",
+        "left arbitrary value"
+      ]
+    },
+    {
+      "pattern": "right-[{value}]",
+      "spoken_patterns": [
+        "custom right",
+        "right arbitrary value"
+      ]
+    },
+    {
+      "pattern": "bottom-[{value}]",
+      "spoken_patterns": [
+        "custom bottom",
+        "bottom arbitrary value"
+      ]
+    }
+  ],
+
+  "hex_colors": [
+    {
+      "canonical": "#ffffff",
+      "aliases": [
+        "white",
+        "pure white",
+        "white color",
+        "hex white"
+      ]
+    },
+    {
+      "canonical": "#000000",
+      "aliases": [
+        "black",
+        "pure black",
+        "black color",
+        "hex black"
+      ]
+    },
+    {
+      "canonical": "#ef4444",
+      "aliases": [
+        "red",
+        "standard red",
+        "tailwind red",
+        "red hex"
+      ]
+    },
+    {
+      "canonical": "#f97316",
+      "aliases": [
+        "orange",
+        "standard orange",
+        "orange hex"
+      ]
+    },
+    {
+      "canonical": "#eab308",
+      "aliases": [
+        "yellow",
+        "standard yellow",
+        "yellow hex"
+      ]
+    },
+    {
+      "canonical": "#22c55e",
+      "aliases": [
+        "green",
+        "standard green",
+        "green hex"
+      ]
+    },
+    {
+      "canonical": "#06b6d4",
+      "aliases": [
+        "cyan",
+        "standard cyan",
+        "cyan hex"
+      ]
+    },
+    {
+      "canonical": "#3b82f6",
+      "aliases": [
+        "blue",
+        "standard blue",
+        "blue hex"
+      ]
+    },
+    {
+      "canonical": "#8b5cf6",
+      "aliases": [
+        "violet",
+        "standard violet",
+        "violet hex"
+      ]
+    },
+    {
+      "canonical": "#ec4899",
+      "aliases": [
+        "pink",
+        "standard pink",
+        "pink hex"
+      ]
+    }
+  ],
+
+  "high_value_speech_patterns": [
+    {
+      "input_patterns": [
+        "bg stone six hundred",
+        "background stone six hundred",
+        "b g stone six hundred",
+        "bg stone sixhundred",
+        "background stone sixhundred",
+        "bg dash stone dash six hundred",
+        "background dash stone dash six hundred",
+        "bg stone 600",
+        "background stone 600",
+        "bg stone six zero zero"
+      ],
+      "canonical": "bg-stone-600"
+    },
+    {
+      "input_patterns": [
+        "bg stone seven hundred",
+        "background stone seven hundred",
+        "bg stone sevenhundred",
+        "bg stone 700",
+        "bg stone seven zero zero"
+      ],
+      "canonical": "bg-stone-700"
+    },
+    {
+      "input_patterns": [
+        "bg zinc six hundred",
+        "background zinc six hundred",
+        "bg zink six hundred",
+        "bg zinc sixhundred",
+        "bg zinc 600"
+      ],
+      "canonical": "bg-zinc-600"
+    },
+    {
+      "input_patterns": [
+        "bg neutral seven hundred",
+        "background neutral seven hundred",
+        "bg neutral sevenhundred",
+        "bg neutral 700"
+      ],
+      "canonical": "bg-neutral-700"
+    },
+    {
+      "input_patterns": [
+        "bg gray eight hundred",
+        "background gray eight hundred",
+        "bg grey eight hundred",
+        "bg gray eighthundred",
+        "bg gray 800"
+      ],
+      "canonical": "bg-gray-800"
+    },
+    {
+      "input_patterns": [
+        "bg slate nine hundred",
+        "background slate nine hundred",
+        "bg slate ninehundred",
+        "bg slate 900"
+      ],
+      "canonical": "bg-slate-900"
+    },
+    {
+      "input_patterns": [
+        "text stone four hundred",
+        "text stone fourhundred",
+        "text stone 400",
+        "text color stone four hundred"
+      ],
+      "canonical": "text-stone-400"
+    },
+    {
+      "input_patterns": [
+        "text zinc five hundred",
+        "text zink five hundred",
+        "text zinc fivehundred",
+        "text zinc 500"
+      ],
+      "canonical": "text-zinc-500"
+    },
+    {
+      "input_patterns": [
+        "text neutral nine hundred",
+        "text neutral ninehundred",
+        "text neutral 900"
+      ],
+      "canonical": "text-neutral-900"
+    },
+    {
+      "input_patterns": [
+        "border stone two hundred",
+        "border stone twohundred",
+        "border stone 200"
+      ],
+      "canonical": "border-stone-200"
+    },
+    {
+      "input_patterns": [
+        "border zinc three hundred",
+        "border zink three hundred",
+        "border zinc threehundred",
+        "border zinc 300"
+      ],
+      "canonical": "border-zinc-300"
+    },
+    {
+      "input_patterns": [
+        "border neutral six hundred",
+        "border neutral sixhundred",
+        "border neutral 600"
+      ],
+      "canonical": "border-neutral-600"
+    },
+    {
+      "input_patterns": [
+        "ring blue five hundred",
+        "ring blue fivehundred",
+        "ring blue 500",
+        "focus ring blue five hundred"
+      ],
+      "canonical": "ring-blue-500"
+    },
+    {
+      "input_patterns": [
+        "hover bg blue six hundred",
+        "hover background blue six hundred",
+        "hover background blue 600",
+        "on hover bg blue six hundred"
+      ],
+      "canonical": "hover:bg-blue-600"
+    },
+    {
+      "input_patterns": [
+        "dark bg zinc nine hundred",
+        "dark background zinc nine hundred",
+        "dark mode bg zinc 900"
+      ],
+      "canonical": "dark:bg-zinc-900"
+    },
+    {
+      "input_patterns": [
+        "md bg stone five hundred",
+        "medium breakpoint background stone five hundred",
+        "medium screen bg stone 500"
+      ],
+      "canonical": "md:bg-stone-500"
+    },
+    {
+      "input_patterns": [
+        "lg text white",
+        "large breakpoint text white",
+        "large screen text white"
+      ],
+      "canonical": "lg:text-white"
+    },
+    {
+      "input_patterns": [
+        "sm p four",
+        "small screen padding four",
+        "small breakpoint padding four"
+      ],
+      "canonical": "sm:p-4"
+    },
+    {
+      "input_patterns": [
+        "md flex",
+        "medium breakpoint flex",
+        "medium screen display flex"
+      ],
+      "canonical": "md:flex"
+    },
+    {
+      "input_patterns": [
+        "lg grid cols three",
+        "large grid columns three",
+        "large breakpoint grid columns three"
+      ],
+      "canonical": "lg:grid-cols-3"
+    },
+    {
+      "input_patterns": [
+        "grid columns three",
+        "grid cols three",
+        "grid cols 3"
+      ],
+      "canonical": "grid-cols-3"
+    },
+    {
+      "input_patterns": [
+        "font seven hundred",
+        "font weight seven hundred",
+        "font weight 700",
+        "bold font"
+      ],
+      "canonical": "font-bold"
+    },
+    {
+      "input_patterns": [
+        "text two xl",
+        "text two x l",
+        "text 2 xl",
+        "extra large text two"
+      ],
+      "canonical": "text-2xl"
+    },
+    {
+      "input_patterns": [
+        "rounded two xl",
+        "rounded two x l",
+        "rounded 2 xl",
+        "double extra large radius"
+      ],
+      "canonical": "rounded-2xl"
+    },
+    {
+      "input_patterns": [
+        "shadow medium",
+        "medium shadow",
+        "shadow m d"
+      ],
+      "canonical": "shadow-md"
+    },
+    {
+      "input_patterns": [
+        "width full",
+        "full width",
+        "w full"
+      ],
+      "canonical": "w-full"
+    },
+    {
+      "input_patterns": [
+        "height screen",
+        "full screen height",
+        "h screen"
+      ],
+      "canonical": "h-screen"
+    },
+    {
+      "input_patterns": [
+        "width one half",
+        "width half",
+        "w half"
+      ],
+      "canonical": "w-1/2"
+    },
+    {
+      "input_patterns": [
+        "width one third",
+        "w one third",
+        "width 1 3"
+      ],
+      "canonical": "w-1/3"
+    },
+    {
+      "input_patterns": [
+        "width two thirds",
+        "w two thirds",
+        "width 2 3"
+      ],
+      "canonical": "w-2/3"
+    },
+    {
+      "input_patterns": [
+        "mx auto",
+        "m x auto",
+        "horizontal margin auto",
+        "center using auto margin"
+      ],
+      "canonical": "mx-auto"
+    },
+    {
+      "input_patterns": [
+        "px four",
+        "p x four",
+        "horizontal padding four",
+        "padding x four"
+      ],
+      "canonical": "px-4"
+    },
+    {
+      "input_patterns": [
+        "py two",
+        "p y two",
+        "vertical padding two"
+      ],
+      "canonical": "py-2"
+    },
+    {
+      "input_patterns": [
+        "gap four",
+        "gap 4",
+        "grid gap four",
+        "flex gap four"
+      ],
+      "canonical": "gap-4"
+    },
+    {
+      "input_patterns": [
+        "space y two",
+        "vertical space two",
+        "vertical spacing two"
+      ],
+      "canonical": "space-y-2"
+    },
+    {
+      "input_patterns": [
+        "flex column",
+        "flex col",
+        "vertical flex"
+      ],
+      "canonical": "flex-col"
+    },
+    {
+      "input_patterns": [
+        "flex row",
+        "horizontal flex"
+      ],
+      "canonical": "flex-row"
+    },
+    {
+      "input_patterns": [
+        "items center",
+        "align items center",
+        "items centrally"
+      ],
+      "canonical": "items-center"
+    },
+    {
+      "input_patterns": [
+        "justify between",
+        "justify space between",
+        "space between"
+      ],
+      "canonical": "justify-between"
+    },
+    {
+      "input_patterns": [
+        "overflow hidden",
+        "hide overflow"
+      ],
+      "canonical": "overflow-hidden"
+    },
+    {
+      "input_patterns": [
+        "truncate text",
+        "text truncate",
+        "ellipsis"
+      ],
+      "canonical": "truncate"
+    },
+    {
+      "input_patterns": [
+        "cursor pointer",
+        "pointer cursor"
+      ],
+      "canonical": "cursor-pointer"
+    },
+    {
+      "input_patterns": [
+        "select none",
+        "no text selection"
+      ],
+      "canonical": "select-none"
+    },
+    {
+      "input_patterns": [
+        "pointer events none",
+        "no pointer events"
+      ],
+      "canonical": "pointer-events-none"
+    }
+  ]
+}

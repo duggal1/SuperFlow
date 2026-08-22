@@ -16,6 +16,10 @@ fn build_ngram(words: &[&str]) -> String {
         .concat()
 }
 
+pub(crate) fn public_build_match_key(word: &str) -> String {
+    build_match_key(word)
+}
+
 fn build_match_key(word: &str) -> String {
     word.chars()
         .filter(|c| c.is_alphanumeric())
@@ -29,6 +33,11 @@ struct CustomWordMatchKey {
     /// Vowel-collapsed consonant skeleton of `key` for phonetic fallback
     /// matching (built-in lexicon only). Empty when the key is too short.
     skeleton: String,
+    /// Number of whitespace-separated words the phrase had before keying.
+    /// A multi-word n-gram must only match a key with the SAME word count —
+    /// comparing concatenated keys lets filler words ("make it flex layout"
+    /// vs "flex layout") get absorbed into a match and deleted.
+    word_count: usize,
 }
 
 /// Maps ASR-equivalent consonants to a shared letter and drops vowels and
@@ -77,6 +86,11 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
             word_index,
             key: primary_key.clone(),
             skeleton,
+            // Custom words keep the legacy glue semantics (#1406): a spoken
+            // "Mac Book Pro" must fuzzy-match the authored phrase
+            // "MacBook Pro" across variable word counts, unlike authored
+            // lexicon aliases which align strictly.
+            word_count: 1,
         });
     }
 
@@ -87,6 +101,7 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
                 word_index,
                 key: expanded_key,
                 skeleton: String::new(),
+                word_count: 1,
             });
         }
     }
@@ -118,7 +133,8 @@ fn supports_soundex(key: &str) -> bool {
 fn find_best_match<'a>(
     candidate: &str,
     custom_words: &'a [String],
-    custom_word_match_keys: &[CustomWordMatchKey],
+    custom_word_match_keys: &[&CustomWordMatchKey],
+    window_word_count: usize,
     threshold: f64,
     allow_phonetic_boost: bool,
 ) -> Option<(&'a String, f64)> {
@@ -130,6 +146,25 @@ fn find_best_match<'a>(
     let mut best_score = f64::MAX;
 
     for custom_word_key in custom_word_match_keys {
+        // Authored multi-word phrases must align with the window's word
+        // count: a filler-bearing window ("it flex layout") must never be
+        // absorbed by a shorter alias ("flex layout"). Single-word keys are
+        // exempt — glued or split speech ("charge bee" → ChargeBee) matches
+        // by concatenation.
+        if custom_word_key.word_count > 1 && custom_word_key.word_count != window_word_count {
+            continue;
+        }
+        // Glue keys may span at most one extra spoken word unless the window
+        // is a pure re-segmentation of the same letters ("mac book pro" ≡
+        // "macbookpro"): "Charge B" → ChargeBee stays legal, while a leading
+        // small word ("a type script" absorbed by the single token
+        // "TypeScript") is rejected.
+        if custom_word_key.word_count == 1 && window_word_count > 1 {
+            let exact_resegmentation = candidate == custom_word_key.key;
+            if window_word_count > custom_word_key.word_count + 1 && !exact_resegmentation {
+                continue;
+            }
+        }
         // Skip if lengths are too different (optimization + prevents over-matching)
         // Use percentage-based check: max 25% length difference (prevents n-grams from
         // matching significantly shorter custom words, e.g., "openaigpt" vs "openai")
@@ -267,35 +302,60 @@ pub fn apply_alias_entries(
     }
 
     let displays: Vec<String> = entries.iter().map(|(d, _)| d.clone()).collect();
-    let mut seen: HashSet<String> = HashSet::new();
+    let mut seen: HashSet<(String, usize)> = HashSet::new();
     let mut match_keys: Vec<CustomWordMatchKey> = Vec::new();
 
     for (entry_index, (_, aliases)) in entries.iter().enumerate() {
-        let mut push_key = |phrase: &str| {
+        let mut push_key = |phrase: &str, phonetic: bool| {
             // Normalize exactly like transcript n-grams: clean each word, join.
             let key = phrase
                 .split_whitespace()
                 .map(build_match_key)
                 .collect::<Vec<_>>()
                 .concat();
-            if is_supported_fuzzy_key(&key) && seen.insert(key.clone()) {
-                let skeleton = if key.chars().count() >= SKELETON_MIN_CHARS {
-                    consonant_skeleton(&key)
-                } else {
-                    String::new()
-                };
-                match_keys.push(CustomWordMatchKey {
-                    word_index: entry_index,
-                    key,
-                    skeleton,
-                });
+            let word_count = phrase.split_whitespace().count();
+            if !is_supported_fuzzy_key(&key) {
+                return;
             }
+            // Dedupe by (key, word count): every spoken segmentation of an
+            // entry coexists ("api"@1 for written form, "a p i"@3 for
+            // speech), while exact duplicate spellings collapse.
+            if !seen.insert((key.clone(), word_count)) {
+                return;
+            }
+            let skeleton = if phonetic && key.chars().count() >= SKELETON_MIN_CHARS {
+                consonant_skeleton(&key)
+            } else {
+                String::new()
+            };
+            match_keys.push(CustomWordMatchKey {
+                word_index: entry_index,
+                key,
+                skeleton,
+                word_count,
+            });
         };
 
         for alias in aliases {
-            push_key(alias);
+            push_key(alias, true);
         }
-        push_key(&displays[entry_index]);
+        // The display form self-key enables casing normalization ("nextjs" →
+        // Next.js). Symbol-bearing displays ("src/", "./") are excluded:
+        // stripping their punctuation would mint phantom keys that rewrite
+        // ordinary words ("src" → "src/"). Self-keys are orthographic-only —
+        // no skeleton — so loose consonant matches can never borrow the
+        // display's identity ("envvar" ≁ "never").
+        let display = &displays[entry_index];
+        if display
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '-' || c == '.' || c == '_')
+            && display
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic())
+        {
+            push_key(display, false);
+        }
     }
 
     apply_match_entries(text, &displays, &match_keys, threshold, false)
@@ -309,18 +369,38 @@ fn apply_match_entries(
     allow_phonetic_boost: bool,
 ) -> String {
     let words: Vec<&str> = text.split_whitespace().collect();
+
+    // Bucket keys by word count and size the n-gram window from the longest
+    // alias. A hardcoded cap of 3 made 4+-word spoken patterns ("background
+    // stone six hundred") unmatchable, leaving trailing words dangling.
+    // Single-word keys glue across windows ("Charge B" → ChargeBee), so the
+    // legacy 3-word window stays available even when every alias is short.
+    let longest_alias = match_keys.iter().map(|k| k.word_count).max().unwrap_or(1);
+    let max_n = longest_alias.max(3).clamp(1, 6);
+    let mut buckets: Vec<Vec<&CustomWordMatchKey>> = vec![Vec::new(); max_n + 1];
+    for key in match_keys {
+        if key.word_count == 1 {
+            // Single-word keys may glue onto any window size ("Charge B" →
+            // ChargeBee), so they participate in every bucket.
+            for bucket in buckets.iter_mut().skip(1) {
+                bucket.push(key);
+            }
+        } else if key.word_count <= max_n {
+            buckets[key.word_count].push(key);
+        }
+    }
+
     let mut result = Vec::new();
     let mut i = 0;
 
     while i < words.len() {
         let mut best_match: Option<(usize, &String, f64)> = None;
 
-        // Consider n-grams up to three words and choose the closest match. A
-        // longest-first match can consume a following ordinary word when both
-        // candidates happen to share a Soundex code (for example,
-        // "Charge B, che" matching "ChargeBee").
-        for n in (1..=3).rev() {
-            if i + n > words.len() {
+        // Consider word-aligned n-grams, longest first, choosing the closest
+        // match. An n-gram of n words may only match a key built from the
+        // same number of words (see `word_count`).
+        for n in (1..=max_n).rev() {
+            if i + n > words.len() || buckets[n].is_empty() {
                 continue;
             }
 
@@ -338,7 +418,8 @@ fn apply_match_entries(
             if let Some((replacement, score)) = find_best_match(
                 &ngram,
                 displays,
-                match_keys,
+                buckets[n].as_slice(),
+                n,
                 threshold,
                 allow_phonetic_boost,
             ) {

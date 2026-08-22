@@ -383,6 +383,22 @@ async changeSmartFileReferencesEnabledSetting(enabled: boolean) : Promise<Result
     else return { status: "error", error: e  as any };
 }
 },
+async changeLivePunctuationEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_live_punctuation_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changePunctuationStyleSetting(style: PunctuationStyle) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_punctuation_style_setting", { style }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeIntelligenceAwarenessEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_intelligence_awareness_enabled_setting", { enabled }) };
@@ -1012,7 +1028,18 @@ tech_lexicon_enabled?: boolean;
  * Resolve spoken file names ("hero dot tsx") against the active dev
  * project when dictating into a terminal or editor. Local-only.
  */
-smart_file_references_enabled?: boolean; transcribe_accelerator?: TranscribeAcceleratorSetting; ort_accelerator?: OrtAcceleratorSetting; 
+smart_file_references_enabled?: boolean; 
+/**
+ * Live punctuation, grammar, and formatting (sentence casing, terminal
+ * marks, numerics, currency/units, lists, inline code). Deterministic,
+ * fully local, enabled by default.
+ */
+live_punctuation_enabled?: boolean; 
+/**
+ * Depth of live punctuation: informal adds sentence casing and ./? only;
+ * formal also restores commas and applies stricter casing.
+ */
+punctuation_style?: PunctuationStyle; transcribe_accelerator?: TranscribeAcceleratorSetting; ort_accelerator?: OrtAcceleratorSetting; 
 /**
  * Stable transcribe.cpp device selector. This is derived from the backend's
  * `device_id` when available (or its name for backends such as Metal),
@@ -1117,6 +1144,19 @@ export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"
 export type PostProcessProvider = { id: string; label: string; base_url: string; allow_base_url_edit?: boolean; models_endpoint?: string | null; supports_structured_output?: boolean }
+/**
+ * Depth of the live punctuation engine. Both styles are computed locally
+ * with zero added inference cost — style is a post-filter on predicted marks.
+ */
+export type PunctuationStyle = 
+/**
+ * Sentence capitalization and terminal ./? only.
+ */
+"informal" | 
+/**
+ * Also restores commas and applies stricter casing.
+ */
+"formal"
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type SecretMap = Partial<{ [key in string]: string }>
 export type SecureInputStatus = { 

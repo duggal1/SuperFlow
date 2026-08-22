@@ -145,6 +145,18 @@ pub enum ModelUnloadTimeout {
     Sec15, // Debug mode only
 }
 
+/// Depth of the live punctuation engine. Both styles are computed locally
+/// with zero added inference cost — style is a post-filter on predicted marks.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PunctuationStyle {
+    /// Sentence capitalization and terminal ./? only.
+    #[default]
+    Informal,
+    /// Also restores commas and applies stricter casing.
+    Formal,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum PasteMethod {
@@ -473,6 +485,15 @@ pub struct AppSettings {
     /// project when dictating into a terminal or editor. Local-only.
     #[serde(default = "default_smart_file_references_enabled")]
     pub smart_file_references_enabled: bool,
+    /// Live punctuation, grammar, and formatting (sentence casing, terminal
+    /// marks, numerics, currency/units, lists, inline code). Deterministic,
+    /// fully local, enabled by default.
+    #[serde(default = "default_live_punctuation_enabled")]
+    pub live_punctuation_enabled: bool,
+    /// Depth of live punctuation: informal adds sentence casing and ./? only;
+    /// formal also restores commas and applies stricter casing.
+    #[serde(default)]
+    pub punctuation_style: PunctuationStyle,
     #[serde(default)]
     pub transcribe_accelerator: TranscribeAcceleratorSetting,
     #[serde(default)]
@@ -573,6 +594,10 @@ fn default_tech_lexicon_enabled() -> bool {
     true
 }
 
+fn default_live_punctuation_enabled() -> bool {
+    true
+}
+
 fn default_smart_file_references_enabled() -> bool {
     true
 }
@@ -626,7 +651,7 @@ fn default_post_process_enabled() -> bool {
 }
 
 fn default_intelligence_awareness_enabled() -> bool {
-    false
+    true
 }
 
 fn default_app_language() -> String {
@@ -1004,6 +1029,8 @@ pub fn get_default_settings() -> AppSettings {
         custom_filler_words: None,
         tech_lexicon_enabled: default_tech_lexicon_enabled(),
         smart_file_references_enabled: default_smart_file_references_enabled(),
+        live_punctuation_enabled: default_live_punctuation_enabled(),
+        punctuation_style: PunctuationStyle::default(),
         transcribe_accelerator: TranscribeAcceleratorSetting::default(),
         ort_accelerator: OrtAcceleratorSetting::default(),
         transcribe_gpu_device: default_transcribe_gpu_device(),

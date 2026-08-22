@@ -15,14 +15,26 @@ use crate::settings::PunctuationStyle;
 /// Words whose presence at a sentence start makes the sentence a question.
 const QUESTION_CUES: &[&str] = &[
     "what", "why", "how", "when", "where", "who", "whom", "whose", "which", "is", "are", "am",
-    "was", "were", "do", "does", "did", "can", "could", "will", "would", "should", "shall",
-    "may", "might", "have", "has", "had",
+    "was", "were", "do", "does", "did", "can", "could", "will", "would", "should", "shall", "may",
+    "might", "have", "has", "had",
 ];
 
 /// Discourse markers that take a following comma in formal mode.
 const FORMAL_LEADING_MARKERS: &[&str] = &[
-    "so", "and", "but", "actually", "basically", "however", "meanwhile", "also", "then",
-    "well", "yes", "no", "okay", "ok",
+    "so",
+    "and",
+    "but",
+    "actually",
+    "basically",
+    "however",
+    "meanwhile",
+    "also",
+    "then",
+    "well",
+    "yes",
+    "no",
+    "okay",
+    "ok",
 ];
 
 fn is_terminal_char(c: char) -> bool {
@@ -127,10 +139,7 @@ fn punctuate_sentence(raw: &str, style: PunctuationStyle) -> String {
     sentence = fixed;
 
     // Terminal mark.
-    let ends_terminal = sentence
-        .chars()
-        .last()
-        .is_some_and(is_terminal_char);
+    let ends_terminal = sentence.chars().last().is_some_and(is_terminal_char);
     if !ends_terminal && sentence.chars().last().is_some_and(|c| c.is_alphanumeric()) {
         sentence.push(if is_question(trimmed) { '?' } else { '.' });
     }
@@ -202,7 +211,10 @@ mod tests {
 
     #[test]
     fn informal_adds_caps_and_terminals_only() {
-        assert_eq!(punctuate("hello world", PunctuationStyle::Informal), "Hello world.");
+        assert_eq!(
+            punctuate("hello world", PunctuationStyle::Informal),
+            "Hello world."
+        );
         assert_eq!(
             punctuate("what is this thing", PunctuationStyle::Informal),
             "What is this thing?"

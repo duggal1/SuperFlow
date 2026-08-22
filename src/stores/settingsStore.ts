@@ -6,6 +6,7 @@ import type {
   AudioDevice,
   TranscribeAcceleratorSetting,
   OrtAcceleratorSetting,
+  PunctuationStyle,
 } from "@/bindings";
 import { commands } from "@/bindings";
 
@@ -168,6 +169,10 @@ const settingUpdaters: {
     commands.changeTechLexiconEnabledSetting(value as boolean),
   smart_file_references_enabled: (value) =>
     commands.changeSmartFileReferencesEnabledSetting(value as boolean),
+  live_punctuation_enabled: (value) =>
+    commands.changeLivePunctuationEnabledSetting(value as boolean),
+  punctuation_style: (value) =>
+    commands.changePunctuationStyleSetting(value as PunctuationStyle),
   intelligence_awareness_enabled: (value) =>
     commands.changeIntelligenceAwarenessEnabledSetting(value as boolean),
   show_tray_icon: (value) =>

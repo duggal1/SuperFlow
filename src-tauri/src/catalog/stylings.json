@@ -1,0 +1,855 @@
+{
+  "version": 1,
+  "namespace": "programming-syntax-speech-normalization",
+  "purpose": "Normalize spoken developer language into precise technical syntax while preserving user intent, target, action, semantic meaning, and canonical implementation. Optimized for vibe coding and spoken Tailwind CSS workflows.",
+
+  "canonical_preferences": {
+    "tailwind_background_prefix": "bg",
+    "preferred_background_output": "bg-*",
+    "spoken_background_primary": [
+      "bg",
+      "b g",
+      "bee gee",
+      "beegee",
+      "bg color",
+      "bg class"
+    ],
+    "spoken_background_secondary": [
+      "background",
+      "background color",
+      "back ground",
+      "background colour"
+    ],
+    "rule": "The user primarily speaks 'bg'. Prefer bg-* in all canonical Tailwind output. Background and background color remain recognition aliases only and should not replace the canonical bg prefix."
+  },
+
+  "tailwind_prefixes": [
+    {
+      "canonical": "bg",
+      "spoken": [
+        "bg",
+        "b g",
+        "bee gee",
+        "beegee",
+        "bg color",
+        "bg-color",
+        "bg class",
+        "background",
+        "background color"
+      ],
+      "priority": 100,
+      "notes": "Always prefer bg-* when normalizing Tailwind background utilities."
+    },
+    {
+      "canonical": "text",
+      "spoken": [
+        "text",
+        "text color",
+        "text colour",
+        "font color",
+        "font colour",
+        "text class"
+      ]
+    },
+    {
+      "canonical": "border",
+      "spoken": [
+        "border",
+        "border color",
+        "border colour",
+        "border class",
+        "outline border"
+      ]
+    },
+    {
+      "canonical": "ring",
+      "spoken": [
+        "ring",
+        "focus ring",
+        "ring color",
+        "ring colour",
+        "outline ring"
+      ]
+    },
+    {
+      "canonical": "shadow",
+      "spoken": [
+        "shadow",
+        "box shadow",
+        "drop shadow",
+        "shadow color",
+        "shadow colour"
+      ]
+    },
+    {
+      "canonical": "divide",
+      "spoken": [
+        "divide",
+        "divider",
+        "divide color",
+        "divide colour"
+      ]
+    },
+    {
+      "canonical": "placeholder",
+      "spoken": [
+        "placeholder",
+        "placeholder text",
+        "placeholder color",
+        "placeholder colour"
+      ]
+    },
+    {
+      "canonical": "accent",
+      "spoken": [
+        "accent",
+        "accent color",
+        "accent colour"
+      ]
+    },
+    {
+      "canonical": "caret",
+      "spoken": [
+        "caret",
+        "caret color",
+        "text cursor color"
+      ]
+    },
+    {
+      "canonical": "decoration",
+      "spoken": [
+        "decoration",
+        "text decoration",
+        "underline decoration"
+      ]
+    },
+    {
+      "canonical": "fill",
+      "spoken": [
+        "fill",
+        "svg fill",
+        "icon fill",
+        "fill color"
+      ]
+    },
+    {
+      "canonical": "stroke",
+      "spoken": [
+        "stroke",
+        "svg stroke",
+        "icon stroke",
+        "stroke color"
+      ]
+    }
+  ],
+
+  "bg_specific_normalization": {
+    "rule": "The semantic concept 'background color' may be recognized from speech, but the canonical implementation must use the Tailwind bg prefix.",
+    "examples": [
+      {
+        "spoken": "bg stone five hundred",
+        "output": "bg-stone-500"
+      },
+      {
+        "spoken": "bgstone five hundred",
+        "output": "bg-stone-500"
+      },
+      {
+        "spoken": "bg stone 500",
+        "output": "bg-stone-500"
+      },
+      {
+        "spoken": "b g stone five hundred",
+        "output": "bg-stone-500"
+      },
+      {
+        "spoken": "bee gee stone five hundred",
+        "output": "bg-stone-500"
+      },
+      {
+        "spoken": "bgstone 500",
+        "output": "bg-stone-500"
+      },
+      {
+        "spoken": "bg stone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "bgstone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "bg stone sixhundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "bg stone six zero zero",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "bg stone 600",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "background stone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "background color stone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "back ground stone six hundred",
+        "output": "bg-stone-600"
+      },
+      {
+        "spoken": "bg zinc seven hundred",
+        "output": "bg-zinc-700"
+      },
+      {
+        "spoken": "bg neutral eight hundred",
+        "output": "bg-neutral-800"
+      },
+      {
+        "spoken": "bg slate nine hundred",
+        "output": "bg-slate-900"
+      },
+      {
+        "spoken": "bg gray eight hundred",
+        "output": "bg-gray-800"
+      },
+      {
+        "spoken": "bg grey eight hundred",
+        "output": "bg-gray-800"
+      },
+      {
+        "spoken": "bg red five hundred",
+        "output": "bg-red-500"
+      },
+      {
+        "spoken": "bg orange five hundred",
+        "output": "bg-orange-500"
+      },
+      {
+        "spoken": "bg amber five hundred",
+        "output": "bg-amber-500"
+      },
+      {
+        "spoken": "bg yellow five hundred",
+        "output": "bg-yellow-500"
+      },
+      {
+        "spoken": "bg lime five hundred",
+        "output": "bg-lime-500"
+      },
+      {
+        "spoken": "bg green five hundred",
+        "output": "bg-green-500"
+      },
+      {
+        "spoken": "bg emerald five hundred",
+        "output": "bg-emerald-500"
+      },
+      {
+        "spoken": "bg teal five hundred",
+        "output": "bg-teal-500"
+      },
+      {
+        "spoken": "bg cyan five hundred",
+        "output": "bg-cyan-500"
+      },
+      {
+        "spoken": "bg sky five hundred",
+        "output": "bg-sky-500"
+      },
+      {
+        "spoken": "bg blue five hundred",
+        "output": "bg-blue-500"
+      },
+      {
+        "spoken": "bg indigo five hundred",
+        "output": "bg-indigo-500"
+      },
+      {
+        "spoken": "bg violet five hundred",
+        "output": "bg-violet-500"
+      },
+      {
+        "spoken": "bg purple five hundred",
+        "output": "bg-purple-500"
+      },
+      {
+        "spoken": "bg fuchsia five hundred",
+        "output": "bg-fuchsia-500"
+      },
+      {
+        "spoken": "bg pink five hundred",
+        "output": "bg-pink-500"
+      },
+      {
+        "spoken": "bg rose five hundred",
+        "output": "bg-rose-500"
+      }
+    ]
+  },
+
+  "bg_concatenation_patterns": [
+    {
+      "pattern": "bg{color}{shade}",
+      "examples": [
+        "bgstone500",
+        "bgzinc600",
+        "bgneutral700",
+        "bgslate800",
+        "bggray900",
+        "bgblue500",
+        "bggreen600"
+      ],
+      "normalization": "Insert Tailwind separators and normalize the color/shade.",
+      "outputs": [
+        "bg-stone-500",
+        "bg-zinc-600",
+        "bg-neutral-700",
+        "bg-slate-800",
+        "bg-gray-900",
+        "bg-blue-500",
+        "bg-green-600"
+      ]
+    },
+    {
+      "pattern": "bg {color} {spoken_number}",
+      "examples": [
+        "bg stone five hundred",
+        "bg zinc six hundred",
+        "bg neutral seven hundred",
+        "bg slate nine hundred"
+      ],
+      "normalization": "Normalize spoken number first, then construct bg-{color}-{shade}."
+    },
+    {
+      "pattern": "bg {color}{spoken_number}",
+      "examples": [
+        "bg stone fivehundred",
+        "bg zinc sixhundred",
+        "bg neutral ninehundred"
+      ],
+      "normalization": "Split color and spoken number before canonicalization."
+    },
+    {
+      "pattern": "bg {color} {digits}",
+      "examples": [
+        "bg stone 500",
+        "bg stone 600",
+        "bg zinc 700",
+        "bg neutral 900"
+      ],
+      "normalization": "Construct canonical Tailwind class."
+    },
+    {
+      "pattern": "bg {color} {spoken_digits}",
+      "examples": [
+        "bg stone five zero zero",
+        "bg zinc six zero zero",
+        "bg neutral nine five zero"
+      ],
+      "normalization": "Convert digit-by-digit speech into numeric shade."
+    }
+  ],
+
+  "bg_intent_rules": [
+    {
+      "spoken": "change the bg",
+      "intent": "change background",
+      "target": "current target",
+      "property": "background color",
+      "implementation": null,
+      "output": "Change the background color."
+    },
+    {
+      "spoken": "make the bg darker",
+      "intent": "darken background",
+      "target": "current target",
+      "property": "background color",
+      "implementation": null,
+      "output": "Make the background darker."
+    },
+    {
+      "spoken": "make the bg lighter",
+      "intent": "lighten background",
+      "target": "current target",
+      "property": "background color",
+      "implementation": null,
+      "output": "Make the background lighter."
+    },
+    {
+      "spoken": "set the bg to stone six hundred",
+      "intent": "set background",
+      "target": "current target",
+      "property": "background color",
+      "implementation": "bg-stone-600",
+      "output": "Set the background to `bg-stone-600`."
+    },
+    {
+      "spoken": "use bg stone six hundred",
+      "intent": "set background",
+      "target": "current target",
+      "property": "background color",
+      "implementation": "bg-stone-600",
+      "output": "Use `bg-stone-600` for the background."
+    },
+    {
+      "spoken": "change bg to zinc eight hundred",
+      "intent": "replace background",
+      "target": "current target",
+      "property": "background color",
+      "implementation": "bg-zinc-800",
+      "output": "Change the background to `bg-zinc-800`."
+    },
+    {
+      "spoken": "replace the bg with neutral nine hundred",
+      "intent": "replace background",
+      "target": "current target",
+      "property": "background color",
+      "implementation": "bg-neutral-900",
+      "output": "Replace the background with `bg-neutral-900`."
+    }
+  ],
+
+  "background_target_language": {
+    "recognize": [
+      "bg",
+      "b g",
+      "bee gee",
+      "background",
+      "background color",
+      "back ground"
+    ],
+    "canonical_semantic_label": "background",
+    "canonical_tailwind_prefix": "bg",
+    "rule": "Do not output 'background-*' as a Tailwind utility. Output bg-*."
+  },
+
+  "color_families": {
+    "stone": [
+      "stone",
+      "stohn",
+      "stone color",
+      "stone gray",
+      "stone grey"
+    ],
+    "zinc": [
+      "zinc",
+      "zink",
+      "zinc color",
+      "zink color"
+    ],
+    "neutral": [
+      "neutral",
+      "neutral color",
+      "neutral gray",
+      "neutral grey"
+    ],
+    "slate": [
+      "slate",
+      "slait",
+      "slate color",
+      "slate gray",
+      "slate grey"
+    ],
+    "gray": [
+      "gray",
+      "grey",
+      "grai",
+      "gray color",
+      "grey color"
+    ],
+    "red": [
+      "red",
+      "read",
+      "red color"
+    ],
+    "orange": [
+      "orange",
+      "orinj",
+      "orange color"
+    ],
+    "amber": [
+      "amber",
+      "umber",
+      "amber color"
+    ],
+    "yellow": [
+      "yellow",
+      "yelow",
+      "yellow color"
+    ],
+    "lime": [
+      "lime",
+      "lyme",
+      "lime color"
+    ],
+    "green": [
+      "green",
+      "grean",
+      "green color"
+    ],
+    "emerald": [
+      "emerald",
+      "emerold",
+      "emerald color"
+    ],
+    "teal": [
+      "teal",
+      "teel",
+      "teal color"
+    ],
+    "cyan": [
+      "cyan",
+      "sigh an",
+      "cyan color"
+    ],
+    "sky": [
+      "sky",
+      "ski",
+      "sky blue",
+      "sky color"
+    ],
+    "blue": [
+      "blue",
+      "blew",
+      "blue color"
+    ],
+    "indigo": [
+      "indigo",
+      "in the go",
+      "indigo color"
+    ],
+    "violet": [
+      "violet",
+      "violate",
+      "violet color"
+    ],
+    "purple": [
+      "purple",
+      "perple",
+      "purple color"
+    ],
+    "fuchsia": [
+      "fuchsia",
+      "fusha",
+      "fuchsia color"
+    ],
+    "pink": [
+      "pink",
+      "pink color"
+    ],
+    "rose": [
+      "rose",
+      "rows",
+      "rose color"
+    ]
+  },
+
+  "tailwind_shades": {
+    "default": [
+      50,
+      100,
+      200,
+      300,
+      400,
+      500,
+      600,
+      700,
+      800,
+      900,
+      950
+    ],
+    "spoken": {
+      "50": [
+        "50",
+        "fifty",
+        "five zero",
+        "five oh"
+      ],
+      "100": [
+        "100",
+        "one hundred",
+        "onehundred",
+        "one zero zero"
+      ],
+      "200": [
+        "200",
+        "two hundred",
+        "twohundred",
+        "two zero zero"
+      ],
+      "300": [
+        "300",
+        "three hundred",
+        "threehundred",
+        "three zero zero"
+      ],
+      "400": [
+        "400",
+        "four hundred",
+        "fourhundred",
+        "four zero zero"
+      ],
+      "500": [
+        "500",
+        "five hundred",
+        "fivehundred",
+        "five zero zero"
+      ],
+      "600": [
+        "600",
+        "six hundred",
+        "sixhundred",
+        "six zero zero",
+        "six hun"
+      ],
+      "700": [
+        "700",
+        "seven hundred",
+        "sevenhundred",
+        "seven zero zero"
+      ],
+      "800": [
+        "800",
+        "eight hundred",
+        "eighthundred",
+        "eight zero zero"
+      ],
+      "900": [
+        "900",
+        "nine hundred",
+        "ninehundred",
+        "nine zero zero"
+      ],
+      "950": [
+        "950",
+        "nine fifty",
+        "ninefifty",
+        "nine hundred fifty",
+        "nine hundred and fifty",
+        "nine five zero"
+      ]
+    }
+  },
+
+  "tailwind_variant_patterns": [
+    {
+      "spoken": "hover bg stone six hundred",
+      "output": "hover:bg-stone-600"
+    },
+    {
+      "spoken": "hover bgstone six hundred",
+      "output": "hover:bg-stone-600"
+    },
+    {
+      "spoken": "on hover bg stone six hundred",
+      "output": "hover:bg-stone-600"
+    },
+    {
+      "spoken": "dark bg stone nine hundred",
+      "output": "dark:bg-stone-900"
+    },
+    {
+      "spoken": "dark mode bg zinc nine hundred",
+      "output": "dark:bg-zinc-900"
+    },
+    {
+      "spoken": "md bg stone five hundred",
+      "output": "md:bg-stone-500"
+    },
+    {
+      "spoken": "medium screen bg stone five hundred",
+      "output": "md:bg-stone-500"
+    },
+    {
+      "spoken": "lg hover bg zinc eight hundred",
+      "output": "lg:hover:bg-zinc-800"
+    },
+    {
+      "spoken": "dark hover bg neutral seven hundred",
+      "output": "dark:hover:bg-neutral-700"
+    },
+    {
+      "spoken": "focus bg blue five hundred",
+      "output": "focus:bg-blue-500"
+    },
+    {
+      "spoken": "active bg red six hundred",
+      "output": "active:bg-red-600"
+    },
+    {
+      "spoken": "disabled bg gray four hundred",
+      "output": "disabled:bg-gray-400"
+    }
+  ],
+
+  "tailwind_compound_instruction_examples": [
+    {
+      "input": "make the button bg stone five hundred and text white",
+      "output": "Set the button background to `bg-stone-500` and the text to `text-white`."
+    },
+    {
+      "input": "make the button bg stone six hundred on hover",
+      "output": "Set the button background to `bg-stone-600` and use `hover:bg-stone-600` for the hover state."
+    },
+    {
+      "input": "change bg from stone six hundred to zinc seven hundred",
+      "output": "Change the background from `bg-stone-600` to `bg-zinc-700`."
+    },
+    {
+      "input": "make the card bg neutral nine hundred and the border neutral eight hundred",
+      "output": "Set the card background to `bg-neutral-900` and the border color to `border-neutral-800`."
+    },
+    {
+      "input": "dark bg stone nine hundred hover bg stone eight hundred",
+      "output": "Use `dark:bg-stone-900` and `dark:hover:bg-stone-800`."
+    },
+    {
+      "input": "bg black and text white",
+      "output": "Set the background to `bg-black` and the text to `text-white`."
+    },
+    {
+      "input": "bg white and border stone two hundred",
+      "output": "Set the background to `bg-white` and the border color to `border-stone-200`."
+    }
+  ],
+
+  "semantic_style_instructions": [
+    {
+      "spoken": "make the border full",
+      "implementation": "rounded-full",
+      "output": "Make the element fully rounded with `rounded-full`."
+    },
+    {
+      "spoken": "give it full roundness",
+      "implementation": "rounded-full",
+      "output": "Make the element fully rounded with `rounded-full`."
+    },
+    {
+      "spoken": "make it pill shaped",
+      "implementation": "rounded-full",
+      "output": "Make the element pill-shaped with `rounded-full`."
+    },
+    {
+      "spoken": "make the bg darker",
+      "implementation": null,
+      "output": "Make the background darker."
+    },
+    {
+      "spoken": "make bg slightly lighter",
+      "implementation": null,
+      "output": "Make the background slightly lighter."
+    },
+    {
+      "spoken": "make bg stone six hundred",
+      "implementation": "bg-stone-600",
+      "output": "Set the background to `bg-stone-600`."
+    },
+    {
+      "spoken": "make bgstone six hundred",
+      "implementation": "bg-stone-600",
+      "output": "Set the background to `bg-stone-600`."
+    }
+  ],
+
+  "do_not_change_user_vocabulary": {
+    "rule": "The user's preferred shorthand should remain valid input vocabulary even when a longer natural-language synonym exists.",
+    "primary_examples": [
+      "bg",
+      "b g",
+      "bgstone",
+      "bg stone",
+      "bg zinc",
+      "bg neutral",
+      "bg slate",
+      "bg gray",
+      "bg green",
+      "bg blue"
+    ],
+    "important": "Never require the user to say 'background' for a background color instruction."
+  },
+
+  "critical_examples": [
+    {
+      "speech": "bgstone 500",
+      "canonical": "bg-stone-500",
+      "meaning": "Set the background color to Tailwind stone 500."
+    },
+    {
+      "speech": "bg stone 500",
+      "canonical": "bg-stone-500",
+      "meaning": "Set the background color to Tailwind stone 500."
+    },
+    {
+      "speech": "bg stone five hundred",
+      "canonical": "bg-stone-500",
+      "meaning": "Set the background color to Tailwind stone 500."
+    },
+    {
+      "speech": "bgstone fivehundred",
+      "canonical": "bg-stone-500",
+      "meaning": "Set the background color to Tailwind stone 500."
+    },
+    {
+      "speech": "bg stone sixhundred",
+      "canonical": "bg-stone-600",
+      "meaning": "Set the background color to Tailwind stone 600."
+    },
+    {
+      "speech": "bg stone sevenhundred",
+      "canonical": "bg-stone-700",
+      "meaning": "Set the background color to Tailwind stone 700."
+    },
+    {
+      "speech": "bg zinc eight hundred",
+      "canonical": "bg-zinc-800",
+      "meaning": "Set the background color to Tailwind zinc 800."
+    },
+    {
+      "speech": "bg neutral nine hundred",
+      "canonical": "bg-neutral-900",
+      "meaning": "Set the background color to Tailwind neutral 900."
+    },
+    {
+      "speech": "hover bgstone sevenhundred",
+      "canonical": "hover:bg-stone-700",
+      "meaning": "Use stone 700 as the hover background."
+    },
+    {
+      "speech": "dark bgstone ninehundred",
+      "canonical": "dark:bg-stone-900",
+      "meaning": "Use stone 900 as the dark-mode background."
+    },
+    {
+      "speech": "md bgstone fivehundred",
+      "canonical": "md:bg-stone-500",
+      "meaning": "Use stone 500 as the medium-breakpoint background."
+    }
+  ],
+
+  "final_output_contract": {
+    "primary_rule": "Return an actionable natural-language instruction whenever the source expresses a request, and include canonical technical syntax inline when confidently resolved.",
+    "bg_rule": "Always canonicalize spoken background utilities to bg-*.",
+    "do_not_output_background_prefix": true,
+    "example": {
+      "input": "bgstone six hundred",
+      "technical": "bg-stone-600",
+      "instructional": "Set the background to `bg-stone-600`."
+    },
+    "example_with_target": {
+      "input": "make the button bgstone six hundred",
+      "technical": "bg-stone-600",
+      "instructional": "Set the button background to `bg-stone-600`."
+    },
+    "example_with_semantic_instruction": {
+      "input": "make the border full",
+      "technical": "rounded-full",
+      "instructional": "Make the element fully rounded with `rounded-full`."
+    }
+  }
+}

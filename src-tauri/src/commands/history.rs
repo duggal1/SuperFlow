@@ -30,8 +30,7 @@ async fn persist_recovered_transcription(
     post_process_requested: bool,
     transcription: String,
 ) -> Result<(), String> {
-    let processed =
-        process_transcription_output(app, &transcription, post_process_requested).await;
+    let processed = process_transcription_output(app, &transcription, post_process_requested).await;
     history_manager
         .update_transcription(
             id,
@@ -56,10 +55,9 @@ fn restore_selected_model_later(app: AppHandle, selected_model: String) {
             if !app.state::<Arc<TranscriptionManager>>().is_streaming() {
                 break;
             }
-            let _ = tauri::async_runtime::spawn_blocking(|| {
-                std::thread::sleep(Duration::from_secs(5))
-            })
-            .await;
+            let _ =
+                tauri::async_runtime::spawn_blocking(|| std::thread::sleep(Duration::from_secs(5)))
+                    .await;
         }
         let tm = Arc::clone(&*app.state::<Arc<TranscriptionManager>>());
         let model = selected_model.clone();

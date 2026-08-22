@@ -1,6 +1,11 @@
 pub mod audio;
+pub mod catalog;
 pub mod constants;
+pub mod formatter;
 pub mod lang_id;
+pub mod programming_syntax;
+pub mod punctuation;
+pub mod styling;
 pub mod tech_lexicon;
 pub mod text;
 pub mod utils;

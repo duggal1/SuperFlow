@@ -391,6 +391,13 @@
         "title": "스마트 파일 참조",
         "description": "터미널이나 편집기에 받아쓸 때 말한 파일 이름(예: hero dot tsx)을 실제 프로젝트 경로로 바꿉니다. 오프라인에서 작동합니다."
       },
+      "livePunctuation": {
+        "title": "Live Punctuation",
+        "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",
+        "informal": "Informal",
+        "formal": "Formal",
+        "style": "Punctuation style"
+      },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
         "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."

@@ -58,18 +58,26 @@ pub fn len() -> usize {
 }
 
 /// Canonical display forms for decode-time vocabulary biasing (whisper
-/// initial_prompt). Capped so the prompt stays a small fraction of the
-/// decoder's context budget.
+/// initial_prompt). Merges the technical lexicon with the styling catalog
+/// (Tailwind utilities are exactly the vocabulary vibe-coding dictation
+/// needs spelled correctly). Capped so the prompt stays a small fraction of
+/// the decoder's context budget.
 pub fn vocabulary_hint() -> Vec<String> {
     const MAX_CHARS: usize = 900;
     let mut out = Vec::new();
     let mut total = 0usize;
-    for (canonical, _) in entries() {
-        if total + canonical.len() + 2 > MAX_CHARS {
-            break;
+    let push = |canonical: &str, out: &mut Vec<String>, total: &mut usize| {
+        if *total + canonical.len() + 2 > MAX_CHARS {
+            return;
         }
-        total += canonical.len() + 2;
-        out.push(canonical.clone());
+        *total += canonical.len() + 2;
+        out.push(canonical.to_string());
+    };
+    for (canonical, _) in entries() {
+        push(canonical, &mut out, &mut total);
+    }
+    for canonical in crate::audio_toolkit::styling::canonical_names() {
+        push(canonical, &mut out, &mut total);
     }
     out
 }

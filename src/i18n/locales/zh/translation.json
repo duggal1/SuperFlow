@@ -391,6 +391,13 @@
         "title": "智能文件引用",
         "description": "在终端或代码编辑器中听写时，说出的文件名（如 hero dot tsx）会替换为真实的项目路径。离线可用。"
       },
+      "livePunctuation": {
+        "title": "Live Punctuation",
+        "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",
+        "informal": "Informal",
+        "formal": "Formal",
+        "style": "Punctuation style"
+      },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
         "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."

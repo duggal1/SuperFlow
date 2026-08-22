@@ -42,10 +42,7 @@ fn record_success() {
 fn record_failure() {
     let failures = CONSECUTIVE_FAILURES.fetch_add(1, Ordering::Relaxed) + 1;
     if failures >= BREAKER_THRESHOLD {
-        BREAKER_OPEN_UNTIL_MS.store(
-            now_millis() + BREAKER_COOLDOWN_MS,
-            Ordering::Relaxed,
-        );
+        BREAKER_OPEN_UNTIL_MS.store(now_millis() + BREAKER_COOLDOWN_MS, Ordering::Relaxed);
         CONSECUTIVE_FAILURES.store(0, Ordering::Relaxed);
     }
 }

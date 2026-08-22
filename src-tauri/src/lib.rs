@@ -724,6 +724,8 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_tech_lexicon_enabled_setting,
             shortcut::change_smart_file_references_enabled_setting,
+            shortcut::change_live_punctuation_enabled_setting,
+            shortcut::change_punctuation_style_setting,
             shortcut::change_intelligence_awareness_enabled_setting,
             shortcut::change_app_language_setting,
             shortcut::change_update_checks_setting,

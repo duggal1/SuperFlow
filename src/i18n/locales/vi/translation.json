@@ -391,6 +391,13 @@
         "title": "Tham chiếu tệp thông minh",
         "description": "Khi đọc chính tả vào terminal hoặc trình soạn thảo, tên tệp được nói như hero dot tsx sẽ được thay bằng đường dẫn dự án thực tế. Hoạt động ngoại tuyến."
       },
+      "livePunctuation": {
+        "title": "Live Punctuation",
+        "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",
+        "informal": "Informal",
+        "formal": "Formal",
+        "style": "Punctuation style"
+      },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
         "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
