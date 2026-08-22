@@ -489,12 +489,12 @@
      400px overlay window — slicing off both rounded side edges. border-box
      keeps the declared width as the true outer width. */
   box-sizing: border-box;
-  width: 384px;
+  width: 392px;
   max-height: 224px;
   border: none;
-  border-radius: 18px;
+  border-radius: 20px;
   gap: 12px;
-  padding: 16px 20px 18px;
+  padding: 18px 22px 20px;
   animation: none;
 }
 /* Dialog surfaces (result card + cancel toast) are fully opaque — no
@@ -527,8 +527,8 @@
 }
 .sresult-body {
   min-height: 0;
-  /* 150 + header (~28) + gap (12) + padding (34) = the card's 224px cap. */
-  max-height: 150px;
+  /* 146 + header (~28) + gap (12) + padding (38) = the card's 224px cap. */
+  max-height: 146px;
   overflow-y: auto;
   overscroll-behavior: contain;
   font-size: 13px;
@@ -546,27 +546,11 @@
 }
 
 /*
- * Edge fades, applied per edge by RecordingOverlay.tsx based on which edges
- * are actually hiding scrolled text. One continuous transition at each edge,
- * no artificial opacity stops — the middle stays 100% crisp.
+ * Edge fade, applied whenever the transcript overflows the scroll cap:
+ * one continuous transition at each of the top and bottom edges, no
+ * artificial opacity stops — the middle stays 100% crisp.
  */
-.sresult-body.fade-bottom {
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    #000 calc(100% - 24px),
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    #000 calc(100% - 24px),
-    transparent 100%
-  );
-}
-.sresult-body.fade-top {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 24px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 24px);
-}
-.sresult-body.fade-both {
+.sresult-body.faded {
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,

@@ -9,6 +9,8 @@ pub mod cli;
 mod clipboard;
 mod commands;
 mod context;
+mod dev_icon;
+mod escape_cancel;
 mod file_refs;
 mod helpers;
 mod input;
@@ -388,6 +390,10 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
+
+    // Raw-Escape cancel watcher: while a session is active any Escape press
+    // cancels, whatever else is held (macOS only; no-op elsewhere).
+    escape_cancel::init(app_handle);
 }
 
 #[tauri::command]
@@ -1004,6 +1010,12 @@ pub fn run(cli_args: CliArgs) {
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
 
             initialize_core_logic(&app_handle);
+
+            // Paint the Dock tile (stone-900 squircle + embedded logo) so
+            // both `tauri dev` runs and packaged builds carry the product
+            // identity. No-op outside macOS.
+            #[cfg(target_os = "macos")]
+            dev_icon::apply();
 
             // Secure Input monitor (macOS): detects stuck secure input that
             // silently blocks keyed shortcuts, warns the user, and activates

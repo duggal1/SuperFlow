@@ -40,6 +40,11 @@ impl Drop for FinishGuard {
         if let Some(c) = self.0.try_state::<TranscriptionCoordinator>() {
             c.notify_processing_finished();
         }
+        // The session is truly over on every exit path (success, cancel,
+        // error, panic) — disarm the raw-Escape watcher only here, since
+        // unregistering the cancel shortcut at trigger-key release happens
+        // while this pipeline is still running.
+        crate::escape_cancel::set_session_active(false);
         // The pipeline just freed its large transient buffers (captured PCM,
         // WAV copy, engine scratch); hand the cached pages back to the OS so
         // they don't sit in malloc arenas until they get swapped out (#1792).
@@ -509,6 +514,20 @@ pub(crate) async fn process_transcription_output(
     }
 }
 
+/// A streamed transcript far below the audio's plausible word rate means the
+/// model under-decoded even without a native truncation flag. The caller
+/// re-derives the text from the full recording instead of pasting a stub.
+/// ~15 words/minute sits far below even slow dictation, so genuine short
+/// utterances and silence-heavy recordings never trip it.
+fn is_implausibly_short_transcript(text: &str, sample_count: usize) -> bool {
+    let minutes = sample_count as f64 / 16_000.0 / 60.0;
+    if minutes < 2.0 {
+        return false;
+    }
+    let words = text.trim().split_whitespace().count() as f64;
+    words < minutes * 15.0
+}
+
 impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
@@ -584,7 +603,18 @@ impl ShortcutAction for TranscribeAction {
 
         let mut recording_error: Option<String> = None;
         let recording_start_time = Instant::now();
-        match rm.try_start_recording(&binding_id, vad_policy) {
+
+        // Crash-durability journal: decide the recording's identity now so
+        // the sidecar, the final WAV and the history row all share one name.
+        // If the app dies mid-dictation the sidecar survives on disk and
+        // startup recovery converts it into a real entry.
+        let journal_stem = format!("superflow-{}", chrono::Utc::now().timestamp());
+        let journal_path = app
+            .state::<Arc<HistoryManager>>()
+            .recordings_dir()
+            .join(format!("{journal_stem}.f32part"));
+
+        match rm.try_start_recording(&binding_id, vad_policy, Some(journal_path)) {
             Ok(readiness) => {
                 debug!(
                     "Recording request accepted in {:?}; waiting for first microphone samples",
@@ -746,9 +776,16 @@ impl ShortcutAction for TranscribeAction {
                     utils::hide_recording_overlay(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);
                 } else {
-                    // Save WAV concurrently with transcription
+                    // Save WAV concurrently with transcription. The name comes
+                    // from the session's journal stem so the history entry
+                    // matches what startup recovery would have produced for a
+                    // crash; without a stem (journaling unavailable), fall
+                    // back to a fresh timestamp.
                     let sample_count = samples.len();
-                    let file_name = format!("superflow-{}.wav", chrono::Utc::now().timestamp());
+                    let file_name = match rm.take_journal_stem() {
+                        Some(stem) => format!("{stem}.wav"),
+                        None => format!("superflow-{}.wav", chrono::Utc::now().timestamp()),
+                    };
                     let wav_path = hm.recordings_dir().join(&file_name);
                     let wav_path_for_verify = wav_path.clone();
                     let samples_for_wav = samples.clone();
@@ -766,8 +803,16 @@ impl ShortcutAction for TranscribeAction {
                         // after the engine was returned) falls back to a full batch
                         // transcription of the same audio. A finalize timeout is
                         // surfaced instead — the worker may still hold the engine,
-                        // so a batch fallback would contend with it.
-                        Ok(Some(text)) if !text.trim().is_empty() => Ok(text),
+                        // so a batch fallback would contend with it. Text that is
+                        // implausibly short for the recording's length is treated
+                        // the same as empty: the model under-decoded, so the full
+                        // audio is re-transcribed rather than a stub pasted.
+                        Ok(Some(text))
+                            if !text.trim().is_empty()
+                                && !is_implausibly_short_transcript(&text, sample_count) =>
+                        {
+                            Ok(text)
+                        }
                         Ok(_) => tm.transcribe(samples),
                         Err(err) => Err(err),
                     };

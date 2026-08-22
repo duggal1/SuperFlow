@@ -57,6 +57,10 @@ pub fn init_shortcuts(app: &AppHandle) {
 
 /// Register the cancel shortcut (called when recording starts)
 pub fn register_cancel_shortcut(app: &AppHandle) {
+    // The raw-Escape watcher rides the same lifecycle as the configured
+    // cancel binding, so Escape cancels no matter what else is held.
+    crate::escape_cancel::set_session_active(true);
+
     // Track recording lifecycle independently of the current implementation so
     // switching implementations mid-recording cannot leave stale fallback state.
     crate::secure_input::register_cancel_fallback(app);
@@ -69,6 +73,11 @@ pub fn register_cancel_shortcut(app: &AppHandle) {
 }
 
 /// Unregister the cancel shortcut (called when recording stops)
+///
+/// NOTE: this fires when the trigger key is released — the transcription
+/// pipeline keeps running after it. The raw-Escape watcher therefore stays
+/// armed past this point and disarms in [`crate::actions::FinishGuard`],
+/// which marks the actual end of the session on every exit path.
 pub fn unregister_cancel_shortcut(app: &AppHandle) {
     crate::secure_input::unregister_cancel_fallback(app);
 

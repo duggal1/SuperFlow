@@ -91,9 +91,27 @@ fn native_windows_machine() -> Option<u16> {
     }
 }
 
+/// Timestamp (unix ms) of the last accepted cancellation. The raw-Escape
+/// watcher and the configured cancel binding can both fire for the same
+/// physical keypress; without this guard the second call would replay the
+/// cancel sound and reset the toast.
+static LAST_CANCEL_MS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+const CANCEL_DEBOUNCE_MS: u64 = 600;
+
 /// Centralized cancellation function that can be called from anywhere in the app.
 /// Handles cancelling both recording and transcription operations and updates UI state.
 pub fn cancel_current_operation(app: &AppHandle) {
+    // Debounce duplicate triggers for one physical cancel gesture.
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let last = LAST_CANCEL_MS.load(std::sync::atomic::Ordering::Relaxed);
+    if now.saturating_sub(last) < CANCEL_DEBOUNCE_MS {
+        return;
+    }
+    LAST_CANCEL_MS.store(now, std::sync::atomic::Ordering::Relaxed);
+
     info!("Initiating operation cancellation...");
 
     // Unregister the cancel shortcut asynchronously

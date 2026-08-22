@@ -51,7 +51,7 @@ const OVERLAY_STREAM_WIDTH: f64 = 400.0;
 const OVERLAY_STREAM_HEIGHT: f64 = 120.0;
 
 // Transcript result card: header row + scrollable masked-fade transcript body.
-const OVERLAY_RESULT_WIDTH: f64 = 400.0;
+const OVERLAY_RESULT_WIDTH: f64 = 408.0;
 const OVERLAY_RESULT_HEIGHT: f64 = 240.0;
 
 // Cancel acknowledgment toast: "Transcription canceled" + optional Undo.

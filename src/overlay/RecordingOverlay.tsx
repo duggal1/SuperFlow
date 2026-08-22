@@ -26,10 +26,18 @@ const WAVE_BARS = 9;
 // exit must land inside that grace window.
 const RESULT_EXIT_MS = 240;
 
-// Which edges of the result-card body get the mask fade: only edges that are
-// actually hiding scrolled content stay faded, so short transcripts render
-// fully crisp.
-type ResultFade = "none" | "top" | "bottom" | "both";
+// Which edges of the result-card body get the mask fade: whenever the
+// transcript overflows the scroll cap, BOTH edges fade — top and bottom.
+type ResultFade = "none" | "faded";
+
+// Measures whether the transcript body is hiding scrolled text. Module-level
+// so both the layout effect and the scroll handler share one implementation.
+const measureResultFade = (
+  el: HTMLDivElement | null,
+  setFade: (fade: ResultFade) => void,
+) => {
+  setFade(el && el.scrollHeight > el.clientHeight + 1 ? "faded" : "none");
+};
 
 // ---- Dialog motion (result card + cancel toast) ---------------------------
 // Spring-driven transforms with eased opacity/blur: the physical settle of a
@@ -38,9 +46,6 @@ type ResultFade = "none" | "top" | "bottom" | "both";
 // follows the overlay's screen edge (rises from the bottom edge, drops from
 // the top edge).
 const DIALOG_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-// Spring-driven transforms with eased opacity/blur: the physical settle of a
-// spring reads far smoother than one fixed-duration tween, while the blur
-// stays on a tween so it never wobbles around its target.
 const dialogTransition = {
   type: "spring" as const,
   stiffness: 350,
@@ -74,22 +79,6 @@ const dialogExit = (driftY: number) => ({
   y: driftY * 0.5,
   filter: "blur(5px)",
 });
-
-// Measures which edges of the transcript body are hiding scrolled text.
-// Module-level so both the layout effect and the scroll handler share one
-// stable implementation.
-const measureResultFade = (
-  el: HTMLDivElement | null,
-  setFade: (fade: ResultFade) => void,
-) => {
-  if (!el || el.scrollHeight <= el.clientHeight + 1) {
-    setFade("none");
-    return;
-  }
-  const atTop = el.scrollTop <= 1;
-  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
-  setFade(atTop ? "bottom" : atBottom ? "top" : "both");
-};
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -572,16 +561,14 @@ const RecordingOverlay: React.FC = () => {
               </span>
             </motion.button>
           </div>
-          {/* Edge fades only on edges actually hiding scrolled text — short
-              transcripts render fully crisp with no masking. */}
+          {/* Top and bottom edges fade together whenever the transcript
+              overflows the scroll cap; short transcripts render fully crisp. */}
           <div
             ref={resultBodyRef}
             onScroll={() =>
               measureResultFade(resultBodyRef.current, setResultFade)
             }
-            className={`sresult-body${
-              resultFade === "none" ? "" : ` fade-${resultFade}`
-            }`}
+            className={`sresult-body${resultFade === "none" ? "" : " faded"}`}
           >
             {resultText}
           </div>
