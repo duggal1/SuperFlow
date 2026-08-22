@@ -45,3 +45,6 @@ result
 
 # Python bytecode (scripts/)
 __pycache__/
+
+# Local working clone of the Terminal-kit reference repo (not part of the build)
+/Terminal-kit/
