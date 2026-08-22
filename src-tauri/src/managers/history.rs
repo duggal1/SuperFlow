@@ -31,6 +31,10 @@ static MIGRATIONS: &[M] = &[
     M::up("ALTER TABLE transcription_history ADD COLUMN post_processed_text TEXT;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_process_prompt TEXT;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN post_process_requested BOOLEAN NOT NULL DEFAULT 0;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN word_count INTEGER NOT NULL DEFAULT 0;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN audio_duration_secs REAL;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN avg_wpm REAL;"),
+    M::up("ALTER TABLE transcription_history ADD COLUMN time_saved_secs REAL;"),
 ];
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
@@ -63,6 +67,41 @@ pub struct HistoryEntry {
     pub post_processed_text: Option<String>,
     pub post_process_prompt: Option<String>,
     pub post_process_requested: bool,
+    /// Words in the final (post-processed when present) text. Persisted so
+    /// stats never depend on re-parsing text in the UI.
+    pub word_count: i64,
+    /// Real recorded audio length in seconds, captured at save time from the
+    /// sample count. `None` for legacy rows.
+    pub audio_duration_secs: Option<f64>,
+    /// Speaking speed in words/minute derived at save time. `None` when no
+    /// duration or no words.
+    pub avg_wpm: Option<f64>,
+    /// Seconds saved versus typing the same words at TYPING_WPM (40). `None`
+    /// when no duration or no words.
+    pub time_saved_secs: Option<f64>,
+}
+
+/// Baseline typing speed for "time saved" math — mirrors TYPING_WPM in
+/// src/lib/utils/journalStats.ts.
+const TYPING_WPM: f64 = 40.0;
+
+/// Derive the persisted per-entry stats from the final text and the real audio
+/// duration. Shared by insert and retry-update paths so both store identical
+/// math.
+fn compute_entry_stats(
+    text: &str,
+    audio_duration_secs: Option<f64>,
+) -> (i64, Option<f64>, Option<f64>) {
+    let word_count = text.trim().split_whitespace().count() as i64;
+    match audio_duration_secs {
+        Some(duration) if duration > 0.0 && word_count > 0 => {
+            let avg_wpm = word_count as f64 / (duration / 60.0);
+            let time_saved_secs =
+                ((word_count as f64 / TYPING_WPM) * 60.0 - duration).max(0.0);
+            (word_count, Some(avg_wpm), Some(time_saved_secs))
+        }
+        _ => (word_count, None, None),
+    }
 }
 
 pub struct HistoryManager {
@@ -130,6 +169,46 @@ impl HistoryManager {
             );
         } else {
             debug!("Database already at latest version {}", version_after);
+        }
+
+        // Databases upgraded from tauri-plugin-sql carry that system's version
+        // count in user_version, which can mark stats-column migrations as
+        // applied even though the columns are missing. Reconcile so history
+        // queries never fail after an upgrade.
+        Self::ensure_stats_columns(&conn)?;
+
+        Ok(())
+    }
+
+    /// Column definitions every transcription_history table must have for the
+    /// current queries to work: name paired with its ADD COLUMN definition.
+    const REQUIRED_COLUMNS: &[(&str, &str)] = &[
+        ("word_count", "INTEGER NOT NULL DEFAULT 0"),
+        ("audio_duration_secs", "REAL"),
+        ("avg_wpm", "REAL"),
+        ("time_saved_secs", "REAL"),
+    ];
+
+    /// Add any required column missing from transcription_history.
+    /// Idempotent: columns already present are left untouched.
+    fn ensure_stats_columns(conn: &Connection) -> Result<()> {
+        let mut existing: Vec<String> = Vec::new();
+        {
+            let mut stmt = conn.prepare("PRAGMA table_info(transcription_history)")?;
+            let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
+            for name in rows {
+                existing.push(name?);
+            }
+        }
+
+        for (name, definition) in Self::REQUIRED_COLUMNS {
+            if !existing.iter().any(|column| column == name) {
+                conn.execute(
+                    &format!("ALTER TABLE transcription_history ADD COLUMN {name} {definition}"),
+                    [],
+                )?;
+                info!("Added missing history column: {name}");
+            }
         }
 
         Ok(())
@@ -207,6 +286,10 @@ impl HistoryManager {
             post_processed_text: row.get("post_processed_text")?,
             post_process_prompt: row.get("post_process_prompt")?,
             post_process_requested: row.get("post_process_requested")?,
+            word_count: row.get("word_count")?,
+            audio_duration_secs: row.get("audio_duration_secs")?,
+            avg_wpm: row.get("avg_wpm")?,
+            time_saved_secs: row.get("time_saved_secs")?,
         })
     }
 
@@ -216,6 +299,9 @@ impl HistoryManager {
 
     /// Save a new history entry to the database.
     /// The WAV file should already have been written to the recordings directory.
+    /// `audio_duration_secs` is the real recorded length (sample count / 16 kHz),
+    /// persisted alongside derived WPM / time-saved stats so the home-page stats
+    /// never depend on re-reading audio files in the UI.
     pub fn save_entry(
         &self,
         file_name: String,
@@ -223,9 +309,17 @@ impl HistoryManager {
         post_process_requested: bool,
         post_processed_text: Option<String>,
         post_process_prompt: Option<String>,
+        audio_duration_secs: f64,
     ) -> Result<HistoryEntry> {
         let timestamp = Utc::now().timestamp();
         let title = self.format_timestamp_title(timestamp);
+
+        // Stats key off the final text (post-processed when present) — that is
+        // what the user actually produced.
+        let final_text = post_processed_text.as_deref().unwrap_or(&transcription_text);
+        let duration_secs = Some(audio_duration_secs).filter(|d| *d > 0.0);
+        let (word_count, avg_wpm, time_saved_secs) =
+            compute_entry_stats(final_text, duration_secs);
 
         let conn = self.get_connection()?;
         conn.execute(
@@ -237,8 +331,12 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                post_process_requested,
+                word_count,
+                audio_duration_secs,
+                avg_wpm,
+                time_saved_secs
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
                 &file_name,
                 timestamp,
@@ -248,6 +346,10 @@ impl HistoryManager {
                 &post_processed_text,
                 &post_process_prompt,
                 post_process_requested,
+                word_count,
+                duration_secs,
+                avg_wpm,
+                time_saved_secs,
             ],
         )?;
 
@@ -261,6 +363,10 @@ impl HistoryManager {
             post_processed_text,
             post_process_prompt,
             post_process_requested,
+            word_count,
+            audio_duration_secs: duration_secs,
+            avg_wpm,
+            time_saved_secs,
         };
 
         debug!("Saved history entry with id {}", entry.id);
@@ -288,16 +394,36 @@ impl HistoryManager {
         post_process_prompt: Option<String>,
     ) -> Result<HistoryEntry> {
         let conn = self.get_connection()?;
+
+        // Recompute the derived stats from the stored duration so a retried
+        // entry's WPM / time-saved reflect its new text.
+        let duration_secs: Option<f64> = conn
+            .query_row(
+                "SELECT audio_duration_secs FROM transcription_history WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let final_text = post_processed_text.as_deref().unwrap_or(&transcription_text);
+        let (word_count, avg_wpm, time_saved_secs) =
+            compute_entry_stats(final_text, duration_secs);
+
         let updated = conn.execute(
             "UPDATE transcription_history
              SET transcription_text = ?1,
                  post_processed_text = ?2,
-                 post_process_prompt = ?3
-             WHERE id = ?4",
+                 post_process_prompt = ?3,
+                 word_count = ?4,
+                 avg_wpm = ?5,
+                 time_saved_secs = ?6
+             WHERE id = ?7",
             params![
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
+                word_count,
+                avg_wpm,
+                time_saved_secs,
                 id
             ],
         )?;
@@ -308,7 +434,8 @@ impl HistoryManager {
 
         let entry = conn
             .query_row(
-                "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested,
+                 word_count, audio_duration_secs, avg_wpm, time_saved_secs
                  FROM transcription_history WHERE id = ?1",
                 params![id],
                 Self::map_history_entry,
@@ -459,7 +586,8 @@ impl HistoryManager {
             (Some(cursor_id), Some(lim)) => {
                 let fetch_count = (lim + 1) as i64;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested,
+                     word_count, audio_duration_secs, avg_wpm, time_saved_secs
                      FROM transcription_history
                      WHERE id < ?1
                      ORDER BY id DESC
@@ -473,7 +601,8 @@ impl HistoryManager {
             (None, Some(lim)) => {
                 let fetch_count = (lim + 1) as i64;
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested,
+                     word_count, audio_duration_secs, avg_wpm, time_saved_secs
                      FROM transcription_history
                      ORDER BY id DESC
                      LIMIT ?1",
@@ -485,7 +614,8 @@ impl HistoryManager {
             }
             (_, None) => {
                 let mut stmt = conn.prepare(
-                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested
+                    "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested,
+                     word_count, audio_duration_secs, avg_wpm, time_saved_secs
                      FROM transcription_history
                      ORDER BY id DESC",
                 )?;
@@ -516,7 +646,11 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
+                post_process_requested,
+                word_count,
+                audio_duration_secs,
+                avg_wpm,
+                time_saved_secs
              FROM transcription_history
              ORDER BY timestamp DESC
              LIMIT 1",
@@ -543,7 +677,11 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
+                post_process_requested,
+                word_count,
+                audio_duration_secs,
+                avg_wpm,
+                time_saved_secs
              FROM transcription_history
              WHERE transcription_text != ''
              ORDER BY timestamp DESC
@@ -666,7 +804,11 @@ mod tests {
                 transcription_text TEXT NOT NULL,
                 post_processed_text TEXT,
                 post_process_prompt TEXT,
-                post_process_requested BOOLEAN NOT NULL DEFAULT 0
+                post_process_requested BOOLEAN NOT NULL DEFAULT 0,
+                word_count INTEGER NOT NULL DEFAULT 0,
+                audio_duration_secs REAL,
+                avg_wpm REAL,
+                time_saved_secs REAL
             );",
         )
         .expect("create transcription_history table");
@@ -733,5 +875,63 @@ mod tests {
 
         assert_eq!(entry.timestamp, 100);
         assert_eq!(entry.transcription_text, "completed");
+    }
+
+    /// Reproduce the tauri-plugin-sql upgrade desync: user_version copied from
+    /// the old system marks the stats migrations as applied while the columns
+    /// are absent. ensure_stats_columns must heal the schema so history
+    /// queries succeed instead of emptying the journal on every launch.
+    #[test]
+    fn ensure_stats_columns_heals_upgraded_database() {
+        let conn = setup_conn();
+
+        // Simulate the upgraded database: version claims migrations applied.
+        conn.pragma_update(None, "user_version", 6)
+            .expect("set user_version");
+
+        HistoryManager::ensure_stats_columns(&conn).expect("reconcile columns");
+
+        // All required columns now exist and a full stats select works.
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM transcription_history
+                 WHERE word_count >= 0
+                   AND audio_duration_secs IS NULL
+                   AND avg_wpm IS NULL
+                   AND time_saved_secs IS NULL",
+                [],
+                |row| row.get(0),
+            )
+            .expect("stats select succeeds");
+        assert_eq!(count, 0);
+
+        // Idempotent: running again must not fail on duplicate columns.
+        HistoryManager::ensure_stats_columns(&conn).expect("second reconcile");
+    }
+
+    #[test]
+    fn ensure_stats_columns_keeps_existing_values() {
+        let conn = setup_conn();
+        HistoryManager::ensure_stats_columns(&conn).expect("add columns");
+        conn.execute(
+            "INSERT INTO transcription_history (
+                file_name, timestamp, saved, title, transcription_text,
+                post_processed_text, post_process_prompt, post_process_requested,
+                word_count, audio_duration_secs, avg_wpm, time_saved_secs
+             ) VALUES ('a.wav', 1, 0, 't', 'hello world', NULL, NULL, 0, 2, 4.0, 30.0, 1.0)",
+            [],
+        )
+        .expect("insert with stats");
+
+        HistoryManager::ensure_stats_columns(&conn).expect("reconcile is a no-op");
+
+        let words: i64 = conn
+            .query_row(
+                "SELECT word_count FROM transcription_history WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .expect("read persisted word_count");
+        assert_eq!(words, 2);
     }
 }
