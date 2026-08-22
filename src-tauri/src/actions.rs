@@ -869,6 +869,35 @@ impl ShortcutAction for TranscribeAction {
                                         return;
                                     }
 
+                                    // Password field focused: never paste and never
+                                    // surface the transcript — it may be a secret.
+                                    if crate::secure_input::is_enabled_now() {
+                                        debug!(
+                                            "Secure Input active — discarding transcript quietly"
+                                        );
+                                        utils::hide_recording_overlay(&ah_clone);
+                                        change_tray_icon(&ah_clone, TrayIconState::Idle);
+                                        return;
+                                    }
+
+                                    // PasteMethod::None skips pasting by design — keep its
+                                    // silent hide and never show the card. For every other
+                                    // method, verify an editable target is focused before
+                                    // injecting keystrokes that could otherwise land nowhere.
+                                    #[cfg(target_os = "macos")]
+                                    let pasteable = get_settings(&ah_clone).paste_method
+                                        == crate::settings::PasteMethod::None
+                                        || utils::is_pasteable_target_focused();
+                                    #[cfg(not(target_os = "macos"))]
+                                    let pasteable = true;
+
+                                    if !pasteable {
+                                        play_feedback_sound(&ah_clone, SoundType::Stop);
+                                        utils::show_result_overlay(&ah_clone, final_text);
+                                        change_tray_icon(&ah_clone, TrayIconState::Idle);
+                                        return;
+                                    }
+
                                     match utils::paste(final_text.clone(), ah_clone.clone()) {
                                         Ok(()) => {
                                             // Paste landed: the transcript is where the user
