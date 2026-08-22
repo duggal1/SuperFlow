@@ -497,6 +497,13 @@
   padding: 16px 20px 18px;
   animation: none;
 }
+/* Dialog surfaces (result card + cancel toast) are fully opaque — no
+   translucency over the wallpaper; the recording pill keeps its ambient
+   near-opaque surface. */
+.scard.sresult,
+.scard.scancel {
+  background: var(--color-background);
+}
 /* The Live panel flips to column-reverse for top placement; the result card
    keeps its natural order (header above body) on both edges. */
 .ov-stage.top .scard.sresult {

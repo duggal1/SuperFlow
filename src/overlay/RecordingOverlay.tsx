@@ -31,6 +31,50 @@ const RESULT_EXIT_MS = 240;
 // fully crisp.
 type ResultFade = "none" | "top" | "bottom" | "both";
 
+// ---- Dialog motion (result card + cancel toast) ---------------------------
+// Spring-driven transforms with eased opacity/blur: the physical settle of a
+// spring reads far smoother than one fixed-duration tween, while the blur
+// stays on a tween so it never wobbles around its target. The drift direction
+// follows the overlay's screen edge (rises from the bottom edge, drops from
+// the top edge).
+const DIALOG_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+// Spring-driven transforms with eased opacity/blur: the physical settle of a
+// spring reads far smoother than one fixed-duration tween, while the blur
+// stays on a tween so it never wobbles around its target.
+const dialogTransition = {
+  type: "spring" as const,
+  stiffness: 350,
+  damping: 30,
+  mass: 0.92,
+  opacity: { duration: 0.26, ease: DIALOG_EASE },
+  filter: { duration: 0.32, ease: DIALOG_EASE },
+};
+// Exit keeps everything on short tweens — springs settling during teardown
+// would fight the native window hide.
+const dialogExitTransition = {
+  opacity: { duration: 0.2, ease: DIALOG_EASE },
+  filter: { duration: 0.24, ease: DIALOG_EASE },
+};
+
+const dialogEnter = (driftY: number) => ({
+  opacity: 0,
+  scale: 0.96,
+  y: driftY,
+  filter: "blur(6px)",
+});
+const dialogShown = {
+  opacity: 1,
+  scale: 1,
+  y: 0,
+  filter: "blur(0px)",
+};
+const dialogExit = (driftY: number) => ({
+  opacity: 0,
+  scale: 0.98,
+  y: driftY * 0.5,
+  filter: "blur(5px)",
+});
+
 // Measures which edges of the transcript body are hiding scrolled text.
 // Module-level so both the layout effect and the scroll handler share one
 // stable implementation.
@@ -388,17 +432,21 @@ const RecordingOverlay: React.FC = () => {
   };
 
   if (cancelToastVisible) {
+    // Drift direction follows the screen edge the overlay is anchored to.
+    const driftY = position === "top" ? -10 : 10;
     return (
       <div dir={direction} className={`ov-stage ${position}`}>
         <motion.div
           className="scard scancel"
-          initial={{ opacity: 0, scale: 0.97, filter: "blur(5px)" }}
+          initial={dialogEnter(driftY)}
           animate={
             cancelToastExiting
-              ? { opacity: 0, scale: 0.98, filter: "blur(5px)" }
-              : { opacity: 1, scale: 1, filter: "blur(0px)" }
+              ? {
+                  ...dialogExit(driftY),
+                  transition: dialogExitTransition,
+                }
+              : { ...dialogShown, transition: dialogTransition }
           }
-          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
         >
           <span className="scancel-label">
             {t("overlay.transcriptionCanceled")}
@@ -446,17 +494,21 @@ const RecordingOverlay: React.FC = () => {
   if (resultText) {
     // The full transcript always renders — Copy uses the untouched resultText
     // and the body scrolls under edge fades when it outgrows the card.
+    // Drift direction follows the screen edge the overlay is anchored to.
+    const driftY = position === "top" ? -10 : 10;
     return (
       <div dir={direction} className={`ov-stage ${position}`}>
         <motion.div
           className="scard sresult"
-          initial={{ opacity: 0, scale: 0.97, filter: "blur(5px)" }}
+          initial={dialogEnter(driftY)}
           animate={
             resultExiting
-              ? { opacity: 0, scale: 0.98, filter: "blur(5px)" }
-              : { opacity: 1, scale: 1, filter: "blur(0px)" }
+              ? {
+                  ...dialogExit(driftY),
+                  transition: dialogExitTransition,
+                }
+              : { ...dialogShown, transition: dialogTransition }
           }
-          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="sresult-head">
             <span className="sresult-label">{t("overlay.transcript")}</span>
