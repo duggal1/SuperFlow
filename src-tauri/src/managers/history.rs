@@ -667,6 +667,22 @@ impl HistoryManager {
         Self::get_latest_completed_entry_with_conn(&conn)
     }
 
+    /// Ids of every entry whose transcription never produced text — the
+    /// stranded recordings the background recovery chain should sweep at
+    /// startup, newest first.
+    pub async fn get_failed_entry_ids(&self) -> Result<Vec<i64>> {
+        let conn = self.get_connection()?;
+        let mut stmt = conn.prepare(
+            "SELECT id FROM transcription_history
+             WHERE TRIM(transcription_text) = ''
+             ORDER BY id DESC",
+        )?;
+        let ids = stmt
+            .query_map([], |row| row.get::<_, i64>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(ids)
+    }
+
     fn get_latest_completed_entry_with_conn(conn: &Connection) -> Result<Option<HistoryEntry>> {
         let mut stmt = conn.prepare(
             "SELECT
@@ -934,5 +950,24 @@ mod tests {
             )
             .expect("read persisted word_count");
         assert_eq!(words, 2);
+    }
+
+    #[test]
+    fn failed_entry_ids_returns_only_empty_transcriptions_newest_first() {
+        let conn = setup_conn();
+        insert_entry(&conn, 100, "completed", None);
+        insert_entry(&conn, 200, "   ", None); // whitespace-only counts as failed
+        insert_entry(&conn, 300, "", None);
+
+        let mut stmt = conn
+            .prepare("SELECT id FROM transcription_history WHERE TRIM(transcription_text) = '' ORDER BY id DESC")
+            .expect("prepare");
+        let ids = stmt
+            .query_map([], |row| row.get::<_, i64>(0))
+            .expect("query")
+            .collect::<Result<Vec<i64>, rusqlite::Error>>()
+            .expect("collect");
+
+        assert_eq!(ids, vec![3, 2]);
     }
 }

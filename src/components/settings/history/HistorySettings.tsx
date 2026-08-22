@@ -159,6 +159,9 @@ export const HistorySettings: React.FC = () => {
   }, []);
 
   // Background restore progress (auto re-transcription of failed entries).
+  // The chain reports `started` (fresh-load retries), then `fallback` (a
+  // different downloaded model took over) before `completed`/`failed` — the
+  // row stays busy until one of those two arrives.
   useEffect(() => {
     const unlisten = listen<{ id: number; status: string }>(
       "history-retranscribe",
@@ -166,7 +169,7 @@ export const HistorySettings: React.FC = () => {
         const { id, status } = event.payload;
         setRestoringIds((prev) => {
           const next = new Set(prev);
-          if (status === "started") {
+          if (status === "started" || status === "fallback") {
             next.add(id);
           } else {
             next.delete(id);

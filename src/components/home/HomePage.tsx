@@ -229,7 +229,7 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
             {formatTimeOfDay(entry.timestamp, i18n.language)}
           </span>
           {busy && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[11px] tracking-wide text-blue-300">
+            <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-1 py-0.5 text-[10px] tracking-wide text-blue-300">
               <CircleNotch size={12} className="animate-spin" />
               {t("settings.history.transcribing")}
             </span>
@@ -237,7 +237,7 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
           {/* Failed transcriptions stay compact: an inline chip next to the
               time instead of a full placeholder line padding the row out. */}
           {!hasText && !busy && (
-            <span className="inline-flex items-center rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[11px] tracking-wide text-rose-300">
+            <span className="inline-flex items-center rounded-md bg-rose-500/10 px-1 py-0.5 text-[10px] leading-none tracking-wide text-rose-300">
               {t("settings.history.transcriptionFailed")}
             </span>
           )}
@@ -245,7 +245,7 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
         <span className="flex shrink-0 items-center gap-1">
           {!busy && hasText && (
             <>
-              <span className="inline-flex items-center rounded-[3.5px] bg-sky-500/[0.11] px-1.5 py-0.5 text-[11px] font-medium leading-none tracking-tight text-sky-400">
+              <span className="inline-flex items-center rounded-[3.5px] bg-blue-500/[0.11] px-1 py-0.5 text-[10px] font-medium leading-none tracking-tight text-blue-300">
                 {t("home.words", { count: words })}
               </span>
               {duration !== undefined && (
@@ -369,6 +369,9 @@ export const HomePage: React.FC = () => {
   }, []);
 
   // Background restore progress (auto re-transcription of failed entries).
+  // The chain reports `started` (fresh-load retries), then `fallback` (a
+  // different downloaded model took over) before `completed`/`failed` — the
+  // card stays in its transcribing state until one of those two arrives.
   useEffect(() => {
     const unlisten = listen<{ id: number; status: string }>(
       "history-retranscribe",
@@ -376,7 +379,7 @@ export const HomePage: React.FC = () => {
         const { id, status } = event.payload;
         setRestoringIds((prev) => {
           const next = new Set(prev);
-          if (status === "started") {
+          if (status === "started" || status === "fallback") {
             next.add(id);
           } else {
             next.delete(id);

@@ -765,6 +765,22 @@ impl TranscriptionManager {
         current_model.clone()
     }
 
+    /// Best alternate already-downloaded model to recover a failed
+    /// transcription with, excluding `exclude_id`. Returns `(id, display
+    /// name)`. Candidates keep the registry's editorial order (catalog rank,
+    /// then accuracy), so the first hit is the strongest available substitute.
+    /// `None` when no other model is fully on disk.
+    pub fn fallback_model_candidate(&self, exclude_id: &str) -> Option<(String, String)> {
+        let models = self.model_manager.get_available_models();
+        let candidates: Vec<(String, bool, bool)> = models
+            .iter()
+            .map(|m| (m.id.clone(), m.is_downloaded, m.is_downloading))
+            .collect();
+        pick_fallback_candidate(candidates, exclude_id)
+            .and_then(|id| models.iter().find(|m| m.id == id))
+            .map(|m| (m.id.clone(), m.name.clone()))
+    }
+
     /// Block until `model_id` is loaded and ready to transcribe.
     ///
     /// Unlike [`initiate_model_load`](Self::initiate_model_load) (fire-and-forget,
@@ -1698,6 +1714,21 @@ fn base_language_code(language: &str) -> &str {
     language.split(&['-', '_'][..]).next().unwrap_or(language)
 }
 
+/// Pick the fallback transcription model from candidates already ordered by
+/// preference (catalog rank, then accuracy). Each candidate is
+/// `(id, is_downloaded, is_downloading)`; the first fully-on-disk model that
+/// isn't the one that just failed wins. Pure so the selection policy is unit
+/// testable without a model registry.
+fn pick_fallback_candidate(
+    candidates: Vec<(String, bool, bool)>,
+    exclude_id: &str,
+) -> Option<String> {
+    candidates
+        .into_iter()
+        .find(|(id, downloaded, downloading)| id != exclude_id && *downloaded && !*downloading)
+        .map(|(id, _, _)| id)
+}
+
 /// Resolve the persisted language intent into the language a specific model can
 /// use without writing the coerced value back to settings.
 fn effective_language_for_model(
@@ -1830,7 +1861,10 @@ fn post_process_transcription_text(
         // ("dot tsx" → ".tsx") and path separators ("slash" → "/"). Runs
         // after user custom words so a user's own correction always wins.
         let corrected = if settings.tech_lexicon_enabled {
-            crate::audio_toolkit::tech_lexicon::apply(&corrected)
+            let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
+            // Styling catalog (Tailwind utilities, spoken class patterns)
+            // rides the same gate — both are pre-built technical vocabulary.
+            crate::audio_toolkit::styling::apply(&corrected)
         } else {
             corrected
         };
@@ -2206,6 +2240,45 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    fn candidate(id: &str, downloaded: bool, downloading: bool) -> (String, bool, bool) {
+        (id.to_string(), downloaded, downloading)
+    }
+
+    #[test]
+    fn fallback_candidate_prefers_first_available_non_excluded_model() {
+        let models = vec![
+            candidate("a", false, false),
+            candidate("b", true, false),
+            candidate("c", true, true),
+        ];
+        assert_eq!(
+            pick_fallback_candidate(models, "broken"),
+            Some("b".to_string())
+        );
+    }
+
+    #[test]
+    fn fallback_candidate_skips_the_excluded_and_incomplete_models() {
+        let models = vec![
+            candidate("selected", true, false),
+            candidate("partial", true, true),
+            candidate("gone", false, false),
+        ];
+        assert_eq!(pick_fallback_candidate(models, "selected"), None);
+    }
+
+    #[test]
+    fn fallback_candidate_allows_a_downloading_excluded_model_to_be_skipped() {
+        let models = vec![
+            candidate("selected", true, true),
+            candidate("other", true, false),
+        ];
+        assert_eq!(
+            pick_fallback_candidate(models, "selected"),
+            Some("other".to_string())
+        );
     }
 
     #[test]
