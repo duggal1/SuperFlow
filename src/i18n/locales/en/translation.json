@@ -30,7 +30,8 @@
     "customModelDescription": "Not officially supported",
     "modelCard": {
       "accuracy": "accuracy",
-      "speed": "speed"
+      "speed": "speed",
+      "accuracyPercent": "Accuracy {{percent}}%"
     },
     "models": {
       "small": {
@@ -137,6 +138,7 @@
     "downloading": "Downloading {{percentage}}%",
     "downloadingMultiple": "Downloading {{count}} models...",
     "modelReady": "Model Ready",
+    "modelDownloaded": "{{modelName}} downloaded",
     "loading": "Loading {{modelName}}...",
     "loadingGeneric": "Loading...",
     "modelError": "Model Error",
@@ -214,7 +216,12 @@
       "filters": {
         "allLanguages": "All Languages",
         "streaming": "Filter models that support live streaming transcription",
-        "translation": "Filter models that support translation to English"
+        "translation": "Filter models that support translation to English",
+        "sort": "Filter",
+        "sortDefault": "Default order",
+        "sortAccurate": "Most Accurate",
+        "sortFastest": "Fastest",
+        "sortRatio": "Best Acc/Speed"
       },
       "rescan": {
         "label": "Rescan",
@@ -471,7 +478,14 @@
       "retranscribe": "Re-transcribe",
       "retranscribeError": "Failed to re-transcribe. Please try again.",
       "transcribing": "Transcribing...",
-      "transcriptionFailed": "Transcription failed. Please re-transcribe."
+      "transcriptionFailed": "Transcription failed. Please re-transcribe.",
+      "exportFormat": {
+        "title": "Export format",
+        "description": "File format used when exporting all transcripts from the journal",
+        "markdown": "Markdown (.md)",
+        "plainText": "Plain text (.txt)",
+        "placeholder": "Choose format"
+      }
     },
     "debug": {
       "title": "Debug",
@@ -728,6 +742,9 @@
     },
     "savedLinePrefix": "That's",
     "savedLineSuffix": "saved versus typing at 40 WPM.",
-    "savedLineEmpty": "Start transcribing to measure time saved versus typing."
+    "savedLineEmpty": "Start transcribing to measure time saved versus typing.",
+    "export": "Export",
+    "exportSuccess": "Exported {{count}} transcripts",
+    "exportError": "Export failed. Please try again."
   }
 }

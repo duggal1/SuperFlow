@@ -748,6 +748,26 @@ impl HistoryManager {
         Ok(PaginatedHistory { entries, has_more })
     }
 
+    /// Every history entry, oldest first — the order an export document reads
+    /// in. Includes empty (failed) rows; the export layer filters those.
+    pub fn get_all_entries(&self) -> Result<Vec<HistoryEntry>> {
+        let conn = self.get_connection()?;
+        Self::get_all_entries_with_conn(&conn)
+    }
+
+    fn get_all_entries_with_conn(conn: &Connection) -> Result<Vec<HistoryEntry>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, file_name, timestamp, saved, title, transcription_text, post_processed_text, post_process_prompt, post_process_requested,
+             word_count, audio_duration_secs, avg_wpm, time_saved_secs
+             FROM transcription_history
+             ORDER BY id ASC",
+        )?;
+        let entries = stmt
+            .query_map([], Self::map_history_entry)?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(entries)
+    }
+
     #[cfg(test)]
     fn get_latest_entry_with_conn(conn: &Connection) -> Result<Option<HistoryEntry>> {
         let mut stmt = conn.prepare(
@@ -1063,6 +1083,20 @@ mod tests {
             )
             .expect("read persisted word_count");
         assert_eq!(words, 2);
+    }
+
+    #[test]
+    fn get_all_entries_returns_chronological_order() {
+        let conn = setup_conn();
+        insert_entry(&conn, 100, "first", None);
+        insert_entry(&conn, 200, "second", None);
+        insert_entry(&conn, 300, "", None);
+
+        let entries = HistoryManager::get_all_entries_with_conn(&conn).expect("fetch all");
+
+        let ids: Vec<i64> = entries.iter().map(|e| e.id).collect();
+        assert_eq!(ids, vec![1, 2, 3]);
+        assert_eq!(entries[0].transcription_text, "first");
     }
 
     #[test]

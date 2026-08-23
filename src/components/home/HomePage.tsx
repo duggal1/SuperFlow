@@ -14,6 +14,7 @@ import {
   Check,
   CircleNotch,
   Copy,
+  DownloadSimple,
   Lectern,
   Pause,
   Play,
@@ -24,13 +25,17 @@ import {
 import NumberFlow from "@number-flow/react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { save } from "@tauri-apps/plugin-dialog";
 import {
   commands,
   events,
+  type ExportFormat,
   type HistoryEntry,
   type HistoryUpdatePayload,
 } from "@/bindings";
 import { useOsType } from "@/hooks/useOsType";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { Button } from "../ui/Button";
 import type { OSType } from "@/lib/utils/keyboard";
 import {
   computeJournalStats,
@@ -314,6 +319,7 @@ export const HomePage: React.FC = () => {
   const osType = useOsType();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [durations, setDurations] = useState<Record<number, number>>({});
   const [restoringIds, setRestoringIds] = useState<Set<number>>(new Set());
   const attemptedDurationsRef = useRef<Set<number>>(new Set());
@@ -452,6 +458,39 @@ export const HomePage: React.FC = () => {
     }
   }, []);
 
+  // Export every transcript through the backend. The save dialog picks the
+  // destination; Rust reads history.db, formats, and writes the file.
+  const exportTranscripts = useCallback(async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const format: ExportFormat =
+        useSettingsStore.getState().settings?.export_format ?? "markdown";
+      const extension = format === "plaintext" ? "txt" : "md";
+      const path = await save({
+        defaultPath: `superflow-transcripts.${extension}`,
+        filters: [
+          {
+            name: extension === "md" ? "Markdown" : "Plain text",
+            extensions: [extension],
+          },
+        ],
+      });
+      if (!path) return;
+
+      const result = await commands.exportTranscripts(path, format);
+      if (result.status !== "ok") {
+        throw new Error(String(result.error));
+      }
+      toast.success(t("home.exportSuccess", { count: result.data }));
+    } catch (error) {
+      console.error("Failed to export transcripts:", error);
+      toast.error(t("home.exportError"));
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, t]);
+
   const statCells = [
     {
       key: "words",
@@ -491,9 +530,26 @@ export const HomePage: React.FC = () => {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div className="space-y-2">
-        <h2 className="px-4 text-xs font-medium uppercase tracking-wide text-mid-gray">
-          {t("home.title")}
-        </h2>
+        <div className="flex items-center justify-between px-4">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-mid-gray">
+            {t("home.title")}
+          </h2>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={exportTranscripts}
+            aria-label={t("home.export")}
+            icon={
+              exporting ? (
+                <CircleNotch className="size-3.5 animate-spin" />
+              ) : (
+                <DownloadSimple className="size-3.5" />
+              )
+            }
+          >
+            {t("home.export")}
+          </Button>
+        </div>
 
         {/* Stats — quiet surface, vertical hairlines between cells, and a
             single bottom hairline separating the saved-time footer. No outer
@@ -505,7 +561,11 @@ export const HomePage: React.FC = () => {
                 key={cell.key}
                 className="flex min-w-0 flex-col items-center gap-2 px-4 py-5"
               >
-                <cell.icon size={24} weight="light" className="text-stone-400" />
+                <cell.icon
+                  size={24}
+                  weight="light"
+                  className="text-stone-400"
+                />
                 <span className="truncate text-xl font-medium tracking-tight text-stone-50">
                   {cell.value}
                 </span>

@@ -253,6 +253,14 @@ pub enum SoundTheme {
     Custom,
 }
 
+/// File format used when exporting all transcripts from the journal.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum ExportFormat {
+    Markdown,
+    PlainText,
+}
+
 impl SoundTheme {
     fn as_str(&self) -> &'static str {
         match self {
@@ -289,6 +297,19 @@ pub enum AiCleanupThinkingLevel {
     Low,
     Medium,
     High,
+}
+
+/// Tone preset applied to the cleaned prompt. Custom carries free-form tone
+/// guidance in `ai_cleanup_style_tone`.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum AiCleanupStyle {
+    #[default]
+    Default,
+    Formal,
+    Casual,
+    Concise,
+    Custom,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
@@ -426,6 +447,9 @@ pub struct AppSettings {
     pub word_correction_threshold: f64,
     #[serde(default = "default_history_limit")]
     pub history_limit: usize,
+    /// Format used by the journal's Export action. Markdown by default.
+    #[serde(default = "default_export_format")]
+    pub export_format: ExportFormat,
     #[serde(default = "default_recording_retention_period")]
     pub recording_retention_period: RecordingRetentionPeriod,
     #[serde(default)]
@@ -464,6 +488,10 @@ pub struct AppSettings {
     pub ai_cleanup_thinking_level: AiCleanupThinkingLevel,
     #[serde(default)]
     pub ai_cleanup_custom_instruction: String,
+    #[serde(default)]
+    pub ai_cleanup_style: AiCleanupStyle,
+    #[serde(default)]
+    pub ai_cleanup_style_tone: String,
     #[serde(default)]
     pub ai_cleanup_contexts: Vec<String>,
     #[serde(default)]
@@ -662,6 +690,11 @@ fn default_audio_feedback_volume() -> f32 {
 
 fn default_sound_theme() -> SoundTheme {
     SoundTheme::Marimba
+}
+
+/// Markdown is the default export format; plain text is opt-in via settings.
+fn default_export_format() -> ExportFormat {
+    ExportFormat::Markdown
 }
 
 fn default_theme() -> Theme {
@@ -1044,6 +1077,7 @@ pub fn get_default_settings() -> AppSettings {
         model_unload_timeout: ModelUnloadTimeout::default(),
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
+        export_format: default_export_format(),
         recording_retention_period: default_recording_retention_period(),
         paste_method: PasteMethod::default(),
         clipboard_handling: ClipboardHandling::default(),
@@ -1062,6 +1096,8 @@ pub fn get_default_settings() -> AppSettings {
         ai_cleanup_model: default_ai_cleanup_model(),
         ai_cleanup_thinking_level: AiCleanupThinkingLevel::default(),
         ai_cleanup_custom_instruction: String::new(),
+        ai_cleanup_style: AiCleanupStyle::default(),
+        ai_cleanup_style_tone: String::new(),
         ai_cleanup_contexts: Vec::new(),
         mute_while_recording: false,
         append_trailing_space: false,

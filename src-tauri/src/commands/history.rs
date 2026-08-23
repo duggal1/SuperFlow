@@ -364,3 +364,59 @@ pub async fn update_recording_retention_period(
 
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub async fn export_transcripts(
+    _app: AppHandle,
+    history_manager: State<'_, Arc<HistoryManager>>,
+    path: String,
+    format: String,
+) -> Result<usize, String> {
+    use crate::export;
+    use crate::settings::ExportFormat;
+
+    let parsed = match format.as_str() {
+        "markdown" => ExportFormat::Markdown,
+        "plaintext" => ExportFormat::PlainText,
+        other => return Err(format!("Invalid export format: {}", other)),
+    };
+
+    // Formatting is CPU-bound string work over the whole history; keep it off
+    // the async runtime thread.
+    let manager = Arc::clone(&history_manager);
+    let entries = tauri::async_runtime::spawn_blocking(move || manager.get_all_entries())
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+
+    let content = match parsed {
+        ExportFormat::Markdown => export::format_markdown(&entries),
+        ExportFormat::PlainText => export::format_plain_text(&entries),
+    };
+
+    std::fs::write(&path, content).map_err(|e| format!("Failed to write export: {}", e))?;
+
+    Ok(entries
+        .iter()
+        .filter(|e| !e.transcription_text.trim().is_empty())
+        .count())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn update_export_format(app: AppHandle, format: String) -> Result<(), String> {
+    use crate::settings::ExportFormat;
+
+    let parsed = match format.as_str() {
+        "markdown" => ExportFormat::Markdown,
+        "plaintext" => ExportFormat::PlainText,
+        other => return Err(format!("Invalid export format: {}", other)),
+    };
+
+    let mut settings = crate::settings::get_settings(&app);
+    settings.export_format = parsed;
+    crate::settings::write_settings(&app, settings);
+
+    Ok(())
+}

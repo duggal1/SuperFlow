@@ -12,6 +12,7 @@ mod commands;
 mod context;
 mod dev_icon;
 mod escape_cancel;
+mod export;
 mod file_refs;
 mod helpers;
 mod input;
@@ -903,6 +904,8 @@ pub fn run(cli_args: CliArgs) {
             commands::history::retry_history_entry_transcription,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            commands::history::export_transcripts,
+            commands::history::update_export_format,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![
