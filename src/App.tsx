@@ -282,7 +282,11 @@ function App() {
           title: "font-normal text-current",
           description: "text-current opacity-75",
           actionButton:
-            "px-2 py-1 text-xs font-medium rounded-lg border bg-stone-900 border-stone-700 hover:bg-surface-hover hover:border-stone-600 cursor-pointer whitespace-nowrap",
+            "cursor-pointer whitespace-nowrap rounded-lg border border-current/20 bg-transparent px-2 py-1 text-xs font-medium text-current hover:bg-current/10 hover:text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current",
+          cancelButton:
+            "cursor-pointer whitespace-nowrap rounded-lg border-0 bg-current/10 px-2 py-1 text-xs font-medium text-current hover:bg-current/15 hover:text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current",
+          closeButton:
+            "border-0 bg-transparent text-current shadow-none hover:bg-current/10 hover:text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current",
         },
       }}
     />
