@@ -569,7 +569,7 @@ const RecordingOverlay: React.FC = () => {
             <motion.button
               type="button"
               onClick={() => void handleCopy()}
-              className="group relative inline-flex h-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-[7.5px] border border-stone-700/70 bg-[linear-gradient(#1816131a_0%_100%),linear-gradient(#403c38_0%,#1c1917_100%)] px-3.5 py-1 no-underline shadow-[0_0_0_1px_#29252426,inset_0_2px_#ffffff24,inset_0_-0.5px_2px_#00000070,0_2px_8px_#0000000a,0_3px_4px_#00000036] transition-[background,border-color,box-shadow] duration-200 ease-out hover:border-stone-800 hover:bg-[linear-gradient(#12100e1a_0%_100%),linear-gradient(#312d29_0%,#141210_100%)] hover:shadow-[0_0_0_1px_#1c191733,inset_0_2px_#ffffff18,inset_0_-0.5px_2px_#00000085,0_2px_8px_#00000010,0_3px_4px_#00000042] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-600"
+              className="group relative inline-flex h-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border border-stone-700/70 bg-[linear-gradient(#1816131a_0%_100%),linear-gradient(#403c38_0%,#1c1917_100%)] px-3.5 py-1 no-underline shadow-[0_0_0_1px_#29252426,inset_0_2px_#ffffff24,inset_0_-0.5px_2px_#00000070,0_2px_8px_#0000000a,0_3px_4px_#00000036] transition-[background,border-color,box-shadow] duration-200 ease-out hover:border-stone-800 hover:bg-[linear-gradient(#12100e1a_0%_100%),linear-gradient(#312d29_0%,#141210_100%)] hover:shadow-[0_0_0_1px_#1c191733,inset_0_2px_#ffffff18,inset_0_-0.5px_2px_#00000085,0_2px_8px_#00000010,0_3px_4px_#00000042] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-600"
               whileTap={{ scale: 0.985 }}
               transition={{
                 duration: 0.1,
@@ -578,7 +578,7 @@ const RecordingOverlay: React.FC = () => {
             >
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-[7.5px] bg-stone-950/25 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
+                className="pointer-events-none absolute inset-0 rounded-[9px] bg-stone-950/25 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
               />
 
               <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
@@ -780,7 +780,7 @@ const RecordingOverlay: React.FC = () => {
       className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
     >
       <div
-        className={`scard compact ${working && isVisible ? "cworking" : ""}`}
+        className={`scard compact ${working && isVisible ? "cworking" : ""} ${state === "prompting" ? "ai-prompting" : ""}`}
       >
         {working ? workingRow(workLabel, true) : listeningRow(false, true)}
       </div>

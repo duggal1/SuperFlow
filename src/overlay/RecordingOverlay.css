@@ -228,9 +228,24 @@
 .scard.compact {
   animation: none;
   width: var(--ov-rest-w);
+  border-radius: 26px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 .scard.compact.cworking {
   width: var(--ov-work-w);
+}
+.scard.compact.ai-prompting {
+  background: var(--color-background);
+}
+.scard.compact .sbase {
+  padding-inline: 12px;
+}
+.scard.compact .swork-label {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.005em;
 }
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */
@@ -492,7 +507,7 @@
   width: 392px;
   max-height: 224px;
   border: none;
-  border-radius: 20px;
+  border-radius: 22px;
   gap: 12px;
   padding: 18px 22px 20px;
   animation: none;
@@ -636,23 +651,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0 10px 0 16px;
-  border-radius: 16px;
+  padding: 0 12px 0 18px;
+  border-radius: 20px;
   border: none;
   box-shadow: none;
   animation: none;
-}
-.scard.sai-notice.error {
-  color: #f43f5e;
-  background: color-mix(in srgb, #f43f5e 11%, transparent);
-}
-.scard.sai-notice.warning {
-  color: #fb8442;
-  background: color-mix(in srgb, #fb8442 11%, transparent);
-}
-.scard.sai-notice.success {
-  color: #22c55e;
-  background: color-mix(in srgb, #22c55e 11%, transparent);
+  color: var(--s-muted);
+  background: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 .ov-stage.top .scard.sai-notice {
   flex-direction: row;
