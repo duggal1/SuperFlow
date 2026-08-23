@@ -141,6 +141,17 @@ export const AccelerationSelector: FC<AccelerationSelectorProps> = ({
           }
         />
       </SettingContainer>
+      <SettingContainer
+        title="S1-mini by Superwhisper"
+        description={t("onboarding.cleanup.description")}
+        descriptionMode={descriptionMode}
+        grouped={grouped}
+        layout="horizontal"
+      >
+        <span className="text-[13px] text-stone-500">
+          {t("settings.advanced.acceleration.cleanupDetails")}
+        </span>
+      </SettingContainer>
       {ortOptions.length > 2 && (
         <SettingContainer
           title={t("settings.advanced.acceleration.ort.title")}

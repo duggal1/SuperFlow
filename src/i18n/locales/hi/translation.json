@@ -268,6 +268,7 @@
         "description": "रिकॉर्डिंग रुकने के बाद माइक्रोफ़ोन स्ट्रीम को 30 सेकंड तक खुला रखता है, जिससे लगातार ट्रांसक्रिप्शन के बीच देरी कम होती है. चालू रहने के दौरान Bluetooth ऑडियो की क्वालिटी पर असर पड़ सकता है."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "transcribe.cpp एक्सेलेरेशन",
           "description": "transcribe.cpp (Whisper-परिवार) मॉडल के लिए हार्डवेयर एक्सेलेरेशन. 'ऑटो' उपलब्ध होने पर GPU का इस्तेमाल करता है (macOS पर Metal, Windows/Linux पर Vulkan)."

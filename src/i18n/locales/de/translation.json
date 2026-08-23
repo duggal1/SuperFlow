@@ -268,6 +268,7 @@
         "description": "Hält den Mikrofon-Stream nach dem Aufnahmestopp 30 Sekunden lang offen, um die Latenz bei aufeinanderfolgenden Transkriptionen zu verringern. Kann die Bluetooth-Audioqualität beeinträchtigen."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "Whisper-Beschleunigung",
           "description": "Hardwarebeschleunigung für Whisper-Modelle. Automatisch nutzt GPU falls verfügbar (Metal auf macOS, Vulkan auf Windows/Linux)."

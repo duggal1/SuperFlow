@@ -1058,11 +1058,6 @@ impl TranscriptionManager {
                 model_id, backend
             );
 
-            // Live punctuation preview is captured once per stream — settings
-            // changing mid-dictation apply from the next dictation on.
-            let live_style = get_settings(&self.app_handle).punctuation_style;
-            let live_punctuation = get_settings(&self.app_handle).live_punctuation_enabled;
-
             let mut perf = StreamPerf::new();
             while let Ok(cmd) = rx.recv() {
                 match cmd {
@@ -1082,18 +1077,10 @@ impl TranscriptionManager {
                                 if update.committed_changed || update.tentative_changed {
                                     let text = stream.text();
                                     perf.record_emit();
-                                    // The committed prefix stays raw so it never
-                                    // reflows mid-sentence; only the transient
-                                    // tentative tail is formatted for display.
-                                    let tentative = if live_punctuation {
-                                        crate::audio_toolkit::formatter::format(
-                                            &text.tentative,
-                                            live_style,
-                                        )
-                                    } else {
-                                        text.tentative.clone()
-                                    };
-                                    self.emit_stream_text(&text.committed, &tentative);
+                                    // Live text stays raw and stable. Final grammar,
+                                    // punctuation, and structure belong exclusively
+                                    // to S1-mini after the stream is finalized.
+                                    self.emit_stream_text(&text.committed, &text.tentative);
                                 }
                                 perf.maybe_log();
                             }
@@ -2045,17 +2032,12 @@ fn post_process_transcription_text(
             settings.filler_word_removal_enabled,
         );
 
-        // Rejoin the path fragments the lexicon produced ("hero .tsx" →
-        // "hero.tsx") after all word-level passes have run.
-        // Formatting normalization runs last: numerics, currency, units,
-        // sentence terminals, ordinal lists, and inline-code wrapping.
-        // Enabled by default; the toggle is an opt-out for raw dictation.
-        let formatted = join_path_tokens(&normalize_transcription_output(&without_fillers));
-        if settings.live_punctuation_enabled {
-            crate::audio_toolkit::formatter::format(&formatted, settings.punctuation_style)
-        } else {
-            formatted
-        }
+        // Deterministic processing is intentionally limited to value and token
+        // normalization. S1-mini owns grammar, punctuation, capitalization,
+        // paragraphs, and lists so the two layers cannot fight each other.
+        let normalized = normalize_transcription_output(&without_fillers);
+        let normalized = crate::audio_toolkit::formatter::normalize_values(&normalized);
+        join_path_tokens(&normalized)
     })
 }
 
@@ -2578,7 +2560,7 @@ mod tests {
             evidence,
             OutputLanguageEvidence::UserSelected("pt".to_string())
         );
-        assert_eq!(result, "Eu vi um carro.");
+        assert_eq!(result, "eu vi um carro");
     }
 
     #[test]
@@ -2601,7 +2583,7 @@ mod tests {
         );
 
         assert_eq!(evidence, OutputLanguageEvidence::Unknown);
-        assert_eq!(result, "Um ok.");
+        assert_eq!(result, "um ok");
     }
 
     #[test]
@@ -2622,7 +2604,7 @@ mod tests {
 
         assert_eq!(
             result,
-            "So, the weather forecast said it would probably rain throughout the whole weekend."
+            "so the weather forecast said it would probably rain throughout the whole weekend"
         );
     }
 
@@ -2643,7 +2625,7 @@ mod tests {
 
         assert_eq!(
             result,
-            "Eu vi um carro na rua ontem de manhã quando fui ao mercado."
+            "eu vi um carro na rua ontem de manhã quando fui ao mercado"
         );
     }
 
@@ -2726,7 +2708,7 @@ mod tests {
             &evidence,
             &supported,
         );
-        assert_eq!(result, "Eu vi um carro.");
+        assert_eq!(result, "eu vi um carro");
     }
 
     #[test]

@@ -501,15 +501,6 @@ async fn process_transcription_output_with_context(
                 }
                 crate::intelligence::AwarenessOutcome::Skipped(reason) => {
                     debug!("Awareness skipped: {reason}");
-                    if reason == "local_formatter_unavailable"
-                        && matches!(
-                            snapshot.surface,
-                            crate::context::types::Surface::Terminal
-                                | crate::context::types::Surface::Editor
-                        )
-                    {
-                        final_text = crate::intelligence::structure_developer_text(&final_text);
-                    }
                 }
                 crate::intelligence::AwarenessOutcome::Failed(error) => {
                     warn!("Awareness composition failed; using deterministic output: {error}");

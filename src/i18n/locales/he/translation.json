@@ -268,6 +268,7 @@
         "description": "משאיר את זרם המיקרופון פתוח למשך 30 שניות אחרי סיום ההקלטה, וכך מפחית השהיה בתמלולים רצופים. עשוי לפגוע באיכות שמע Bluetooth בזמן שהאפשרות פעילה."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "האצת Whisper",
           "description": "האצת חומרה למודלי Whisper. מצב אוטומטי משתמש ב-GPU אם זמין (Metal ב-macOS, Vulkan ב-Windows/Linux)."

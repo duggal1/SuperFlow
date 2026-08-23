@@ -268,6 +268,7 @@
         "description": "Maintient le flux du microphone ouvert pendant 30 secondes après l'arrêt de l'enregistrement, réduisant la latence pour les transcriptions consécutives. Peut dégrader la qualité audio Bluetooth."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "Accélération Whisper",
           "description": "Accélération matérielle pour les modèles Whisper. Auto utilise le GPU si disponible (Metal sur macOS, Vulkan sur Windows/Linux)."

@@ -5,7 +5,6 @@
 //! every transcription through the same n-gram fuzzy engine used for user
 //! custom words. Entirely local — no network, no model, no API key.
 
-use serde::Deserialize;
 use std::sync::OnceLock;
 
 /// Embedded at compile time from the catalog; see `catalog/tech_lexicon.json`.
@@ -16,32 +15,21 @@ const LEXICON_JSON: &str = include_str!("../catalog/tech_lexicon.json");
 /// canonical hits.
 const MATCH_THRESHOLD: f64 = 0.2;
 
-#[derive(Deserialize)]
-struct LexiconFile {
-    #[allow(dead_code)]
-    version: u32,
-    entries: Vec<LexiconEntry>,
-}
-
-#[derive(Deserialize)]
-struct LexiconEntry {
-    canonical: String,
-    #[serde(default)]
-    aliases: Vec<String>,
-}
-
 type LexiconEntries = Vec<(String, Vec<String>)>;
 
 static LEXICON: OnceLock<LexiconEntries> = OnceLock::new();
 
 fn entries() -> &'static LexiconEntries {
     LEXICON.get_or_init(|| {
-        match serde_json::from_str::<LexiconFile>(LEXICON_JSON) {
-            Ok(file) => file
-                .entries
-                .into_iter()
-                .map(|entry| (entry.canonical, entry.aliases))
-                .collect(),
+        match serde_json::from_str::<serde_json::Value>(LEXICON_JSON) {
+            Ok(document) => {
+                let mut pairs = Vec::new();
+                crate::audio_toolkit::catalog::harvest(&document, &mut pairs);
+                pairs
+                    .into_iter()
+                    .map(|pair| (pair.canonical, pair.aliases))
+                    .collect()
+            }
             Err(e) => {
                 // A malformed embedded lexicon must never break dictation;
                 // log and run with an empty list.

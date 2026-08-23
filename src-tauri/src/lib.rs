@@ -33,7 +33,6 @@ mod tray;
 mod tray_i18n;
 mod utils;
 mod voice_terminal;
-mod workspace_context;
 
 pub use cli::CliArgs;
 #[cfg(debug_assertions)]

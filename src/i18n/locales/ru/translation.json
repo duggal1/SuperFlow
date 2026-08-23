@@ -268,6 +268,7 @@
         "description": "Оставляет поток микрофона открытым в течение 30 секунд после остановки записи, уменьшая задержку при последовательных транскрипциях. Может ухудшить качество звука Bluetooth."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "Ускорение Whisper",
           "description": "Аппаратное ускорение для моделей Whisper. Автоматический режим использует GPU при наличии (Metal на macOS, Vulkan на Windows/Linux)."

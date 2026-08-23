@@ -6,10 +6,8 @@
 //! page context. Apple Intelligence runs first; the configured post-process
 //! provider (e.g. Gemini) is the fallback.
 
-mod document;
 pub(crate) mod prompt;
 mod router;
 mod validation;
 
-pub(crate) use document::structure_developer_text;
 pub use router::{compose_aware_reply, AwarenessOutcome};

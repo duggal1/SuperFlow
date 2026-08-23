@@ -1,33 +1,39 @@
 //! Mandatory local transcript cleanup powered by S1-mini (superwhisper).
 //!
-//! Pipeline position: STT → deterministic passes (tech lexicon, fillers,
-//! formatting) → **this stage** → optional cloud cleanup → paste. There is no
-//! user-facing toggle by design; the only skips are correctness guards
+//! Pipeline position: STT → deterministic token/value normalization → **this
+//! stage** → optional explicit cleanup → paste. There is no user-facing toggle
+//! by design; the only skips are correctness guards
 //! (non-English transcripts, model not ready yet) which fail open to the raw
 //! text rather than blocking dictation.
 
+use std::collections::HashSet;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
 
 use log::{info, warn};
 use serde::Serialize;
 use tauri::Emitter;
 
 const MODEL_FILENAME: &str = "s1-mini-q4_k_m.gguf";
-const MODEL_DISPLAY_NAME: &str = "S1 Mini Q4_K_M";
+const MODEL_DISPLAY_NAME: &str = "S1-mini by Superwhisper · Q4_K_M";
 const MODEL_URL: &str =
     "https://huggingface.co/superwhisper/s1-mini-GGUF/resolve/main/s1-mini-q4_k_m.gguf";
 const MODEL_SIZE_BYTES: u64 = 484_219_808;
 const MODEL_SHA256: &str = "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634";
 
 const SYSTEM_PROMPT: &str = "You are a text normalizer for speech-to-text transcripts. The input begins with a control line specifying the styling, structure, and context settings; clean the transcript to match those settings and output only the cleaned text.";
-const CONTROL_LINE: &str = "[Styling: semi-formal] [Structure: prose] [Context: general]";
+const CONTROL_LINE: &str = "[Styling: semi-formal] [Structure: lists] [Context: general]";
 
 /// The model card recommends keeping a single pass under ~1,000 tokens.
-/// ~700 words sits safely inside that with the prompt overhead included.
-const MAX_CHUNK_WORDS: usize = 700;
+/// 500 English words stays safely inside that with the exact prompt overhead.
+const MAX_CHUNK_WORDS: usize = 500;
+#[cfg(target_os = "macos")]
+const N_CTX: u32 = 2048;
+#[cfg(target_os = "macos")]
+const METAL_GPU_LAYERS: u32 = 99;
 
 /// Longest we will hold one paste pipeline hostage waiting on generation.
 const GENERATION_TIMEOUT_SECS: u64 = 60;
@@ -145,6 +151,96 @@ fn should_run(effective_language: &str, text: &str) -> bool {
             .unwrap_or(false),
         _ => false,
     }
+}
+
+fn protected_token(token: &str) -> Option<String> {
+    let token = token
+        .trim_matches(|character: char| {
+            matches!(
+                character,
+                '`' | '\'' | '"' | ',' | ';' | ':' | '(' | ')' | '[' | ']' | '{' | '}'
+            )
+        })
+        .trim_end_matches(['.', '!', '?'])
+        .to_lowercase();
+    let is_number = token.chars().any(|character| character.is_ascii_digit());
+    let is_negation = matches!(
+        token.as_str(),
+        "not" | "never" | "no" | "don't" | "doesn't" | "can't" | "cannot" | "without" | "avoid"
+    );
+    let is_code = token.contains('/')
+        || token.contains('\\')
+        || token.contains('_')
+        || token.contains("::")
+        || token.contains("()")
+        || looks_like_file_token(&token);
+    (token.len() >= 2 && (is_number || is_negation || is_code)).then_some(token)
+}
+
+fn looks_like_file_token(token: &str) -> bool {
+    if token.contains('@') {
+        return false;
+    }
+    const EXTENSIONS: &[&str] = &[
+        "ts", "tsx", "js", "jsx", "json", "rs", "py", "go", "swift", "css", "html", "md", "mdx",
+        "toml", "yaml", "yml", "sql", "sh", "zsh", "env",
+    ];
+    token
+        .rsplit_once('.')
+        .is_some_and(|(_, extension)| EXTENSIONS.contains(&extension))
+}
+
+fn validate_output(source: &str, candidate: &str) -> Option<String> {
+    let output = candidate.trim();
+    if output.contains("<think>")
+        || output.contains("```")
+        || output
+            .lines()
+            .any(|line| line.trim_start().starts_with('#'))
+        || has_repetition_loop(output)
+    {
+        return None;
+    }
+
+    let source_lower = source.to_lowercase();
+    let output_lower = output.to_lowercase();
+    let required: HashSet<String> = source
+        .split_whitespace()
+        .filter_map(protected_token)
+        .collect();
+    if required.iter().any(|token| !output_lower.contains(token)) {
+        return None;
+    }
+
+    let source_words = source.split_whitespace().count();
+    let output_words = output.split_whitespace().count();
+    if source_words >= 20 && output_words * 100 < source_words * 45 {
+        return None;
+    }
+
+    let introduced_code = output
+        .split_whitespace()
+        .filter_map(protected_token)
+        .filter(|token| looks_like_file_token(token) || token.contains('/') || token.contains('_'))
+        .any(|token| !source_lower.contains(&token));
+    (!introduced_code).then(|| output.to_string())
+}
+
+fn has_repetition_loop(output: &str) -> bool {
+    let words: Vec<&str> = output.split_whitespace().collect();
+    for width in 4..=12 {
+        if words.len() < width * 3 {
+            continue;
+        }
+        for start in 0..=words.len() - width * 3 {
+            if words[start..start + width] == words[start + width..start + width * 2]
+                && words[start..start + width] == words[start + width * 2..start + width * 3]
+            {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Clean a transcript. Returns `None` to fail open (model not ready yet or
@@ -432,7 +528,7 @@ fn engine_loop(
             return;
         }
     };
-    let params = LlamaModelParams::default().with_n_gpu_layers(99);
+    let params = LlamaModelParams::default().with_n_gpu_layers(METAL_GPU_LAYERS);
     let model = match LlamaModel::load_from_file(&backend, &model_path, &params) {
         Ok(model) => model,
         Err(error) => {
@@ -443,21 +539,45 @@ fn engine_loop(
             return;
         }
     };
-    info!("S1-mini model loaded from {}", model_path.display());
+    let mut context = match new_context(&backend, &model) {
+        Ok(context) => context,
+        Err(error) => {
+            report_engine_failure(
+                &app,
+                format!("S1-mini context initialization failed: {error}"),
+            );
+            return;
+        }
+    };
+    info!(
+        "S1-mini model loaded from {} with {} Metal GPU layers",
+        model_path.display(),
+        METAL_GPU_LAYERS
+    );
     READY.store(true, Ordering::Release);
     *LAST_ERROR.lock().unwrap() = None;
     let _ = app.emit("cleanup-model-ready", ());
 
     while let Some(job) = rx.blocking_recv() {
         let Job::Normalize { text, reply } = job;
-        let outcome = match chunk_transcript(&text) {
+        let started = Instant::now();
+        let chunks = chunk_transcript(&text);
+        let chunk_count = chunks.len();
+        let outcome = match chunks {
             chunks if chunks.is_empty() => Some(String::new()),
             chunks => {
                 let mut results: Vec<String> = Vec::with_capacity(chunks.len());
                 let mut failed = false;
                 for chunk in &chunks {
-                    match generate(&backend, &model, &build_prompt(chunk)) {
-                        Ok(cleaned) => results.push(cleaned),
+                    match generate(&mut context, &model, &build_prompt(chunk)) {
+                        Ok(cleaned) => match validate_output(chunk, &cleaned) {
+                            Some(validated) => results.push(validated),
+                            None => {
+                                warn!("S1-mini output failed fidelity validation; failing open");
+                                failed = true;
+                                break;
+                            }
+                        },
                         Err(error) => {
                             warn!("S1-mini generation failed; failing open: {error}");
                             failed = true;
@@ -468,10 +588,16 @@ fn engine_loop(
                 if failed {
                     None
                 } else {
-                    Some(results.join(" ").trim().to_string())
+                    Some(results.join("\n\n").trim().to_string())
                 }
             }
         };
+        info!(
+            "S1-mini cleanup completed: {} chars in {} chunk(s), {:.2}s",
+            text.len(),
+            chunk_count,
+            started.elapsed().as_secs_f64()
+        );
         let _ = reply.send(outcome);
     }
 }
@@ -487,31 +613,44 @@ fn report_engine_failure(app: &tauri::AppHandle, error: String) {
 }
 
 #[cfg(target_os = "macos")]
-fn generate(
+fn new_context<'model>(
     backend: &llama_cpp_2::llama_backend::LlamaBackend,
-    model: &llama_cpp_2::model::LlamaModel,
-    prompt: &str,
-) -> Result<String, String> {
+    model: &'model llama_cpp_2::model::LlamaModel,
+) -> Result<llama_cpp_2::context::LlamaContext<'model>, String> {
     use llama_cpp_2::context::params::LlamaContextParams;
-    use llama_cpp_2::llama_batch::LlamaBatch;
-    use llama_cpp_2::model::AddBos;
-    use llama_cpp_2::sampling::LlamaSampler;
     use std::num::NonZeroU32;
 
-    const N_CTX: u32 = 2048;
-
-    let mut ctx = model
+    model
         .new_context(
             backend,
             LlamaContextParams::default().with_n_ctx(Some(NonZeroU32::new(N_CTX).unwrap())),
         )
-        .map_err(|e| e.to_string())?;
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(target_os = "macos")]
+fn generate(
+    ctx: &mut llama_cpp_2::context::LlamaContext<'_>,
+    model: &llama_cpp_2::model::LlamaModel,
+    prompt: &str,
+) -> Result<String, String> {
+    use llama_cpp_2::llama_batch::LlamaBatch;
+    use llama_cpp_2::model::AddBos;
+    use llama_cpp_2::sampling::LlamaSampler;
+
+    ctx.clear_kv_cache();
 
     let tokens = model
         .str_to_token(prompt, AddBos::Never)
         .map_err(|e| e.to_string())?;
     if tokens.is_empty() {
         return Ok(String::new());
+    }
+    if tokens.len() as u32 >= N_CTX - 64 {
+        return Err(format!(
+            "prompt has {} tokens but context limit is {N_CTX}",
+            tokens.len()
+        ));
     }
 
     // Model-card guidance: output tracks input length; leave room in context.
@@ -610,5 +749,28 @@ mod tests {
 
         let impossible_ready_state = status_from_state(false, false, true, None);
         assert!(!impossible_ready_state.active);
+    }
+
+    #[test]
+    fn output_validation_allows_lists_and_preserves_exact_tokens() {
+        let source = "fix src/payment.ts and keep 12% then update API";
+        let candidate = "Please fix `src/payment.ts`:\n- Keep 12%\n- Update the API";
+        assert_eq!(
+            validate_output(source, candidate),
+            Some(candidate.to_string())
+        );
+    }
+
+    #[test]
+    fn output_validation_rejects_headings_and_invented_file_tokens() {
+        assert!(validate_output("fix the payment handler", "# Task\n\nFix the handler.").is_none());
+        assert!(validate_output("fix the payment handler", "Fix payment.ts.").is_none());
+        assert!(validate_output("do not change the handler", "Change the handler.").is_none());
+        assert!(validate_output(&"keep every detail ".repeat(30), "Keep the detail.").is_none());
+    }
+
+    #[test]
+    fn output_validation_accepts_filler_only_empty_output() {
+        assert_eq!(validate_output("um uh", ""), Some(String::new()));
     }
 }

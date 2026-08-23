@@ -5,7 +5,7 @@ use crate::apple_intelligence;
 use crate::llm_client;
 use crate::settings::AppSettings;
 
-use super::prompt::build_context_prompts_with_evidence;
+use super::prompt::build_context_prompts;
 use super::validation::accept_model_output;
 use crate::context::types::{ContextSnapshot, Surface};
 
@@ -29,13 +29,14 @@ pub async fn compose_aware_reply(
     snapshot: &ContextSnapshot,
     transcript: &str,
 ) -> AwarenessOutcome {
-    let evidence = if matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
-        crate::workspace_context::collect(snapshot, transcript)
-    } else {
-        crate::workspace_context::WorkspaceEvidence::default()
-    };
-    let Some((system, user)) = build_context_prompts_with_evidence(snapshot, transcript, &evidence)
-    else {
+    // Developer-surface context must never rewrite dictated text. It was both
+    // a fidelity risk (invented paths/identifiers) and an extra model call on
+    // every dictation. Explicit file references remain a separate local pass.
+    if matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
+        return AwarenessOutcome::Skipped("developer_surface_plain_dictation");
+    }
+
+    let Some((system, user)) = build_context_prompts(snapshot, transcript) else {
         return AwarenessOutcome::Skipped("not_an_aware_context");
     };
 
@@ -70,10 +71,6 @@ pub async fn compose_aware_reply(
             }
             Err(_) => log::warn!("Apple Intelligence compose timed out, falling back"),
         }
-    }
-
-    if matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
-        return AwarenessOutcome::Skipped("local_formatter_unavailable");
     }
 
     cloud_fallback(settings, &system, &user, transcript).await

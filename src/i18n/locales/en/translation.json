@@ -288,6 +288,7 @@
         "description": "Keeps the microphone stream open for 30 seconds after recording stops, reducing latency for back-to-back transcriptions. May degrade Bluetooth audio quality while active."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "transcribe.cpp Acceleration",
           "description": "Hardware acceleration for transcribe.cpp (Whisper-family) models. Auto uses GPU if available (Metal on macOS, Vulkan on Windows/Linux)."
@@ -410,7 +411,7 @@
       },
       "fileReferences": {
         "title": "Smart File References",
-        "description": "When dictating into a terminal or code editor, spoken file names like \"hero dot tsx\" are replaced with real project paths. Works offline."
+        "description": "Resolves only explicit spoken file names like \"hero dot tsx\" to verified project paths. It never guesses a file from vague context."
       },
       "livePunctuation": {
         "title": "Live Punctuation",
@@ -421,7 +422,7 @@
       },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
-        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
+        "description": "In Gmail and Slack, interprets what you say using visible context. Terminal and editor dictation always stays faithful to your transcript."
       }
     },
     "postProcessing": {

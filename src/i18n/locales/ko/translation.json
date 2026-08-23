@@ -268,6 +268,7 @@
         "description": "녹음 중지 후 30초 동안 마이크 스트림을 열어 두어 연속 전사 시 지연을 줄입니다. 활성화 중 블루투스 오디오 품질이 저하될 수 있습니다."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "Whisper 가속",
           "description": "Whisper 모델의 하드웨어 가속. 자동 모드는 GPU를 사용합니다 (macOS에서는 Metal, Windows/Linux에서는 Vulkan)."

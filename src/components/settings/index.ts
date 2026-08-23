@@ -25,7 +25,6 @@ export { FillerWordRemoval } from "./FillerWordRemoval";
 export { TechLexicon } from "./TechLexicon";
 export { SmartFileReferences } from "./SmartFileReferences";
 export { IntelligenceAwareness } from "./IntelligenceAwareness";
-export { LivePunctuation } from "./LivePunctuation";
 export { AppDataDirectory } from "./AppDataDirectory";
 export { ModelUnloadTimeoutSetting } from "./ModelUnloadTimeout";
 export { StartHidden } from "./StartHidden";

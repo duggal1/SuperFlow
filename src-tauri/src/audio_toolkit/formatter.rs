@@ -485,6 +485,13 @@ fn normalize_numerics(text: &str) -> String {
     out.join(" ")
 }
 
+/// Normalize only spoken numeric values, currencies, percentages, units, and
+/// times. This deliberately does not alter prose casing, punctuation, or
+/// structure; S1-mini owns those concerns in the final transcript pipeline.
+pub fn normalize_values(text: &str) -> String {
+    normalize_numerics(text)
+}
+
 fn ambiguous_additive_context(words: &[&str], start: usize) -> bool {
     if start < 2 || number_clean(words[start - 1]) != "and" {
         return false;

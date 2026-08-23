@@ -268,6 +268,7 @@
         "description": "Mantiene el flujo del micrófono abierto durante 30 segundos después de detener la grabación, reduciendo la latencia en transcripciones consecutivas. Puede degradar la calidad del audio Bluetooth mientras está activo."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "Aceleración de transcribe.cpp",
           "description": "Aceleración por hardware para modelos transcribe.cpp (familia Whisper). Auto usa GPU si está disponible (Metal en macOS, Vulkan en Windows/Linux)."

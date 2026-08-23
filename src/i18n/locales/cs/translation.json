@@ -268,6 +268,7 @@
         "description": "Ponechá stream mikrofonu otevřený po dobu 30 sekund po zastavení nahrávání, čímž se sníží latence při opakovaném přepisu. Může zhoršit kvalitu zvuku Bluetooth."
       },
       "acceleration": {
+        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
         "transcribe": {
           "title": "Akcelerace Whisper",
           "description": "Hardwarová akcelerace pro modely Whisper. Automatický režim používá GPU, pokud je k dispozici (Metal na macOS, Vulkan na Windows/Linux)."

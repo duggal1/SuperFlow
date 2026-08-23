@@ -5,18 +5,12 @@
 //! `components/landing-page/hero.tsx`. Entirely local — frontmost-app
 //! detection comes from the [`crate::context`] engine, the project root is
 //! derived from the terminal's shell cwd (or the editor's last workspace),
-//! and matching is plain fuzzy filename lookup over an on-disk index.
+//! and matching is exact filename lookup over an on-disk index.
 //! Every failure path returns the original transcript untouched.
 //!
-//! Resolution runs in two passes:
-//! 1. Deterministic — exact spoken forms (`hero.tsx`, `hero dot tsx`,
-//!    spelled letters). Duplicate basenames resolve only when activity
-//!    signals (git-modified) single one out.
-//! 2. Vague — cue-word phrases ("the payment file", "the hero component")
-//!    scored against stem similarity + directory-token context (with a
-//!    synonym table: backend≈server/api) + git-modified state. Accepted
-//!    only above an absolute score AND a margin over the runner-up;
-//!    otherwise the transcript stays untouched.
+//! Only explicit spoken forms (`hero.tsx`, `hero dot tsx`, spelled letters)
+//! are eligible. Duplicate basenames resolve only when git activity singles
+//! one out; vague phrases never introduce a filename or extension.
 
 use crate::context::types::{ContextSnapshot, Surface};
 use log::debug;
@@ -66,55 +60,6 @@ const INDEX_TTL: Duration = Duration::from_secs(30);
 /// How long a `git status --porcelain` snapshot stays trusted. Git state is
 /// an activity *hint*, never a gate; staleness only weakens boosts.
 const GIT_TTL: Duration = Duration::from_secs(15);
-
-// --- Vague-pass scoring -------------------------------------------------
-//
-// score = 0.55·stem_sim + 0.25·dir_context + 0.20·git_modified.
-// stem_sim ∈ {1.0 exact, 0.95 token-boundary containment, jaro_winkler}.
-// Acceptance needs BOTH an absolute floor and a margin over the runner-up,
-// so awareness improves precision instead of inventing confident paths.
-
-const VAGUE_MIN_SCORE: f64 = 0.75;
-const VAGUE_MIN_MARGIN: f64 = 0.15;
-const W_STEM: f64 = 0.55;
-const W_DIR: f64 = 0.25;
-const W_GIT: f64 = 0.20;
-const CONTAINMENT_SIM: f64 = 0.95;
-const FUZZY_STEM_MIN: f64 = 0.90;
-const MIN_QUERY_LEN: usize = 3;
-
-/// Maximum vague references replaced per utterance (conservatism cap).
-const MAX_VAGUE_REPLACEMENTS: usize = 2;
-
-/// Distance (in tokens) a candidate may sit from a file-noun cue word.
-const CUE_WINDOW: usize = 2;
-
-/// File-noun cue words that license vague resolution of a nearby token.
-const CUE_WORDS: &[&str] = &[
-    "file", "files", "folder", "directory", "dir", "component", "components", "module",
-    "script", "handler", "service", "page", "route", "util", "utils", "helper", "helpers",
-    "config", "model", "models", "view", "screen", "test", "tests", "package", "store",
-    "hook", "hooks",
-];
-
-/// Words that must never be treated as filename candidates on their own.
-const STOPWORDS: &[&str] = &[
-    "the", "this", "that", "these", "those", "please", "just", "then", "than", "and",
-    "into", "from", "with", "without", "make", "check", "find", "look", "open", "edit",
-    "update", "fix", "change", "modify", "remove", "delete", "add", "create", "work",
-    "working", "looks", "thing", "things", "stuff", "code", "project", "repo", "issue",
-    "somewhere", "think", "need", "want", "going", "gonna", "there", "here", "after",
-    "before", "again", "also", "some", "have", "does", "will", "should", "would",
-];
-
-/// Domain synonyms: spoken context words expand to directory-name hints so
-/// "backend payment file" favors `src/server/payments/…` over a frontend twin.
-const SYNONYMS: &[(&str, &[&str])] = &[
-    ("backend", &["server", "api"]),
-    ("frontend", &["client", "components", "ui", "app"]),
-    ("database", &["db", "schema", "models"]),
-    ("auth", &["authentication", "login", "session"]),
-];
 
 /// Terminal apps whose foreground shell's cwd is the active project.
 const TERMINAL_BUNDLE_IDS: &[&str] = &[
@@ -395,24 +340,15 @@ fn percent_decode(input: &str) -> String {
 #[derive(Clone)]
 pub(crate) struct FileEntry {
     /// Path relative to the project root, `/`-separated.
-    pub(crate) rel: String,
+    rel: String,
     name_lower: String,
-    /// Lowercased filename without extension ("hero" for Hero.tsx).
-    stem_lower: String,
-    /// Lowercased extension when present ("tsx").
-    ext_lower: Option<String>,
-    /// Alphanumeric runs of the directory segments, lowercased
-    /// ("components/landing-page/hero.tsx" → ["components","landing","page"]).
-    dir_tokens: Vec<String>,
 }
 
 type CachedIndex = HashMap<PathBuf, (Instant, Vec<FileEntry>)>;
 static INDEX_CACHE: Lazy<Mutex<CachedIndex>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// Cached project file index (path-metadata entries only — never contents).
-/// Shared with `workspace_context` so awareness evidence reuses the same
-/// warm index instead of crawling the repository per utterance.
-pub(crate) fn project_index(root: &Path) -> Option<Vec<FileEntry>> {
+fn project_index(root: &Path) -> Option<Vec<FileEntry>> {
     {
         let cache = INDEX_CACHE.lock().ok()?;
         if let Some((at, entries)) = cache.get(root) {
@@ -437,16 +373,6 @@ pub(crate) fn project_index(root: &Path) -> Option<Vec<FileEntry>> {
         cache.insert(root.to_path_buf(), (Instant::now(), entries.clone()));
     }
     Some(entries)
-}
-
-/// Alphanumeric runs of a string, lowercased: "landing-page" →
-/// ["landing", "page"]. Used for directory-token context matching.
-fn token_runs(input: &str) -> Vec<String> {
-    input
-        .split(|c: char| !c.is_alphanumeric())
-        .filter(|run| !run.is_empty())
-        .map(str::to_lowercase)
-        .collect()
 }
 
 fn walk(root: &Path, dir: &Path, depth: usize, out: &mut Vec<FileEntry>) {
@@ -476,18 +402,7 @@ fn walk(root: &Path, dir: &Path, depth: usize, out: &mut Vec<FileEntry>) {
                 .map(|p| p.to_string_lossy().replace('\\', "/"))
                 .unwrap_or_else(|_| name.to_string());
             let name_lower = name.to_lowercase();
-            let (stem_lower, ext_lower) = name_lower
-                .rsplit_once('.')
-                .map(|(stem, ext)| (stem.to_string(), Some(ext.to_string())))
-                .unwrap_or((name_lower.clone(), None));
-            let dir_tokens = token_runs(&rel);
-            out.push(FileEntry {
-                rel,
-                name_lower,
-                stem_lower,
-                ext_lower,
-                dir_tokens,
-            });
+            out.push(FileEntry { rel, name_lower });
         }
     }
 }
@@ -593,142 +508,9 @@ fn best_match(index: &[FileEntry], filename: &str, root: &Path) -> Option<String
     None
 }
 
-/// One spoken token's similarity against an entry's stem: exact 1.0,
-/// plural-folded exact 1.0, token-boundary containment fixed, else
-/// jaro_winkler (kept only above [`FUZZY_STEM_MIN`]).
-fn stem_similarity(query: &str, entry: &FileEntry) -> Option<f64> {
-    let singular = query.strip_suffix('s').filter(|s| s.len() >= MIN_QUERY_LEN);
-    if entry.stem_lower == query || singular == Some(entry.stem_lower.as_str()) {
-        return Some(1.0);
-    }
-    let stem_runs = token_runs(&entry.stem_lower);
-    let contained = |q: &str| {
-        !q.is_empty()
-            && (stem_runs.iter().any(|run| run == q)
-                || token_runs(q).contains(&entry.stem_lower)
-                || stem_runs.contains(&q.to_string()))
-    };
-    if contained(query) || singular.is_some_and(contained) {
-        return Some(CONTAINMENT_SIM);
-    }
-    let fuzzy = singular.map_or(f64::MIN, |s| strsim::jaro_winkler(s, &entry.stem_lower));
-    let fuzzy = fuzzy.max(strsim::jaro_winkler(query, &entry.stem_lower));
-    (fuzzy >= FUZZY_STEM_MIN).then_some(fuzzy)
-}
-
-/// Score one candidate: stem similarity + directory-context overlap +
-/// git-modified activity, weighted per the module constants.
-fn vague_score(
-    sim: f64,
-    entry: &FileEntry,
-    ctx: &HashSet<String>,
-    git: &HashSet<String>,
-) -> f64 {
-    let ctx_hits = ctx.iter().filter(|t| entry.dir_tokens.contains(t)).count();
-    let ratio = if ctx.is_empty() {
-        0.0
-    } else {
-        ctx_hits as f64 / ctx.len() as f64
-    };
-    W_STEM * sim + W_DIR * ratio + W_GIT * i32::from(git.contains(&entry.rel)) as f64
-}
-
-/// Second pass: resolve cue-licensed vague references ("the payment file",
-/// "the hero component") after the deterministic pass found nothing.
-/// Acceptance demands either a unique exact-stem hit or a decisive
-/// score-plus-margin lead; anything less leaves the transcript untouched.
-fn vague_resolve(root: &Path, index: &[FileEntry], text: &str) -> Option<String> {
-    let words: Vec<&str> = text.split_whitespace().collect();
-    let cleaned: Vec<String> = words.iter().map(|w| clean_token(w)).collect();
-    let lower: Vec<String> = words.iter().map(|w| w.to_lowercase()).collect();
-
-    let is_content = |i: usize| -> bool {
-        let token = &cleaned[i];
-        token.len() >= MIN_QUERY_LEN
-            && !STOPWORDS.contains(&lower[i].as_str())
-            && !CUE_WORDS.contains(&lower[i].as_str())
-            && !token.contains('.')
-    };
-    let cue_licensed = |i: usize| -> bool {
-        let lo = i.saturating_sub(CUE_WINDOW);
-        let hi = (i + CUE_WINDOW + 1).min(words.len());
-        (lo..hi).any(|j| CUE_WORDS.contains(&lower[j].as_str()))
-    };
-
-    // Directory-context vocabulary: every other content word plus its
-    // synonym expansions ("backend" contributes server/api).
-    let mut ctx: HashSet<String> = HashSet::new();
-    for (i, token) in cleaned.iter().enumerate() {
-        if !is_content(i) {
-            continue;
-        }
-        ctx.insert(token.clone());
-        if let Some((_, synonyms)) = SYNONYMS.iter().find(|(word, _)| *word == token.as_str()) {
-            ctx.extend(synonyms.iter().map(|s| (*s).to_string()));
-        }
-    }
-
-    let git = git_modified(root);
-    let mut picks: Vec<(usize, String)> = Vec::new();
-    for i in 0..words.len() {
-        if picks.len() >= MAX_VAGUE_REPLACEMENTS {
-            break;
-        }
-        if !is_content(i) || !cue_licensed(i) {
-            continue;
-        }
-        if picks.iter().any(|(picked, _)| {
-            picked.abs_diff(i) <= CUE_WINDOW && lower[*picked] == lower[i]
-        }) {
-            continue;
-        }
-
-        let mut ranked: Vec<(f64, &FileEntry)> = index
-            .iter()
-            // Vague references may only land on real source files: unknown
-            // extensions (.bak, binaries) are noise magnets for fuzzy stems.
-            .filter(|entry| {
-                entry
-                    .ext_lower
-                    .as_deref()
-                    .is_none_or(|ext| is_ext(ext).is_some())
-            })
-            .filter_map(|entry| {
-                stem_similarity(&cleaned[i], entry)
-                    .map(|sim| (vague_score(sim, entry, &ctx, &git), entry))
-            })
-            .collect();
-        if ranked.is_empty() {
-            continue;
-        }
-        ranked.sort_by(|a, b| b.0.total_cmp(&a.0));
-
-        let (best_score, best) = ranked[0];
-        let unique_exact = ranked.len() == 1 && best_score >= W_STEM;
-        let decisive =
-            best_score >= VAGUE_MIN_SCORE && ranked.get(1).is_none_or(|(s, _)| best_score - s >= VAGUE_MIN_MARGIN);
-        if !(unique_exact || decisive) {
-            continue;
-        }
-        picks.push((i, best.rel.clone()));
-    }
-    if picks.is_empty() {
-        return None;
-    }
-
-    let mut out: Vec<String> = Vec::with_capacity(words.len());
-    for (i, word) in words.iter().enumerate() {
-        match picks.iter().find(|(picked, _)| *picked == i) {
-            Some((_, rel)) => out.push(rel.clone()),
-            None => out.push((*word).to_string()),
-        }
-    }
-    Some(out.join(" "))
-}
-
-/// Resolve spoken file references inside `text` against `root`'s project.
-/// Pass 1 rewrites deterministic forms; when nothing matched, pass 2 tries
-/// cue-licensed vague references. `None` means the text is best untouched.
+/// Resolve explicit spoken file references inside `text` against `root`'s
+/// project. Vague phrases are deliberately not inferred: only a filename and
+/// extension the speaker actually said may introduce a project path.
 pub fn resolve_references(root: &Path, text: &str) -> Option<String> {
     let index = project_index(root)?;
     let words: Vec<&str> = text.split_whitespace().collect();
@@ -748,10 +530,7 @@ pub fn resolve_references(root: &Path, text: &str) -> Option<String> {
         }
     }
 
-    if replaced {
-        return Some(out.join(" "));
-    }
-    vague_resolve(root, &index, text)
+    replaced.then(|| out.join(" "))
 }
 
 /// Try to match a spoken file reference starting exactly at position `start`.
@@ -895,6 +674,7 @@ mod tests {
         }
         let git = |args: &[&str]| {
             std::process::Command::new("git")
+                .args(["-c", "core.fsmonitor=false"])
                 .args(args)
                 .current_dir(dir)
                 .output()
@@ -1000,28 +780,21 @@ mod tests {
     }
 
     #[test]
-    fn vague_reference_prefers_git_active_server_file() {
+    fn vague_reference_never_invents_git_active_server_file() {
         let dir = unique_temp_dir("vague_git");
         std::fs::create_dir_all(dir.join("src/server/payments")).unwrap();
         std::fs::create_dir_all(dir.join("src/frontend/checkout")).unwrap();
         std::fs::write(dir.join("src/server/payments/payment-service.ts"), "").unwrap();
         std::fs::write(dir.join("src/frontend/checkout/Payment.tsx"), "").unwrap();
         with_git_dirty(&dir, &["src/server/payments/payment-service.ts"]);
-        let result = resolve_in(&dir, "fix the backend payment file");
-        assert_eq!(
-            result.as_deref(),
-            Some("fix the backend src/server/payments/payment-service.ts file")
-        );
+        assert_eq!(resolve_in(&dir, "fix the backend payment file"), None);
     }
 
     #[test]
-    fn unique_exact_component_reference_resolves() {
+    fn component_without_explicit_extension_stays_untouched() {
         let dir = temp_project();
         let result = resolve_in(&dir, "update the hero component");
-        assert_eq!(
-            result.as_deref(),
-            Some("update the components/landing-page/hero.tsx component")
-        );
+        assert_eq!(result, None);
     }
 
     #[test]
