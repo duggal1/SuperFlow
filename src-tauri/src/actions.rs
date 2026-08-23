@@ -1,6 +1,8 @@
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::apple_intelligence;
-use crate::audio_feedback::{play_feedback_sound, play_feedback_sound_blocking, SoundType};
+use crate::audio_feedback::{
+    play_feedback_sound, play_feedback_sound_blocking, AiCleanupSound, SoundType,
+};
 use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error, VadPolicy};
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
@@ -924,7 +926,10 @@ impl ShortcutAction for TranscribeAction {
 
                             let auto_ai_cleanup = get_settings(&ah).auto_ai_cleanup_enabled;
                             if auto_ai_cleanup {
-                                crate::audio_feedback::play_ai_cleanup_sound(&ah, false);
+                                crate::audio_feedback::play_ai_cleanup_sound(
+                                    &ah,
+                                    AiCleanupSound::Trigger,
+                                );
                                 crate::overlay::show_ai_prompting_overlay(&ah);
                             } else if post_process {
                                 if use_streaming_overlay {
@@ -962,7 +967,10 @@ impl ShortcutAction for TranscribeAction {
                             }
 
                             if auto_ai_cleanup && processed.post_processed_text.is_some() {
-                                crate::audio_feedback::play_ai_cleanup_sound(&ah, true);
+                                crate::audio_feedback::play_ai_cleanup_sound(
+                                    &ah,
+                                    AiCleanupSound::Complete,
+                                );
                             }
 
                             // Save to history if WAV was saved. The recorded
@@ -1172,7 +1180,7 @@ impl ShortcutAction for AiCleanupAction {
         let app = app.clone();
         tauri::async_runtime::spawn(async move {
             let _guard = AiCleanupFlightGuard;
-            crate::audio_feedback::play_ai_cleanup_sound(&app, false);
+            crate::audio_feedback::play_ai_cleanup_sound(&app, AiCleanupSound::Trigger);
             let selection = tauri::async_runtime::spawn_blocking(|| {
                 crate::context::capture::capture_selected_text()
             })
@@ -1181,7 +1189,7 @@ impl ShortcutAction for AiCleanupAction {
             .flatten();
 
             let Some(selection) = selection else {
-                crate::audio_feedback::play_ai_cleanup_sound(&app, true);
+                crate::audio_feedback::play_ai_cleanup_sound(&app, AiCleanupSound::Error);
                 crate::overlay::show_ai_cleanup_notice(
                     &app,
                     "Please select the text first.".to_string(),
@@ -1196,7 +1204,7 @@ impl ShortcutAction for AiCleanupAction {
                 Ok(output) => output,
                 Err(error) => {
                     log::warn!("AI clean up failed: {error}");
-                    crate::audio_feedback::play_ai_cleanup_sound(&app, true);
+                    crate::audio_feedback::play_ai_cleanup_sound(&app, AiCleanupSound::Error);
                     let badge = if crate::ai_cleanup::is_missing_api_key_error(&error) {
                         "API key"
                     } else {
@@ -1206,6 +1214,8 @@ impl ShortcutAction for AiCleanupAction {
                     return;
                 }
             };
+
+            crate::audio_feedback::play_ai_cleanup_sound(&app, AiCleanupSound::Complete);
 
             if crate::secure_input::is_enabled_now() {
                 crate::overlay::hide_recording_overlay(&app);
@@ -1236,7 +1246,6 @@ impl ShortcutAction for AiCleanupAction {
                 return;
             }
 
-            crate::audio_feedback::play_ai_cleanup_sound(&app, true);
             let handle = app.clone();
             let fallback = output.clone();
             let _ = app.run_on_main_thread(move || {
