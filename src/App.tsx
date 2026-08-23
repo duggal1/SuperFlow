@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, type ReactNode } from "react";
 import { toast, Toaster } from "sonner";
+import { CheckCircle, Warning, XCircle } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { platform } from "@tauri-apps/plugin-os";
@@ -271,14 +272,22 @@ function App() {
   const toaster = (
     <Toaster
       theme="system"
+      position="bottom-right"
+      icons={{
+        success: (
+          <CheckCircle weight="fill" className="size-4 text-[#34D399]" />
+        ),
+        error: <XCircle weight="fill" className="size-4 text-[#FF5C5C]" />,
+        warning: <Warning weight="fill" className="size-4 text-[#FF6A1A]" />,
+      }}
       toastOptions={{
         unstyled: true,
         classNames: {
           toast:
-            "bg-surface text-text border-0 rounded-[7px] shadow-none px-3 py-2.5 flex items-center gap-2 text-sm",
-          error: "!bg-[#f43f5e]/[0.11] !text-[#f43f5e]",
-          warning: "!bg-[#fb8442]/[0.11] !text-[#fb8442]",
-          success: "!bg-[#22c55e]/[0.11] !text-[#22c55e]",
+            "bg-surface text-text border-0 rounded-[7px] shadow-none px-3 py-3 flex items-center gap-2 text-sm",
+          error: "!bg-[#241010] !text-[#FFD3D3]",
+          warning: "!bg-[#241708] !text-[#FFDCC0]",
+          success: "!bg-[#0D1E16] !text-[#C8F5DA]",
           title: "font-normal text-current",
           description: "text-current opacity-75",
           actionButton:

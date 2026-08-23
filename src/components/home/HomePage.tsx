@@ -530,26 +530,9 @@ export const HomePage: React.FC = () => {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div className="space-y-2">
-        <div className="flex items-center justify-between px-4">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-mid-gray">
-            {t("home.title")}
-          </h2>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={exportTranscripts}
-            aria-label={t("home.export")}
-            icon={
-              exporting ? (
-                <CircleNotch className="size-3.5 animate-spin" />
-              ) : (
-                <DownloadSimple className="size-3.5" />
-              )
-            }
-          >
-            {t("home.export")}
-          </Button>
-        </div>
+        <h2 className="px-4 text-xs font-medium uppercase tracking-wide text-mid-gray">
+          {t("home.title")}
+        </h2>
 
         {/* Stats — quiet surface, vertical hairlines between cells, and a
             single bottom hairline separating the saved-time footer. No outer
@@ -589,6 +572,26 @@ export const HomePage: React.FC = () => {
             )}
           </div>
         </section>
+
+        {/* Export — top-right of the transcript cards, below the stats card.
+            Extra top padding gives it clean breathing room after the stats. */}
+        <div className="flex justify-end px-4 pt-4">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={exportTranscripts}
+            aria-label={t("home.export")}
+            icon={
+              exporting ? (
+                <CircleNotch className="size-3.5 animate-spin" />
+              ) : (
+                <DownloadSimple className="size-3.5" />
+              )
+            }
+          >
+            {t("home.export")}
+          </Button>
+        </div>
 
         {/* Transcripts — grouped Today / Yesterday / Earlier */}
         {loading ? (
