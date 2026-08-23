@@ -21,8 +21,8 @@ interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const badgeVariants: Record<BadgeVariant, string> = {
-  orange: "bg-[#fb8442] text-white",
-  green: "bg-[#22c55e] text-white",
+  orange: "bg-[#fb8442]/[0.11] text-[#fb8442]",
+  green: "bg-[#22c55e]/[0.11] text-[#22c55e]",
   blue: "bg-[#3b82f6]/[0.11] text-[#3b82f6]",
   violet: "bg-[#8b5cf6]/[0.11] text-[#8b5cf6]",
   purple: "bg-[#a855f7]/[0.11] text-[#a855f7]",
@@ -30,7 +30,7 @@ const badgeVariants: Record<BadgeVariant, string> = {
   cyan: "bg-[#06b6d4]/[0.11] text-[#06b6d4]",
   pink: "bg-[#ec4899]/[0.11] text-[#ec4899]",
   red: "bg-[#ef4444]/[0.11] text-[#ef4444]",
-  rose: "bg-[#f43f5e] text-white",
+  rose: "bg-[#f43f5e]/[0.11] text-[#f43f5e]",
   yellow: "bg-[#eab308]/[0.11] text-[#eab308]",
   indigo: "bg-[#6366f1]/[0.11] text-[#6366f1]",
   sky: "bg-[#0ea5e9]/[0.11] text-[#0ea5e9]",

@@ -21,14 +21,14 @@ const variantStyles: Record<
   { container: string; icon: string; text: string }
 > = {
   error: {
-    container: "bg-[#f43f5e]",
-    icon: "text-white",
-    text: "text-white",
+    container: "bg-[#f43f5e]/[0.11]",
+    icon: "text-[#f43f5e]",
+    text: "text-[#f43f5e]",
   },
   warning: {
-    container: "bg-[#fb8442]",
-    icon: "text-white",
-    text: "text-white",
+    container: "bg-[#fb8442]/[0.11]",
+    icon: "text-[#fb8442]",
+    text: "text-[#fb8442]",
   },
   info: {
     container: "bg-blue-500/10",
@@ -36,9 +36,9 @@ const variantStyles: Record<
     text: "text-blue-400",
   },
   success: {
-    container: "bg-[#22c55e]",
-    icon: "text-white",
-    text: "text-white",
+    container: "bg-[#22c55e]/[0.11]",
+    icon: "text-[#22c55e]",
+    text: "text-[#22c55e]",
   },
 };
 

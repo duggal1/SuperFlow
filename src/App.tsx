@@ -276,11 +276,11 @@ function App() {
         classNames: {
           toast:
             "bg-surface text-text border-0 rounded-[7px] shadow-none px-3 py-2.5 flex items-center gap-2 text-sm",
-          error: "!bg-[#f43f5e] !text-white",
-          warning: "!bg-[#fb8442] !text-white",
-          success: "!bg-[#22c55e] !text-white",
+          error: "!bg-[#f43f5e]/[0.11] !text-[#f43f5e]",
+          warning: "!bg-[#fb8442]/[0.11] !text-[#fb8442]",
+          success: "!bg-[#22c55e]/[0.11] !text-[#22c55e]",
           title: "font-normal text-current",
-          description: "text-current",
+          description: "text-current opacity-75",
           actionButton:
             "cursor-pointer whitespace-nowrap rounded-lg border border-current/20 bg-transparent px-2 py-1 text-xs font-medium text-current hover:bg-current/10 hover:text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current",
           cancelButton:
