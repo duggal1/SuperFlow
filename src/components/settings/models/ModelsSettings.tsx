@@ -9,7 +9,6 @@ import {
   GlobeSimple,
   Translate,
 } from "@phosphor-icons/react";
-import { Badge } from "@/components/ui/Badge";
 import type { ModelCardStatus } from "@/components/onboarding";
 import { ModelCard } from "@/components/onboarding";
 import { useModelStore } from "@/stores/modelStore";
@@ -348,27 +347,15 @@ export const ModelsSettings: React.FC = () => {
             <MenuTrigger
               aria-label={t("settings.models.filters.sort")}
               title={t("settings.models.filters.sort")}
-              className="flex h-7 cursor-pointer items-center gap-2 rounded-lg border border-transparent bg-[#37332f] px-3 text-[13px] text-text/60 shadow-none outline-none transition-colors duration-200 hover:border-stone-700 hover:bg-stone-800"
+              className="flex h-7 cursor-pointer items-center gap-2 rounded-lg border border-[#37332f] bg-[#302c29] px-3 text-[13px] text-text/60 outline-none transition-colors duration-200 hover:border-[#44403c] hover:bg-[#292524]"
             >
               <Funnel size={16} />
               <span>{t("settings.models.filters.sort")}</span>
-              {sortMode !== "default" && (
-                <Badge
-                  variant="blue"
-                  className="gap-1 px-1.5 py-0 text-[11px] font-medium"
-                >
-                  <span className="size-1.5 rounded-full bg-blue-600" />
-                  {t(
-                    SORT_OPTIONS.find((option) => option.value === sortMode)
-                      ?.labelKey ?? "",
-                  )}
-                </Badge>
-              )}
               <CaretDown size={12} className="text-text/40" />
             </MenuTrigger>
             <MenuPopup
               align="start"
-              className="min-w-40 rounded-lg border-none bg-stone-700 p-1 text-stone-50"
+              className="min-w-48 rounded-lg border-none bg-stone-700 p-1 text-stone-50"
             >
               <MenuRadioGroup
                 value={sortMode}

@@ -16,8 +16,21 @@ import {
   getLanguageLabel,
   getUniqueCapabilityLanguages,
 } from "../../lib/constants/languages";
-import { Badge } from "../ui/Badge";
+import { Badge, type BadgeVariant } from "../ui/Badge";
 import { Button } from "../ui/Button";
+
+// Accuracy tier badge — green at/above 85%, orange from 70–85%, rose below.
+// No score means no badge: unknown is not the same as inaccurate.
+const getAccuracyBadge = (
+  model: ModelInfo,
+): { percent: number; variant: BadgeVariant } | null => {
+  const accuracy = Math.min(1, Math.max(0, model.accuracy_score));
+  if (accuracy <= 0) return null;
+  const percent = Math.round(accuracy * 100);
+  if (percent >= 85) return { percent, variant: "green" };
+  if (percent >= 70) return { percent, variant: "orange" };
+  return { percent, variant: "rose" };
+};
 
 // Get display text for model's language support
 const getLanguageDisplayText = (
@@ -96,6 +109,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const capabilityLanguages = getUniqueCapabilityLanguages(
     model.supported_languages,
   );
+  const accuracyBadge = getAccuracyBadge(model);
 
   const baseClasses =
     "group flex flex-col rounded-[10px] border border-transparent bg-surface px-4 py-3 gap-2 text-left transition-colors duration-200";
@@ -160,7 +174,17 @@ const ModelCard: React.FC<ModelCardProps> = ({
               <Badge variant="fuchsia">{t("onboarding.recommended")}</Badge>
             )}
             {status === "active" && (
-              <Badge variant="green">{t("modelSelector.active")}</Badge>
+              <Badge variant="blue">{t("modelSelector.active")}</Badge>
+            )}
+            {accuracyBadge && (
+              <Badge
+                variant={accuracyBadge.variant}
+                className="px-2.5 text-[10px] leading-none"
+              >
+                {t("onboarding.modelCard.accuracyPercent", {
+                  percent: accuracyBadge.percent,
+                })}
+              </Badge>
             )}
             {model.is_custom && (
               <Badge variant="neutral">{t("modelSelector.custom")}</Badge>
@@ -231,15 +255,6 @@ const ModelCard: React.FC<ModelCardProps> = ({
             <Equalizer className="w-3.5 h-3.5" />
             <span>{t("modelSelector.streaming")}</span>
           </div>
-        )}
-        {model.supports_language_detection && (
-          <Badge
-            variant="blue"
-            className="px-1 py-0 text-[10px] leading-[14px]"
-            title={t("modelSelector.capabilities.autoDetect")}
-          >
-            {t("modelSelector.capabilities.autoDetect")}
-          </Badge>
         )}
         {model.supports_translation && (
           <div
