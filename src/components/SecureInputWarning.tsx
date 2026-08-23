@@ -89,16 +89,16 @@ const SecureInputWarning: React.FC = () => {
         : t("secureInput.recorderBlockedNoCulprit");
 
   return (
-    <div className="w-full rounded-[7px] border-0 bg-[#fb8442]/[0.11] px-3 py-2.5 text-[#fb8442] shadow-none">
+    <div className="w-full rounded-[7px] border-0 bg-[#fb8442] px-3 py-2.5 text-white shadow-none">
       <div className="flex items-center gap-3">
-        <Warning className="h-5 w-5 shrink-0 text-[#fb8442]" />
+        <Warning className="h-5 w-5 shrink-0 text-white" />
         <p className="min-w-0 flex-1 text-sm font-medium leading-5">
           {message}
         </p>
         <div className="flex shrink-0 items-center gap-1">
           <button
             onClick={() => openUrl(SECURE_INPUT_HELP_URL)}
-            className="cursor-pointer whitespace-nowrap rounded px-2 py-1.5 text-sm font-medium text-text hover:text-[#fb8442] focus:outline-none focus:ring-1 focus:ring-[#fb8442]"
+            className="cursor-pointer whitespace-nowrap rounded px-2 py-1.5 text-sm font-medium text-white hover:bg-white/10 focus:outline-none focus:ring-1 focus:ring-white"
           >
             <span className="flex items-center gap-1 border-b border-current leading-4">
               {t("secureInput.learnMore")}
@@ -108,7 +108,7 @@ const SecureInputWarning: React.FC = () => {
           <button
             onClick={() => setDismissed(true)}
             aria-label={t("secureInput.dismiss")}
-            className="cursor-pointer rounded p-1.5 text-mid-gray hover:bg-[#fb8442]/15 hover:text-[#fb8442] focus:outline-none focus:ring-1 focus:ring-[#fb8442]"
+            className="cursor-pointer rounded p-1.5 text-white hover:bg-white/15 focus:outline-none focus:ring-1 focus:ring-white"
           >
             <X className="h-4 w-4" />
           </button>
