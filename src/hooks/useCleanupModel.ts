@@ -10,7 +10,7 @@ export interface CleanupModelState {
 
 /**
  * Shared state + actions for the mandatory S1-mini text clean-up model.
- * Used by both the onboarding install page and the dashboard models card —
+ * Used by both the onboarding install page and the Journal model card —
  * only one of them is ever mounted at a time, so one listener set is enough.
  */
 export function useCleanupModel() {
@@ -33,14 +33,16 @@ export function useCleanupModel() {
       "cleanup-model-progress",
       (event) => {
         setProgress(event.payload.percentage);
-        setStatus((prev) =>
-          prev ? { ...prev, installing: true } : prev,
-        );
+        setStatus((prev) => (prev ? { ...prev, installing: true } : prev));
       },
     );
 
     const unlistenComplete = listen("cleanup-model-complete", () => {
       setProgress(100);
+      void refresh();
+    });
+
+    const unlistenReady = listen("cleanup-model-ready", () => {
       void refresh();
     });
 
@@ -54,6 +56,7 @@ export function useCleanupModel() {
     return () => {
       unlistenProgress.then((fn) => fn());
       unlistenComplete.then((fn) => fn());
+      unlistenReady.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
   }, [refresh]);

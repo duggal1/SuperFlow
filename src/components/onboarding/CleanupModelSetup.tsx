@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Broom, CircleNotch, Cpu, HardDrives } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { StatusPing } from "@/components/ui/StatusPing";
 import SuperFlowTextLogo from "@/components/icons/SuperFlowTextLogo";
 import { useCleanupModel } from "@/hooks/useCleanupModel";
 
@@ -27,15 +28,16 @@ export const CleanupModelSetup: React.FC<CleanupModelSetupProps> = ({
   const completedRef = useRef(false);
 
   const installed = status?.installed ?? false;
+  const active = status?.active ?? false;
 
   // Hand control to the dashboard shortly after "Activated" appears so the
   // user actually sees the terminal state instead of an instant jump.
   useEffect(() => {
-    if (!installed || completedRef.current) return;
+    if (!active || completedRef.current) return;
     completedRef.current = true;
     const timer = setTimeout(onComplete, 900);
     return () => clearTimeout(timer);
-  }, [installed, onComplete]);
+  }, [active, onComplete]);
 
   const handleInstall = () => {
     void install();
@@ -53,37 +55,26 @@ export const CleanupModelSetup: React.FC<CleanupModelSetupProps> = ({
       <div className="flex w-full max-w-md flex-col items-center gap-4">
         {/* Status header: live ping dot + model name + state badge */}
         <div className="flex items-center gap-2 self-start">
-          <span className="relative flex size-1.5">
-            <span
-              className={`absolute inline-flex h-full w-full animate-ping rounded-[1.5px] opacity-75 ${
-                installed
-                  ? "bg-green-500"
-                  : status?.installing
-                    ? "bg-orange-500"
-                    : "bg-rose-500"
-              }`}
-            />
-            <span
-              className={`relative inline-flex size-1.5 rounded-[1.5px] ${
-                installed
-                  ? "bg-green-500"
-                  : status?.installing
-                    ? "bg-orange-500"
-                    : "bg-rose-500"
-              }`}
-            />
-          </span>
+          <StatusPing
+            tone={
+              active
+                ? "green"
+                : status?.installing || (installed && !status?.last_error)
+                  ? "orange"
+                  : "rose"
+            }
+          />
           <h2 className="text-sm font-medium tracking-tight text-stone-50">
             {t("onboarding.cleanup.cardTitle")}
           </h2>
-          {installed && (
+          {active && (
             <Badge variant="green">{t("onboarding.cleanup.activated")}</Badge>
           )}
         </div>
 
         <div
           className={`w-full rounded-lg border bg-surface p-4 transition-colors duration-200 ${
-            installed ? "border-blue-600/60 bg-blue-600/10" : "border-transparent"
+            active ? "border-blue-600/60 bg-blue-600/10" : "border-transparent"
           }`}
         >
           <div className="flex items-start gap-4">
@@ -93,10 +84,14 @@ export const CleanupModelSetup: React.FC<CleanupModelSetupProps> = ({
                 <h3 className="text-sm font-medium tracking-tight text-stone-50">
                   {t("onboarding.cleanup.cardTitle")}
                 </h3>
-                {installed ? (
-                  <Badge variant="green">{t("onboarding.cleanup.activated")}</Badge>
+                {active ? (
+                  <Badge variant="green">
+                    {t("onboarding.cleanup.activated")}
+                  </Badge>
                 ) : (
-                  <Badge variant="blue">{t("onboarding.cleanup.required")}</Badge>
+                  <Badge variant="blue">
+                    {t("onboarding.cleanup.required")}
+                  </Badge>
                 )}
               </div>
               <p className="mt-1 text-sm leading-relaxed text-stone-400">
@@ -116,7 +111,7 @@ export const CleanupModelSetup: React.FC<CleanupModelSetupProps> = ({
 
               {/* Action area */}
               <div className="mt-3">
-                {installed ? (
+                {active ? null : installed && !status?.last_error ? (
                   <div className="flex items-center gap-2 text-sm text-stone-400">
                     <CircleNotch className="size-3.5 animate-spin" />
                     <span>{t("onboarding.cleanup.startingEngine")}</span>

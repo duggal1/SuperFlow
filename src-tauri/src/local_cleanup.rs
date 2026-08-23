@@ -16,11 +16,11 @@ use serde::Serialize;
 use tauri::Emitter;
 
 const MODEL_FILENAME: &str = "s1-mini-q4_k_m.gguf";
+const MODEL_DISPLAY_NAME: &str = "S1 Mini Q4_K_M";
 const MODEL_URL: &str =
     "https://huggingface.co/superwhisper/s1-mini-GGUF/resolve/main/s1-mini-q4_k_m.gguf";
 const MODEL_SIZE_BYTES: u64 = 484_219_808;
-const MODEL_SHA256: &str =
-    "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634";
+const MODEL_SHA256: &str = "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634";
 
 const SYSTEM_PROMPT: &str = "You are a text normalizer for speech-to-text transcripts. The input begins with a control line specifying the styling, structure, and context settings; clean the transcript to match those settings and output only the cleaned text.";
 const CONTROL_LINE: &str = "[Styling: semi-formal] [Structure: prose] [Context: general]";
@@ -32,7 +32,7 @@ const MAX_CHUNK_WORDS: usize = 700;
 /// Longest we will hold one paste pipeline hostage waiting on generation.
 const GENERATION_TIMEOUT_SECS: u64 = 60;
 
-static JOB_TX: OnceLock<tokio::sync::mpsc::Sender<Job>> = OnceLock::new();
+static JOB_TX: OnceLock<Mutex<Option<tokio::sync::mpsc::Sender<Job>>>> = OnceLock::new();
 static READY: AtomicBool = AtomicBool::new(false);
 static INSTALLING: AtomicBool = AtomicBool::new(false);
 
@@ -54,9 +54,11 @@ pub struct CleanupModelError {
 /// Full install state for one UI render pass.
 #[derive(Serialize, Clone, specta::Type)]
 pub struct CleanupModelStatus {
+    pub model_name: String,
     pub installed: bool,
     pub installing: bool,
     pub ready: bool,
+    pub active: bool,
     pub last_error: Option<String>,
 }
 
@@ -114,7 +116,13 @@ fn chunk_transcript(text: &str) -> Vec<String> {
         // A single unbroken run longer than the cap is hard-split by words.
         if sentence.len() > MAX_CHUNK_WORDS {
             for piece in sentence.chunks(MAX_CHUNK_WORDS) {
-                chunks.push(piece.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(" "));
+                chunks.push(
+                    piece
+                        .iter()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                );
             }
             continue;
         }
@@ -150,10 +158,17 @@ pub(crate) async fn normalize(effective_language: &str, text: String) -> Option<
         warn!("S1-mini not loaded yet; passing transcript through uncleaned");
         return None;
     }
-    let tx = JOB_TX.get()?;
+    let tx = JOB_TX
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .clone()?;
     let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
     tx.send_timeout(
-        Job::Normalize { text, reply: reply_tx },
+        Job::Normalize {
+            text,
+            reply: reply_tx,
+        },
         std::time::Duration::from_secs(5),
     )
     .await
@@ -192,11 +207,27 @@ pub fn is_model_installed(app: &tauri::AppHandle) -> bool {
 
 /// One-shot status snapshot for the settings card and onboarding gate.
 pub fn status(app: &tauri::AppHandle) -> CleanupModelStatus {
+    status_from_state(
+        is_model_installed(app),
+        INSTALLING.load(Ordering::Acquire),
+        READY.load(Ordering::Acquire),
+        LAST_ERROR.lock().unwrap().clone(),
+    )
+}
+
+fn status_from_state(
+    installed: bool,
+    installing: bool,
+    ready: bool,
+    last_error: Option<String>,
+) -> CleanupModelStatus {
     CleanupModelStatus {
-        installed: is_model_installed(app),
-        installing: INSTALLING.load(Ordering::Acquire),
-        ready: READY.load(Ordering::Acquire),
-        last_error: LAST_ERROR.lock().unwrap().clone(),
+        model_name: MODEL_DISPLAY_NAME.to_string(),
+        installed,
+        installing,
+        ready,
+        active: installed && ready,
+        last_error,
     }
 }
 
@@ -209,7 +240,7 @@ pub fn preload(app: tauri::AppHandle) {
         let Some(path) = model_path(&app) else {
             return;
         };
-        start_engine_thread(path);
+        start_engine_thread(app, path);
         return;
     }
     info!("S1-mini missing; starting background auto-install");
@@ -226,6 +257,9 @@ pub fn is_ready() -> bool {
 /// Emits `cleanup-model-progress` / `cleanup-model-complete` /
 /// `cleanup-model-failed`. Single-flight: concurrent calls are no-ops.
 pub fn install(app: tauri::AppHandle) {
+    if READY.load(Ordering::Acquire) {
+        return;
+    }
     if INSTALLING.swap(true, Ordering::AcqRel) {
         return;
     }
@@ -262,7 +296,7 @@ async fn run_install(app: &tauri::AppHandle) -> Result<(), String> {
     })
     .await?;
 
-    start_engine_thread(path);
+    start_engine_thread(app.clone(), path);
     Ok(())
 }
 
@@ -276,7 +310,10 @@ async fn ensure_model_downloaded(
             on_progress(MODEL_SIZE_BYTES);
             return Ok(());
         }
-        warn!("S1-mini model has wrong size ({}), redownloading", meta.len());
+        warn!(
+            "S1-mini model has wrong size ({}), redownloading",
+            meta.len()
+        );
         let _ = std::fs::remove_file(path);
     }
 
@@ -306,7 +343,9 @@ async fn ensure_model_downloaded(
 
     if downloaded != MODEL_SIZE_BYTES {
         let _ = std::fs::remove_file(path);
-        return Err(format!("downloaded {downloaded} bytes, expected {MODEL_SIZE_BYTES}"));
+        return Err(format!(
+            "downloaded {downloaded} bytes, expected {MODEL_SIZE_BYTES}"
+        ));
     }
 
     let verify_path = path.clone();
@@ -319,7 +358,10 @@ async fn ensure_model_downloaded(
             "sha256 mismatch: expected {MODEL_SHA256}, got {actual}"
         ));
     }
-    info!("S1-mini model downloaded and verified ({} bytes)", downloaded);
+    info!(
+        "S1-mini model downloaded and verified ({} bytes)",
+        downloaded
+    );
     Ok(())
 }
 
@@ -340,19 +382,21 @@ fn sha256_hex(path: &PathBuf) -> Result<String, String> {
     Ok(format!("{:x}", hasher.finalize()))
 }
 
-fn start_engine_thread(model_path: PathBuf) {
+fn start_engine_thread(app: tauri::AppHandle, model_path: PathBuf) {
     let (tx, rx) = tokio::sync::mpsc::channel::<Job>(16);
-    if JOB_TX.set(tx).is_err() {
-        return;
-    }
+    *JOB_TX.get_or_init(|| Mutex::new(None)).lock().unwrap() = Some(tx);
     std::thread::Builder::new()
         .name("s1-cleanup".into())
         .spawn(move || {
             #[cfg(target_os = "macos")]
-            engine_loop(model_path, rx);
+            engine_loop(app, model_path, rx);
             #[cfg(not(target_os = "macos"))]
             {
                 let _ = model_path;
+                report_engine_failure(
+                    &app,
+                    "S1 Mini cleanup is not supported on this platform".to_string(),
+                );
                 fail_open_loop(rx);
             }
         })
@@ -369,7 +413,11 @@ fn fail_open_loop(mut rx: tokio::sync::mpsc::Receiver<Job>) {
 }
 
 #[cfg(target_os = "macos")]
-fn engine_loop(model_path: PathBuf, mut rx: tokio::sync::mpsc::Receiver<Job>) {
+fn engine_loop(
+    app: tauri::AppHandle,
+    model_path: PathBuf,
+    mut rx: tokio::sync::mpsc::Receiver<Job>,
+) {
     use llama_cpp_2::llama_backend::LlamaBackend;
     use llama_cpp_2::model::params::LlamaModelParams;
     use llama_cpp_2::model::LlamaModel;
@@ -377,7 +425,10 @@ fn engine_loop(model_path: PathBuf, mut rx: tokio::sync::mpsc::Receiver<Job>) {
     let backend = match LlamaBackend::init() {
         Ok(backend) => backend,
         Err(error) => {
-            warn!("S1-mini llama.cpp backend init failed: {error}");
+            report_engine_failure(
+                &app,
+                format!("S1 Mini llama.cpp backend initialization failed: {error}"),
+            );
             return;
         }
     };
@@ -385,12 +436,17 @@ fn engine_loop(model_path: PathBuf, mut rx: tokio::sync::mpsc::Receiver<Job>) {
     let model = match LlamaModel::load_from_file(&backend, &model_path, &params) {
         Ok(model) => model,
         Err(error) => {
-            warn!("S1-mini failed to load {}: {error}", model_path.display());
+            report_engine_failure(
+                &app,
+                format!("S1 Mini failed to load {}: {error}", model_path.display()),
+            );
             return;
         }
     };
     info!("S1-mini model loaded from {}", model_path.display());
     READY.store(true, Ordering::Release);
+    *LAST_ERROR.lock().unwrap() = None;
+    let _ = app.emit("cleanup-model-ready", ());
 
     while let Some(job) = rx.blocking_recv() {
         let Job::Normalize { text, reply } = job;
@@ -420,6 +476,16 @@ fn engine_loop(model_path: PathBuf, mut rx: tokio::sync::mpsc::Receiver<Job>) {
     }
 }
 
+fn report_engine_failure(app: &tauri::AppHandle, error: String) {
+    READY.store(false, Ordering::Release);
+    if let Some(sender) = JOB_TX.get() {
+        *sender.lock().unwrap() = None;
+    }
+    warn!("{error}");
+    *LAST_ERROR.lock().unwrap() = Some(error.clone());
+    let _ = app.emit("cleanup-model-failed", CleanupModelError { error });
+}
+
 #[cfg(target_os = "macos")]
 fn generate(
     backend: &llama_cpp_2::llama_backend::LlamaBackend,
@@ -437,8 +503,7 @@ fn generate(
     let mut ctx = model
         .new_context(
             backend,
-            LlamaContextParams::default()
-                .with_n_ctx(Some(NonZeroU32::new(N_CTX).unwrap())),
+            LlamaContextParams::default().with_n_ctx(Some(NonZeroU32::new(N_CTX).unwrap())),
         )
         .map_err(|e| e.to_string())?;
 
@@ -533,9 +598,17 @@ mod tests {
         assert!(!should_run("auto", "bonjour le monde c'est magnifique"));
         assert!(!should_run("de", "irgendwas"));
     }
+
+    #[test]
+    fn cleanup_model_is_active_only_when_installed_and_ready() {
+        let loading = status_from_state(true, false, false, None);
+        assert_eq!(loading.model_name, MODEL_DISPLAY_NAME);
+        assert!(!loading.active);
+
+        let active = status_from_state(true, false, true, None);
+        assert!(active.active);
+
+        let impossible_ready_state = status_from_state(false, false, true, None);
+        assert!(!impossible_ready_state.active);
+    }
 }
-
-
-
-
-

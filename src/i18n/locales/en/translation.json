@@ -125,7 +125,7 @@
     "cleanup": {
       "subtitle": "One last step — clean-up engine",
       "cardTitle": "Text Clean-up Model",
-      "activated": "Activated",
+      "activated": "Active",
       "required": "Required",
       "description": "Rewrites raw speech into clean written text — grammar, punctuation, filler removal. Runs entirely on this Mac.",
       "runsOnMetal": "Apple GPU · Metal",
@@ -654,6 +654,13 @@
           "details": "SuperFlow's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
       }
+    },
+    "aiModels": {
+      "title": "AI Model",
+      "cleanupModel": "AI Cleanup Model",
+      "installing": "Installing",
+      "loading": "Loading",
+      "unavailable": "Unavailable"
     }
   },
   "footer": {

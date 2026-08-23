@@ -1147,7 +1147,7 @@ export type BindingResponse = { success: boolean; binding: ShortcutBinding | nul
 /**
  * Full install state for one UI render pass.
  */
-export type CleanupModelStatus = { installed: boolean; installing: boolean; ready: boolean; last_error: string | null }
+export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null }
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CustomSounds = { start: boolean; stop: boolean }
 export type EngineType = 
