@@ -10,10 +10,12 @@ import {
   HouseSimple,
   Info,
   Notebook,
+  MagicWand,
 } from "@phosphor-icons/react";
 import SuperFlowLogo from "./icons/SuperFlowTextLogo";
 import SidebarToggleIcon from "./icons/SidebarToggleIcon";
 import { HomePage } from "./home";
+import { AICleanupSettings } from "./ai-cleanup";
 import { useSettings } from "../hooks/useSettings";
 import {
   GeneralSettings,
@@ -65,6 +67,12 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.models",
     icon: Fire,
     component: ModelsSettings,
+    enabled: () => true,
+  },
+  aiCleanup: {
+    labelKey: "sidebar.aiCleanup",
+    icon: MagicWand,
+    component: AICleanupSettings,
     enabled: () => true,
   },
   advanced: {

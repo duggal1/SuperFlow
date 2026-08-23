@@ -1,4 +1,5 @@
 mod actions;
+mod ai_cleanup;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
@@ -746,6 +747,11 @@ pub fn run(cli_args: CliArgs) {
         context::capture::run_context_agent();
         return;
     }
+    if cli_args.selected_text_agent {
+        #[cfg(target_os = "macos")]
+        context::capture::run_selected_text_agent();
+        return;
+    }
 
     // Avoid ggml-metal residency-set teardown assertions when a native engine
     // outlives the Tauri shutdown sequence (#1902). This must happen before
@@ -883,6 +889,10 @@ pub fn run(cli_args: CliArgs) {
             commands::audio::is_recording,
             commands::audio::get_microphone_channels,
             commands::audio::set_selected_channel,
+            commands::ai_cleanup::update_ai_cleanup_configuration,
+            commands::ai_cleanup::set_gemini_api_key,
+            commands::ai_cleanup::get_ai_cleanup_history,
+            commands::ai_cleanup::is_gemini_api_configured,
             commands::transcription::set_model_unload_timeout,
             commands::transcription::get_model_load_status,
             commands::transcription::unload_model_manually,

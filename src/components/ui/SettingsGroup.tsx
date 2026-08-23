@@ -2,12 +2,14 @@ import React from "react";
 
 interface SettingsGroupProps {
   title?: string;
+  titleClassName?: string;
   description?: string;
   children: React.ReactNode;
 }
 
 export const SettingsGroup: React.FC<SettingsGroupProps> = ({
   title,
+  titleClassName,
   description,
   children,
 }) => {
@@ -15,7 +17,12 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
     <div className="space-y-2">
       {title && (
         <div className="px-4">
-          <h2 className="text-xs font-medium text-stone-500 uppercase tracking-wide">
+          <h2
+            className={
+              titleClassName ??
+              "text-xs font-medium text-stone-500 uppercase tracking-wide"
+            }
+          >
             {title}
           </h2>
           {description && (

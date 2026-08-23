@@ -854,6 +854,57 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// Replaces the current selection without applying dictation-only behavior.
+/// AI cleanup must never append whitespace, submit a form, or retain its output
+/// on the clipboard after replacement.
+pub fn paste_exact(text: String, app_handle: AppHandle) -> Result<(), String> {
+    let settings = get_settings(&app_handle);
+    match settings.paste_method {
+        PasteMethod::None => return Err("Paste is disabled in settings".to_string()),
+        PasteMethod::Direct => paste_direct(
+            &text,
+            &app_handle,
+            #[cfg(target_os = "linux")]
+            settings.typing_tool,
+        )?,
+        PasteMethod::CtrlV | PasteMethod::CtrlShiftV | PasteMethod::ShiftInsert => {
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
+            if settings.reliable_paste {
+                let result = with_enigo(&app_handle, |enigo| {
+                    crate::paste_tx::try_reliable_paste(
+                        &text,
+                        &app_handle,
+                        &settings.paste_method,
+                        enigo,
+                        false,
+                        settings.auto_submit_key,
+                        ClipboardHandling::DontModify,
+                    )
+                });
+                if result.is_ok() {
+                    return Ok(());
+                }
+            }
+            paste_via_clipboard(
+                &text,
+                &app_handle,
+                &settings.paste_method,
+                settings.paste_delay_ms,
+                settings.paste_delay_after_ms,
+            )?;
+        }
+        PasteMethod::ExternalScript => {
+            let path = settings
+                .external_script_path
+                .as_ref()
+                .filter(|path| !path.is_empty())
+                .ok_or("External script path is not configured")?;
+            paste_via_external_script(&text, path)?;
+        }
+    }
+    Ok(())
+}
+
 // --- Pasteable-target detection (macOS) ------------------------------------
 //
 // Self-contained AX FFI mirroring context/focused_text.rs — that module's doc

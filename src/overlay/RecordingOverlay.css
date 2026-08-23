@@ -627,3 +627,30 @@
 .sundo:active {
   transform: scale(0.98);
 }
+
+.scard.sai-notice {
+  box-sizing: border-box;
+  width: 344px;
+  height: 44px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px 0 16px;
+  border-radius: 16px;
+  animation: none;
+}
+.ov-stage.top .scard.sai-notice {
+  flex-direction: row;
+  transform-origin: top center;
+}
+.sai-notice-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--s-muted);
+  user-select: none;
+}

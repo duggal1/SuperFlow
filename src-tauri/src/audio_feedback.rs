@@ -100,6 +100,22 @@ pub fn play_canceled_sound(app: &AppHandle) {
     });
 }
 
+pub fn play_ai_cleanup_sound(app: &AppHandle, completed: bool) {
+    let file = if completed {
+        "resources/pop_stop.wav"
+    } else {
+        "resources/pop_start.wav"
+    };
+    let Ok(path) = app
+        .path()
+        .resolve(file, tauri::path::BaseDirectory::Resource)
+    else {
+        warn!("AI cleanup sound could not be resolved: {file}");
+        return;
+    };
+    play_sound_async(app, path, 1.25);
+}
+
 fn play_sound_async(app: &AppHandle, path: PathBuf, gain: f32) {
     let app_handle = app.clone();
     thread::spawn(move || {

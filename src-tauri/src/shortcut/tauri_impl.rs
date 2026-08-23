@@ -27,6 +27,9 @@ pub fn init_shortcuts(app: &AppHandle) {
         if id == "transcribe_with_post_process" && !user_settings.post_process_enabled {
             continue;
         }
+        if id == "ai_cleanup" && !user_settings.ai_cleanup_enabled {
+            continue;
+        }
         let binding = user_settings
             .bindings
             .get(&id)

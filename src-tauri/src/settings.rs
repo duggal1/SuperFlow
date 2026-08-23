@@ -282,6 +282,16 @@ pub enum Theme {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum AiCleanupThinkingLevel {
+    #[default]
+    Minimal,
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum TypingTool {
     #[default]
@@ -444,6 +454,18 @@ pub struct AppSettings {
     pub post_process_prompts: Vec<LLMPrompt>,
     #[serde(default)]
     pub post_process_selected_prompt_id: Option<String>,
+    #[serde(default = "default_ai_cleanup_enabled")]
+    pub ai_cleanup_enabled: bool,
+    #[serde(default)]
+    pub auto_ai_cleanup_enabled: bool,
+    #[serde(default = "default_ai_cleanup_model")]
+    pub ai_cleanup_model: String,
+    #[serde(default)]
+    pub ai_cleanup_thinking_level: AiCleanupThinkingLevel,
+    #[serde(default)]
+    pub ai_cleanup_custom_instruction: String,
+    #[serde(default)]
+    pub ai_cleanup_contexts: Vec<String>,
     #[serde(default)]
     pub mute_while_recording: bool,
     #[serde(default)]
@@ -648,6 +670,14 @@ fn default_theme() -> Theme {
 
 fn default_post_process_enabled() -> bool {
     false
+}
+
+fn default_ai_cleanup_enabled() -> bool {
+    true
+}
+
+fn default_ai_cleanup_model() -> String {
+    "gemini-3.5-flash-lite".to_string()
 }
 
 fn default_intelligence_awareness_enabled() -> bool {
@@ -970,6 +1000,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_ai_cleanup_shortcut = "command+1";
+    #[cfg(not(target_os = "macos"))]
+    let default_ai_cleanup_shortcut = "ctrl+1";
+
+    bindings.insert(
+        "ai_cleanup".to_string(),
+        ShortcutBinding {
+            id: "ai_cleanup".to_string(),
+            name: "AI clean up".to_string(),
+            description: "Turns selected text into a clear prompt.".to_string(),
+            default_binding: default_ai_cleanup_shortcut.to_string(),
+            current_binding: default_ai_cleanup_shortcut.to_string(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),
@@ -1012,6 +1057,12 @@ pub fn get_default_settings() -> AppSettings {
         post_process_models: default_post_process_models(),
         post_process_prompts: default_post_process_prompts(),
         post_process_selected_prompt_id: None,
+        ai_cleanup_enabled: default_ai_cleanup_enabled(),
+        auto_ai_cleanup_enabled: false,
+        ai_cleanup_model: default_ai_cleanup_model(),
+        ai_cleanup_thinking_level: AiCleanupThinkingLevel::default(),
+        ai_cleanup_custom_instruction: String::new(),
+        ai_cleanup_contexts: Vec::new(),
         mute_while_recording: false,
         append_trailing_space: false,
         app_language: default_app_language(),

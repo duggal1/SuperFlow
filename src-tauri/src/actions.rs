@@ -19,6 +19,7 @@ use log::{debug, error, warn};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::future::Future;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::Manager;
@@ -497,6 +498,29 @@ async fn process_transcription_output_with_context(
         }
     }
 
+    if settings.auto_ai_cleanup_enabled && !final_text.trim().is_empty() {
+        match crate::ai_cleanup::clean(&final_text, &settings).await {
+            Ok(cleaned) => {
+                let input = final_text.clone();
+                final_text = cleaned.clone();
+                post_processed_text = Some(cleaned);
+                let history = app.state::<Arc<HistoryManager>>();
+                if let Err(error) = history.save_ai_cleanup(
+                    "transcription",
+                    &input,
+                    &final_text,
+                    &settings.ai_cleanup_model,
+                    crate::ai_cleanup::thinking_level_name(settings.ai_cleanup_thinking_level),
+                ) {
+                    warn!("Failed to save automatic AI cleanup history: {error}");
+                }
+            }
+            Err(error) => {
+                warn!("Automatic AI cleanup failed; using original transcript: {error}");
+            }
+        }
+    }
+
     if post_process {
         if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
             post_processed_text = Some(processed_text.clone());
@@ -898,7 +922,11 @@ impl ShortcutAction for TranscribeAction {
                                 return;
                             }
 
-                            if post_process {
+                            let auto_ai_cleanup = get_settings(&ah).auto_ai_cleanup_enabled;
+                            if auto_ai_cleanup {
+                                crate::audio_feedback::play_ai_cleanup_sound(&ah, false);
+                                crate::overlay::show_ai_prompting_overlay(&ah);
+                            } else if post_process {
                                 if use_streaming_overlay {
                                     tm.emit_stream_working(StreamWorkKind::Polishing);
                                 } else {
@@ -933,6 +961,10 @@ impl ShortcutAction for TranscribeAction {
                                 return;
                             }
 
+                            if auto_ai_cleanup && processed.post_processed_text.is_some() {
+                                crate::audio_feedback::play_ai_cleanup_sound(&ah, true);
+                            }
+
                             // Save to history if WAV was saved. The recorded
                             // sample count is the real audio length (16 kHz
                             // mono), persisted for WPM / time-saved stats.
@@ -940,7 +972,7 @@ impl ShortcutAction for TranscribeAction {
                                 if let Err(err) = hm.save_entry(
                                     file_name,
                                     transcription,
-                                    post_process,
+                                    post_process || auto_ai_cleanup,
                                     processed.post_processed_text.clone(),
                                     processed.post_process_prompt.clone(),
                                     sample_count as f64 / 16_000.0,
@@ -1118,6 +1150,113 @@ impl ShortcutAction for CancelAction {
 // Test Action
 struct TestAction;
 
+struct AiCleanupAction;
+
+static AI_CLEANUP_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
+
+struct AiCleanupFlightGuard;
+
+impl Drop for AiCleanupFlightGuard {
+    fn drop(&mut self) {
+        AI_CLEANUP_IN_FLIGHT.store(false, Ordering::Release);
+    }
+}
+
+impl ShortcutAction for AiCleanupAction {
+    fn start(&self, app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {
+        let settings = crate::settings::get_settings(app);
+        if !settings.ai_cleanup_enabled || AI_CLEANUP_IN_FLIGHT.swap(true, Ordering::AcqRel) {
+            return;
+        }
+
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            let _guard = AiCleanupFlightGuard;
+            crate::audio_feedback::play_ai_cleanup_sound(&app, false);
+            let selection = tauri::async_runtime::spawn_blocking(|| {
+                crate::context::capture::capture_selected_text()
+            })
+            .await
+            .ok()
+            .flatten();
+
+            let Some(selection) = selection else {
+                crate::audio_feedback::play_ai_cleanup_sound(&app, true);
+                crate::overlay::show_ai_cleanup_notice(
+                    &app,
+                    "Please select the text first.".to_string(),
+                    "Select text".to_string(),
+                );
+                return;
+            };
+
+            crate::overlay::show_ai_prompting_overlay(&app);
+            let settings = crate::settings::get_settings(&app);
+            let output = match crate::ai_cleanup::clean(&selection.text, &settings).await {
+                Ok(output) => output,
+                Err(error) => {
+                    log::warn!("AI clean up failed: {error}");
+                    crate::audio_feedback::play_ai_cleanup_sound(&app, true);
+                    let badge = if crate::ai_cleanup::is_missing_api_key_error(&error) {
+                        "API key"
+                    } else {
+                        "Unavailable"
+                    };
+                    crate::overlay::show_ai_cleanup_notice(&app, error, badge.to_string());
+                    return;
+                }
+            };
+
+            if crate::secure_input::is_enabled_now() {
+                crate::overlay::hide_recording_overlay(&app);
+                return;
+            }
+
+            let history = app.state::<Arc<HistoryManager>>();
+            if let Err(error) = history.save_ai_cleanup(
+                "selection",
+                &selection.text,
+                &output,
+                &settings.ai_cleanup_model,
+                crate::ai_cleanup::thinking_level_name(settings.ai_cleanup_thinking_level),
+            ) {
+                log::warn!("Failed to save AI cleanup history: {error}");
+            }
+
+            let current = tauri::async_runtime::spawn_blocking(|| {
+                crate::context::capture::capture_selected_text()
+            })
+            .await
+            .ok()
+            .flatten();
+            if current.as_ref().map_or(true, |current| {
+                current.pid != selection.pid || current.text != selection.text
+            }) {
+                crate::overlay::show_result_overlay(&app, output);
+                return;
+            }
+
+            crate::audio_feedback::play_ai_cleanup_sound(&app, true);
+            let handle = app.clone();
+            let fallback = output.clone();
+            let _ = app.run_on_main_thread(move || {
+                if crate::secure_input::is_enabled_now() {
+                    crate::overlay::hide_recording_overlay(&handle);
+                    return;
+                }
+                if let Err(error) = crate::clipboard::paste_exact(output, handle.clone()) {
+                    log::warn!("AI cleanup paste failed: {error}");
+                    crate::overlay::show_result_overlay(&handle, fallback);
+                } else {
+                    crate::overlay::hide_recording_overlay(&handle);
+                }
+            });
+        });
+    }
+
+    fn stop(&self, _app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {}
+}
+
 impl ShortcutAction for TestAction {
     fn start(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) {
         log::info!(
@@ -1158,6 +1297,10 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
     map.insert(
         "test".to_string(),
         Arc::new(TestAction) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "ai_cleanup".to_string(),
+        Arc::new(AiCleanupAction) as Arc<dyn ShortcutAction>,
     );
     map
 });

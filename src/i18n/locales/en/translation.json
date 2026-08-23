@@ -15,6 +15,7 @@
     "models": "Models",
     "advanced": "Advanced",
     "postProcessing": "Post Process",
+    "aiCleanup": "AI clean up",
     "history": "History",
     "debug": "Debug",
     "about": "About"

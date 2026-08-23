@@ -15,6 +15,7 @@
     "models": "Modeller",
     "advanced": "Gelişmiş",
     "postProcessing": "Son İşlem",
+    "aiCleanup": "AI clean up",
     "history": "Geçmiş",
     "debug": "Hata Ayıklama",
     "about": "Hakkında"

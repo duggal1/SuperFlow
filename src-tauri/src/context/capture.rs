@@ -17,6 +17,7 @@ use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::Duration;
 
 use super::types::{now_millis, ContextSnapshot, Surface};
+use serde::{Deserialize, Serialize};
 
 /// Hard ceiling for one helper round-trip. AX captures are single-digit ms
 /// when healthy; this exists for pathological cases only.
@@ -30,6 +31,13 @@ const BREAKER_COOLDOWN_MS: u64 = 60_000;
 
 static CONSECUTIVE_FAILURES: AtomicU32 = AtomicU32::new(0);
 static BREAKER_OPEN_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SelectionSnapshot {
+    pub pid: i32,
+    pub app_name: String,
+    pub text: String,
+}
 
 fn breaker_open() -> bool {
     now_millis() < BREAKER_OPEN_UNTIL_MS.load(Ordering::Relaxed)
@@ -114,6 +122,43 @@ pub fn capture_snapshot() -> ContextSnapshot {
 }
 
 #[cfg(target_os = "macos")]
+pub fn capture_selected_text() -> Option<SelectionSnapshot> {
+    if cfg!(test) || breaker_open() || crate::secure_input::is_enabled_now() {
+        return None;
+    }
+    let exe = std::env::current_exe().ok()?;
+    let mut child = Command::new(exe)
+        .arg("--selected-text-agent")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .stdin(Stdio::null())
+        .spawn()
+        .ok()?;
+    let mut stdout = child.stdout.take()?;
+    let reader = std::thread::spawn(move || {
+        let mut out = String::new();
+        let _ = stdout.read_to_string(&mut out);
+        out
+    });
+    if wait_with_timeout(&mut child, CAPTURE_TIMEOUT).is_err() {
+        let _ = child.kill();
+        let _ = child.wait();
+        record_failure();
+        return None;
+    }
+    let output = reader.join().ok()?;
+    let snapshot: Option<SelectionSnapshot> =
+        serde_json::from_str(output.lines().last().unwrap_or("")).ok()?;
+    record_success();
+    snapshot
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn capture_selected_text() -> Option<SelectionSnapshot> {
+    None
+}
+
+#[cfg(target_os = "macos")]
 fn wait_with_timeout(child: &mut std::process::Child, timeout: Duration) -> Result<(), ()> {
     let deadline = std::time::Instant::now() + timeout;
     loop {
@@ -184,6 +229,22 @@ pub fn run_context_agent() {
         },
     );
 
+    if let Ok(json) = serde_json::to_string(&snapshot) {
+        println!("{json}");
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub fn run_selected_text_agent() {
+    use super::{detector, focused_text};
+
+    let snapshot = detector::frontmost_app().and_then(|app| {
+        focused_text::selected_text(app.pid).map(|text| SelectionSnapshot {
+            pid: app.pid,
+            app_name: app.name,
+            text,
+        })
+    });
     if let Ok(json) = serde_json::to_string(&snapshot) {
         println!("{json}");
     }

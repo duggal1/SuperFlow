@@ -67,4 +67,9 @@ pub struct CliArgs {
     /// Internal — do not use interactively.
     #[arg(long)]
     pub context_agent: bool,
+
+    /// One-shot selected-text Accessibility agent used by AI clean up.
+    /// Internal — do not use interactively.
+    #[arg(long)]
+    pub selected_text_agent: bool,
 }

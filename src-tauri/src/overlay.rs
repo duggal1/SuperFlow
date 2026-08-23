@@ -57,6 +57,8 @@ const OVERLAY_RESULT_HEIGHT: f64 = 240.0;
 // Cancel acknowledgment toast: "Transcription canceled" + optional Undo.
 const OVERLAY_CANCEL_WIDTH: f64 = 340.0;
 const OVERLAY_CANCEL_HEIGHT: f64 = 64.0;
+const OVERLAY_AI_NOTICE_WIDTH: f64 = 360.0;
+const OVERLAY_AI_NOTICE_HEIGHT: f64 = 64.0;
 
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
@@ -64,6 +66,7 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
         "streaming" => (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT),
         "result" => (OVERLAY_RESULT_WIDTH, OVERLAY_RESULT_HEIGHT),
         "cancel" => (OVERLAY_CANCEL_WIDTH, OVERLAY_CANCEL_HEIGHT),
+        "prompting" | "ai_notice" => (OVERLAY_AI_NOTICE_WIDTH, OVERLAY_AI_NOTICE_HEIGHT),
         _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
@@ -509,6 +512,12 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
     let _ = app_handle.run_on_main_thread(move || show_overlay_state_on_main(&handle, &state));
 }
 
+fn show_overlay_state_forced(app_handle: &AppHandle, state: &str) {
+    let handle = app_handle.clone();
+    let state = state.to_string();
+    let _ = app_handle.run_on_main_thread(move || show_overlay_state_on_main(&handle, &state));
+}
+
 fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     // Size the overlay for this state (compact vs. streaming), then position it.
     let (width, height) = overlay_dimensions(state);
@@ -626,6 +635,22 @@ pub fn show_transcribing_overlay(app_handle: &AppHandle) {
 /// Shows the processing overlay window
 pub fn show_processing_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "processing");
+}
+
+pub fn show_ai_prompting_overlay(app_handle: &AppHandle) {
+    show_overlay_state_forced(app_handle, "prompting");
+}
+
+pub fn show_ai_cleanup_notice(app_handle: &AppHandle, message: String, badge: String) {
+    show_overlay_state_forced(app_handle, "ai_notice");
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to(
+            "recording_overlay",
+            "show-ai-cleanup-notice",
+            serde_json::json!({ "message": message, "badge": badge }),
+        );
+    });
 }
 
 /// Shows the transcript result card: the finished transcription stays on screen

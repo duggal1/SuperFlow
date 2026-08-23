@@ -6,6 +6,7 @@ import { Check, Copy } from "@phosphor-icons/react";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import "./RecordingOverlay.css";
 import { commands, events } from "@/bindings";
+import { Badge } from "@/components/ui/Badge";
 import type {
   StreamPhase,
   StreamPhaseEvent,
@@ -15,7 +16,18 @@ import type {
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 
-type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
+type OverlayState =
+  | "recording"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "prompting"
+  | "ai_notice";
+
+interface AiCleanupNotice {
+  message: string;
+  badge: string;
+}
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -121,6 +133,8 @@ const RecordingOverlay: React.FC = () => {
   const [cancelToastVisible, setCancelToastVisible] = useState(false);
   const [cancelToastCanUndo, setCancelToastCanUndo] = useState(false);
   const [cancelToastExiting, setCancelToastExiting] = useState(false);
+  const [aiCleanupNotice, setAiCleanupNotice] =
+    useState<AiCleanupNotice | null>(null);
   // Auto-dismiss safety net so the floating card can never linger forever.
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Delayed close after the "Copied" confirmation plays.
@@ -139,6 +153,7 @@ const RecordingOverlay: React.FC = () => {
     null,
   );
   const cancelToastVisibleRef = useRef(false);
+  const aiNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearResultTimer = () => {
     if (resultTimerRef.current !== null) {
@@ -247,6 +262,7 @@ const RecordingOverlay: React.FC = () => {
           // A new dictation replaces any result card or cancel toast.
           resetResultCard();
           resetCancelToast();
+          setAiCleanupNotice(null);
         }
 
         await syncLanguageFromSettings();
@@ -328,6 +344,22 @@ const RecordingOverlay: React.FC = () => {
         },
       );
 
+      const unlistenAiNotice = await listen<AiCleanupNotice>(
+        "show-ai-cleanup-notice",
+        (event) => {
+          if (aiNoticeTimerRef.current !== null) {
+            clearTimeout(aiNoticeTimerRef.current);
+          }
+          setAiCleanupNotice(event.payload);
+          setIsVisible(true);
+          aiNoticeTimerRef.current = setTimeout(() => {
+            aiNoticeTimerRef.current = null;
+            setAiCleanupNotice(null);
+            void commands.hideResultOverlay();
+          }, 3_500);
+        },
+      );
+
       const unlistenReady = await listen("recording-ready", () => {
         setElapsed(0);
         setCaptureReady(true);
@@ -364,6 +396,10 @@ const RecordingOverlay: React.FC = () => {
         unlistenPhase();
         unlistenResult();
         unlistenCancelToast();
+        unlistenAiNotice();
+        if (aiNoticeTimerRef.current !== null) {
+          clearTimeout(aiNoticeTimerRef.current);
+        }
       };
     };
 
@@ -404,7 +440,25 @@ const RecordingOverlay: React.FC = () => {
     measureResultFade(resultBodyRef.current, setResultFade);
   }, [resultText]);
 
-  if (!isVisible && !cancelToastVisible) return null;
+  if (!isVisible && !cancelToastVisible && !aiCleanupNotice) return null;
+
+  if (aiCleanupNotice) {
+    const driftY = position === "top" ? -10 : 10;
+    return (
+      <div dir={direction} className={`ov-stage ${position}`}>
+        <motion.div
+          className="scard sai-notice"
+          initial={dialogEnter(driftY)}
+          animate={{ ...dialogShown, transition: dialogTransition }}
+        >
+          <span className="sai-notice-label">{aiCleanupNotice.message}</span>
+          <Badge variant="rose" className="rounded-[7px] text-[12px]">
+            {aiCleanupNotice.badge}
+          </Badge>
+        </motion.div>
+      </div>
+    );
+  }
 
   // ---- Cancel acknowledgment toast ----
   // "Transcription canceled" (+ Undo once a transcript is stashed backend-
@@ -700,11 +754,14 @@ const RecordingOverlay: React.FC = () => {
   // ---- Minimal overlay: exactly one row at a time — waveform (recording), or a
   // spinner + label (transcribing / processing). Never both. The pill animates its
   // width between them; the cancel button is in both rows so it stays put.
-  const working = state === "transcribing" || state === "processing";
+  const working =
+    state === "transcribing" || state === "processing" || state === "prompting";
   const workLabel =
-    state === "processing"
-      ? t("overlay.processing")
-      : t("overlay.transcribing");
+    state === "prompting"
+      ? t("overlay.prompting", { defaultValue: "Prompting" })
+      : state === "processing"
+        ? t("overlay.processing")
+        : t("overlay.transcribing");
 
   return (
     <div

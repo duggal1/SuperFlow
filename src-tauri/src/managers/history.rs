@@ -35,7 +35,29 @@ static MIGRATIONS: &[M] = &[
     M::up("ALTER TABLE transcription_history ADD COLUMN audio_duration_secs REAL;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN avg_wpm REAL;"),
     M::up("ALTER TABLE transcription_history ADD COLUMN time_saved_secs REAL;"),
+    M::up(
+        "CREATE TABLE IF NOT EXISTS ai_cleanup_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp INTEGER NOT NULL,
+            source TEXT NOT NULL,
+            input_text TEXT NOT NULL,
+            output_text TEXT NOT NULL,
+            model TEXT NOT NULL,
+            thinking_level TEXT NOT NULL
+        );",
+    ),
 ];
+
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
+pub struct AiCleanupHistoryEntry {
+    pub id: i64,
+    pub timestamp: i64,
+    pub source: String,
+    pub input_text: String,
+    pub output_text: String,
+    pub model: String,
+    pub thinking_level: String,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct PaginatedHistory {
@@ -175,6 +197,17 @@ impl HistoryManager {
         // applied even though the columns are missing. Reconcile so history
         // queries never fail after an upgrade.
         Self::ensure_stats_columns(&conn)?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS ai_cleanup_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp INTEGER NOT NULL,
+                source TEXT NOT NULL,
+                input_text TEXT NOT NULL,
+                output_text TEXT NOT NULL,
+                model TEXT NOT NULL,
+                thinking_level TEXT NOT NULL
+            );",
+        )?;
 
         Ok(())
     }
@@ -272,6 +305,62 @@ impl HistoryManager {
 
     fn get_connection(&self) -> Result<Connection> {
         Ok(Connection::open(&self.db_path)?)
+    }
+
+    pub fn save_ai_cleanup(
+        &self,
+        source: &str,
+        input_text: &str,
+        output_text: &str,
+        model: &str,
+        thinking_level: &str,
+    ) -> Result<AiCleanupHistoryEntry> {
+        let timestamp = Utc::now().timestamp();
+        let conn = self.get_connection()?;
+        conn.execute(
+            "INSERT INTO ai_cleanup_history (
+                timestamp, source, input_text, output_text, model, thinking_level
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                timestamp,
+                source,
+                input_text,
+                output_text,
+                model,
+                thinking_level
+            ],
+        )?;
+        Ok(AiCleanupHistoryEntry {
+            id: conn.last_insert_rowid(),
+            timestamp,
+            source: source.to_string(),
+            input_text: input_text.to_string(),
+            output_text: output_text.to_string(),
+            model: model.to_string(),
+            thinking_level: thinking_level.to_string(),
+        })
+    }
+
+    pub fn get_ai_cleanup_history(&self, limit: usize) -> Result<Vec<AiCleanupHistoryEntry>> {
+        let conn = self.get_connection()?;
+        let mut statement = conn.prepare(
+            "SELECT id, timestamp, source, input_text, output_text, model, thinking_level
+             FROM ai_cleanup_history ORDER BY id DESC LIMIT ?1",
+        )?;
+        let entries = statement
+            .query_map(params![limit.clamp(1, 100) as i64], |row| {
+                Ok(AiCleanupHistoryEntry {
+                    id: row.get("id")?,
+                    timestamp: row.get("timestamp")?,
+                    source: row.get("source")?,
+                    input_text: row.get("input_text")?,
+                    output_text: row.get("output_text")?,
+                    model: row.get("model")?,
+                    thinking_level: row.get("thinking_level")?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(entries)
     }
 
     fn map_history_entry(row: &rusqlite::Row<'_>) -> rusqlite::Result<HistoryEntry> {

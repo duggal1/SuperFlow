@@ -153,6 +153,22 @@ pub fn focused_element_text(pid: i32) -> Option<String> {
     (!sanitized.trim().is_empty()).then(|| keep_tail(&sanitized, MAX_CHARS).to_string())
 }
 
+/// Selected text of `pid`'s focused UI element.
+pub fn selected_text(pid: i32) -> Option<String> {
+    const MAX_CHARS: usize = 24_000;
+
+    let app = unsafe { AXUIElementCreateApplication(pid) };
+    if app.is_null() {
+        return None;
+    }
+    let _app_guard = CfRef(app as CFTypeRef);
+    let focused = copy_attribute(app, ax_attr!("AXFocusedUIElement"))?;
+    let value = copy_attribute(focused.0 as AXUIElementRef, ax_attr!("AXSelectedText"))?;
+    let text = cf_string_to_string(value.0 as CFStringRef)?;
+    let sanitized = sanitize(&text);
+    (!sanitized.trim().is_empty()).then(|| keep_tail(&sanitized, MAX_CHARS).to_string())
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

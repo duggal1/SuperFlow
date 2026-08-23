@@ -1,3 +1,4 @@
+pub mod ai_cleanup;
 pub mod audio;
 pub mod history;
 pub mod models;
