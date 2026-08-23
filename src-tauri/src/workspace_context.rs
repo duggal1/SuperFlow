@@ -1,5 +1,4 @@
 use crate::context::types::ContextSnapshot;
-use ignore::WalkBuilder;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -9,6 +8,16 @@ const MAX_SNIPPETS: usize = 6;
 const MAX_TOTAL_CHARS: usize = 8_000;
 const MAX_FILE_BYTES: u64 = 256 * 1024;
 const SEARCH_BUDGET: Duration = Duration::from_millis(150);
+
+/// Repo metadata files whose *existence* is worth one prompt line. Contents
+/// are never read — presence alone signals stack/tooling to the model.
+const REPO_MANIFEST_FILES: &[&str] = &[
+    "AGENTS.md",
+    "CLAUDE.md",
+    "package.json",
+    "Cargo.toml",
+    "pyproject.toml",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvidenceSnippet {
@@ -22,6 +31,8 @@ pub struct WorkspaceEvidence {
     pub root: Option<PathBuf>,
     pub resolved_paths: Vec<String>,
     pub snippets: Vec<EvidenceSnippet>,
+    /// Present repo manifest filenames (existence-only probe).
+    pub repo_manifest: Vec<String>,
 }
 
 pub fn collect(snapshot: &ContextSnapshot, transcript: &str) -> WorkspaceEvidence {
@@ -35,6 +46,7 @@ pub fn collect(snapshot: &ContextSnapshot, transcript: &str) -> WorkspaceEvidenc
     let terms = search_terms(transcript);
     let mut evidence = WorkspaceEvidence {
         root: Some(root.clone()),
+        repo_manifest: repo_manifest(&root),
         ..WorkspaceEvidence::default()
     };
     let mut seen_paths = HashSet::new();
@@ -60,29 +72,26 @@ pub fn collect(snapshot: &ContextSnapshot, transcript: &str) -> WorkspaceEvidenc
         }
     }
 
-    let mut builder = WalkBuilder::new(&root);
-    builder
-        .hidden(false)
-        .follow_links(false)
-        .git_ignore(true)
-        .git_global(true)
-        .git_exclude(true)
-        .parents(true)
-        .max_depth(Some(14));
-
-    for entry in builder.build().filter_map(Result::ok) {
+    // Reuse the cached project index maintained by `file_refs` instead of
+    // re-walking the repository on every utterance. Only candidate files are
+    // opened here, bounded by snippet/char/time budgets below.
+    let Some(index) = crate::file_refs::project_index(&root) else {
+        return evidence;
+    };
+    for entry in index {
         if evidence.snippets.len() >= MAX_SNIPPETS
             || used_chars >= MAX_TOTAL_CHARS
             || started.elapsed() >= SEARCH_BUDGET
         {
             break;
         }
-        let Some(path) = safe_file(&root, entry.path()) else {
-            continue;
-        };
-        if !is_searchable_source(&path) {
+        if !is_searchable_source(Path::new(&entry.rel)) {
             continue;
         }
+        let path = root.join(&entry.rel);
+        let Some(path) = safe_file(&root, &path) else {
+            continue;
+        };
         let Ok(content) = fs::read_to_string(&path) else {
             continue;
         };
@@ -90,7 +99,7 @@ pub fn collect(snapshot: &ContextSnapshot, transcript: &str) -> WorkspaceEvidenc
             continue;
         }
 
-        let relative_path = relative(&root, &path);
+        let relative_path = entry.rel.clone();
         let exact_path = evidence
             .resolved_paths
             .iter()
@@ -115,6 +124,14 @@ pub fn collect(snapshot: &ContextSnapshot, transcript: &str) -> WorkspaceEvidenc
     }
 
     evidence
+}
+
+fn repo_manifest(root: &Path) -> Vec<String> {
+    REPO_MANIFEST_FILES
+        .iter()
+        .filter(|name| root.join(name).is_file())
+        .map(|name| (*name).to_string())
+        .collect()
 }
 
 struct Snippet {
@@ -251,5 +268,14 @@ mod tests {
             search_terms("fix calculateFinalPayment() in payment_handler"),
             vec!["calculateFinalPayment", "payment_handler"]
         );
+    }
+
+    #[test]
+    fn repo_manifest_lists_only_present_markers() {
+        let dir = tempfile::TempDir::new().unwrap();
+        std::fs::write(dir.path().join("AGENTS.md"), "").unwrap();
+        std::fs::write(dir.path().join("package.json"), "{}").unwrap();
+        let manifest = repo_manifest(dir.path());
+        assert_eq!(manifest, vec!["AGENTS.md".to_string(), "package.json".to_string()]);
     }
 }

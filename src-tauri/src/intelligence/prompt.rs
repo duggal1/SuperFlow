@@ -63,6 +63,12 @@ fn evidence_block(evidence: &WorkspaceEvidence) -> String {
     if let Some(root) = &evidence.root {
         sections.push(format!("Workspace root: {}", root.display()));
     }
+    if !evidence.repo_manifest.is_empty() {
+        sections.push(format!(
+            "Repo manifest: {}",
+            evidence.repo_manifest.join(", ")
+        ));
+    }
     if !evidence.resolved_paths.is_empty() {
         sections.push(format!(
             "Verified paths:\n{}",
@@ -229,10 +235,12 @@ mod tests {
                 line_start: 10,
                 text: "fn calculateFinalPayment() {}".into(),
             }],
+            repo_manifest: vec!["AGENTS.md".into(), "Cargo.toml".into()],
         };
         let (_, user) =
             build_context_prompts_with_evidence(&snap, "fix payment", &evidence).unwrap();
         assert!(user.contains("<untrusted-code path=\"src/payment.ts\" line=\"10\">"));
         assert!(user.contains("calculateFinalPayment"));
+        assert!(user.contains("Repo manifest: AGENTS.md, Cargo.toml"));
     }
 }
