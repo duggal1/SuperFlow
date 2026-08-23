@@ -42,6 +42,7 @@ Every shortcut you take today becomes a bug hunt tomorrow. The cost of fixing a 
 **Root fix:** The sign-out button is slow → eliminate the unnecessary DB call. Now it's 10ms. No spinner needed.
 
 **How to identify the root cause:**
+
 - Trace the request from user action to database. Where is the time spent?
 - Is the slow step necessary, or is it incidental?
 - If you removed this step entirely, would anything break? If not, remove it.
@@ -71,11 +72,13 @@ Most problems resolve at step 2 or 3. If you reach step 5 before exhausting step
 Your training data for framework code (React, Next.js, Tailwind, Drizzle, Zod) is approximately 2023–2024. The codebase uses newer versions that include breaking changes, renamed APIs, and different conventions.
 
 **The `Docs/` directory exists to bridge this gap. Use it when:**
+
 - You encounter an error you cannot resolve after 2–3 attempts.
 - You are about to use an unfamiliar or recently changed API.
 - The task depends on framework behavior that may have changed since your training data.
 
 **Do not use it when:**
+
 - You are writing routine code you have written before.
 - The codebase already contains a correct implementation of the same pattern.
 - You are reading documentation without a concrete purpose.
@@ -87,6 +90,7 @@ Your training data for framework code (React, Next.js, Tailwind, Drizzle, Zod) i
 A domino effect: you change one thing that looks safe. Ten other things break because they depended implicitly on what you changed.
 
 **Before every change, check:**
+
 - What reads this?
 - What writes this?
 - What depends on the behavior I'm changing?
@@ -100,15 +104,15 @@ This check takes seconds and prevents hours of debugging. Don't be paralyzed —
 
 This project intentionally uses framework versions newer than your training data. Always assume APIs may have changed.
 
-| Library | Version | Key Difference |
-|---------|---------|----------------|
-| React | 19.2.4 | Actions, `useActionState`, `useOptimistic` |
-| Next.js | 16.2.10 | Proxy, `'use cache'`, Partial Prerendering |
-| Tailwind | v4 | CSS-first configuration |
-| Drizzle | 1.0.0-rc.4 | Relations API v2 |
-| Zod | 4.4.3 | Updated API surface |
-| Better Auth | 1.7.0-rc.1 | `cookieCache`, `minimal`, `getCookieCache` |
-| TanStack Query | v5 | `queryOptions`, `skipToken` |
+| Library        | Version    | Key Difference                             |
+| -------------- | ---------- | ------------------------------------------ |
+| React          | 19.2.4     | Actions, `useActionState`, `useOptimistic` |
+| Next.js        | 16.2.10    | Proxy, `'use cache'`, Partial Prerendering |
+| Tailwind       | v4         | CSS-first configuration                    |
+| Drizzle        | 1.0.0-rc.4 | Relations API v2                           |
+| Zod            | 4.4.3      | Updated API surface                        |
+| Better Auth    | 1.7.0-rc.1 | `cookieCache`, `minimal`, `getCookieCache` |
+| TanStack Query | v5         | `queryOptions`, `skipToken`                |
 
 If the installed versions differ from your assumptions, trust the project's dependencies and the `Docs/` directory over your training data.
 
@@ -174,6 +178,7 @@ Never run `git restore`, `git reset`, or `git stash` unless the user explicitly 
 ## 14. Sufficient Context Before Any Edit
 
 Never start editing without sufficient context. Before touching a file, you must understand:
+
 - What the file does and how it fits into the codebase
 - The surrounding files it imports from and exports to
 - The conventions used in that part of the codebase
@@ -186,6 +191,7 @@ Do not guess. If you lack context, stop and gather it first — read the relevan
 For large codebases, preserve your own context by delegating exploration to sub-agents. Launch 3–6 sub-agents in parallel to explore different parts of the codebase simultaneously before you start editing. This lets you understand the full picture — imports, conventions, data flow, dependencies — without burning your context window on file reads.
 
 Use sub-agents for:
+
 - Finding all files related to a feature
 - Reading the content of multiple files concurrently
 - Understanding patterns and conventions before writing code
@@ -216,12 +222,14 @@ If any check fails, the task is not complete — do not claim it is. Keep this f
 
 ## 18. Context Budget
 
-If context is tight, read this file fully (209 lines) + `AGENTS.md`, then the *one* skill for the task. Do not skim all skills shallowly — depth on the right skill beats breadth.
+If context is tight, read this file fully (209 lines) + `AGENTS.md`, then the _one_ skill for the task. Do not skim all skills shallowly — depth on the right skill beats breadth.
 
 <!-- BEGIN:nextjs-agent-rules -->
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 
 **Keep this block, including in commits.** It is part of the project's agent setup, maintained by `next dev` for every agent that works here. If it appears as an uncommitted change, that is intentional — commit it as-is. Do not remove it to clean up a diff; it will be regenerated.
+
 <!-- END:nextjs-agent-rules -->

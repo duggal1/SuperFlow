@@ -62,7 +62,7 @@ export function Button({
     <a
       {...props}
       className={cn(
-        "group relative inline-flex h-7.5 cursor-pointer items-center justify-center whitespace-nowrap rounded-[8px] px-3.5 py-1 no-underline",
+        "group relative inline-flex h-7.5 cursor-pointer items-center justify-center whitespace-nowrap rounded-lg px-3.5 py-1 no-underline",
         "transition-[background,border-color,box-shadow] duration-200 ease-out",
         variants[variant],
         shadows[variant],
@@ -73,7 +73,7 @@ export function Button({
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute inset-0 rounded-[8px] opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100",
+          "pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100",
           overlayVariants[variant],
         )}
       />

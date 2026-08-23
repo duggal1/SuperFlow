@@ -1,8 +1,9 @@
 ---
-
 name: frontend-design
 description: Create and refine frontend interfaces with real taste, real judgment, and real emotional effect in TypeScript, React, and Tailwind CSS. Use when building landing pages, marketing sites, product interfaces, design systems, or frontend components. The job is not merely "clean" or "consistent" — clean and consistent are the floor, not the goal. The goal is disciplined, memorable design with strong hierarchy, restraint, and deliberate visual taste that feels alive, not forgettable. Never invent a new visual language when an existing one already exists.
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+---
 
 # ⛔ MANDATORY PRE-READ — EXTREMELY FORCEFUL RULE — READ BEFORE ANYTHING ELSE
 
@@ -15,6 +16,7 @@ description: Create and refine frontend interfaces with real taste, real judgmen
 2. **`/Users/harshitduggal/workspace/skills/skills/frontend/agent-questions.md`** — CRITICAL for the `init` / getting-started phase. This file defines EXACTLY how and when to ask the 5 compact design questions (Theme / Neutral / Roundedness / Surfaces / Badges). When starting a new design from scratch, you MUST follow its brief, visual 5-question format — nothing longer, nothing earlier, nothing later.
 
 **Enforcement:**
+
 - If you have not read BOTH files fully, you are NOT ready to design.
 - Do NOT start coding, questioning, or planning until both files are read.
 - Re-read them if you are unsure — assuming their contents is forbidden.
@@ -27,21 +29,21 @@ Build frontend interfaces with **extreme visual consistency, restraint, hierarch
 
 > **Context budget (9/10 fix):** Full read is 2,908 lines. If context is tight, read `§1 Primary Objective` + `§2 Consistency` + `§6 Typography` + `§7 NO SHADOWS` + the one section for the task (e.g., `§14 Hero` / `§19 Card`). For full taste, read once end-to-end, then reuse tokens. Depth on the right section beats shallow skimming.
 
-> **TL;DR — what 9/10 means here:** One system, one accent, stone/zinc neutrals, `400/500` only, `0-8px` radius, hairline borders, no shadows, `5xl-7xl` containers, `py-20→py-32` rhythm, hierarchy via scale/tracking/spacing — not weight. Distinctiveness comes from *one* deliberate signature (type, rail, stage), everything else quiet.
+> **TL;DR — what 9/10 means here:** One system, one accent, stone/zinc neutrals, `400/500` only, `0-8px` radius, hairline borders, no shadows, `5xl-7xl` containers, `py-20→py-32` rhythm, hierarchy via scale/tracking/spacing — not weight. Distinctiveness comes from _one_ deliberate signature (type, rail, stage), everything else quiet.
 
 The biggest failure this skill exists to prevent is **AI design drift**.
 
 An AI agent will often inspect an existing frontend component, decide that the component could look "better", and then silently invent:
 
-* a different radius
-* a different font weight
-* a different button
-* a different card
-* a different color
-* a different spacing system
-* a different shadow
-* a different animation
-* a different visual hierarchy
+- a different radius
+- a different font weight
+- a different button
+- a different card
+- a different color
+- a different spacing system
+- a different shadow
+- a different animation
+- a different visual hierarchy
 
 That behavior is forbidden.
 
@@ -53,20 +55,20 @@ The frontend must look like **one coherent system designed intentionally**, not 
 
 "Clean" and "consistent" are **not** the goal. They are not even the bare minimum.
 
-A clean interface can still be **extremely forgettable**. You can make it clean. You can make it slightly different. Either way it is *still extremely forgettable*. "Clean" is the easiest thing in the world to produce and the least valuable output. Do not confuse clean with good. Do not confuse consistency with taste.
+A clean interface can still be **extremely forgettable**. You can make it clean. You can make it slightly different. Either way it is _still extremely forgettable_. "Clean" is the easiest thing in the world to produce and the least valuable output. Do not confuse clean with good. Do not confuse consistency with taste.
 
 The real job is:
 
 > **Real taste. Real judgment. Real emotional effect.**
 
-This user cares about design more than almost anything else. They do not want a functional, inoffensive, forgettable page. They want a page that is *lit* — extremely clean **and** emotionally alive — produced with the kind of taste a senior designer with strong opinion and instinct would bring.
+This user cares about design more than almost anything else. They do not want a functional, inoffensive, forgettable page. They want a page that is _lit_ — extremely clean **and** emotionally alive — produced with the kind of taste a senior designer with strong opinion and instinct would bring.
 
 This demands judgment, not rule-following:
 
-* Know *why* a spacing, weight, or color is right — not just that it is "consistent."
-* Make decisions that create a **feeling**, not just a layout that renders without errors.
-* Treat the design as something that must be **remembered**, not merely tolerated.
-* Consistency is the floor. Taste is the ceiling. Aim at the ceiling.
+- Know _why_ a spacing, weight, or color is right — not just that it is "consistent."
+- Make decisions that create a **feeling**, not just a layout that renders without errors.
+- Treat the design as something that must be **remembered**, not merely tolerated.
+- Consistency is the floor. Taste is the ceiling. Aim at the ceiling.
 
 ### Failure modes to refuse on sight
 
@@ -80,7 +82,7 @@ bloated fonts   → never. no 800/900 weights, no giant type used for its own sa
 multiple designs → never. one page, one coherent system, one mood
 ```
 
-A learning page with one good design is good. The moment you bolt on a *different* design — a second visual language, a different component family, a different mood — you kill consistency **hard** and the whole thing collapses into soup. One system. Start to finish.
+A learning page with one good design is good. The moment you bolt on a _different_ design — a second visual language, a different component family, a different mood — you kill consistency **hard** and the whole thing collapses into soup. One system. Start to finish.
 
 ---
 
@@ -92,28 +94,28 @@ The goal is:
 
 The interface should feel:
 
-* intentional
-* calm
-* precise
-* modern
-* structured
-* premium
-* visually quiet
-* highly readable
-* coherent
+- intentional
+- calm
+- precise
+- modern
+- structured
+- premium
+- visually quiet
+- highly readable
+- coherent
 
 The interface should **not** feel:
 
-* overdesigned
-* noisy
-* generic
-* template-like
-* excessively rounded
-* gradient-heavy
-* shadow-heavy
-* colorful for no reason
-* filled with random cards
-* obviously AI-generated
+- overdesigned
+- noisy
+- generic
+- template-like
+- excessively rounded
+- gradient-heavy
+- shadow-heavy
+- colorful for no reason
+- filled with random cards
+- obviously AI-generated
 
 The standard is not "looks good."
 
@@ -133,22 +135,22 @@ Do not redesign an existing component simply because another design looks better
 
 First inspect:
 
-* the current page
-* neighboring components
-* shared components
-* existing buttons
-* existing badges
-* existing cards
-* typography
-* colors
-* spacing
-* radii
-* borders
-* navigation
-* responsive behavior
-* hover states
-* animation
-* existing layout primitives
+- the current page
+- neighboring components
+- shared components
+- existing buttons
+- existing badges
+- existing cards
+- typography
+- colors
+- spacing
+- radii
+- borders
+- navigation
+- responsive behavior
+- hover states
+- animation
+- existing layout primitives
 
 Then reuse the existing system.
 
@@ -184,19 +186,19 @@ Design inconsistency
 
 Do not introduce arbitrary:
 
-* colors
-* gradients
-* shadows
-* radii
-* typography
-* button geometry
-* card geometry
-* borders
-* icon styles
-* illustrations
-* animations
-* spacing
-* container widths
+- colors
+- gradients
+- shadows
+- radii
+- typography
+- button geometry
+- card geometry
+- borders
+- icon styles
+- illustrations
+- animations
+- spacing
+- container widths
 
 unless the current design system requires them.
 
@@ -230,12 +232,12 @@ because "the heading needs more emphasis."
 
 Use:
 
-* size
-* spacing
-* contrast
-* tracking
-* line height
-* placement
+- size
+- spacing
+- contrast
+- tracking
+- line height
+- placement
 
 to establish hierarchy.
 
@@ -253,17 +255,17 @@ For example:
 
 should define:
 
-* height
-* padding
-* radius
-* font size
-* font weight
-* tracking
-* background
-* text color
-* hover
-* active
-* transition
+- height
+- padding
+- radius
+- font size
+- font weight
+- tracking
+- background
+- text color
+- hover
+- active
+- transition
 
 A new CTA should normally use the same primitive.
 
@@ -394,26 +396,26 @@ sans + serif
 
 Then establish:
 
-* body font
-* heading font
-* weight scale
-* type scale
-* line-height
-* tracking
+- body font
+- heading font
+- weight scale
+- type scale
+- line-height
+- tracking
 
 ## Layout system
 
 Determine:
 
-* content width
-* wide content width
-* horizontal padding
-* section spacing
-* grid gaps
-* card gaps
-* header height
-* CTA geometry
-* badge geometry
+- content width
+- wide content width
+- horizontal padding
+- section spacing
+- grid gaps
+- card gaps
+- header height
+- CTA geometry
+- badge geometry
 
 Do not make all of these decisions independently while coding.
 
@@ -516,7 +518,7 @@ shadow-2xl
 Do not use arbitrary CSS:
 
 ```css
-box-shadow: ...
+box-shadow: ...;
 ```
 
 Do not use inline shadows.
@@ -531,13 +533,13 @@ NO SHADOW
 
 Create depth through:
 
-* background contrast
-* borders
-* overlap
-* spacing
-* layering
-* typography
-* image treatment
+- background contrast
+- borders
+- overlap
+- spacing
+- layering
+- typography
+- image treatment
 
 ### Bad
 
@@ -703,15 +705,13 @@ const CONTAINER = "mx-auto w-full max-w-6xl px-5 md:px-8";
 Wide content:
 
 ```tsx
-const WIDE_CONTAINER =
-  "mx-auto w-full max-w-7xl px-5 md:px-8";
+const WIDE_CONTAINER = "mx-auto w-full max-w-7xl px-5 md:px-8";
 ```
 
 Narrow editorial content:
 
 ```tsx
-const PROSE_CONTAINER =
-  "mx-auto w-full max-w-3xl px-5 md:px-8";
+const PROSE_CONTAINER = "mx-auto w-full max-w-3xl px-5 md:px-8";
 ```
 
 The supplied references explicitly establish separate wide and normal columns instead of randomly changing widths per section.
@@ -795,18 +795,15 @@ Example:
 ```tsx
 <section className="bg-stone-50 px-5 py-20 md:px-8 md:py-28">
   <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-
-    <Badge variant="orange">
-      New
-    </Badge>
+    <Badge variant="orange">New</Badge>
 
     <h1 className="mt-6 max-w-3xl text-5xl font-normal leading-[0.98] tracking-tight text-stone-950 md:text-7xl">
       Your product, without the visual noise.
     </h1>
 
     <p className="mt-6 max-w-2xl text-base font-normal leading-7 tracking-tight text-stone-600 md:text-lg">
-      One coherent interface built around clear hierarchy, strong spacing,
-      and a system that stays consistent as the product grows.
+      One coherent interface built around clear hierarchy, strong spacing, and a
+      system that stays consistent as the product grows.
     </p>
 
     <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
@@ -824,7 +821,6 @@ Example:
         See how it works
       </a>
     </div>
-
   </div>
 </section>
 ```
@@ -840,13 +836,7 @@ Badges must be reusable.
 Do not manually style every badge.
 
 ```tsx
-type BadgeVariant =
-  | "sky"
-  | "violet"
-  | "yellow"
-  | "rose"
-  | "green"
-  | "orange";
+type BadgeVariant = "sky" | "violet" | "yellow" | "rose" | "green" | "orange";
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -862,10 +852,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   orange: "bg-orange-500/10 text-orange-700",
 };
 
-export function Badge({
-  children,
-  variant = "orange",
-}: BadgeProps) {
+export function Badge({ children, variant = "orange" }: BadgeProps) {
   return (
     <span
       className={[
@@ -912,21 +899,15 @@ interface ButtonProps {
 }
 
 const buttonStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-stone-950 text-white hover:bg-stone-800",
+  primary: "bg-stone-950 text-white hover:bg-stone-800",
 
   secondary:
     "border border-stone-200/80 bg-white text-stone-950 hover:bg-stone-50",
 
-  ghost:
-    "bg-transparent text-stone-700 hover:bg-stone-100",
+  ghost: "bg-transparent text-stone-700 hover:bg-stone-100",
 };
 
-export function Button({
-  children,
-  variant = "primary",
-  href,
-}: ButtonProps) {
+export function Button({ children, variant = "primary", href }: ButtonProps) {
   const className = [
     "inline-flex h-10 items-center justify-center",
     "rounded-md px-4",
@@ -974,11 +955,7 @@ Example:
 ```tsx
 <header className="sticky top-0 z-50 border-b border-stone-200/70 bg-white">
   <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 md:px-8">
-
-    <a
-      href="/"
-      className="text-base font-medium tracking-tight text-stone-950"
-    >
+    <a href="/" className="text-base font-medium tracking-tight text-stone-950">
       Product
     </a>
 
@@ -998,10 +975,7 @@ Example:
       </a>
     </nav>
 
-    <Button href="#start">
-      Get started
-    </Button>
-
+    <Button href="#start">Get started</Button>
   </div>
 </header>
 ```
@@ -1015,9 +989,7 @@ Dropdowns should reuse the same surface language.
 Preferred:
 
 ```tsx
-<div className="rounded-md border border-stone-200/80 bg-white p-1.5">
-  ...
-</div>
+<div className="rounded-md border border-stone-200/80 bg-white p-1.5">...</div>
 ```
 
 Avoid:
@@ -1046,11 +1018,7 @@ Good card:
 ```tsx
 <article className="overflow-hidden rounded-md bg-stone-100">
   <div className="aspect-[16/10]">
-    <img
-      src="/product.png"
-      alt=""
-      className="h-full w-full object-cover"
-    />
+    <img src="/product.png" alt="" className="h-full w-full object-cover" />
   </div>
 
   <div className="space-y-2 p-6">
@@ -1088,13 +1056,9 @@ Example:
 ```tsx
 <section className="px-5 py-20 md:px-8 md:py-28">
   <div className="mx-auto max-w-6xl">
-
     <div className="grid gap-4 md:grid-cols-2">
-
       <article className="rounded-md bg-stone-950 p-8 text-white md:row-span-2">
-        <Badge variant="green">
-          Core
-        </Badge>
+        <Badge variant="green">Core</Badge>
 
         <h3 className="mt-5 text-3xl font-normal leading-tight tracking-tight">
           One system for the full workflow.
@@ -1107,9 +1071,7 @@ Example:
       </article>
 
       <article className="rounded-md bg-stone-100 p-8">
-        <p className="text-sm font-medium tracking-tight text-stone-950">
-          01
-        </p>
+        <p className="text-sm font-medium tracking-tight text-stone-950">01</p>
 
         <h3 className="mt-8 text-2xl font-normal tracking-tight text-stone-950">
           Search
@@ -1121,9 +1083,7 @@ Example:
       </article>
 
       <article className="rounded-md bg-stone-100 p-8">
-        <p className="text-sm font-medium tracking-tight text-stone-950">
-          02
-        </p>
+        <p className="text-sm font-medium tracking-tight text-stone-950">02</p>
 
         <h3 className="mt-8 text-2xl font-normal tracking-tight text-stone-950">
           Analyze
@@ -1133,9 +1093,7 @@ Example:
           Turn raw information into useful decisions.
         </p>
       </article>
-
     </div>
-
   </div>
 </section>
 ```
@@ -1166,7 +1124,6 @@ Example:
 ```tsx
 <section className="bg-white px-5 py-20 md:px-8 md:py-32">
   <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
-
     <div className="lg:sticky lg:top-24 lg:self-start">
       <span className="text-sm font-medium tracking-tight text-stone-500">
         01
@@ -1177,19 +1134,14 @@ Example:
       </h2>
 
       <p className="mt-5 max-w-md text-base leading-7 text-stone-600">
-        The main feature gets room to breathe instead of competing with
-        five other boxes.
+        The main feature gets room to breathe instead of competing with five
+        other boxes.
       </p>
     </div>
 
     <div className="overflow-hidden rounded-md bg-stone-100">
-      <img
-        src="/dashboard.png"
-        alt=""
-        className="w-full object-cover"
-      />
+      <img src="/dashboard.png" alt="" className="w-full object-cover" />
     </div>
-
   </div>
 </section>
 ```
@@ -1253,10 +1205,10 @@ Do not add rails randomly.
 
 If rails exist:
 
-* define their position
-* define their color
-* define their opacity
-* reuse them consistently
+- define their position
+- define their color
+- define their opacity
+- reuse them consistently
 
 ---
 
@@ -1312,11 +1264,7 @@ Example:
 
 ```tsx
 <div className="aspect-[16/10] overflow-hidden rounded-md">
-  <img
-    src="/image.jpg"
-    alt=""
-    className="h-full w-full object-cover"
-  />
+  <img src="/image.jpg" alt="" className="h-full w-full object-cover" />
 </div>
 ```
 
@@ -1345,11 +1293,7 @@ Do not add image shadows.
 Use:
 
 ```tsx
-<img
-  src="/product.webp"
-  alt=""
-  className="h-full w-full object-cover"
-/>
+<img src="/product.webp" alt="" className="h-full w-full object-cover" />
 ```
 
 ---
@@ -1365,11 +1309,7 @@ Example:
 ```tsx
 <div className="grid gap-6 md:grid-cols-2">
   {brands.map((brand) => (
-    <a
-      key={brand.name}
-      href={brand.href}
-      className="group block"
-    >
+    <a key={brand.name} href={brand.href} className="group block">
       <div className="aspect-[16/10] overflow-hidden rounded-md bg-stone-100">
         <img
           src={brand.image}
@@ -1383,9 +1323,7 @@ Example:
           {brand.name}
         </h3>
 
-        <p className="mt-1 text-sm text-stone-500">
-          {brand.description}
-        </p>
+        <p className="mt-1 text-sm text-stone-500">{brand.description}</p>
       </div>
     </a>
   ))}
@@ -1430,24 +1368,24 @@ Decorative effects are permitted only when they belong to the system.
 
 Allowed:
 
-* guide rails
-* tiny nodes
-* hairlines
-* subtle texture
-* controlled dither
-* small geometric marks
-* restrained color fields
-* editorial underlines
-* image overlays
+- guide rails
+- tiny nodes
+- hairlines
+- subtle texture
+- controlled dither
+- small geometric marks
+- restrained color fields
+- editorial underlines
+- image overlays
 
 Forbidden:
 
-* random glowing blobs
-* excessive glassmorphism
-* random floating cards
-* gratuitous 3D
-* giant gradient text
-* visual effects with no structural purpose
+- random glowing blobs
+- excessive glassmorphism
+- random floating cards
+- gratuitous 3D
+- giant gradient text
+- visual effects with no structural purpose
 
 The supplied Vessa reference uses dither fields and guide rails as repeated visual grammar rather than one-off decoration.
 
@@ -1500,8 +1438,8 @@ Example:
 
 ```tsx
 <p className="max-w-xl text-base font-normal leading-7 tracking-tight text-stone-600">
-  Short, readable supporting text that explains the value without
-  becoming a wall of copy.
+  Short, readable supporting text that explains the value without becoming a
+  wall of copy.
 </p>
 ```
 
@@ -1542,9 +1480,7 @@ Highlighting is allowed when it is part of the visual concept.
 Examples:
 
 ```tsx
-<span className="bg-orange-100 px-1 text-stone-950">
-  intelligence
-</span>
+<span className="bg-orange-100 px-1 text-stone-950">intelligence</span>
 ```
 
 or:
@@ -1576,7 +1512,6 @@ Example:
 ```tsx
 <section className="bg-stone-50 px-5 py-20 md:px-8 md:py-32">
   <div className="mx-auto max-w-6xl">
-
     <header className="max-w-2xl">
       <h2 className="text-4xl font-normal leading-tight tracking-tight text-stone-950">
         One simple plan.
@@ -1596,18 +1531,12 @@ Example:
         $49
       </p>
 
-      <p className="mt-2 text-sm text-stone-500">
-        per month
-      </p>
+      <p className="mt-2 text-sm text-stone-500">per month</p>
 
       <div className="mt-8">
-        <Button href="#start">
-          Get started
-        </Button>
+        <Button href="#start">Get started</Button>
       </div>
-
     </div>
-
   </div>
 </section>
 ```
@@ -1673,7 +1602,6 @@ Example:
 ```tsx
 <section className="bg-white px-5 py-20 md:px-8 md:py-32">
   <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-
     <h2 className="text-4xl font-normal leading-tight tracking-tight text-stone-950 md:text-5xl">
       Ready to make the product simpler?
     </h2>
@@ -1683,11 +1611,8 @@ Example:
     </p>
 
     <div className="mt-8">
-      <Button href="#start">
-        Get started
-      </Button>
+      <Button href="#start">Get started</Button>
     </div>
-
   </div>
 </section>
 ```
@@ -1923,7 +1848,6 @@ Example:
 ```tsx
 <section className="bg-zinc-950 px-5 py-24 text-white md:px-8">
   <div className="mx-auto max-w-6xl">
-
     <p className="text-sm font-medium tracking-tight text-white/50">
       Why it matters
     </p>
@@ -1933,10 +1857,9 @@ Example:
     </h2>
 
     <p className="mt-6 max-w-xl text-base leading-7 text-white/60">
-      Keep the interface dense enough to be useful without turning every
-      section into a wall of controls.
+      Keep the interface dense enough to be useful without turning every section
+      into a wall of controls.
     </p>
-
   </div>
 </section>
 ```
@@ -1952,20 +1875,18 @@ Example:
 ```tsx
 <article className="rounded-md bg-zinc-900 p-6 text-white md:p-8">
   <div className="flex flex-col justify-between gap-12">
-
     <div>
       <h3 className="text-2xl font-normal tracking-tight">
         Complete auditability
       </h3>
 
       <p className="mt-4 max-w-md text-sm leading-6 text-white/65">
-        Make every important source traceable without making the interface
-        feel like an enterprise relic.
+        Make every important source traceable without making the interface feel
+        like an enterprise relic.
       </p>
     </div>
 
     <div className="aspect-[16/8] rounded-sm border border-white/10 bg-black/30" />
-
   </div>
 </article>
 ```
@@ -2013,13 +1934,9 @@ Example:
 
 ```tsx
 <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
-  <div>
-    ...
-  </div>
+  <div>...</div>
 
-  <div>
-    ...
-  </div>
+  <div>...</div>
 </div>
 ```
 
@@ -2050,18 +1967,15 @@ Example:
 ```tsx
 <section className="px-5 py-24 md:px-8">
   <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[180px_1fr]">
-
     <div className="text-xs font-medium tracking-wide text-stone-500">
       MANIFESTO
     </div>
 
     <div className="max-w-4xl">
       <h2 className="text-4xl font-normal leading-[1.05] tracking-[-0.035em] text-stone-950 md:text-6xl">
-        Schools do not need more tools.
-        They need fewer disconnected systems.
+        Schools do not need more tools. They need fewer disconnected systems.
       </h2>
     </div>
-
   </div>
 </section>
 ```
@@ -2094,13 +2008,9 @@ Example:
     ...
   </div>
 
-  <div className="absolute right-[8%] top-[30%] w-[42%] rotate-[2deg]">
-    ...
-  </div>
+  <div className="absolute right-[8%] top-[30%] w-[42%] rotate-[2deg]">...</div>
 
-  <div className="absolute bottom-[6%] left-[28%] w-[44%]">
-    ...
-  </div>
+  <div className="absolute bottom-[6%] left-[28%] w-[44%]">...</div>
 </div>
 ```
 
@@ -2118,29 +2028,27 @@ It is the same system adapting to a different viewport.
 
 Preserve:
 
-* typography hierarchy
-* colors
-* component geometry
-* visual language
-* spacing logic
-* interaction behavior
+- typography hierarchy
+- colors
+- component geometry
+- visual language
+- spacing logic
+- interaction behavior
 
 Change:
 
-* number of columns
-* widths
-* image size
-* navigation
-* alignment
-* section spacing
-* text size where necessary
+- number of columns
+- widths
+- image size
+- navigation
+- alignment
+- section spacing
+- text size where necessary
 
 Example:
 
 ```tsx
-<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-  ...
-</div>
+<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">...</div>
 ```
 
 not three independently designed mobile/tablet/desktop systems.
@@ -2162,11 +2070,11 @@ Do not make the mobile menu visually unrelated to desktop navigation.
 
 Use the same:
 
-* typography
-* colors
-* radius
-* button system
-* spacing system
+- typography
+- colors
+- radius
+- button system
+- spacing system
 
 The supplied references use collapsing mobile navigation while preserving the same overall visual grammar.
 
@@ -2189,9 +2097,7 @@ same type hierarchy
 Example:
 
 ```tsx
-<div className="grid gap-4 md:grid-cols-2">
-  ...
-</div>
+<div className="grid gap-4 md:grid-cols-2">...</div>
 ```
 
 ---
@@ -2264,10 +2170,10 @@ But do not create abstractions merely for the sake of abstraction.
 
 Extract components when they:
 
-* repeat
-* have their own behavior
-* represent a meaningful design primitive
-* need independent reuse
+- repeat
+- have their own behavior
+- represent a meaningful design primitive
+- need independent reuse
 
 ---
 
@@ -2678,15 +2584,11 @@ When creating from scratch:
   </div>
 
   <div className="relative mx-auto max-w-6xl">
-
     <header className="max-w-2xl">
-      <Badge variant="orange">
-        Workflow
-      </Badge>
+      <Badge variant="orange">Workflow</Badge>
 
       <h2 className="mt-5 text-4xl font-normal leading-[1.05] tracking-[-0.035em] text-stone-950 md:text-6xl">
-        Everything connected.
-        Nothing unnecessary.
+        Everything connected. Nothing unnecessary.
       </h2>
 
       <p className="mt-5 max-w-xl text-base leading-7 tracking-tight text-stone-600">
@@ -2696,7 +2598,6 @@ When creating from scratch:
     </header>
 
     <div className="mt-12 grid gap-4 md:grid-cols-2">
-
       <article className="overflow-hidden rounded-md bg-stone-100">
         <div className="aspect-[16/10]">
           <img
@@ -2707,17 +2608,15 @@ When creating from scratch:
         </div>
 
         <div className="p-6">
-          <p className="text-xs font-medium tracking-wide text-stone-500">
-            01
-          </p>
+          <p className="text-xs font-medium tracking-wide text-stone-500">01</p>
 
           <h3 className="mt-3 text-2xl font-normal tracking-tight text-stone-950">
             One workspace
           </h3>
 
           <p className="mt-2 text-sm leading-6 text-stone-600">
-            Keep the complete workflow visible without forcing users
-            to understand five different interfaces.
+            Keep the complete workflow visible without forcing users to
+            understand five different interfaces.
           </p>
         </div>
       </article>
@@ -2732,9 +2631,7 @@ When creating from scratch:
         </div>
 
         <div className="p-6">
-          <p className="text-xs font-medium tracking-wide text-stone-500">
-            02
-          </p>
+          <p className="text-xs font-medium tracking-wide text-stone-500">02</p>
 
           <h3 className="mt-3 text-2xl font-normal tracking-tight text-stone-950">
             Useful by default
@@ -2745,9 +2642,7 @@ When creating from scratch:
           </p>
         </div>
       </article>
-
     </div>
-
   </div>
 </section>
 ```
@@ -2761,9 +2656,7 @@ This is the target level of design: a coherent container, deliberate rails, one 
 ```tsx
 <section className="bg-zinc-950 px-5 py-20 text-white md:px-8 md:py-32">
   <div className="mx-auto max-w-6xl">
-
     <div className="grid gap-12 lg:grid-cols-[0.7fr_1.3fr]">
-
       <div>
         <span className="text-xs font-medium tracking-wide text-white/45">
           01
@@ -2775,11 +2668,8 @@ This is the target level of design: a coherent container, deliberate rails, one 
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-
         <article className="rounded-md border border-white/10 bg-white/[0.03] p-6">
-          <h3 className="text-xl font-normal tracking-tight">
-            Search
-          </h3>
+          <h3 className="text-xl font-normal tracking-tight">Search</h3>
 
           <p className="mt-3 text-sm leading-6 text-white/60">
             Find what matters without navigating through layers of UI.
@@ -2787,19 +2677,14 @@ This is the target level of design: a coherent container, deliberate rails, one 
         </article>
 
         <article className="rounded-md border border-white/10 bg-white/[0.03] p-6">
-          <h3 className="text-xl font-normal tracking-tight">
-            Analyze
-          </h3>
+          <h3 className="text-xl font-normal tracking-tight">Analyze</h3>
 
           <p className="mt-3 text-sm leading-6 text-white/60">
             Turn raw information into useful context.
           </p>
         </article>
-
       </div>
-
     </div>
-
   </div>
 </section>
 ```
@@ -2912,5 +2797,3 @@ Contrast beats shadows.
 Taste beats complexity.
 Emotion beats clean.
 Judgment beats rules.**
-
-

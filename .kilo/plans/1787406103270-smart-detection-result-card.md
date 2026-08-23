@@ -65,6 +65,7 @@ Keep `PasteMethod::None` unchanged (it already skips paste and hides; do not sho
 ### 3. Verify the frontend card renders (no code change expected)
 
 Confirm `src/overlay/RecordingOverlay.tsx`:
+
 - `show-transcript-result` listener sets `resultText` + `isVisible(true)` (lines 142-155).
 - The `resultText` branch renders the `.sresult` card with the `Copy` button and
   `handleCopy` (lines 249-307).

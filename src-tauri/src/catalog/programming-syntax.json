@@ -41,37 +41,10 @@
       "formatted_instruction"
     ],
     "actions": {
-      "add": [
-        "add",
-        "put",
-        "insert",
-        "include",
-        "introduce",
-        "bring in"
-      ],
-      "remove": [
-        "remove",
-        "delete",
-        "take out",
-        "get rid of",
-        "drop",
-        "strip"
-      ],
-      "change": [
-        "change",
-        "modify",
-        "update",
-        "edit",
-        "adjust",
-        "alter"
-      ],
-      "replace": [
-        "replace",
-        "swap",
-        "switch",
-        "use instead",
-        "change to"
-      ],
+      "add": ["add", "put", "insert", "include", "introduce", "bring in"],
+      "remove": ["remove", "delete", "take out", "get rid of", "drop", "strip"],
+      "change": ["change", "modify", "update", "edit", "adjust", "alter"],
+      "replace": ["replace", "swap", "switch", "use instead", "change to"],
       "move": [
         "move",
         "shift",
@@ -97,113 +70,29 @@
         "lower",
         "shrink"
       ],
-      "enable": [
-        "enable",
-        "turn on",
-        "activate",
-        "allow"
-      ],
-      "disable": [
-        "disable",
-        "turn off",
-        "deactivate",
-        "prevent"
-      ],
-      "set": [
-        "set",
-        "make",
-        "use",
-        "change to",
-        "assign"
-      ],
-      "inspect": [
-        "check",
-        "inspect",
-        "look at",
-        "show",
-        "display",
-        "tell me"
-      ]
+      "enable": ["enable", "turn on", "activate", "allow"],
+      "disable": ["disable", "turn off", "deactivate", "prevent"],
+      "set": ["set", "make", "use", "change to", "assign"],
+      "inspect": ["check", "inspect", "look at", "show", "display", "tell me"]
     }
   },
 
   "programming_language_detection": {
-    "javascript": [
-      "javascript",
-      "java script",
-      "js",
-      "j s",
-      "jay ess"
-    ],
-    "typescript": [
-      "typescript",
-      "type script",
-      "ts",
-      "t s",
-      "tee ess"
-    ],
-    "python": [
-      "python",
-      "pie thon",
-      "py"
-    ],
-    "rust": [
-      "rust",
-      "rust lang",
-      "rust language"
-    ],
-    "go": [
-      "go",
-      "golang",
-      "go lang",
-      "go language"
-    ],
-    "java": [
-      "java",
-      "java language"
-    ],
-    "kotlin": [
-      "kotlin",
-      "kotlin language"
-    ],
-    "swift": [
-      "swift",
-      "swift language"
-    ],
-    "php": [
-      "php",
-      "p h p"
-    ],
-    "ruby": [
-      "ruby",
-      "ruby language"
-    ],
-    "c": [
-      "c language",
-      "see language"
-    ],
-    "cpp": [
-      "c plus plus",
-      "cpp",
-      "c p p"
-    ],
-    "csharp": [
-      "c sharp",
-      "c hash",
-      "csharp"
-    ],
-    "sql": [
-      "sql",
-      "s q l",
-      "sequel"
-    ],
-    "shell": [
-      "shell",
-      "bash",
-      "zsh",
-      "terminal",
-      "command line"
-    ]
+    "javascript": ["javascript", "java script", "js", "j s", "jay ess"],
+    "typescript": ["typescript", "type script", "ts", "t s", "tee ess"],
+    "python": ["python", "pie thon", "py"],
+    "rust": ["rust", "rust lang", "rust language"],
+    "go": ["go", "golang", "go lang", "go language"],
+    "java": ["java", "java language"],
+    "kotlin": ["kotlin", "kotlin language"],
+    "swift": ["swift", "swift language"],
+    "php": ["php", "p h p"],
+    "ruby": ["ruby", "ruby language"],
+    "c": ["c language", "see language"],
+    "cpp": ["c plus plus", "cpp", "c p p"],
+    "csharp": ["c sharp", "c hash", "csharp"],
+    "sql": ["sql", "s q l", "sequel"],
+    "shell": ["shell", "bash", "zsh", "terminal", "command line"]
   },
 
   "javascript_patterns": {
@@ -999,137 +888,32 @@
 
   "spreadsheet_syntax": {
     "column_letters": {
-      "A": [
-        "a",
-        "ay",
-        "column a"
-      ],
-      "B": [
-        "b",
-        "bee",
-        "column b"
-      ],
-      "C": [
-        "c",
-        "see",
-        "column c"
-      ],
-      "D": [
-        "d",
-        "dee",
-        "column d"
-      ],
-      "E": [
-        "e",
-        "ee",
-        "column e"
-      ],
-      "F": [
-        "f",
-        "eff",
-        "column f"
-      ],
-      "G": [
-        "g",
-        "gee",
-        "column g"
-      ],
-      "H": [
-        "h",
-        "aitch",
-        "column h"
-      ],
-      "I": [
-        "i",
-        "eye",
-        "column i"
-      ],
-      "J": [
-        "j",
-        "jay",
-        "column j"
-      ],
-      "K": [
-        "k",
-        "kay",
-        "column k"
-      ],
-      "L": [
-        "l",
-        "el",
-        "column l"
-      ],
-      "M": [
-        "m",
-        "em",
-        "column m"
-      ],
-      "N": [
-        "n",
-        "en",
-        "column n"
-      ],
-      "O": [
-        "o",
-        "oh",
-        "column o"
-      ],
-      "P": [
-        "p",
-        "pee",
-        "column p"
-      ],
-      "Q": [
-        "q",
-        "cue",
-        "column q"
-      ],
-      "R": [
-        "r",
-        "are",
-        "column r"
-      ],
-      "S": [
-        "s",
-        "ess",
-        "column s"
-      ],
-      "T": [
-        "t",
-        "tee",
-        "column t"
-      ],
-      "U": [
-        "u",
-        "you",
-        "column u"
-      ],
-      "V": [
-        "v",
-        "vee",
-        "column v"
-      ],
-      "W": [
-        "w",
-        "double you",
-        "column w"
-      ],
-      "X": [
-        "x",
-        "ex",
-        "column x"
-      ],
-      "Y": [
-        "y",
-        "why",
-        "column y"
-      ],
-      "Z": [
-        "z",
-        "zee",
-        "zed",
-        "column z"
-      ]
+      "A": ["a", "ay", "column a"],
+      "B": ["b", "bee", "column b"],
+      "C": ["c", "see", "column c"],
+      "D": ["d", "dee", "column d"],
+      "E": ["e", "ee", "column e"],
+      "F": ["f", "eff", "column f"],
+      "G": ["g", "gee", "column g"],
+      "H": ["h", "aitch", "column h"],
+      "I": ["i", "eye", "column i"],
+      "J": ["j", "jay", "column j"],
+      "K": ["k", "kay", "column k"],
+      "L": ["l", "el", "column l"],
+      "M": ["m", "em", "column m"],
+      "N": ["n", "en", "column n"],
+      "O": ["o", "oh", "column o"],
+      "P": ["p", "pee", "column p"],
+      "Q": ["q", "cue", "column q"],
+      "R": ["r", "are", "column r"],
+      "S": ["s", "ess", "column s"],
+      "T": ["t", "tee", "column t"],
+      "U": ["u", "you", "column u"],
+      "V": ["v", "vee", "column v"],
+      "W": ["w", "double you", "column w"],
+      "X": ["x", "ex", "column x"],
+      "Y": ["y", "why", "column y"],
+      "Z": ["z", "zee", "zed", "column z"]
     },
     "cell_reference_patterns": [
       {
@@ -3191,13 +2975,7 @@
       "lib",
       "hooks"
     ],
-    "vite": [
-      "src",
-      "main",
-      "App",
-      "public",
-      "vite.config"
-    ],
+    "vite": ["src", "main", "App", "public", "vite.config"],
     "react": [
       "components",
       "props",

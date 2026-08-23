@@ -1,6 +1,7 @@
-use crate::settings::AppSettings;
+use crate::settings::{AiCleanupStyle, AppSettings};
 
 const MAX_CUSTOM_INSTRUCTION_CHARS: usize = 4_000;
+const MAX_STYLE_TONE_CHARS: usize = 2_000;
 const MAX_CONTEXT_CHARS: usize = 12_000;
 
 pub const SYSTEM_PROMPT: &str = r#"You are a prompt editor.
@@ -24,7 +25,7 @@ Editing requirements:
 - Use short paragraphs and bullet points when they materially improve clarity.
 - Keep exact names, paths, commands, versions, values, and quoted copy unchanged unless the user explicitly asks to change them.
 - Preserve the original language.
-- Keep the tone neutral, precise, and concise.
+- If a <tone-style> block is present, match its tone when phrasing the output; otherwise keep the tone neutral, precise, and concise.
 
 Scope protection:
 - A frontend request stays a frontend request.
@@ -52,8 +53,38 @@ fn truncate_chars(value: &str, limit: usize) -> String {
     value.chars().take(limit).collect()
 }
 
+/// The tone directive for the selected preset, or None for the default voice.
+fn tone_directive(style: AiCleanupStyle, settings: &AppSettings) -> Option<String> {
+    let directive = match style {
+        AiCleanupStyle::Default => return None,
+        AiCleanupStyle::Formal => {
+            "Write the rewritten prompt in a formal, professional tone.".to_string()
+        }
+        AiCleanupStyle::Casual => {
+            "Write the rewritten prompt in a casual, conversational tone while staying clear and direct.".to_string()
+        }
+        AiCleanupStyle::Concise => {
+            "Write the rewritten prompt as briefly as possible; cut every word that is not load-bearing while preserving all requirements.".to_string()
+        }
+        AiCleanupStyle::Custom => {
+            let tone = truncate_chars(settings.ai_cleanup_style_tone.trim(), MAX_STYLE_TONE_CHARS);
+            if tone.is_empty() {
+                return None;
+            }
+            format!("When phrasing the rewritten prompt, follow this tone guidance from the user: {tone}")
+        }
+    };
+    Some(directive)
+}
+
 pub fn build_user_content(input: &str, settings: &AppSettings) -> String {
     let mut content = format!("<user-input>\n{}\n</user-input>", input.trim());
+
+    if let Some(tone) = tone_directive(settings.ai_cleanup_style, settings) {
+        content.push_str("\n\n<tone-style>\n");
+        content.push_str(&tone);
+        content.push_str("\n</tone-style>");
+    }
 
     let custom = truncate_chars(
         settings.ai_cleanup_custom_instruction.trim(),

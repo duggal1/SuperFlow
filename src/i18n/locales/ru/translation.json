@@ -15,7 +15,7 @@
     "models": "Модели",
     "advanced": "Продвинутые",
     "postProcessing": "Постобработка",
-    "aiCleanup": "AI clean up",
+    "aiCleanup": "Prompt generation",
     "history": "История",
     "debug": "Отладка",
     "about": "О программе"

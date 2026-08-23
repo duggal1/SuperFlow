@@ -15,7 +15,7 @@
     "models": "Modeller",
     "advanced": "Avancerat",
     "postProcessing": "Efterbearbetning",
-    "aiCleanup": "AI clean up",
+    "aiCleanup": "Prompt generation",
     "history": "Historik",
     "debug": "Felsökning",
     "about": "Om"

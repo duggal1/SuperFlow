@@ -6,19 +6,17 @@ An extraction-based design system and component skill file for engineering ultra
 
 NOTE : These codebases serve strictly as reference benchmarks and must never be copy-pasted directly into production. High-end UI design ultimately depends on the user’s custom hierarchy, unique software theme, visual consistency, and deliberate UX judgment. Treat these examples not as static templates, but as structural blueprints. Extract the core architectural principles: restrained typography rules, hairline border containment, fluid grid rhythms, and strict anti-patterns. By understanding what to avoid and mastering how clean layouts truly function, you can leverage these foundational patterns to engineer bespoke, ultra-minimalist landing pages tailored precisely to any specific product or client requirement without compromise.
 
-# Design Formula 
+# Design Formula
 
 For SaaS, clean design is a formula: deliberately stripping away bad patterns—heavy shadows, bloated fonts, harsh borders(colors), and generic inconsistency on UI while infusing bespoke themes with elite taste. UI is the structural foundation, but UX is paramount. True cleanliness demands obsessive craftsmanship, delivering deliberate emotional clarity and a frictionless user experience.
 
-A true exceptional, clean design come from real taste real judgment and ultimately following user vision and user instruction on design with real estate and judgment on it too to make the design extremely clean, but non-but non-lifeless AI can make the design extremely clean, but extremely lifeless and unforgettable this is what we need to stop. We need to make design extremely clean, but extremely memorable to with real taste judgment.
----
+## A true exceptional, clean design come from real taste real judgment and ultimately following user vision and user instruction on design with real estate and judgment on it too to make the design extremely clean, but non-but non-lifeless AI can make the design extremely clean, but extremely lifeless and unforgettable this is what we need to stop. We need to make design extremely clean, but extremely memorable to with real taste judgment.
 
 A truly exceptional, clean design comes from real taste, real judgment, and ultimately following the user's vision and instructions while applying your own taste and judgment to make the design extremely clean.
 
 The problem is that AI can make a design clean "enough", but also extremely lifeless and forgettable. **That is exactly what we need to stop.**
 
 We need to make designs **extremely clean, but also extremely memorable**, with real taste and real judgment behind every decision.
-
 
 ## 1. System Philosophy & Anti-Patterns
 
@@ -39,10 +37,10 @@ We need to make designs **extremely clean, but also extremely memorable**, with 
 
 ### Strict Anti-Patterns
 
-* **DO NOT** use `font-bold`, `font-extrabold`, or `font-black`. Headlines achieve hierarchy through sizing (`text-3xl` to `text-6xl`), tight leading (`leading-[1.05]`), and negative tracking (`tracking-[-0.035em]`), never excessive stroke weight.
-* **DO NOT** use `shadow-2xl` or blurry black drop shadows. Use dual-layer hairline containment: `box-shadow: 0 1px 1px 0 rgba(38,38,43,0.08), 0 0 0 1px rgba(38,38,43,0.04)`.
-* **DO NOT** use rainbow glow gradients. Gradients are reserved for hairline progress fills (`linear-gradient(90deg, #566CF7 0%, #A9BBFF 100%)`) or dither noise fields.
-* **DO NOT** use bloated borders. All separators are $1\text{px}$ solid or SVG-based dashed hairlines.
+- **DO NOT** use `font-bold`, `font-extrabold`, or `font-black`. Headlines achieve hierarchy through sizing (`text-3xl` to `text-6xl`), tight leading (`leading-[1.05]`), and negative tracking (`tracking-[-0.035em]`), never excessive stroke weight.
+- **DO NOT** use `shadow-2xl` or blurry black drop shadows. Use dual-layer hairline containment: `box-shadow: 0 1px 1px 0 rgba(38,38,43,0.08), 0 0 0 1px rgba(38,38,43,0.04)`.
+- **DO NOT** use rainbow glow gradients. Gradients are reserved for hairline progress fills (`linear-gradient(90deg, #566CF7 0%, #A9BBFF 100%)`) or dither noise fields.
+- **DO NOT** use bloated borders. All separators are $1\text{px}$ solid or SVG-based dashed hairlines.
 
 ---
 
@@ -98,8 +96,16 @@ We need to make designs **extremely clean, but also extremely memorable**, with 
   /* Hairline Dashed Rails (CSS Repeating Linear Gradients) */
   --dash-on: 9px;
   --dash-off: 6px;
-  --dash-h: repeating-linear-gradient(to right, var(--m-border) 0 var(--dash-on), transparent var(--dash-on) calc(var(--dash-on) + var(--dash-off)));
-  --dash-v: repeating-linear-gradient(to bottom, var(--m-border) 0 var(--dash-on), transparent var(--dash-on) calc(var(--dash-on) + var(--dash-off)));
+  --dash-h: repeating-linear-gradient(
+    to right,
+    var(--m-border) 0 var(--dash-on),
+    transparent var(--dash-on) calc(var(--dash-on) + var(--dash-off))
+  );
+  --dash-v: repeating-linear-gradient(
+    to bottom,
+    var(--m-border) 0 var(--dash-on),
+    transparent var(--dash-on) calc(var(--dash-on) + var(--dash-off))
+  );
 
   /* Fluid Column Matrices */
   --col-wide: min(86rem, calc(100vw - 1.5rem));
@@ -160,14 +166,30 @@ html {
 
 /* Linear gradient marquee mask */
 .mask-marquee-edges {
-  mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 15%,
+    black 85%,
+    transparent 100%
+  );
 }
 
 /* Marquee keyframe animation */
 @keyframes marquee-scroll {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee-infinite {
@@ -214,7 +236,13 @@ module.exports = {
         hairline: "var(--vessa-hairline, #D3D7DE)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "Switzer", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        sans: [
+          "var(--font-sans)",
+          "Switzer",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "sans-serif",
+        ],
         serif: ["var(--font-serif)", "Recife Text", "Georgia", "serif"],
         mono: ["var(--font-mono)", "Source Code Pro", "monospace"],
       },
@@ -230,9 +258,12 @@ module.exports = {
         normal: "1.55",
       },
       boxShadow: {
-        hairline: "0 1px 1px 0 rgba(38,38,43,0.08), 0 0 0 1px rgba(38,38,43,0.04)",
-        floating: "0 1px 1px 0 rgba(38,38,43,0.10), 0 0 0 1px rgba(38,38,43,0.04), 0 2px 12px -4px rgba(38,38,43,0.16)",
-        popover: "0 24px 40px -20px rgba(38,38,43,0.30), 0 10px 24px 0 rgba(38,38,43,0.06), 0 1px 1px 0 rgba(38,38,43,0.16), 0 0 0 1px rgba(38,38,43,0.05)",
+        hairline:
+          "0 1px 1px 0 rgba(38,38,43,0.08), 0 0 0 1px rgba(38,38,43,0.04)",
+        floating:
+          "0 1px 1px 0 rgba(38,38,43,0.10), 0 0 0 1px rgba(38,38,43,0.04), 0 2px 12px -4px rgba(38,38,43,0.16)",
+        popover:
+          "0 24px 40px -20px rgba(38,38,43,0.30), 0 10px 24px 0 rgba(38,38,43,0.06), 0 1px 1px 0 rgba(38,38,43,0.16), 0 0 0 1px rgba(38,38,43,0.05)",
       },
     },
   },
@@ -355,8 +386,10 @@ export const StageGuides: React.FC<StageGuidesProps> = ({
         className="pointer-events-none absolute top-0 left-1/2 z-10 h-px w-screen -translate-x-1/2"
         style={{
           background: "var(--dash-h)",
-          maskImage: "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
+          maskImage:
+            "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
         }}
       />
       <span
@@ -364,18 +397,32 @@ export const StageGuides: React.FC<StageGuidesProps> = ({
         className="pointer-events-none absolute bottom-0 left-1/2 z-10 h-px w-screen -translate-x-1/2"
         style={{
           background: "var(--dash-h)",
-          maskImage: "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
+          maskImage:
+            "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(90deg, transparent 0%, black 8%, black 92%, transparent 100%)",
         }}
       />
 
       {/* Structural Corner Nodes (8x8px Pure Accent Rectangles) */}
       {showNodes && (
         <>
-          <span aria-hidden="true" className="pointer-events-none absolute -top-1 -left-1 z-20 size-2 bg-brand-accent" />
-          <span aria-hidden="true" className="pointer-events-none absolute -top-1 -right-1 z-20 size-2 bg-brand-accent" />
-          <span aria-hidden="true" className="pointer-events-none absolute -bottom-1 -left-1 z-20 size-2 bg-brand-accent" />
-          <span aria-hidden="true" className="pointer-events-none absolute -bottom-1 -right-1 z-20 size-2 bg-brand-accent" />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-1 -left-1 z-20 size-2 bg-brand-accent"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-1 -right-1 z-20 size-2 bg-brand-accent"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-1 -left-1 z-20 size-2 bg-brand-accent"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-1 -right-1 z-20 size-2 bg-brand-accent"
+          />
         </>
       )}
 
@@ -456,12 +503,19 @@ export const FloatingIslandNav: React.FC<NavProps> = ({
         }`}
       >
         {/* Brand Logo */}
-        <a href="/" className="inline-flex items-center gap-2 text-ink no-underline" aria-label={brandName}>
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 text-ink no-underline"
+          aria-label={brandName}
+        >
           {logoSvg}
         </a>
 
         {/* Desktop Links Matrix */}
-        <nav className="hidden md:flex items-center gap-6" aria-label="Main Navigation">
+        <nav
+          className="hidden md:flex items-center gap-6"
+          aria-label="Main Navigation"
+        >
           {navLinks.map((link) => (
             <div
               key={link.label}
@@ -479,7 +533,11 @@ export const FloatingIslandNav: React.FC<NavProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={() => setActiveDropdown(activeDropdown === link.label ? null : link.label)}
+                  onClick={() =>
+                    setActiveDropdown(
+                      activeDropdown === link.label ? null : link.label,
+                    )
+                  }
                   className="flex items-center gap-1 text-[13px] font-medium tracking-tight text-ink-soft transition-colors duration-150 hover:text-ink bg-transparent border-none cursor-pointer"
                 >
                   <span>{link.label}</span>
@@ -492,7 +550,12 @@ export const FloatingIslandNav: React.FC<NavProps> = ({
                       activeDropdown === link.label ? "rotate-180" : ""
                     }`}
                   >
-                    <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    <path
+                      d="M3 4.5L6 7.5L9 4.5"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </button>
               )}
@@ -514,9 +577,13 @@ export const FloatingIslandNav: React.FC<NavProps> = ({
                             href={sub.href}
                             className="group flex flex-col gap-0.5 rounded-md p-2 text-decoration-none transition-colors duration-150 hover:bg-paper-secondary"
                           >
-                            <span className="text-[13px] font-medium text-ink">{sub.label}</span>
+                            <span className="text-[13px] font-medium text-ink">
+                              {sub.label}
+                            </span>
                             {sub.description && (
-                              <span className="text-[11px] leading-snug text-ink-faint">{sub.description}</span>
+                              <span className="text-[11px] leading-snug text-ink-faint">
+                                {sub.description}
+                              </span>
                             )}
                           </a>
                         </li>
@@ -578,15 +645,24 @@ export const FloatingIslandNav: React.FC<NavProps> = ({
           >
             <nav className="flex flex-col gap-3">
               {navLinks.map((link) => (
-                <div key={link.label} className="border-b border-hairline/50 pb-2">
-                  <a href={link.href || "#"} className="text-sm font-medium text-ink no-underline">
+                <div
+                  key={link.label}
+                  className="border-b border-hairline/50 pb-2"
+                >
+                  <a
+                    href={link.href || "#"}
+                    className="text-sm font-medium text-ink no-underline"
+                  >
                     {link.label}
                   </a>
                   {link.subItems && (
                     <ul className="mt-1 flex flex-col gap-1 pl-3 list-none">
                       {link.subItems.map((sub) => (
                         <li key={sub.label}>
-                          <a href={sub.href} className="text-xs text-ink-soft no-underline">
+                          <a
+                            href={sub.href}
+                            className="text-xs text-ink-soft no-underline"
+                          >
                             {sub.label}
                           </a>
                         </li>
@@ -663,7 +739,9 @@ export const StaggeredTextButton: React.FC<StaggeredTextButtonProps> = ({
       className={`group relative inline-flex h-10 flex-none items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-medium tracking-tight no-underline transition-all duration-200 active:scale-[0.97] ${getVariantStyles()} ${className}`}
     >
       {/* Background Dither Noise Texture */}
-      {variant === "accent" && <DitherCanvas bare accent="#ffffff" opacity={0.14} />}
+      {variant === "accent" && (
+        <DitherCanvas bare accent="#ffffff" opacity={0.14} />
+      )}
 
       {/* Dual Staggered Line Container */}
       <span className="relative z-10 block h-[1.4em] overflow-hidden leading-[1.4]">
@@ -758,8 +836,19 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({
               {announcementBadge.tag}
             </span>
             <span>{announcementBadge.text}</span>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="transition-transform group-hover:translate-x-0.5">
-              <path d="M3.5 2L6.5 5L3.5 8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              className="transition-transform group-hover:translate-x-0.5"
+            >
+              <path
+                d="M3.5 2L6.5 5L3.5 8"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
             </svg>
           </a>
         )}
@@ -776,7 +865,11 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({
 
         {/* Interactive Action Row */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <StaggeredTextButton label={primaryCta.label} href={primaryCta.href} variant="accent" />
+          <StaggeredTextButton
+            label={primaryCta.label}
+            href={primaryCta.href}
+            variant="accent"
+          />
           {secondaryCta && (
             <a
               href={secondaryCta.href}
@@ -808,11 +901,25 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({
               aria-label="Copy snippet"
             >
               {copied ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#56eaaf" strokeWidth="2">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#56eaaf"
+                  strokeWidth="2"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                 </svg>
@@ -825,7 +932,10 @@ export const EditorialHero: React.FC<EditorialHeroProps> = ({
         <div className="mt-14 w-full overflow-hidden mask-marquee-edges">
           <div className="animate-marquee-infinite items-center gap-12 py-2">
             {logos.concat(logos).map((logo, idx) => (
-              <div key={idx} className="flex shrink-0 items-center justify-center opacity-70 transition-opacity hover:opacity-100">
+              <div
+                key={idx}
+                className="flex shrink-0 items-center justify-center opacity-70 transition-opacity hover:opacity-100"
+              >
                 <img
                   src={logo.src}
                   alt={logo.name}
@@ -869,7 +979,11 @@ interface ShowcaseProps {
 export const MorphingTabShowcase: React.FC<ShowcaseProps> = ({ tabs }) => {
   const [activeTab, setActiveTab] = useState(0);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [pillStyle, setPillStyle] = useState<{ width: number; height: number; left: number }>({
+  const [pillStyle, setPillStyle] = useState<{
+    width: number;
+    height: number;
+    left: number;
+  }>({
     width: 96,
     height: 36,
     left: 4,
@@ -913,11 +1027,15 @@ export const MorphingTabShowcase: React.FC<ShowcaseProps> = ({ tabs }) => {
               {tabs.map((tab, idx) => (
                 <button
                   key={tab.id}
-                  ref={(el) => { tabRefs.current[idx] = el; }}
+                  ref={(el) => {
+                    tabRefs.current[idx] = el;
+                  }}
                   type="button"
                   onClick={() => setActiveTab(idx)}
                   className={`relative z-10 rounded-lg px-3.5 py-2 text-xs md:text-sm font-medium tracking-tight transition-colors duration-150 cursor-pointer border-none bg-transparent ${
-                    activeTab === idx ? "text-ink" : "text-ink-faint hover:text-ink-soft"
+                    activeTab === idx
+                      ? "text-ink"
+                      : "text-ink-faint hover:text-ink-soft"
                   }`}
                 >
                   {tab.label}
@@ -932,7 +1050,10 @@ export const MorphingTabShowcase: React.FC<ShowcaseProps> = ({ tabs }) => {
               className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-paper-secondary text-ink transition-transform active:scale-95 cursor-pointer border-none"
               aria-label="Next tab"
             >
-              <svg className="absolute inset-0 size-full -rotate-90" viewBox="0 0 36 36">
+              <svg
+                className="absolute inset-0 size-full -rotate-90"
+                viewBox="0 0 36 36"
+              >
                 <circle
                   cx="18"
                   cy="18"
@@ -946,8 +1067,19 @@ export const MorphingTabShowcase: React.FC<ShowcaseProps> = ({ tabs }) => {
                   className="transition-all duration-300"
                 />
               </svg>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M2.5 6H9.5M6.5 3L9.5 6L6.5 9" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path
+                  d="M2.5 6H9.5M6.5 3L9.5 6L6.5 9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
           </div>
@@ -960,7 +1092,9 @@ export const MorphingTabShowcase: React.FC<ShowcaseProps> = ({ tabs }) => {
                 src={tab.imgSrc}
                 alt={tab.alt}
                 className={`col-start-1 row-start-1 size-full object-cover transition-all duration-300 ${
-                  activeTab === idx ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-[0.985] pointer-events-none"
+                  activeTab === idx
+                    ? "opacity-100 scale-100 pointer-events-auto"
+                    : "opacity-0 scale-[0.985] pointer-events-none"
                 }`}
                 loading={idx === 0 ? "eager" : "lazy"}
               />
@@ -1015,7 +1149,8 @@ export const PrecisionUsageCalculator: React.FC = () => {
             Usage Estimator
           </h3>
           <p className="mt-1 max-w-md text-sm leading-normal text-ink-soft">
-            Estimate your continuous data throughput. On average 1 vCPU generates ~6,000,000 profiling samples per month.
+            Estimate your continuous data throughput. On average 1 vCPU
+            generates ~6,000,000 profiling samples per month.
           </p>
 
           {/* Metric Outputs */}
@@ -1044,7 +1179,9 @@ export const PrecisionUsageCalculator: React.FC = () => {
                   style={{ left: tick.pos }}
                 >
                   <span className="h-2 w-px bg-hairline" />
-                  <span className="text-[10px] font-mono text-ink-faint">{tick.label}</span>
+                  <span className="text-[10px] font-mono text-ink-faint">
+                    {tick.label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -1064,11 +1201,16 @@ export const PrecisionUsageCalculator: React.FC = () => {
         </div>
 
         {/* Vertical Dashed Divider */}
-        <div className="hidden h-36 w-px bg-hairline lg:block" style={{ background: "var(--dash-v)" }} />
+        <div
+          className="hidden h-36 w-px bg-hairline lg:block"
+          style={{ background: "var(--dash-v)" }}
+        />
 
         {/* Right Output Column */}
         <div className="flex flex-col items-center justify-center lg:items-start lg:pl-6">
-          <span className="text-xs font-medium uppercase tracking-wider text-ink-faint">Estimated Cost</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-ink-faint">
+            Estimated Cost
+          </span>
           <div className="mt-1 flex items-baseline gap-1">
             <span className="text-4xl font-normal tracking-tight text-ink md:text-5xl">
               ${cost}
@@ -1130,8 +1272,13 @@ export const InteractiveBentoGrid: React.FC = () => {
                   className="flex items-center justify-between rounded-md p-2 hover:bg-paper-secondary transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="size-4 rounded" style={{ backgroundColor: token.hex }} />
-                    <span className="text-xs font-medium text-ink">{token.name}</span>
+                    <span
+                      className="size-4 rounded"
+                      style={{ backgroundColor: token.hex }}
+                    />
+                    <span className="text-xs font-medium text-ink">
+                      {token.name}
+                    </span>
                   </div>
                   <span className="font-mono text-xs text-ink-faint">
                     {copiedToken === token.hex ? "Copied!" : token.hex}
@@ -1141,9 +1288,12 @@ export const InteractiveBentoGrid: React.FC = () => {
             </div>
 
             <div className="mt-8">
-              <h3 className="text-base font-medium text-ink">Zero eyedropper friction</h3>
+              <h3 className="text-base font-medium text-ink">
+                Zero eyedropper friction
+              </h3>
               <p className="mt-1 text-sm text-ink-soft leading-normal">
-                Every design token sits on the page as raw clipboard data. Click any row to copy production variables instantly.
+                Every design token sits on the page as raw clipboard data. Click
+                any row to copy production variables instantly.
               </p>
             </div>
           </article>
@@ -1155,11 +1305,19 @@ export const InteractiveBentoGrid: React.FC = () => {
                 MCP Protocol
               </span>
               <svg className="my-2 h-8 w-full" viewBox="0 0 200 30" fill="none">
-                <path d="M100 0 V30 M100 0 C100 20, 20 10, 20 30 M100 0 C100 20, 180 10, 180 30" stroke="var(--m-border)" strokeWidth="1" strokeDasharray="3 3" />
+                <path
+                  d="M100 0 V30 M100 0 C100 20, 20 10, 20 30 M100 0 C100 20, 180 10, 180 30"
+                  stroke="var(--m-border)"
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                />
               </svg>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {["Claude", "Cursor", "Codex", "Gemini"].map((client) => (
-                  <span key={client} className="rounded border border-hairline bg-paper-bright px-2.5 py-1 text-xs font-medium text-ink">
+                  <span
+                    key={client}
+                    className="rounded border border-hairline bg-paper-bright px-2.5 py-1 text-xs font-medium text-ink"
+                  >
                     {client}
                   </span>
                 ))}
@@ -1167,9 +1325,13 @@ export const InteractiveBentoGrid: React.FC = () => {
             </div>
 
             <div className="mt-8">
-              <h3 className="text-base font-medium text-ink">AI Agent Compatibility</h3>
+              <h3 className="text-base font-medium text-ink">
+                AI Agent Compatibility
+              </h3>
               <p className="mt-1 text-sm text-ink-soft leading-normal">
-                Structured `brand.json` and continuous MCP servers allow tools like Claude Code and Cursor to build without manual asset extraction.
+                Structured `brand.json` and continuous MCP servers allow tools
+                like Claude Code and Cursor to build without manual asset
+                extraction.
               </p>
             </div>
           </article>
@@ -1224,7 +1386,10 @@ export const FAQAndMonochromeCTA: React.FC<FAQProps> = ({
               </h2>
               <p className="mt-2 text-sm text-ink-soft">
                 Need more information? Email us directly at{" "}
-                <a href={`mailto:${supportEmail}`} className="text-ink underline decoration-hairline hover:decoration-ink">
+                <a
+                  href={`mailto:${supportEmail}`}
+                  className="text-ink underline decoration-hairline hover:decoration-ink"
+                >
                   {supportEmail}
                 </a>
               </p>
@@ -1276,11 +1441,16 @@ export const FAQAndMonochromeCTA: React.FC<FAQProps> = ({
             Start building with full line-level clarity today.
           </h2>
           <p className="mt-4 max-w-lg text-sm text-gray-400 md:text-base leading-normal">
-            Zero configuration required. Free for up to 14 days, pay only when your workloads publish to production.
+            Zero configuration required. Free for up to 14 days, pay only when
+            your workloads publish to production.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <StaggeredTextButton label="Start free 14-day trial" href="/signup" variant="inverted" />
+            <StaggeredTextButton
+              label="Start free 14-day trial"
+              href="/signup"
+              variant="inverted"
+            />
             <a
               href="/schedule"
               className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-700 bg-transparent px-4 text-sm font-medium text-white no-underline transition-colors hover:bg-white/10 active:scale-[0.98]"
@@ -1332,7 +1502,10 @@ export const SwissEditorialFooter: React.FC<FooterProps> = ({
         <div className="grid grid-cols-1 gap-8 md:grid-cols-[280px_1fr] lg:gap-16">
           {/* Brand Identity Column */}
           <div className="flex flex-col gap-3">
-            <a href="/" className="inline-flex items-center text-ink no-underline">
+            <a
+              href="/"
+              className="inline-flex items-center text-ink no-underline"
+            >
               {brandLogo}
             </a>
             <p className="text-xs text-ink-soft leading-normal">{tagline}</p>
@@ -1366,9 +1539,24 @@ export const SwissEditorialFooter: React.FC<FooterProps> = ({
         <div className="mt-12 flex flex-wrap items-center justify-between border-t border-hairline pt-6 text-xs text-ink-faint">
           <span>{legalText}</span>
           <div className="flex gap-4">
-            <a href="/privacy" className="text-ink-faint no-underline hover:text-ink">Privacy</a>
-            <a href="/terms" className="text-ink-faint no-underline hover:text-ink">Terms</a>
-            <a href="/security" className="text-ink-faint no-underline hover:text-ink">Security</a>
+            <a
+              href="/privacy"
+              className="text-ink-faint no-underline hover:text-ink"
+            >
+              Privacy
+            </a>
+            <a
+              href="/terms"
+              className="text-ink-faint no-underline hover:text-ink"
+            >
+              Terms
+            </a>
+            <a
+              href="/security"
+              className="text-ink-faint no-underline hover:text-ink"
+            >
+              Security
+            </a>
           </div>
         </div>
       </div>
@@ -1397,17 +1585,10 @@ To switch between the 4 extracted visual archetypes, attach the corresponding `d
 <div data-theme="terminal-obsidian" className="bg-[#101216] text-[#F9FAFB] font-sans antialiased" />
 ```
 
-
 ## 14. Badge UI/UX
 
 ```tsx
-type BadgeVariant =
-  | "sky"
-  | "violet"
-  | "yellow"
-  | "rose"
-  | "green"
-  | "orange";
+type BadgeVariant = "sky" | "violet" | "yellow" | "rose" | "green" | "orange";
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -1423,10 +1604,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   orange: "bg-orange-500/10 text-orange-700",
 };
 
-export function Badge({
-  children,
-  variant = "orange",
-}: BadgeProps) {
+export function Badge({ children, variant = "orange" }: BadgeProps) {
   return (
     <span
       className={[
@@ -1439,16 +1617,17 @@ export function Badge({
       {children}
     </span>
   );
-} 
+}
 ```
+
 ---
 
 ## 15. Verification Checklist
 
 Before deploying any landing page built with this system, verify:
 
-* [ ] No element exceeds `font-weight: 500`.
-* [ ] No element contains standard Tailwind `shadow-lg`, `shadow-xl`, or `shadow-2xl` without a hairline border ring.
-* [ ] All numeric metrics and stats utilize `tabular-nums` or `font-mono`.
-* [ ] All horizontal separators use 1px hairlines or dashed SVG gradients.
-* [ ] Responsive behavior utilizes fluid clamps (`clamp()`) to avoid layout jumps across viewport sizes.
+- [ ] No element exceeds `font-weight: 500`.
+- [ ] No element contains standard Tailwind `shadow-lg`, `shadow-xl`, or `shadow-2xl` without a hairline border ring.
+- [ ] All numeric metrics and stats utilize `tabular-nums` or `font-mono`.
+- [ ] All horizontal separators use 1px hairlines or dashed SVG gradients.
+- [ ] Responsive behavior utilizes fluid clamps (`clamp()`) to avoid layout jumps across viewport sizes.

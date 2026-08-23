@@ -15,7 +15,7 @@
     "models": "Models",
     "advanced": "Advanced",
     "postProcessing": "Post Process",
-    "aiCleanup": "AI clean up",
+    "aiCleanup": "Prompt generation",
     "history": "History",
     "debug": "Debug",
     "about": "About"
@@ -121,6 +121,19 @@
         "checkFailed": "Failed to check permissions. Please try again.",
         "requestFailed": "Failed to request permission. Please try again."
       }
+    },
+    "cleanup": {
+      "subtitle": "One last step — clean-up engine",
+      "cardTitle": "Text Clean-up Model",
+      "activated": "Activated",
+      "required": "Required",
+      "description": "Rewrites raw speech into clean written text — grammar, punctuation, filler removal. Runs entirely on this Mac.",
+      "runsOnMetal": "Apple GPU · Metal",
+      "install": "Install",
+      "downloading": "Downloading model… {{percentage}}%",
+      "startingEngine": "Starting engine…",
+      "error": "Install failed: {{error}}",
+      "alwaysActiveNote": "This model is always active and cannot be disabled or removed."
     }
   },
   "modelSelector": {
@@ -690,7 +703,9 @@
     "modelLoadFailedUnknown": "unknown model",
     "pasteFailedTitle": "Failed to Paste Text",
     "pasteFailed": "Text could not be pasted into the active application.",
-    "transcriptionFailedTitle": "Transcription Failed"
+    "transcriptionFailedTitle": "Transcription Failed",
+    "cleanupModelNotReadyTitle": "Clean-up model is installing",
+    "cleanupModelNotReady": "Dictation unlocks the moment it finishes. Hang tight."
   },
   "appLanguage": {
     "title": "Application Language",
@@ -751,5 +766,10 @@
     "export": "Export",
     "exportSuccess": "Exported {{count}} transcripts",
     "exportError": "Export failed. Please try again."
+  },
+  "cleanupToast": {
+    "downloading": "Downloading clean-up model…",
+    "success": "Clean-up model ready",
+    "speed": "{{speed}} MB/s"
   }
 }

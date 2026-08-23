@@ -15,7 +15,7 @@
     "models": "Modelos",
     "advanced": "Avanzado",
     "postProcessing": "Post proceso",
-    "aiCleanup": "AI clean up",
+    "aiCleanup": "Prompt generation",
     "history": "Historial",
     "debug": "Depuración",
     "about": "Acerca de"

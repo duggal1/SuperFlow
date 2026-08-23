@@ -209,10 +209,10 @@ Without these tools, SuperFlow falls back to enigo which may have limited compat
 
 - You can also trigger SuperFlow externally via Unix signals or the CLI flags, which lets Wayland window managers or other hotkey daemons keep ownership of keybindings:
 
-  | Action                                    | Trigger                                                  |
-  | ----------------------------------------- | -------------------------------------------------------- |
+  | Action                                    | Trigger                                                          |
+  | ----------------------------------------- | ---------------------------------------------------------------- |
   | Toggle transcription                      | `pkill -USR2 -n superflow` or `superflow --toggle-transcription` |
-  | Toggle transcription with post-processing | `superflow --toggle-post-process`                            |
+  | Toggle transcription with post-processing | `superflow --toggle-post-process`                                |
 
   Example Sway config:
 

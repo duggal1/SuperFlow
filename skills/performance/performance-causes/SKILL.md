@@ -1,4 +1,4 @@
-> **9/10 — keep 90%:** Catalog of 20 killers, keep tone. For 9/10 use, scan the ranked table `§644` first, then jump to the one killer matching the trace. This file is the *catalog*, `skills/performance/SKILL.md` is the *workflow* — use together.
+> **9/10 — keep 90%:** Catalog of 20 killers, keep tone. For 9/10 use, scan the ranked table `§644` first, then jump to the one killer matching the trace. This file is the _catalog_, `skills/performance/SKILL.md` is the _workflow_ — use together.
 
 For a **backend-heavy Next.js 16 x+ (for example right now we are at nextjs 16.3+) application**, Next.js itself usually isn't the thing murdering your latency. The real killers are the interaction between **request-time rendering, database access, uncached server functions, authentication, serialization, external APIs, and accidental waterfalls**.
 
@@ -43,7 +43,7 @@ const [user, projects, analytics] = await Promise.all([
   getUser(),
   getProjects(),
   getAnalytics(),
-])
+]);
 ```
 
 And even better, consolidate related database work when the database can answer it efficiently in one query.
@@ -55,7 +55,7 @@ And even better, consolidate related database work when the database can answer 
 This shit is surprisingly common:
 
 ```ts
-const data = await fetch("https://yourapp.com/api/projects")
+const data = await fetch("https://yourapp.com/api/projects");
 ```
 
 from a Server Component.
@@ -126,7 +126,7 @@ Cache stable data:
 
 ```ts
 export async function getCompanyAnalytics(companyId: string) {
-  "use cache"
+  "use cache";
 
   // expensive computation
 }
@@ -148,20 +148,20 @@ const customer = await db.customer.findUnique({
     activities: true,
     notes: true,
     events: true,
-  }
-})
+  },
+});
 ```
 
 Then send the whole damn thing through the React Server Component boundary.
 
 You just paid for:
 
-* database transfer
-* Node memory
-* serialization
-* RSC payload generation
-* network transfer
-* client parsing
+- database transfer
+- Node memory
+- serialization
+- RSC payload generation
+- network transfer
+- client parsing
 
 Select exactly what you need:
 
@@ -220,7 +220,7 @@ This is especially nasty.
 Put:
 
 ```tsx
-"use client"
+"use client";
 ```
 
 at a high-level layout/component and you've potentially dragged a huge dependency graph into the client.
@@ -271,13 +271,12 @@ This is catastrophic latency.
 Independent operations should execute concurrently:
 
 ```ts
-const [customer, subscription, crm, enrichment] =
-  await Promise.all([
-    getCustomer(),
-    getSubscription(),
-    getCRM(),
-    getEnrichment(),
-  ])
+const [customer, subscription, crm, enrichment] = await Promise.all([
+  getCustomer(),
+  getSubscription(),
+  getCRM(),
+  getEnrichment(),
+]);
 ```
 
 For expensive external work, move it into background jobs rather than blocking page rendering.
@@ -400,10 +399,10 @@ Not "let's run our entire backend before the page even starts."
 This:
 
 ```ts
-await updateUser()
-await updateSubscription()
-await updatePreferences()
-await updateAnalytics()
+await updateUser();
+await updateSubscription();
+await updatePreferences();
+await updateAnalytics();
 ```
 
 can become a 4-step waterfall.
@@ -416,7 +415,7 @@ await Promise.all([
   updateSubscription(),
   updatePreferences(),
   updateAnalytics(),
-])
+]);
 ```
 
 When they're dependent, obviously don't parallelize them like a drunk engineer with a benchmark.
@@ -476,12 +475,12 @@ is going to hurt.
 
 Use:
 
-* pagination
-* cursor pagination
-* virtualization
-* selective columns
-* server-side filtering
-* server-side sorting
+- pagination
+- cursor pagination
+- virtualization
+- selective columns
+- server-side filtering
+- server-side sorting
 
 Do not render the universe because the database returned it.
 
@@ -564,15 +563,15 @@ when navigation targets are expensive and users aren't likely to visit them.
 Something like:
 
 ```ts
-import entireSdk from "giant-sdk"
+import entireSdk from "giant-sdk";
 ```
 
 can inflate:
 
-* server bundle
-* cold starts
-* memory
-* initialization time
+- server bundle
+- cold starts
+- memory
+- initialization time
 
 Next.js 16.1 introduced an experimental bundle analyzer specifically to identify bloated dependencies and bundle problems, including server code affecting cold starts. ([Next.js][2])
 
@@ -585,9 +584,9 @@ This is very relevant to backend-heavy SaaS.
 This:
 
 ```ts
-const model = initializeHugeModel()
-const client = initializeHugeSDK()
-const embeddings = initializeEmbeddingPipeline()
+const model = initializeHugeModel();
+const client = initializeHugeSDK();
+const embeddings = initializeEmbeddingPipeline();
 ```
 
 at module scope can make cold starts fucking awful.
@@ -595,11 +594,11 @@ at module scope can make cold starts fucking awful.
 Prefer lazy initialization where appropriate:
 
 ```ts
-let client: Client | undefined
+let client: Client | undefined;
 
 function getClient() {
-  client ??= createClient()
-  return client
+  client ??= createClient();
+  return client;
 }
 ```
 
@@ -614,7 +613,7 @@ This is underrated.
 Doing:
 
 ```ts
-console.log(JSON.stringify(enormousObject))
+console.log(JSON.stringify(enormousObject));
 ```
 
 for every request is not free.

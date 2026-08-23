@@ -43,8 +43,8 @@ struct SampleJournal {
 
 impl SampleJournal {
     fn create(path: PathBuf) -> std::io::Result<Self> {
-        let writer =
-            super::utils::create_f32_part(&path).map_err(|e| std::io::Error::other(e.to_string()))?;
+        let writer = super::utils::create_f32_part(&path)
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         Ok(Self { writer, path })
     }
 
@@ -408,7 +408,12 @@ impl AudioRecorder {
             .as_ref()
             .ok_or_else(|| Error::other("Recorder is not open"))?;
         let (ready_tx, ready_rx) = mpsc::channel();
-        tx.send(Cmd::Start(vad_policy, Instant::now(), ready_tx, journal_path))?;
+        tx.send(Cmd::Start(
+            vad_policy,
+            Instant::now(),
+            ready_tx,
+            journal_path,
+        ))?;
         Ok(ready_rx)
     }
 
@@ -874,7 +879,7 @@ fn run_consumer(
                                 &vad,
                                 &audio_cb,
                                 &mut processed_samples,
-&mut journal,
+                                &mut journal,
                             )
                         });
                     }
@@ -894,7 +899,7 @@ fn run_consumer(
                                         &vad,
                                         &audio_cb,
                                         &mut processed_samples,
-&mut journal,
+                                        &mut journal,
                                     )
                                 });
                             }
@@ -914,7 +919,7 @@ fn run_consumer(
                             &vad,
                             &audio_cb,
                             &mut processed_samples,
-&mut journal,
+                            &mut journal,
                         )
                     });
 
@@ -985,7 +990,7 @@ fn run_consumer(
                     &vad,
                     &audio_cb,
                     &mut processed_samples,
-&mut journal,
+                    &mut journal,
                 )
             });
         }

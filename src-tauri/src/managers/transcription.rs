@@ -20,8 +20,8 @@ use std::time::{Duration, Instant, SystemTime};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 use transcribe_cpp::{
-    Backend, Feature, Model, ModelOptions, RunExtension, RunOptions, Session, StreamOptions, Task,
-    WhisperRunOptions,
+    Backend, Feature, Model, ModelOptions, RunExtension, RunOptions, Session, SessionOptions,
+    StreamOptions, Task, WhisperRunOptions,
 };
 use transcribe_rs::{
     onnx::{
@@ -601,7 +601,21 @@ impl TranscriptionManager {
                 // The bound backend may differ from the request (e.g. CPU
                 // fallback under Auto); log what actually loaded.
                 let bound_backend = model.backend();
-                let session = model.session().map_err(|e| {
+                // Explicit "CPU" selection means ALL cores at once: pin the CPU
+                // thread pool to every logical core instead of trusting the
+                // library default, so CPU mode always runs at maximum
+                // parallelism. GPU/Auto keep the library's own tuning.
+                let session_options = SessionOptions {
+                    n_threads: if backend == Backend::Cpu {
+                        std::thread::available_parallelism()
+                            .map(|n| n.get() as i32)
+                            .unwrap_or(0)
+                    } else {
+                        0
+                    },
+                    ..Default::default()
+                };
+                let session = model.session_with(&session_options).map_err(|e| {
                     let error_msg = format!(
                         "Failed to create session for whisper model {}: {}",
                         model_id, e

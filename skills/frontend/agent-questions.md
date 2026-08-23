@@ -6,18 +6,18 @@ Build a coherent visual system, not isolated pretty screens.
 
 The same system must remain consistent across:
 
-* Landing pages
-* Marketing pages
-* Auth
-* Onboarding
-* Dashboards
-* Settings
-* Forms
-* Tables
-* Modals
-* Components
-* Empty states
-* Product UI
+- Landing pages
+- Marketing pages
+- Auth
+- Onboarding
+- Dashboards
+- Settings
+- Forms
+- Tables
+- Modals
+- Components
+- Empty states
+- Product UI
 
 The agent must not invent a new visual language for every page.
 
@@ -98,14 +98,14 @@ Target approximately:
 
 Use theme mainly for:
 
-* Primary buttons
-* Links
-* Focus rings
-* Input focus
-* Selected states
-* Active navigation
-* Progress
-* Small accents
+- Primary buttons
+- Links
+- Focus rings
+- Input focus
+- Selected states
+- Active navigation
+- Progress
+- Small accents
 
 Do not make the entire interface blue, purple, orange, etc.
 
@@ -119,14 +119,14 @@ Ask:
 
 The neutral family controls:
 
-* Page backgrounds
-* Cards
-* Borders
-* Inputs
-* Dividers
-* Muted text
-* Hover states
-* Secondary surfaces
+- Page backgrounds
+- Cards
+- Borders
+- Inputs
+- Dividers
+- Muted text
+- Hover states
+- Secondary surfaces
 
 ### Custom Neutral
 
@@ -234,7 +234,7 @@ Ask:
 ### Minimal
 
 ```tsx
-"bg-sky-500/15 text-sky-700"
+"bg-sky-500/15 text-sky-700";
 ```
 
 No border.
@@ -242,19 +242,13 @@ No border.
 Example:
 
 ```tsx
-type BadgeVariant =
-  | "sky"
-  | "violet"
-  | "yellow"
-  | "rose"
-  | "green"
-  | "orange";
+type BadgeVariant = "sky" | "violet" | "yellow" | "rose" | "green" | "orange";
 ```
 
 ### Playful
 
 ```tsx
-"bg-sky-600/5 border border-sky-600/25 text-sky-700/80"
+"bg-sky-600/5 border border-sky-600/25 text-sky-700/80";
 ```
 
 Example:
@@ -375,11 +369,11 @@ No shadow
 
 Use shadows primarily for floating elements:
 
-* Dropdowns
-* Popovers
-* Modals
-* Menus
-* Floating controls
+- Dropdowns
+- Popovers
+- Modals
+- Menus
+- Floating controls
 
 Cards should normally rely on:
 
@@ -401,11 +395,11 @@ Do not introduce unrelated colors.
 
 Prefer simple transitions over:
 
-* Glow
-* Excessive blur
-* Large scale changes
-* Random gradients
-* Gratuitous animation
+- Glow
+- Excessive blur
+- Large scale changes
+- Random gradients
+- Gratuitous animation
 
 ---
 

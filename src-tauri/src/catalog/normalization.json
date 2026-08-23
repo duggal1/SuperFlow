@@ -13,22 +13,57 @@
     { "symbol": "$", "aliases": ["dollar", "dollars", "usd", "buck", "bucks"] },
     { "symbol": "€", "aliases": ["euro", "euros", "eur"] },
     { "symbol": "£", "aliases": ["pound", "pounds", "gbp"] },
-    { "symbol": "₹", "aliases": ["rupee", "rupees", "inr", "indian rupee", "indian rupees"] },
+    {
+      "symbol": "₹",
+      "aliases": ["rupee", "rupees", "inr", "indian rupee", "indian rupees"]
+    },
     { "symbol": "¥", "aliases": ["yen", "jpy"] },
     { "symbol": "₩", "aliases": ["won", "krw"] }
   ],
   "units": [
-    { "canonical": "px", "spacing": "tight", "aliases": ["pixel", "pixels", "px"] },
+    {
+      "canonical": "px",
+      "spacing": "tight",
+      "aliases": ["pixel", "pixels", "px"]
+    },
     { "canonical": "rem", "spacing": "tight", "aliases": ["rem", "rems"] },
-    { "canonical": "ms", "spacing": "tight", "aliases": ["millisecond", "milliseconds", "ms"] },
+    {
+      "canonical": "ms",
+      "spacing": "tight",
+      "aliases": ["millisecond", "milliseconds", "ms"]
+    },
     { "canonical": "s", "spacing": "tight", "aliases": ["second", "seconds"] },
-    { "canonical": "deg", "spacing": "tight", "aliases": ["degree", "degrees", "deg"] },
-    { "canonical": "GB", "spacing": "space", "aliases": ["gigabyte", "gigabytes", "gb"] },
-    { "canonical": "TB", "spacing": "space", "aliases": ["terabyte", "terabytes", "tb"] },
-    { "canonical": "MB", "spacing": "space", "aliases": ["megabyte", "megabytes", "mb"] },
-    { "canonical": "KB", "spacing": "space", "aliases": ["kilobyte", "kilobytes", "kb"] },
+    {
+      "canonical": "deg",
+      "spacing": "tight",
+      "aliases": ["degree", "degrees", "deg"]
+    },
+    {
+      "canonical": "GB",
+      "spacing": "space",
+      "aliases": ["gigabyte", "gigabytes", "gb"]
+    },
+    {
+      "canonical": "TB",
+      "spacing": "space",
+      "aliases": ["terabyte", "terabytes", "tb"]
+    },
+    {
+      "canonical": "MB",
+      "spacing": "space",
+      "aliases": ["megabyte", "megabytes", "mb"]
+    },
+    {
+      "canonical": "KB",
+      "spacing": "space",
+      "aliases": ["kilobyte", "kilobytes", "kb"]
+    },
     { "canonical": "Hz", "spacing": "space", "aliases": ["hertz", "hz"] },
-    { "canonical": "km", "spacing": "space", "aliases": ["kilometer", "kilometers", "kilometre", "kilometres", "km"] }
+    {
+      "canonical": "km",
+      "spacing": "space",
+      "aliases": ["kilometer", "kilometers", "kilometre", "kilometres", "km"]
+    }
   ],
   "safe_contractions": [
     { "canonical": "don't", "aliases": ["dont"] },

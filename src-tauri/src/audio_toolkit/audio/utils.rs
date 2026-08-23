@@ -24,10 +24,7 @@ pub fn create_f32_part<P: AsRef<Path>>(file_path: P) -> Result<BufWriter<File>> 
 
 /// Append raw f32 samples to a journal writer. Errors are surfaced; the
 /// caller decides whether to disable the journal and keep recording.
-pub fn append_f32_part(
-    writer: &mut BufWriter<File>,
-    samples: &[f32],
-) -> std::io::Result<()> {
+pub fn append_f32_part(writer: &mut BufWriter<File>, samples: &[f32]) -> std::io::Result<()> {
     let mut bytes = Vec::with_capacity(samples.len() * 4);
     for sample in samples {
         bytes.extend_from_slice(&sample.to_le_bytes());
@@ -42,12 +39,7 @@ pub fn read_f32_part<P: AsRef<Path>>(file_path: P) -> Result<Vec<f32>> {
     let mut bytes = Vec::new();
     BufReader::new(File::open(file_path.as_ref())?)
         .read_to_end(&mut bytes)
-        .with_context(|| {
-            format!(
-                "Failed to read recording journal {:?}",
-                file_path.as_ref()
-            )
-        })?;
+        .with_context(|| format!("Failed to read recording journal {:?}", file_path.as_ref()))?;
     let whole = bytes.len() - (bytes.len() % 4);
     Ok(bytes[..whole]
         .chunks_exact(4)

@@ -15,7 +15,7 @@
     "models": "Modellen",
     "advanced": "Geavanceerd",
     "postProcessing": "Naverwerking",
-    "aiCleanup": "AI clean up",
+    "aiCleanup": "Prompt generation",
     "history": "Geschiedenis",
     "debug": "Probleemoplossing",
     "about": "Over SuperFlow"

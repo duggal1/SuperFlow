@@ -6,14 +6,14 @@
 
 Build backends that are:
 
-* Extremely type-safe
-* Modular
-* Production-reliable
-* Current with verified stable technology
-* Simple enough to understand
-* Fast by default
-* Easy to extend
-* Difficult to misuse
+- Extremely type-safe
+- Modular
+- Production-reliable
+- Current with verified stable technology
+- Simple enough to understand
+- Fast by default
+- Easy to extend
+- Difficult to misuse
 
 The goal is **modern engineering without architectural cosplay**.
 
@@ -256,7 +256,7 @@ Bad:
 ```ts
 // Check if the user exists
 if (!user) {
-	throw new Error("User not found");
+  throw new Error("User not found");
 }
 ```
 
@@ -291,20 +291,20 @@ Use:
 
 ```json
 {
-	"compilerOptions": {
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		"exactOptionalPropertyTypes": true,
-		"noImplicitOverride": true,
-		"noFallthroughCasesInSwitch": true
-	}
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true
+  }
 }
 ```
 
 Avoid:
 
 ```ts
-any
+any;
 ```
 
 unless there is no technically valid alternative.
@@ -312,7 +312,7 @@ unless there is no technically valid alternative.
 Prefer:
 
 ```ts
-unknown
+unknown;
 ```
 
 and narrow it.
@@ -343,8 +343,8 @@ Example:
 import * as z from "zod";
 
 export const CreateProjectInput = z.object({
-	name: z.string().min(1).max(100),
-	description: z.string().max(500).optional(),
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
 });
 ```
 
@@ -418,7 +418,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 const sql = neon(process.env.DATABASE_URL!);
 
 export const db = drizzle({
-	client: sql,
+  client: sql,
 });
 ```
 
@@ -451,21 +451,17 @@ db/schema/
 Example:
 
 ```ts
-import {
-	integer,
-	pgTable,
-	text,
-	timestamp,
-	uuid,
-} from "drizzle-orm/pg-core";
+import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const projects = pgTable("projects", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull(),
-	organizationId: uuid("organization_id").notNull(),
-	createdAt: timestamp("created_at", {
-		withTimezone: true,
-	}).notNull().defaultNow(),
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  organizationId: uuid("organization_id").notNull(),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .notNull()
+    .defaultNow(),
 });
 ```
 
@@ -484,11 +480,7 @@ import { db } from "@/db";
 import { projects } from "@/db/schema/projects";
 
 export async function getProjectById(id: string) {
-	return db
-		.select()
-		.from(projects)
-		.where(eq(projects.id, id))
-		.limit(1);
+  return db.select().from(projects).where(eq(projects.id, id)).limit(1);
 }
 ```
 
@@ -513,9 +505,9 @@ Example:
 
 ```ts
 const [user, projects, usage] = await Promise.all([
-	getUser(userId),
-	getProjects(userId),
-	getUsage(userId),
+  getUser(userId),
+  getProjects(userId),
+  getUsage(userId),
 ]);
 ```
 
@@ -523,9 +515,9 @@ For operations supported by Drizzle/Neon batching:
 
 ```ts
 const result = await db.batch([
-	db.insert(users).values(user),
-	db.insert(projects).values(project),
-	db.select().from(usage).where(eq(usage.userId, userId)),
+  db.insert(users).values(user),
+  db.insert(projects).values(project),
+  db.select().from(usage).where(eq(usage.userId, userId)),
 ]);
 ```
 
@@ -602,14 +594,14 @@ If these scripts do not exist, add them.
 
 ```json
 {
-	"scripts": {
-		"postinstall": "if [ -n \"$DATABASE_URL\" ]; then bun run generate && bun run push; else echo 'Skipping DB sync (DATABASE_URL not set)'; fi",
-		"git": "bun run scripts/git-commit/commit.ts",
-		"lint": "bunx biome lint .",
-		"lint:fix": "bunx biome lint --write .",
-		"format": "bunx biome format --write --format-with-errors=true .",
-		"typecheck": "bunx tsc --noEmit"
-	}
+  "scripts": {
+    "postinstall": "if [ -n \"$DATABASE_URL\" ]; then bun run generate && bun run push; else echo 'Skipping DB sync (DATABASE_URL not set)'; fi",
+    "git": "bun run scripts/git-commit/commit.ts",
+    "lint": "bunx biome lint .",
+    "lint:fix": "bunx biome lint --write .",
+    "format": "bunx biome format --write --format-with-errors=true .",
+    "typecheck": "bunx tsc --noEmit"
+  }
 }
 ```
 
@@ -625,43 +617,43 @@ Example:
 
 ```json
 {
-	"vcs": {
-		"enabled": true,
-		"clientKind": "git",
-		"useIgnoreFile": true
-	},
-	"files": {
-		"ignoreUnknown": false
-	},
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "tab"
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"preset": "recommended"
-		}
-	},
-	"css": {
-		"parser": {
-			"tailwindDirectives": true
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double",
-			"trailingCommas": "es5"
-		}
-	},
-	"assist": {
-		"enabled": true,
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
-		}
-	}
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "tab"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "es5"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
 }
 ```
 
@@ -709,17 +701,17 @@ import { os } from "@orpc/server";
 import * as z from "zod";
 
 const createProject = os
-	.input(
-		z.object({
-			name: z.string().min(1).max(100),
-		}),
-	)
-	.handler(async ({ input }) => {
-		return createProjectService(input);
-	});
+  .input(
+    z.object({
+      name: z.string().min(1).max(100),
+    }),
+  )
+  .handler(async ({ input }) => {
+    return createProjectService(input);
+  });
 
 export const projectRouter = {
-	create: createProject,
+  create: createProject,
 };
 ```
 
@@ -727,9 +719,9 @@ Then compose:
 
 ```ts
 export const router = {
-	project: projectRouter,
-	user: userRouter,
-	billing: billingRouter,
+  project: projectRouter,
+  user: userRouter,
+  billing: billingRouter,
 };
 ```
 
@@ -758,18 +750,18 @@ Example:
 import { ORPCError, os } from "@orpc/server";
 
 const requireAuth = os.middleware(async ({ next, context }) => {
-	if (!context.user) {
-		throw new ORPCError("UNAUTHORIZED");
-	}
+  if (!context.user) {
+    throw new ORPCError("UNAUTHORIZED");
+  }
 
-	return next();
+  return next();
 });
 
 export const getPrivateProject = os
-	.use(requireAuth)
-	.handler(async ({ context }) => {
-		return getProjectForUser(context.user.id);
-	});
+  .use(requireAuth)
+  .handler(async ({ context }) => {
+    return getProjectForUser(context.user.id);
+  });
 ```
 
 Do not duplicate the same auth check in 40 procedures.
@@ -801,13 +793,13 @@ Example:
 import * as z from "zod";
 
 const inputSchema = z.object({
-	name: z.string().min(1),
+  name: z.string().min(1),
 });
 
 export async function updateProfile(input: unknown) {
-	const data = inputSchema.parse(input);
+  const data = inputSchema.parse(input);
 
-	return updateProfileService(data);
+  return updateProfileService(data);
 }
 ```
 
@@ -862,10 +854,10 @@ Example:
 import { queryOptions } from "@tanstack/react-query";
 
 export const projectQuery = (id: string) =>
-	queryOptions({
-		queryKey: ["project", id],
-		queryFn: () => client.project.get({ id }),
-	});
+  queryOptions({
+    queryKey: ["project", id],
+    queryFn: () => client.project.get({ id }),
+  });
 ```
 
 Use:
@@ -985,13 +977,13 @@ Example:
 
 ```ts
 export async function createProject(input: CreateProjectInput) {
-	const existing = await getProjectByName(input.name);
+  const existing = await getProjectByName(input.name);
 
-	if (existing) {
-		throw new ProjectAlreadyExistsError(input.name);
-	}
+  if (existing) {
+    throw new ProjectAlreadyExistsError(input.name);
+  }
 
-	return insertProject(input);
+  return insertProject(input);
 }
 ```
 
@@ -1009,11 +1001,7 @@ Example:
 
 ```ts
 export async function getProjectByName(name: string) {
-	return db
-		.select()
-		.from(projects)
-		.where(eq(projects.name, name))
-		.limit(1);
+  return db.select().from(projects).where(eq(projects.name, name)).limit(1);
 }
 ```
 
@@ -1043,10 +1031,10 @@ Prefer meaningful errors:
 
 ```ts
 export class ProjectNotFoundError extends Error {
-	constructor() {
-		super("Project not found");
-		this.name = "ProjectNotFoundError";
-	}
+  constructor() {
+    super("Project not found");
+    this.name = "ProjectNotFoundError";
+  }
 }
 ```
 
@@ -1076,20 +1064,20 @@ Example:
 import * as z from "zod";
 
 const envSchema = z.object({
-	DATABASE_URL: z.url(),
+  DATABASE_URL: z.url(),
 });
 
 export const env = envSchema.parse({
-	DATABASE_URL: process.env.DATABASE_URL,
+  DATABASE_URL: process.env.DATABASE_URL,
 });
 ```
 
 Prefer one validated environment module over scattered:
 
 ```ts
-process.env.X!
-process.env.Y!
-process.env.Z!
+process.env.X!;
+process.env.Y!;
+process.env.Z!;
 ```
 
 throughout the codebase.
@@ -1159,8 +1147,8 @@ Example:
 
 ```ts
 await db.transaction(async (tx) => {
-	await tx.insert(projects).values(project);
-	await tx.insert(projectMembers).values(member);
+  await tx.insert(projects).values(project);
+  await tx.insert(projectMembers).values(member);
 });
 ```
 
@@ -1178,9 +1166,9 @@ Good:
 
 ```ts
 const [user, projects, usage] = await Promise.all([
-	getUser(userId),
-	getProjects(userId),
-	getUsage(userId),
+  getUser(userId),
+  getProjects(userId),
+  getUsage(userId),
 ]);
 ```
 
@@ -1247,8 +1235,8 @@ Example shape:
 
 ```ts
 const input = z.object({
-	cursor: z.string().optional(),
-	limit: z.number().int().min(1).max(100).default(25),
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(100).default(25),
 });
 ```
 

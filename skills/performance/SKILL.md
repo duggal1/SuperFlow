@@ -138,10 +138,10 @@ Potentially better:
 
 ```ts
 const [user, projects, usage, billing] = await Promise.all([
-	getUser(id),
-	getProjects(id),
-	getUsage(id),
-	getBilling(id),
+  getUser(id),
+  getProjects(id),
+  getUsage(id),
+  getBilling(id),
 ]);
 ```
 
@@ -169,13 +169,13 @@ Bad:
 
 ```ts
 const customer = await getCustomer({
-	with: {
-		invoices: true,
-		contacts: true,
-		activities: true,
-		notes: true,
-		events: true,
-	},
+  with: {
+    invoices: true,
+    contacts: true,
+    activities: true,
+    notes: true,
+    events: true,
+  },
 });
 ```
 
@@ -328,12 +328,7 @@ must be questioned.
 If operations are independent:
 
 ```ts
-const [a, b, c, d] = await Promise.all([
-	getA(),
-	getB(),
-	getC(),
-	getD(),
-]);
+const [a, b, c, d] = await Promise.all([getA(), getB(), getC(), getD()]);
 ```
 
 If the database can consolidate them efficiently, prefer the database solution.
@@ -381,9 +376,9 @@ Independent calls should execute concurrently where safe.
 
 ```ts
 const [stripe, hubspot, enrichment] = await Promise.all([
-	getStripeData(),
-	getHubSpotData(),
-	getEnrichment(),
+  getStripeData(),
+  getHubSpotData(),
+  getEnrichment(),
 ]);
 ```
 
@@ -630,27 +625,23 @@ Example:
 
 ```tsx
 const mutation = useMutation({
-	mutationFn: createTodo,
-	onSettled: () =>
-		queryClient.invalidateQueries({
-			queryKey: ["todos"],
-		}),
+  mutationFn: createTodo,
+  onSettled: () =>
+    queryClient.invalidateQueries({
+      queryKey: ["todos"],
+    }),
 });
 
 const { isPending, variables } = mutation;
 
 return (
-	<ul>
-		{todos.map((todo) => (
-			<li key={todo.id}>{todo.text}</li>
-		))}
+  <ul>
+    {todos.map((todo) => (
+      <li key={todo.id}>{todo.text}</li>
+    ))}
 
-		{isPending && (
-			<li className="opacity-50">
-				{variables}
-			</li>
-		)}
-	</ul>
+    {isPending && <li className="opacity-50">{variables}</li>}
+  </ul>
 );
 ```
 
@@ -664,40 +655,31 @@ Use cache manipulation when multiple UI consumers need the optimistic state.
 
 ```ts
 const mutation = useMutation({
-	mutationFn: updateTodo,
+  mutationFn: updateTodo,
 
-	onMutate: async (nextTodo, context) => {
-		await context.client.cancelQueries({
-			queryKey: ["todos", nextTodo.id],
-		});
+  onMutate: async (nextTodo, context) => {
+    await context.client.cancelQueries({
+      queryKey: ["todos", nextTodo.id],
+    });
 
-		const previousTodo = context.client.getQueryData([
-			"todos",
-			nextTodo.id,
-		]);
+    const previousTodo = context.client.getQueryData(["todos", nextTodo.id]);
 
-		context.client.setQueryData(
-			["todos", nextTodo.id],
-			nextTodo,
-		);
+    context.client.setQueryData(["todos", nextTodo.id], nextTodo);
 
-		return {
-			previousTodo,
-		};
-	},
+    return {
+      previousTodo,
+    };
+  },
 
-	onError: (_error, nextTodo, result, context) => {
-		context.client.setQueryData(
-			["todos", nextTodo.id],
-			result?.previousTodo,
-		);
-	},
+  onError: (_error, nextTodo, result, context) => {
+    context.client.setQueryData(["todos", nextTodo.id], result?.previousTodo);
+  },
 
-	onSettled: (_data, _error, nextTodo, _result, context) => {
-		return context.client.invalidateQueries({
-			queryKey: ["todos", nextTodo.id],
-		});
-	},
+  onSettled: (_data, _error, nextTodo, _result, context) => {
+    return context.client.invalidateQueries({
+      queryKey: ["todos", nextTodo.id],
+    });
+  },
 });
 ```
 
@@ -1119,7 +1101,7 @@ That second architecture is how a 200 ms product becomes a 4-second product.
 
 ## 37b. How This Relates to `performance-causes` (avoid overlap)
 
-Use this file as the *workflow* (measure → fix → verify). Use `skills/performance/performance-causes/SKILL.md` as the *catalog* of 20 concrete Next.js 16 killers. Do not duplicate — reference the catalog when you need the kill list, keep this file for the process and before/after table `§31`.
+Use this file as the _workflow_ (measure → fix → verify). Use `skills/performance/performance-causes/SKILL.md` as the _catalog_ of 20 concrete Next.js 16 killers. Do not duplicate — reference the catalog when you need the kill list, keep this file for the process and before/after table `§31`.
 
 # 37. Final Rule
 

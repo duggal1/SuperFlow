@@ -1,5 +1,6 @@
 mod actions;
 mod ai_cleanup;
+mod local_cleanup;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
@@ -264,6 +265,10 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
     managers::transcription::init_transcribe_backend();
+
+    // Mandatory S1-mini cleanup stage: download (if needed) and load the model
+    // off the hot path so dictation never waits on it.
+    local_cleanup::preload(app_handle.clone());
 
     // Apply accelerator preferences before any model loads
     managers::transcription::apply_accelerator_settings(app_handle);
@@ -894,6 +899,8 @@ pub fn run(cli_args: CliArgs) {
             commands::ai_cleanup::set_gemini_api_key,
             commands::ai_cleanup::get_ai_cleanup_history,
             commands::ai_cleanup::is_gemini_api_configured,
+            commands::local_cleanup::get_cleanup_model_status,
+            commands::local_cleanup::install_cleanup_model,
             commands::transcription::set_model_unload_timeout,
             commands::transcription::get_model_load_status,
             commands::transcription::unload_model_manually,

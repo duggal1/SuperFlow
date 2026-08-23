@@ -5,6 +5,7 @@ import { commands } from "@/bindings";
 import type {
   AiCleanupConfiguration,
   AiCleanupHistoryEntry,
+  AiCleanupStyle,
   AiCleanupThinkingLevel,
 } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
@@ -35,11 +36,29 @@ const THINKING_LABELS: Record<AiCleanupThinkingLevel, string> = {
   high: "High",
 };
 
+const STYLES: AiCleanupStyle[] = [
+  "default",
+  "formal",
+  "casual",
+  "concise",
+  "custom",
+];
+
+const STYLE_LABELS: Record<AiCleanupStyle, string> = {
+  default: "Default",
+  formal: "Formal",
+  casual: "Casual",
+  concise: "Concise",
+  custom: "Custom",
+};
+
 const EMPTY_CONFIGURATION: AiCleanupConfiguration = {
   enabled: true,
   auto_enabled: false,
   model: "gemini-3.5-flash-lite",
   thinking_level: "minimal",
+  style: "default",
+  style_tone: "",
   custom_instruction: "",
   contexts: [],
 };
@@ -67,6 +86,8 @@ export function AICleanupSettings() {
       auto_enabled: settings.auto_ai_cleanup_enabled ?? false,
       model: settings.ai_cleanup_model ?? "gemini-3.5-flash-lite",
       thinking_level: settings.ai_cleanup_thinking_level ?? "minimal",
+      style: settings.ai_cleanup_style ?? "default",
+      style_tone: settings.ai_cleanup_style_tone ?? "",
       custom_instruction: settings.ai_cleanup_custom_instruction ?? "",
       contexts: settings.ai_cleanup_contexts ?? [],
     } satisfies AiCleanupConfiguration;
@@ -226,6 +247,35 @@ export function AICleanupSettings() {
             className="min-w-44"
           />
         </SettingContainer>
+        <SettingContainer
+          title="Tone"
+          description="Shape the voice of the cleaned prompt."
+          grouped
+        >
+          <Dropdown
+            options={STYLES.map((style) => ({
+              value: style,
+              label: STYLE_LABELS[style],
+            }))}
+            selectedValue={configuration.style}
+            onSelect={(value) => update("style", value as AiCleanupStyle)}
+            className="min-w-44"
+          />
+        </SettingContainer>
+        {configuration.style === "custom" && (
+          <div className="px-4 py-3">
+            <div className="rounded-[14px] bg-stone-800 p-4">
+              <Textarea
+                variant="inset"
+                value={configuration.style_tone}
+                onChange={(event) => update("style_tone", event.target.value)}
+                maxLength={2000}
+                className="w-full !rounded-[12px] !text-[15px] !text-stone-100"
+                placeholder="What should the tone be? For example: warm and encouraging, like a mentor reviewing my work."
+              />
+            </div>
+          </div>
+        )}
         <div className="px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -237,16 +287,35 @@ export function AICleanupSettings() {
               </p>
             </div>
             <Badge
-              variant={apiConfigured ? "green" : "rose"}
+              variant={
+                apiConfigured === null
+                  ? "neutral"
+                  : apiConfigured
+                    ? "green"
+                    : "rose"
+              }
               className="shrink-0 whitespace-nowrap"
             >
-              {apiConfigured ? "Configured" : "Missing key"}
+              {apiConfigured === null
+                ? "Checking…"
+                : apiConfigured
+                  ? "Configured"
+                  : "API key not configured"}
             </Badge>
           </div>
           <Input
             type="password"
             value={apiKeyDraft}
             onChange={(event) => setApiKeyDraft(event.target.value)}
+            onPaste={(event) => {
+              const pasted = event.clipboardData.getData("text").trim();
+              if (!pasted) return;
+              // Pasting IS the intent to save — persist immediately instead
+              // of waiting for a blur that may never come.
+              event.preventDefault();
+              setApiKeyDraft(pasted);
+              void saveApiKey(pasted);
+            }}
             onBlur={() => void saveApiKey(apiKeyDraft)}
             onKeyDown={(event) => {
               if (event.key === "Enter") event.currentTarget.blur();

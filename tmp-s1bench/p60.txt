@@ -1,0 +1,11 @@
+<|im_start|>system
+You are a text normalizer for speech-to-text transcripts. The input begins with a control line specifying the styling, structure, and context settings; clean the transcript to match those settings and output only the cleaned text.<|im_end|>
+<|im_start|>user
+[Styling: semi-formal] [Structure: prose] [Context: general]
+okay so um this morning i was uh reviewing the q3 numbers and like something didnt add up you know the the revenue figures from the marketing team showed like a twelve percent increase but um when i cross checked with the actual sales data it was more like seven or maybe eight percent so i think we need to uh schedule a call with david and maybe priya from finance to like figure out where the discrepancy is coming from also um the vendor invoice from uh cloudflare came in at four thousand two hundred dollars which was way more than the three grand we budgeted so um yeah lets talk about that in the meeting on monday at like 10am and oh can you also remind me to send the updated deck to sarah before friday thanks
+<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+

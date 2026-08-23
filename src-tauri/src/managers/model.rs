@@ -2387,12 +2387,11 @@ impl ModelManager {
         if let ModelSource::HuggingFace { repo_id, revision } = &model_info.source {
             let is_alternate_quant =
                 Self::is_catalog_alternate_quant(repo_id, &model_info.filename);
-            let mut deleted = false;
             if is_alternate_quant {
                 // Only this quant's own file: the snapshot pointer and its
                 // blob. The default (and any other quants) survive in the
                 // cache — the entry never owned more than its one file.
-                deleted |= Self::delete_hf_cache_file(repo_id, revision, &model_info.filename);
+                Self::delete_hf_cache_file(repo_id, revision, &model_info.filename);
             } else if let Some(file) = hf_cached_path(repo_id, revision, &model_info.filename) {
                 // Cached at <cache>/models--org--name/snapshots/<rev>/<file>; remove
                 // the whole repo dir (blobs + refs + snapshots). Per product decision,
@@ -2405,7 +2404,6 @@ impl ModelManager {
                     {
                         info!("Deleting HF cache repo at: {:?}", repo_dir);
                         fs::remove_dir_all(repo_dir)?;
-                        deleted = true;
                     }
                 }
             }
@@ -2419,12 +2417,12 @@ impl ModelManager {
                 if path.exists() {
                     info!("Deleting model file at: {:?}", path);
                     fs::remove_file(&path)?;
-                    deleted = true;
                 }
             }
-            if !deleted {
-                return Err(anyhow::anyhow!("No model files found to delete"));
-            }
+            // Finding nothing is not a failure: an external cache cleanup can
+            // remove files out from under the registry while the UI still
+            // shows them as downloaded. Deletion is idempotent — fall through,
+            // refresh status so the ghost entry heals, and report success.
             // Alternate-quant entries are discovery-created (the catalog only
             // seeds defaults), so deleting one un-discovers it rather than
             // leaving a permanent "(Q4_K_M)" row in the list.
@@ -2443,15 +2441,12 @@ impl ModelManager {
         debug!("ModelManager: Model path: {:?}", model_path);
         debug!("ModelManager: Partial path: {:?}", partial_path);
 
-        let mut deleted_something = false;
-
         if model_info.is_directory {
             // Delete complete model directory if it exists
             if model_path.exists() && model_path.is_dir() {
                 info!("Deleting model directory at: {:?}", model_path);
                 fs::remove_dir_all(&model_path)?;
                 info!("Model directory deleted successfully");
-                deleted_something = true;
             }
         } else {
             // Delete complete model file if it exists
@@ -2459,7 +2454,6 @@ impl ModelManager {
                 info!("Deleting model file at: {:?}", model_path);
                 fs::remove_file(&model_path)?;
                 info!("Model file deleted successfully");
-                deleted_something = true;
             }
         }
 
@@ -2468,12 +2462,11 @@ impl ModelManager {
             info!("Deleting partial file at: {:?}", partial_path);
             fs::remove_file(&partial_path)?;
             info!("Partial file deleted successfully");
-            deleted_something = true;
         }
 
-        if !deleted_something {
-            return Err(anyhow::anyhow!("No model files found to delete"));
-        }
+        // Nothing on disk is a valid end state for a delete (idempotent —
+        // see the HF branch above); refresh status so stale "downloaded"
+        // flags clear and the UI stops offering a delete that can't apply.
 
         // Custom models should be removed from the list entirely since they
         // have no download URL and can't be re-downloaded

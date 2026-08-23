@@ -456,6 +456,24 @@ async fn process_transcription_output_with_context(
         final_text = converted_text;
     }
 
+    // Mandatory local cleanup stage: S1-mini rewrites the raw transcript as
+    // clean written text (grammar, punctuation, fillers, spoken numbers).
+    // Runs unconditionally on English transcripts — no user toggle. The model
+    // legitimately returns "" for filler-only speech; anything else failing
+    // open keeps the uncleaned text so dictation never blocks or loses words.
+    if !final_text.trim().is_empty() {
+        if let Some(cleaned) =
+            crate::local_cleanup::normalize(&effective_language, final_text.clone()).await
+        {
+            debug!(
+                "S1-mini cleanup: {} -> {} chars",
+                final_text.len(),
+                cleaned.len()
+            );
+            final_text = cleaned;
+        }
+    }
+
     // Smart file references: resolve spoken file names against the active dev
     // project when dictating into a terminal or editor. Local-only, best-effort.
     if settings.smart_file_references_enabled {
@@ -567,6 +585,22 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+
+        // The mandatory S1-mini clean-up stage must be live before any speech
+        // is captured — transcripts are never produced without it. While it
+        // downloads/loads, recording is refused with a distinct error type the
+        // UI maps to a "still installing" toast.
+        if !crate::local_cleanup::is_ready() {
+            debug!("Dictation refused: clean-up model not ready yet");
+            let _ = app.emit(
+                "recording-error",
+                serde_json::json!({
+                    "error_type": "cleanup_model_not_ready",
+                    "detail": "text cleanup model is still installing"
+                }),
+            );
+            return;
+        }
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();

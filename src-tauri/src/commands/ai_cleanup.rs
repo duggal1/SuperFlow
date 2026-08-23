@@ -1,12 +1,13 @@
 use crate::ai_cleanup;
 use crate::managers::history::{AiCleanupHistoryEntry, HistoryManager};
-use crate::settings::{self, AiCleanupThinkingLevel};
+use crate::settings::{self, AiCleanupStyle, AiCleanupThinkingLevel};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::sync::Arc;
 use tauri::{AppHandle, Manager};
 
 const MAX_CUSTOM_INSTRUCTION_CHARS: usize = 4_000;
+const MAX_STYLE_TONE_CHARS: usize = 2_000;
 const MAX_CONTEXTS: usize = 12;
 const MAX_CONTEXT_CHARS: usize = 12_000;
 
@@ -16,6 +17,9 @@ pub struct AiCleanupConfiguration {
     pub auto_enabled: bool,
     pub model: String,
     pub thinking_level: AiCleanupThinkingLevel,
+    pub style: AiCleanupStyle,
+    /// Free-form tone used only when `style` is `Custom`.
+    pub style_tone: String,
     pub custom_instruction: String,
     pub contexts: Vec<String>,
 }
@@ -29,6 +33,9 @@ pub fn update_ai_cleanup_configuration(
     ai_cleanup::validate_model_and_thinking(&configuration.model, configuration.thinking_level)?;
     if configuration.custom_instruction.chars().count() > MAX_CUSTOM_INSTRUCTION_CHARS {
         return Err("Custom instruction is too long".to_string());
+    }
+    if configuration.style_tone.chars().count() > MAX_STYLE_TONE_CHARS {
+        return Err("Style tone is too long".to_string());
     }
     if configuration.contexts.len() > MAX_CONTEXTS
         || configuration
@@ -56,6 +63,8 @@ pub fn update_ai_cleanup_configuration(
     current.ai_cleanup_model = configuration.model;
     current.ai_cleanup_thinking_level = configuration.thinking_level;
     current.ai_cleanup_custom_instruction = configuration.custom_instruction;
+    current.ai_cleanup_style = configuration.style;
+    current.ai_cleanup_style_tone = configuration.style_tone;
     current.ai_cleanup_contexts = configuration.contexts;
     settings::write_settings(&app, current.clone());
 

@@ -44,7 +44,10 @@ export const LivePunctuation: React.FC<LivePunctuationProps> = React.memo(
               ]}
               selectedValue={style}
               onSelect={(next) =>
-                updateSetting("punctuation_style", next as "informal" | "formal")
+                updateSetting(
+                  "punctuation_style",
+                  next as "informal" | "formal",
+                )
               }
             />
           </div>

@@ -14,16 +14,16 @@
 
 ## 02 Catalog — 8 skills · 15–25 words each
 
-| Skill | Path | When | Purpose |
-|---|---|---|---|
-| RULES | `skills/RULES.md` | Every task — before any plan or code | Core engineering principles for every change: build simple, fix root causes, verify with Bun, and avoid speculative abstraction. |
-| frontend-design | `skills/frontend/SKILL.md` | Any landing page, marketing site, or product UI work | Ultra-clean, taste-driven frontend system enforcing hierarchy, consistency, and restraint for landing pages and product UI without drift. |
-| frontend/examples | `skills/frontend/examples.md` | Frontend reference — read before designing (pre-read, not copy-paste) | Production benchmark library of layouts, rails, stages, grids, and anti-patterns demonstrating how clean design principles translate into code. |
-| frontend/agent-questions | `skills/frontend/agent-questions.md` | New frontend from scratch — mandatory init phase | Compact init questionnaire governing Theme, Neutral, Roundedness, Surfaces, and Badges to establish a coherent system before coding. |
-| backend | `skills/backend/SKILL.md` | Any backend, API, DB, auth, or service work | Production backend discipline for modular, type-safe Drizzle services with strict validation, observability, and minimal justified abstraction only. |
-| performance | `skills/performance/SKILL.md` | Slow pages, latency, or scaling work | Evidence-driven performance workflow that measures real bottlenecks across DB, API, and frontend before fixing highest-impact paths. |
-| performance-causes | `skills/performance/performance-causes/SKILL.md` | Backend-heavy Next.js 16 latency deep-dive (waterfalls, bloat) | Deep catalog of backend-heavy Next.js 16 latency killers—from DB waterfalls and proxy bloat to client islands—with concrete fixes. |
-| testing / debugging | `skills/testing/SKILL.md` | Bugs, regressions, performance checks, or integration failures | Systematic debugging and verification with Bun: reproduce, hypothesize, test existing code or isolated experiments, then prove fixes. |
+| Skill                    | Path                                             | When                                                                  | Purpose                                                                                                                                              |
+| ------------------------ | ------------------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RULES                    | `skills/RULES.md`                                | Every task — before any plan or code                                  | Core engineering principles for every change: build simple, fix root causes, verify with Bun, and avoid speculative abstraction.                     |
+| frontend-design          | `skills/frontend/SKILL.md`                       | Any landing page, marketing site, or product UI work                  | Ultra-clean, taste-driven frontend system enforcing hierarchy, consistency, and restraint for landing pages and product UI without drift.            |
+| frontend/examples        | `skills/frontend/examples.md`                    | Frontend reference — read before designing (pre-read, not copy-paste) | Production benchmark library of layouts, rails, stages, grids, and anti-patterns demonstrating how clean design principles translate into code.      |
+| frontend/agent-questions | `skills/frontend/agent-questions.md`             | New frontend from scratch — mandatory init phase                      | Compact init questionnaire governing Theme, Neutral, Roundedness, Surfaces, and Badges to establish a coherent system before coding.                 |
+| backend                  | `skills/backend/SKILL.md`                        | Any backend, API, DB, auth, or service work                           | Production backend discipline for modular, type-safe Drizzle services with strict validation, observability, and minimal justified abstraction only. |
+| performance              | `skills/performance/SKILL.md`                    | Slow pages, latency, or scaling work                                  | Evidence-driven performance workflow that measures real bottlenecks across DB, API, and frontend before fixing highest-impact paths.                 |
+| performance-causes       | `skills/performance/performance-causes/SKILL.md` | Backend-heavy Next.js 16 latency deep-dive (waterfalls, bloat)        | Deep catalog of backend-heavy Next.js 16 latency killers—from DB waterfalls and proxy bloat to client islands—with concrete fixes.                   |
+| testing / debugging      | `skills/testing/SKILL.md`                        | Bugs, regressions, performance checks, or integration failures        | Systematic debugging and verification with Bun: reproduce, hypothesize, test existing code or isolated experiments, then prove fixes.                |
 
 ---
 
@@ -55,6 +55,7 @@
 ## 06 Discovery
 
 On disk:
+
 - `skills/RULES.md`
 - `skills/frontend/SKILL.md`
 - `skills/frontend/examples.md`

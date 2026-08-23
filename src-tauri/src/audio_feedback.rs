@@ -82,7 +82,7 @@ pub fn play_test_sound(app: &AppHandle, sound_type: SoundType) {
 /// level with start/stop per spec.
 const CANCELED_SOUND_GAIN: f32 = 1.3;
 
-/// Plays the bundled "transcription canceled" cue (mp3 in resources).
+/// Plays the cancel cue (error.wav in resources).
 /// Respects the audio-feedback toggle and output device; played at the
 /// user's feedback volume boosted by [`CANCELED_SOUND_GAIN`].
 pub fn play_canceled_sound(app: &AppHandle) {
@@ -91,11 +91,11 @@ pub fn play_canceled_sound(app: &AppHandle) {
         return;
     }
     let path = app.path().resolve(
-        "resources/transcription-canceled.mp3",
+        "resources/error.wav",
         tauri::path::BaseDirectory::Resource,
     );
     let Ok(path) = path else {
-        warn!("transcription-canceled.mp3 could not be resolved from resources");
+        warn!("error.wav could not be resolved from resources");
         return;
     };
     let app_handle = app.clone();

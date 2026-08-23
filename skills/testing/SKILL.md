@@ -1,8 +1,9 @@
 ---
-
 name: debugging-strategies
 description: Systematic debugging and backend testing for TypeScript systems. Use for real backend changes, regressions, performance issues, integration failures, and complex bugs. Skip for trivial backend edits.
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---
+
+---
 
 # Debugging Strategies
 
@@ -16,16 +17,16 @@ For serious backend work, **testing is mandatory**. Do not build an entire backe
 
 Use this skill for:
 
-* Real backend changes
-* New backend systems or modules
-* Backend regressions
-* Complex bugs
-* Performance problems
-* Integration failures
-* Data-flow problems
-* Async or concurrency problems
-* Production failures
-* Changes requiring systematic verification
+- Real backend changes
+- New backend systems or modules
+- Backend regressions
+- Complex bugs
+- Performance problems
+- Integration failures
+- Data-flow problems
+- Async or concurrency problems
+- Production failures
+- Changes requiring systematic verification
 
 For tiny backend edits with an obvious local impact, this process may be reduced.
 
@@ -39,10 +40,10 @@ Every meaningful backend implementation must be tested.
 
 Do not assume:
 
-* The code compiles, therefore it works
-* A function looks correct, therefore it works
-* The API responds once, therefore the system works
-* A previous implementation proves the new one works
+- The code compiles, therefore it works
+- A function looks correct, therefore it works
+- The API responds once, therefore the system works
+- A previous implementation proves the new one works
 
 Verify actual behavior.
 
@@ -69,13 +70,13 @@ All testing infrastructure should use **Bun** unless there is a concrete technic
 
 Use Bun for:
 
-* Running TypeScript
-* Test execution
-* Test scripts
-* Local backend experimentation
-* Test fixtures
-* Test utilities
-* Development tooling
+- Running TypeScript
+- Test execution
+- Test scripts
+- Local backend experimentation
+- Test fixtures
+- Test utilities
+- Development tooling
 
 Do not introduce another runtime unnecessarily.
 
@@ -85,12 +86,12 @@ All application code and testing code must be TypeScript.
 
 Prefer:
 
-* `.ts`
-* `.tsx`
-* Typed fixtures
-* Typed test helpers
-* Explicit interfaces and types
-* Strict compiler settings
+- `.ts`
+- `.tsx`
+- Typed fixtures
+- Typed test helpers
+- Explicit interfaces and types
+- Strict compiler settings
 
 Avoid untyped escape hatches unless there is a documented reason.
 
@@ -136,15 +137,15 @@ select implementation
 
 This mode is useful for:
 
-* Unknown architecture
-* New integrations
-* Database approaches
-* Queue designs
-* API behavior
-* Agent workflows
-* Performance experiments
-* Multiple possible implementations
-* A/B testing of backend approaches
+- Unknown architecture
+- New integrations
+- Database approaches
+- Queue designs
+- API behavior
+- Agent workflows
+- Performance experiments
+- Multiple possible implementations
+- A/B testing of backend approaches
 
 Experimental testing is allowed to be disposable.
 
@@ -192,15 +193,15 @@ The test should exercise the same backend code that production uses.
 
 Use this mode for:
 
-* Existing APIs
-* Existing services
-* Existing database modules
-* Existing business logic
-* Existing integrations
-* Regression testing
-* Backend refactors
-* Bug fixes
-* Performance verification
+- Existing APIs
+- Existing services
+- Existing database modules
+- Existing business logic
+- Existing integrations
+- Regression testing
+- Backend refactors
+- Bug fixes
+- Performance verification
 
 The purpose is to answer:
 
@@ -237,13 +238,13 @@ Use existing-backend testing to verify the solution.
 
 Before implementation, define:
 
-* What should happen?
-* What inputs are valid?
-* What outputs are expected?
-* What should fail?
-* What side effects should occur?
-* What dependencies are involved?
-* What edge cases matter?
+- What should happen?
+- What inputs are valid?
+- What outputs are expected?
+- What should fail?
+- What side effects should occur?
+- What dependencies are involved?
+- What edge cases matter?
 
 Write the expected behavior before writing large amounts of backend code.
 
@@ -265,11 +266,11 @@ backend/
 
 The harness should make it cheap to:
 
-* Run a test
-* Change an input
-* Try another implementation
-* Inspect output
-* Repeat the experiment
+- Run a test
+- Change an input
+- Try another implementation
+- Inspect output
+- Repeat the experiment
 
 Do not make testing expensive.
 
@@ -367,11 +368,11 @@ Do not substitute what you expected to happen.
 
 Determine whether the failure is:
 
-* Always reproducible
-* Intermittent
-* Data-dependent
-* Environment-dependent
-* Timing-dependent
+- Always reproducible
+- Intermittent
+- Data-dependent
+- Environment-dependent
+- Timing-dependent
 
 ## 3. Hypothesize
 
@@ -424,13 +425,13 @@ Remove half the possible causes at each step.
 Compare working and broken behavior.
 
 ```markdown
-| Variable | Working | Broken |
-|---|---|---|
-| Input | A | B |
-| Database state | Empty | Populated |
-| Environment | Local | Production |
-| Dependency version | Current | Previous |
-| Timing | Immediate | Delayed |
+| Variable           | Working   | Broken     |
+| ------------------ | --------- | ---------- |
+| Input              | A         | B          |
+| Database state     | Empty     | Populated  |
+| Environment        | Local     | Production |
+| Dependency version | Current   | Previous   |
+| Timing             | Immediate | Delayed    |
 ```
 
 Find the smallest meaningful difference.
@@ -459,15 +460,15 @@ Use TypeScript's type system as part of debugging.
 
 Check:
 
-* Incorrect types
-* Nullable values
-* Invalid unions
-* Incorrect generics
-* Missing return types
-* Unsafe casts
-* Incorrect async return values
-* Invalid object shapes
-* Incorrect dependency interfaces
+- Incorrect types
+- Nullable values
+- Invalid unions
+- Incorrect generics
+- Missing return types
+- Unsafe casts
+- Incorrect async return values
+- Invalid object shapes
+- Incorrect dependency interfaces
 
 Prefer fixing the type model over suppressing the compiler.
 
@@ -617,25 +618,25 @@ Verify database reads, writes, constraints, transactions, and failure states.
 
 Verify:
 
-* Inputs
-* Validation
-* Authentication
-* Authorization
-* Status codes
-* Response shape
-* Error behavior
+- Inputs
+- Validation
+- Authentication
+- Authorization
+- Status codes
+- Response shape
+- Error behavior
 
 ## Failure Behavior
 
 Test what happens when:
 
-* Input is invalid
-* Data is missing
-* Dependencies fail
-* Requests timeout
-* Records conflict
-* External services return unexpected data
-* Concurrent operations occur
+- Input is invalid
+- Data is missing
+- Dependencies fail
+- Requests timeout
+- Records conflict
+- External services return unexpected data
+- Concurrent operations occur
 
 ## Regression Behavior
 
@@ -649,25 +650,25 @@ Profile before optimizing.
 
 Measure:
 
-* Request latency
-* Database latency
-* External service latency
-* CPU usage
-* Memory usage
-* Query count
-* Payload size
-* Serialization cost
+- Request latency
+- Database latency
+- External service latency
+- CPU usage
+- Memory usage
+- Query count
+- Payload size
+- Serialization cost
 
 Common backend problems:
 
-* N+1 queries
-* Unbounded data loading
-* Repeated expensive computation
-* Excessive network calls
-* Blocking operations
-* Poor caching
-* Large payloads
-* Concurrency problems
+- N+1 queries
+- Unbounded data loading
+- Repeated expensive computation
+- Excessive network calls
+- Blocking operations
+- Poor caching
+- Large payloads
+- Concurrency problems
 
 Do not optimize based on intuition alone.
 
@@ -677,14 +678,14 @@ Do not optimize based on intuition alone.
 
 For flaky behavior, investigate:
 
-* Race conditions
-* Timing dependencies
-* Concurrent requests
-* Retries
-* Queue ordering
-* Database transaction boundaries
-* External service timing
-* Shared mutable state
+- Race conditions
+- Timing dependencies
+- Concurrent requests
+- Retries
+- Queue ordering
+- Database transaction boundaries
+- External service timing
+- Shared mutable state
 
 Increase observability.
 
@@ -738,18 +739,18 @@ Before declaring serious backend work complete, verify:
 
 # Common Mistakes
 
-* Building the whole backend before testing it
-* Testing only the happy path
-* Reimplementing production logic inside tests
-* Using experimental code as production architecture
-* Changing many things before rerunning tests
-* Ignoring type errors
-* Assuming a successful response means correctness
-* Testing mocks instead of important real behavior
-* Fixing symptoms instead of root causes
-* Removing a failing test because it is inconvenient
-* Skipping tests because the change "is small"
-* Optimizing before measuring
+- Building the whole backend before testing it
+- Testing only the happy path
+- Reimplementing production logic inside tests
+- Using experimental code as production architecture
+- Changing many things before rerunning tests
+- Ignoring type errors
+- Assuming a successful response means correctness
+- Testing mocks instead of important real behavior
+- Fixing symptoms instead of root causes
+- Removing a failing test because it is inconvenient
+- Skipping tests because the change "is small"
+- Optimizing before measuring
 
 ---
 

@@ -12,8 +12,12 @@ import { ModelStateEvent, RecordingErrorEvent } from "./lib/types/events";
 import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
+import { CleanupModelToast } from "./components/CleanupModelToast";
 import Footer from "./components/footer";
-import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import Onboarding, {
+  AccessibilityOnboarding,
+  CleanupModelSetup,
+} from "./components/onboarding";
 import { Introduction } from "./components/introduction";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
@@ -24,7 +28,12 @@ import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
-type OnboardingStep = "introduction" | "accessibility" | "model" | "done";
+type OnboardingStep =
+  | "introduction"
+  | "accessibility"
+  | "model"
+  | "cleanup"
+  | "done";
 
 const renderSettingsContent = (section: SidebarSection) => {
   const ActiveComponent =
@@ -117,7 +126,11 @@ function App() {
     const unlisten = listen<RecordingErrorEvent>("recording-error", (event) => {
       const { error_type, detail } = event.payload;
 
-      if (error_type === "microphone_permission_denied") {
+      if (error_type === "cleanup_model_not_ready") {
+        toast.error(t("errors.cleanupModelNotReadyTitle"), {
+          description: t("errors.cleanupModelNotReady"),
+        });
+      } else if (error_type === "microphone_permission_denied") {
         const currentPlatform = platform();
         const platformKey = `errors.micPermissionDenied.${currentPlatform}`;
         const description = t(platformKey, {
@@ -265,7 +278,13 @@ function App() {
   };
 
   const handleModelSelected = () => {
-    // Transition to main app - user has started a download
+    // The mandatory clean-up model must be installed before the dashboard —
+    // no skip path exists for it.
+    setOnboardingStep("cleanup");
+  };
+
+  const handleCleanupComplete = () => {
+    // Transition to main app - user has installed the clean-up model
     setOnboardingStep("done");
   };
 
@@ -323,6 +342,8 @@ function App() {
     );
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
+  } else if (onboardingStep === "cleanup") {
+    content = <CleanupModelSetup onComplete={handleCleanupComplete} />;
   } else {
     content = (
       <div
@@ -371,6 +392,10 @@ function App() {
   return (
     <>
       {toaster}
+      {/* Global live indicator for the background clean-up model install.
+          Suppressed on the dedicated onboarding install page, which shows
+          the same progress inline. */}
+      <CleanupModelToast enabled={onboardingStep !== "cleanup"} />
       {content}
     </>
   );

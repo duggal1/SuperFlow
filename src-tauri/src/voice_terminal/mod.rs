@@ -29,8 +29,10 @@ const PANES_PER_PAGE: usize = 8;
 const SHELL_SETTLE: std::time::Duration = std::time::Duration::from_millis(400);
 /// Stagger between typing launch lines into consecutive panes.
 const TYPE_STAGGER: std::time::Duration = std::time::Duration::from_millis(150);
-/// Wait for the agent CLI TUI to boot before nudging/pasting.
-const AGENT_BOOT_WAIT: std::time::Duration = std::time::Duration::from_millis(2200);
+/// Wait for the agent CLI TUI to boot before nudging/pasting. Conservative:
+/// a prompt typed into a half-booted TUI is lost, while a late prompt just
+/// costs a second.
+const AGENT_BOOT_WAIT: std::time::Duration = std::time::Duration::from_millis(3200);
 /// Gap between the Enter nudge and the prompt paste.
 const NUDGE_GAP: std::time::Duration = std::time::Duration::from_millis(500);
 /// Stagger between pasting prompts into consecutive panes.

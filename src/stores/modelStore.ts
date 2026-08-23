@@ -4,6 +4,13 @@ import { produce } from "immer";
 import { listen } from "@tauri-apps/api/event";
 import { commands, type ModelInfo } from "@/bindings";
 import { toast } from "sonner";
+import i18n from "@/i18n";
+
+// Best-effort chime for download success; autoplay blocks are silently ignored.
+const playSuccessSound = () => {
+  const audio = new Audio("/audio/success.wav");
+  audio.play().catch(() => {});
+};
 
 interface DownloadProgress {
   model_id: string;
@@ -321,6 +328,9 @@ export const useModelStore = create<ModelsStore>()(
 
       listen<string>("model-download-complete", (event) => {
         const modelId = event.payload;
+        const modelName =
+          get().models.find((m: ModelInfo) => m.id === modelId)?.name ||
+          modelId;
         set(
           produce((state) => {
             delete state.downloadingModels[modelId];
@@ -330,6 +340,8 @@ export const useModelStore = create<ModelsStore>()(
           }),
         );
         get().loadModels();
+        toast.success(i18n.t("modelSelector.modelDownloaded", { modelName }));
+        playSuccessSound();
       });
 
       listen<{ model_id: string; error: string }>(

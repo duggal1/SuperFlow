@@ -7,6 +7,7 @@
 **YES — 100% achievable**, with exactly one hard constraint (§2). The building blocks already exist in this repo; this plan is mostly integration + a modern re-implementation of the buggy old `Terminal-kit`, not invention from zero.
 
 What is already proven local & free in the code:
+
 - **Voice → text (fully local):** `src-tauri/src/managers/transcription.rs` + `transcribe-cpp`/`transcribe-rs` (Whisper/Parakeet), VAD with Silero. No network.
 - **On-device intelligence (Apple):** `src-tauri/src/apple_intelligence.rs` (Swift `Foundation Models` bridge) + `src-tauri/src/intelligence/router.rs` + `src-tauri/src/actions.rs`. Runs on Apple Silicon, no API key, no cloud. This is the "piece-to-text + intelligence" you already ship.
 - **Local model-server path (generic):** `src-tauri/src/llm_client.rs` sends OpenAI-compatible chat completions to any `base_url` + `api_key`. Pointing it at `http://localhost:11434/v1` (Ollama) with an empty key = fully local, free, private. Already supported via the `custom` provider.
@@ -14,24 +15,27 @@ What is already proven local & free in the code:
 
 ## 2. The One Hard Constraint (the contradiction to resolve)
 
-You said: *"No external API. No open API. 100% free forever. All local. Private."* But you also said *"use Open Code / Claude Code"* and *"Nemotron from opencode terminal."*
+You said: _"No external API. No open API. 100% free forever. All local. Private."_ But you also said _"use Open Code / Claude Code"_ and _"Nemotron from opencode terminal."_
 
 - **Claude Code** (Anthropic) and **Codex** require a cloud API key → violates the rule.
-- **OpenCode + Nemotron** only stays free/local if Nemotron runs on a **local server** (Ollama / `llama.cpp` serving `nvidia/Llama-Nemotron-*`). If you use NVIDIA's free *hosted* API, that is an external API → violates the rule.
-- **Apple Intelligence** cannot drive a Claude-Code-style agent CLI; it is a single-turn on-device chat. It is perfect for the *lightweight* voice→command path, not for autonomous multi-file coding agents.
+- **OpenCode + Nemotron** only stays free/local if Nemotron runs on a **local server** (Ollama / `llama.cpp` serving `nvidia/Llama-Nemotron-*`). If you use NVIDIA's free _hosted_ API, that is an external API → violates the rule.
+- **Apple Intelligence** cannot drive a Claude-Code-style agent CLI; it is a single-turn on-device chat. It is perfect for the _lightweight_ voice→command path, not for autonomous multi-file coding agents.
 
 **Resolution (CONFIRMED by user):** Two local tiers, no cloud agents.
+
 1. **Tier A — Apple Intelligence (on-device):** fast, free, for intent classification, command parsing, short rewrites, awareness composition. Already wired.
-2. **Tier B — OpenCode CLI (local binary) + local model:** the coding-agent harness is **OpenCode** (`opencode`), run as a *local* terminal binary, configured against a **local** `base_url` (Ollama serving Qwen3 / Nemotron locally). No Claude, no Codex, no hosted endpoint, no API key. OpenCode generates/executes; we paste its prompt output back. This is the "free local terminal" the user described.
+2. **Tier B — OpenCode CLI (local binary) + local model:** the coding-agent harness is **OpenCode** (`opencode`), run as a _local_ terminal binary, configured against a **local** `base_url` (Ollama serving Qwen3 / Nemotron locally). No Claude, no Codex, no hosted endpoint, no API key. OpenCode generates/executes; we paste its prompt output back. This is the "free local terminal" the user described.
 
 This satisfies "100% free forever, no external API" on Apple Silicon. Claude/Codex/cloud-Nemotron are explicitly NOT used.
 
 ## 3. What Already Exists (evidence)
 
 SuperFlow (the app under `src-tauri` + `src`):
+
 - `src-tauri/src/apple_intelligence.rs`, `src-tauri/src/intelligence/router.rs`, `src-tauri/src/actions.rs`, `src-tauri/src/llm_client.rs`, `src-tauri/src/context/` (page/window context capture), `src-tauri/src/managers/transcription.rs`.
 
 Terminal-kit (old repo, `Terminal-kit/`, Cargo pkg `sapphire-agent-factory`, bin `sp`):
+
 - `src/main.rs` — CLI boot + dispatch.
 - `src/cli.rs` — clap CLI surface.
 - `src/orchestrator/mod.rs` — mission lifecycle + watchdog loop.
@@ -45,7 +49,7 @@ Terminal-kit (old repo, `Terminal-kit/`, Cargo pkg `sapphire-agent-factory`, bin
 - `src/templates.rs` + `src/internal/agents/templetes/roles/job-roles/*.md` — 15 role templates. **Reuse these as the 5 roles' prompts.**
 - `docs/`, `product-direction.md`, `How-should-the-supervisor-be-built.md` — design intent.
 
-You said this code is "old (4–5 months), slower, bloated, complex, outdated, unreliable." Confirmed by its own `AGENTS.md` ("Current Gaps", "storage naming drift", "TUI not yet wired as interactive dashboard", "no migration framework"). It is a working *foundation*, not a finished product.
+You said this code is "old (4–5 months), slower, bloated, complex, outdated, unreliable." Confirmed by its own `AGENTS.md` ("Current Gaps", "storage naming drift", "TUI not yet wired as interactive dashboard", "no migration framework"). It is a working _foundation_, not a finished product.
 
 ## 4. Target Architecture
 
@@ -84,7 +88,7 @@ Each role = a reusable prompt template (reuse the markdown files) + a scoped wor
 
 ## 7. Reference Code the Agent Prompt Must Inherit
 
-The long prompt in §8 hands an agent the *working* files below so it starts from a proven base, then simplifies:
+The long prompt in §8 hands an agent the _working_ files below so it starts from a proven base, then simplifies:
 
 - `Terminal-kit/src/main.rs`, `Terminal-kit/src/cli.rs`
 - `Terminal-kit/src/orchestrator/mod.rs`, `Terminal-kit/src/orchestrator/health.rs`, `Terminal-kit/src/orchestrator/dedup.rs`

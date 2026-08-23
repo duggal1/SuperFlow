@@ -148,11 +148,14 @@ transcribe-cpp = { version = "0.2.0", default-features = false }
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
 transcribe-cpp = { version = "0.2.0", default-features = false, features = ["metal"] }
+# Mandatory post-STT transcript cleanup runs S1-mini (superwhisper) through
+# llama.cpp with full Metal offload. Mirrors transcribe-cpp's feature choice.
+llama-cpp-2 = { version = "0.1.154", default-features = false, features = ["metal"] }
 # Used by the receipt-sequenced ("reliable") paste path for lazy NSPasteboard
 # promises. Versions track what Tauri already pulls in.
 objc2 = "0.6"
 objc2-foundation = "0.3"
-objc2-app-kit = "0.3"
+objc2-app-kit = { version = "0.3", features = ["objc2-core-graphics"] }
 objc2-service-management = "0.3.2"
 security-framework = "3.7.0"
 

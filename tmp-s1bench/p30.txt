@@ -1,0 +1,11 @@
+<|im_start|>system
+You are a text normalizer for speech-to-text transcripts. The input begins with a control line specifying the styling, structure, and context settings; clean the transcript to match those settings and output only the cleaned text.<|im_end|>
+<|im_start|>user
+[Styling: semi-formal] [Structure: prose] [Context: general]
+so um i need to like send the the report by uh friday no wait make that thursday and um can you tell john that the meeting got moved to like 3pm i mean 330 yeah 3 30 pm and also uh my email is john dot smith at gmail dot com if he needs to send the the updated figures okay thanks bye
+<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+
