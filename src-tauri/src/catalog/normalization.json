@@ -1,0 +1,51 @@
+{
+  "version": 3,
+  "number_aliases": [
+    { "canonical": "hundred", "aliases": ["hundreed", "hunderd"] },
+    { "canonical": "thousand", "aliases": ["thousend", "thousant"] },
+    { "canonical": "million", "aliases": ["milion"] },
+    { "canonical": "billion", "aliases": ["bilion"] },
+    { "canonical": "trillion", "aliases": ["trilion"] },
+    { "canonical": "lakh", "aliases": ["lac", "lakhs"] },
+    { "canonical": "crore", "aliases": ["crores", "cror"] }
+  ],
+  "currencies": [
+    { "symbol": "$", "aliases": ["dollar", "dollars", "usd", "buck", "bucks"] },
+    { "symbol": "€", "aliases": ["euro", "euros", "eur"] },
+    { "symbol": "£", "aliases": ["pound", "pounds", "gbp"] },
+    { "symbol": "₹", "aliases": ["rupee", "rupees", "inr", "indian rupee", "indian rupees"] },
+    { "symbol": "¥", "aliases": ["yen", "jpy"] },
+    { "symbol": "₩", "aliases": ["won", "krw"] }
+  ],
+  "units": [
+    { "canonical": "px", "spacing": "tight", "aliases": ["pixel", "pixels", "px"] },
+    { "canonical": "rem", "spacing": "tight", "aliases": ["rem", "rems"] },
+    { "canonical": "ms", "spacing": "tight", "aliases": ["millisecond", "milliseconds", "ms"] },
+    { "canonical": "s", "spacing": "tight", "aliases": ["second", "seconds"] },
+    { "canonical": "deg", "spacing": "tight", "aliases": ["degree", "degrees", "deg"] },
+    { "canonical": "GB", "spacing": "space", "aliases": ["gigabyte", "gigabytes", "gb"] },
+    { "canonical": "TB", "spacing": "space", "aliases": ["terabyte", "terabytes", "tb"] },
+    { "canonical": "MB", "spacing": "space", "aliases": ["megabyte", "megabytes", "mb"] },
+    { "canonical": "KB", "spacing": "space", "aliases": ["kilobyte", "kilobytes", "kb"] },
+    { "canonical": "Hz", "spacing": "space", "aliases": ["hertz", "hz"] },
+    { "canonical": "km", "spacing": "space", "aliases": ["kilometer", "kilometers", "kilometre", "kilometres", "km"] }
+  ],
+  "safe_contractions": [
+    { "canonical": "don't", "aliases": ["dont"] },
+    { "canonical": "doesn't", "aliases": ["doesnt"] },
+    { "canonical": "didn't", "aliases": ["didnt"] },
+    { "canonical": "can't", "aliases": ["cant"] },
+    { "canonical": "couldn't", "aliases": ["couldnt"] },
+    { "canonical": "wouldn't", "aliases": ["wouldnt"] },
+    { "canonical": "shouldn't", "aliases": ["shouldnt"] },
+    { "canonical": "won't", "aliases": ["wont"] },
+    { "canonical": "isn't", "aliases": ["isnt"] },
+    { "canonical": "aren't", "aliases": ["arent"] },
+    { "canonical": "wasn't", "aliases": ["wasnt"] },
+    { "canonical": "weren't", "aliases": ["werent"] },
+    { "canonical": "I'm", "aliases": ["im"] },
+    { "canonical": "I've", "aliases": ["ive"] },
+    { "canonical": "you're", "aliases": ["youre"] },
+    { "canonical": "they're", "aliases": ["theyre"] }
+  ]
+}

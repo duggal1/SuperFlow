@@ -82,26 +82,33 @@ pub fn vocabulary_hint() -> Vec<String> {
     out
 }
 
-
 /// True when `word` (already lowercased) matches one of this catalog's
 /// canonical display forms — used by the formatter's de-shout pass to leave
 /// real terms untouched before lexicon replacement.
-pub fn is_known_term(word: &str) -> bool {{
-    use std::sync::OnceLock;
-    use std::collections::HashSet;
-    static KNOWN: OnceLock<HashSet<String>> = OnceLock::new();
-    let normalized: String = word.chars().filter(|c| c.is_alphanumeric()).collect();
-    let known = KNOWN.get_or_init(|| {{
-        entries()
-            .iter()
-            .filter_map(|(canonical, _)| {{
-                let k: String = canonical.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_lowercase();
-                (!k.is_empty()).then_some(k)
-            }})
-            .collect()
-    }});
-    known.contains(&normalized)
-}}
+pub fn is_known_term(word: &str) -> bool {
+    {
+        use std::collections::HashSet;
+        use std::sync::OnceLock;
+        static KNOWN: OnceLock<HashSet<String>> = OnceLock::new();
+        let normalized: String = word.chars().filter(|c| c.is_alphanumeric()).collect();
+        let known = KNOWN.get_or_init(|| {
+            {
+                entries()
+                    .iter()
+                    .filter_map(|(canonical, _)| {
+                        let k: String = canonical
+                            .chars()
+                            .filter(|c| c.is_alphanumeric())
+                            .collect::<String>()
+                            .to_lowercase();
+                        (!k.is_empty()).then_some(k)
+                    })
+                    .collect()
+            }
+        });
+        known.contains(&normalized)
+    }
+}
 
 /// Applies the built-in technical lexicon to transcribed text.
 pub fn apply(text: &str) -> String {

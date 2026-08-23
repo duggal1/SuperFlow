@@ -151,9 +151,9 @@ pub enum ModelUnloadTimeout {
 #[serde(rename_all = "snake_case")]
 pub enum PunctuationStyle {
     /// Sentence capitalization and terminal ./? only.
-    #[default]
     Informal,
     /// Also restores commas and applies stricter casing.
+    #[default]
     Formal,
 }
 
@@ -1535,6 +1535,7 @@ mod tests {
         let settings = get_default_settings();
         assert!(!settings.auto_submit);
         assert_eq!(settings.auto_submit_key, AutoSubmitKey::Enter);
+        assert_eq!(settings.punctuation_style, PunctuationStyle::Formal);
         assert_eq!(
             settings.settings_schema_version,
             CURRENT_SETTINGS_SCHEMA_VERSION

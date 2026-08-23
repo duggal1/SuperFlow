@@ -177,6 +177,8 @@ fn create_client(provider: &PostProcessProvider, api_key: &str) -> Result<reqwes
     let headers = build_headers(provider, api_key)?;
     reqwest::Client::builder()
         .default_headers(headers)
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(45))
         .build()
         .map_err(|e| report_reqwest_error("Failed to build HTTP client", &e))
 }
@@ -407,12 +409,9 @@ pub async fn send_chat_completion_with_schema(
         && matches!(status.as_u16(), 400 | 422)
         && !request_body.reasoning.is_empty()
     {
-        let error_text = response.text().await.unwrap_or_else(|e| {
-            report_reqwest_error("Failed to read reasoning rejection response", &e)
-        });
         info!(
-            "Endpoint rejected request with reasoning disabled (status {}): {}. Retrying without reasoning fields",
-            status, error_text
+            "Endpoint rejected request with reasoning disabled (status {}). Retrying without reasoning fields",
+            status
         );
 
         request_body.reasoning = ReasoningParams::default();
@@ -440,14 +439,7 @@ pub async fn send_chat_completion_with_schema(
     }
 
     if !status.is_success() {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|e| report_reqwest_error("Failed to read API error response", &e));
-        return Err(format!(
-            "API request failed with status {}: {}",
-            status, error_text
-        ));
+        return Err(format!("API request failed with status {}", status));
     }
 
     let completion: ChatCompletionResponse = response
@@ -488,14 +480,7 @@ pub async fn fetch_models(
         sanitized_url(response.url())
     );
     if !status.is_success() {
-        let error_text = response
-            .text()
-            .await
-            .unwrap_or_else(|e| report_reqwest_error("Failed to read model list error", &e));
-        return Err(format!(
-            "Model list request failed ({}): {}",
-            status, error_text
-        ));
+        return Err(format!("Model list request failed ({})", status));
     }
 
     let parsed: serde_json::Value = response

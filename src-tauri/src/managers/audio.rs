@@ -6,6 +6,7 @@ use crate::audio_toolkit::{
     },
     AudioRecorder, SileroVad, VadPolicy,
 };
+use crate::context::types::ContextSnapshot;
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
 use crate::settings::{get_settings, write_settings, AppSettings};
@@ -378,6 +379,7 @@ pub struct AudioRecordingManager {
     /// stop to name the final WAV so the journal, the WAV and the history
     /// row all reference the same recording even after a crash.
     journal_stem: Arc<Mutex<Option<String>>>,
+    context_capture: Arc<Mutex<Option<mpsc::Receiver<ContextSnapshot>>>>,
 }
 
 impl AudioRecordingManager {
@@ -410,6 +412,7 @@ impl AudioRecordingManager {
             capture_generation: Arc::new(AtomicU64::new(0)),
             cached_device: Arc::new(Mutex::new(None)),
             journal_stem: Arc::new(Mutex::new(None)),
+            context_capture: Arc::new(Mutex::new(None)),
         };
 
         // Always-on?  Open immediately.
@@ -999,6 +1002,24 @@ impl AudioRecordingManager {
     pub fn take_journal_stem(&self) -> Option<String> {
         self.journal_stem.lock().unwrap().take()
     }
+
+    pub fn begin_context_capture(&self) {
+        let (sender, receiver) = mpsc::channel();
+        *self.context_capture.lock().unwrap() = Some(receiver);
+        std::thread::spawn(move || {
+            let snapshot = crate::context::capture::capture_snapshot();
+            let _ = sender.send(snapshot);
+        });
+    }
+
+    pub fn take_context_snapshot(&self) -> Option<ContextSnapshot> {
+        let receiver = self.context_capture.lock().unwrap().take()?;
+        receiver.recv_timeout(Duration::from_millis(50)).ok()
+    }
+
+    pub fn clear_context_capture(&self) {
+        self.context_capture.lock().unwrap().take();
+    }
     pub fn is_recording(&self) -> bool {
         // Lock-free: mirrors the `state` {Recording, Stopping} membership via
         // an atomic maintained by `set_state()`. Polled from the webview/main
@@ -1010,6 +1031,7 @@ impl AudioRecordingManager {
 
     /// Cancel any ongoing recording without returning audio samples
     pub fn cancel_recording(&self) {
+        self.clear_context_capture();
         self.invalidate_recording_readiness();
         self.cancel_generation.fetch_add(1, Ordering::AcqRel);
         let mut state = self.state.lock().unwrap();

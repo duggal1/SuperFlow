@@ -39,6 +39,15 @@ use transcribe_rs::{
 const STREAM_PERF_LOG_INTERVAL: Duration = Duration::from_secs(5);
 const STREAM_FINALIZE_REPLY_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// Recordings longer than this (~6 minutes of 16 kHz mono) are split before
+/// batch transcription: streaming families cap their decoder positions and
+/// several batch families reject or degrade on long single inputs.
+const LONG_AUDIO_CHUNK_THRESHOLD: usize = 6 * 60 * 16_000;
+
+/// Target size of each transcription chunk (~4 minutes), safely inside every
+/// shipped family's context window.
+const LONG_AUDIO_CHUNK_TARGET: usize = 4 * 60 * 16_000;
+
 fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
     if let Some(message) = payload.downcast_ref::<&str>() {
         (*message).to_string()
@@ -111,6 +120,11 @@ struct FinalizedStreamText {
     output_language: OutputLanguageEvidence,
     /// The streaming model's supported languages, for text-based detection.
     supported_languages: Vec<String>,
+    /// The final decode hit the model's generation budget before end-of-stream
+    /// — the text is incomplete and the caller must re-transcribe from audio
+    /// instead of trusting it. Streaming families cap their decoder positions,
+    /// so long dictations can otherwise silently lose their tail.
+    truncated: bool,
 }
 
 /// Routes real-time audio frames to the active streaming worker. Shared between
@@ -1104,6 +1118,7 @@ impl TranscriptionManager {
                                     text: stream.text().full,
                                     output_language,
                                     supported_languages: languages.clone(),
+                                    truncated: false,
                                 })
                             }
                             Err(e) => {
@@ -1134,6 +1149,23 @@ impl TranscriptionManager {
             true
         };
         // `stream` + the `&mut engine` borrow are released here.
+
+        // Ask the native session whether the final decode hit its generation
+        // budget before end-of-stream. A truncated stream transcript is
+        // incomplete by definition — the caller must re-transcribe from the
+        // full audio instead of trusting it, so long dictations never
+        // silently lose their tail.
+        if let Some(Some(finalized)) = finalize_result.as_mut() {
+            if let LoadedEngine::TranscribeCpp(session) = &engine {
+                finalized.truncated = session.was_truncated();
+                if finalized.truncated {
+                    error!(
+                        "Stream decode hit the model's generation budget; discarding {} chars of incomplete text for batch recovery",
+                        finalized.text.len()
+                    );
+                }
+            }
+        }
 
         if !stream_started {
             // Stream never began (model doesn't support streaming or begin
@@ -1196,6 +1228,19 @@ impl TranscriptionManager {
             }
         };
 
+        // A decode that hit the model's generation budget produced incomplete
+        // text. Report "no usable stream" so the caller re-transcribes the
+        // full recording through the chunked batch path, which has no such
+        // per-run budget — the tail of a long dictation is never lost.
+        if finalized.truncated {
+            error!(
+                "Discarding truncated stream transcript ({} chars); falling back to full batch transcription",
+                finalized.text.len()
+            );
+            self.maybe_unload_immediately("truncated streaming transcription");
+            return Ok(None);
+        }
+
         let settings = get_settings(&self.app_handle);
         // Streaming models do not receive a decode prompt, so custom words
         // always go through the shared fuzzy post-correction path.
@@ -1256,6 +1301,27 @@ impl TranscriptionManager {
             debug!("Empty audio vector");
             self.maybe_unload_immediately("empty audio");
             return Ok(String::new());
+        }
+
+        // Hour-plus recordings exceed streaming families' decoder budgets and
+        // several batch families' hard context caps alike. Split at
+        // silence-aligned boundaries and transcribe each piece on its own —
+        // every chunk stays inside every family's window, so a dictation of
+        // any length transcribes reliably end to end.
+        if audio.len() > LONG_AUDIO_CHUNK_THRESHOLD {
+            info!(
+                "Long recording ({:.0}s); transcribing in silence-aligned chunks of up to {:.0}s",
+                audio.len() as f64 / 16_000.0,
+                LONG_AUDIO_CHUNK_TARGET as f64 / 16_000.0
+            );
+            let mut parts: Vec<String> = Vec::new();
+            for chunk in split_at_silences(&audio, LONG_AUDIO_CHUNK_TARGET) {
+                if chunk.is_empty() {
+                    continue;
+                }
+                parts.push(self.transcribe(chunk)?);
+            }
+            return Ok(parts.join(" "));
         }
 
         // Check if model is loaded, if not try to load it
@@ -1596,7 +1662,7 @@ impl TranscriptionManager {
         if final_result.is_empty() {
             info!("Transcription result is empty");
         } else {
-            info!("Transcription result: {}", final_result);
+            info!("Transcription produced {} characters", final_result.len());
         }
 
         self.maybe_unload_immediately("transcription");
@@ -1743,6 +1809,58 @@ fn pick_fallback_candidate(
         .into_iter()
         .find(|(id, downloaded, downloading)| id != exclude_id && *downloaded && !*downloading)
         .map(|(id, _, _)| id)
+}
+
+/// Split PCM into chunks of at most roughly `target` samples (16 kHz mono),
+/// cutting where the signal is quietest within ±3 s of each target boundary
+/// so words are never severed mid-utterance. Pure for unit testing.
+fn split_at_silences(audio: &[f32], target: usize) -> Vec<Vec<f32>> {
+    const SEARCH: usize = 3 * 16_000;
+    const MIN_CHUNK: usize = 16_000;
+
+    let mut chunks = Vec::new();
+    let mut start = 0usize;
+    // Only split while the remainder clearly exceeds one chunk; a tail of up
+    // to ~1.5x target transcribes faster as a single pass than as two
+    // uneven ones.
+    while audio.len() - start > target + target / 2 {
+        let ideal = start + target;
+        let lo = ideal.saturating_sub(SEARCH).max(start + MIN_CHUNK);
+        let hi = (ideal + SEARCH).min(audio.len());
+        if hi <= lo {
+            break;
+        }
+        let cut = lo + quietest_cut_point(&audio[lo..hi]);
+        chunks.push(audio[start..cut].to_vec());
+        start = cut;
+    }
+    if start < audio.len() {
+        chunks.push(audio[start..].to_vec());
+    }
+    chunks
+}
+
+/// Offset of the quietest 200 ms frame's midpoint within `window` — the
+/// safest place to cut a recording apart.
+fn quietest_cut_point(window: &[f32]) -> usize {
+    const FRAME: usize = 200 * 16_000 / 1000;
+
+    if window.len() <= FRAME {
+        return window.len() / 2;
+    }
+
+    let mut best_start = 0usize;
+    let mut best_energy = f32::MAX;
+    let mut offset = 0usize;
+    while offset + FRAME <= window.len() {
+        let energy: f32 = window[offset..offset + FRAME].iter().map(|s| s * s).sum();
+        if energy < best_energy {
+            best_energy = energy;
+            best_start = offset;
+        }
+        offset += FRAME / 2; // half-overlapping frames for finer placement
+    }
+    best_start + FRAME / 2
 }
 
 /// Resolve the persisted language intent into the language a specific model can
@@ -2308,6 +2426,59 @@ mod tests {
     }
 
     #[test]
+    fn long_audio_splits_align_cuts_to_silence_and_stay_bounded() {
+        const SR: usize = 16_000;
+        // Ten minutes of constant tone with a silent valley around the
+        // four-minute mark.
+        let total = 10 * 60 * SR;
+        let mut audio = vec![0.5f32; total];
+        let valley_start = 4 * 60 * SR + SR / 2;
+        let valley_end = valley_start + 4 * SR;
+        for sample in audio.iter_mut().take(valley_end).skip(valley_start) {
+            *sample = 0.0;
+        }
+
+        let chunks = split_at_silences(&audio, LONG_AUDIO_CHUNK_TARGET);
+
+        assert_eq!(chunks.len(), 2, "ten minutes splits into two pieces");
+        assert_eq!(
+            chunks.iter().map(|c| c.len()).sum::<usize>(),
+            total,
+            "splitting never loses or duplicates samples"
+        );
+        assert!(chunks[0].len() <= LONG_AUDIO_CHUNK_TARGET + 4 * SR);
+        assert!(chunks[1].len() <= LONG_AUDIO_CHUNK_TARGET * 3 / 2);
+
+        let first_cut = chunks[0].len();
+        assert!(
+            first_cut >= valley_start && first_cut <= valley_end,
+            "cut at {} missed the silent valley [{}, {}]",
+            first_cut,
+            valley_start,
+            valley_end
+        );
+    }
+
+    #[test]
+    fn short_audio_is_never_split() {
+        let audio = vec![0.1f32; LONG_AUDIO_CHUNK_TARGET];
+        let chunks = split_at_silences(&audio, LONG_AUDIO_CHUNK_TARGET);
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0].len(), audio.len());
+    }
+
+    #[test]
+    fn quietest_cut_point_lands_inside_the_low_energy_region() {
+        let mut window = vec![0.4f32; 16_000];
+        let quiet_at = 8000;
+        for sample in window.iter_mut().skip(quiet_at).take(3200) {
+            *sample = 0.0;
+        }
+        let cut = quietest_cut_point(&window);
+        assert!((quiet_at..=quiet_at + 3200).contains(&cut));
+    }
+
+    #[test]
     fn normal_hosts_preserve_every_transcribe_accelerator_setting() {
         for setting in [
             TranscribeAcceleratorSetting::Auto,
@@ -2437,7 +2608,7 @@ mod tests {
 
         assert_eq!(
             result,
-            "So the weather forecast said it would probably rain throughout the whole weekend."
+            "So, the weather forecast said it would probably rain throughout the whole weekend."
         );
     }
 

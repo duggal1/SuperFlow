@@ -8,7 +8,7 @@
 //! and matching is plain fuzzy filename lookup over an on-disk index.
 //! Every failure path returns the original transcript untouched.
 
-use crate::context::types::Surface;
+use crate::context::types::{ContextSnapshot, Surface};
 use log::debug;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -87,14 +87,16 @@ const EDITOR_STORAGE: &[(&str, &str)] = &[
 
 /// Entry point used by the transcription pipeline. Returns the corrected text
 /// when at least one spoken file reference was resolved, else `None`.
-pub fn maybe_resolve(text: &str) -> Option<String> {
-    let snapshot = crate::context::capture::capture_snapshot();
+pub fn maybe_resolve(snapshot: &ContextSnapshot, text: &str) -> Option<String> {
+    let root = project_root_for_snapshot(snapshot)?;
+    resolve_references(&root, text)
+}
+
+pub(crate) fn project_root_for_snapshot(snapshot: &ContextSnapshot) -> Option<PathBuf> {
     if !matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
         return None;
     }
-    let bundle_id = snapshot.bundle_id.as_deref()?;
-    let root = project_root(bundle_id)?;
-    resolve_references(&root, text)
+    project_root(snapshot.bundle_id.as_deref()?)
 }
 
 // -----------------------------------------------------------------
@@ -156,7 +158,7 @@ fn terminal_project_root() -> Option<PathBuf> {
             for kid in kids {
                 if shell_names.iter().any(|n| kid.comm.eq_ignore_ascii_case(n)) {
                     let start = kid.start_secs();
-                    if best.map_or(true, |(_, b)| start > b) {
+                    if best.is_none_or(|(_, b)| start > b) {
                         best = Some((kid, start));
                     }
                 }
@@ -302,11 +304,10 @@ fn percent_decode(input: &str) -> String {
 struct FileEntry {
     rel: String,
     name_lower: String,
-    depth: usize,
 }
 
-static INDEX_CACHE: Lazy<Mutex<HashMap<PathBuf, (Instant, Vec<FileEntry>)>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+type CachedIndex = HashMap<PathBuf, (Instant, Vec<FileEntry>)>;
+static INDEX_CACHE: Lazy<Mutex<CachedIndex>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 fn project_index(root: &Path) -> Option<Vec<FileEntry>> {
     {
@@ -353,6 +354,9 @@ fn walk(root: &Path, dir: &Path, depth: usize, out: &mut Vec<FileEntry>) {
                 walk(root, &entry.path(), depth + 1, out);
             }
         } else if file_type.is_file() {
+            if is_sensitive_file_name(&name) {
+                continue;
+            }
             let rel = entry
                 .path()
                 .strip_prefix(root)
@@ -361,10 +365,21 @@ fn walk(root: &Path, dir: &Path, depth: usize, out: &mut Vec<FileEntry>) {
             out.push(FileEntry {
                 rel,
                 name_lower: name.to_lowercase(),
-                depth,
             });
         }
     }
+}
+
+fn is_sensitive_file_name(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower.starts_with('.')
+        || lower.starts_with("id_rsa")
+        || lower.starts_with("id_ed25519")
+        || lower.contains("credential")
+        || lower.contains("keychain")
+        || lower.ends_with(".pem")
+        || lower.ends_with(".key")
+        || lower.ends_with(".p12")
 }
 
 // -----------------------------------------------------------------
@@ -389,11 +404,12 @@ fn is_dot_word(token: &str) -> bool {
 
 fn best_match(index: &[FileEntry], filename: &str) -> Option<String> {
     let target = filename.to_lowercase();
-    index
+    let mut matches = index
         .iter()
         .filter(|e| e.name_lower == target)
-        .min_by_key(|e| (e.depth, e.rel.len()))
-        .map(|e| e.rel.clone())
+        .map(|entry| entry.rel.clone());
+    let only = matches.next()?;
+    matches.next().is_none().then_some(only)
 }
 
 /// Resolve spoken file references inside `text` against `root`'s project.
@@ -426,7 +442,7 @@ pub fn resolve_references(root: &Path, text: &str) -> Option<String> {
 /// Try to match a spoken file reference starting exactly at position `start`.
 type Detected = (usize, String);
 
-fn detect_reference<'a>(
+fn detect_reference(
     words: &[&str],
     cleaned: &[String],
     start: usize,
@@ -603,13 +619,13 @@ mod tests {
     }
 
     #[test]
-    fn tie_break_prefers_shorter_path() {
+    fn duplicate_basenames_are_not_guessed() {
         let dir = temp_project();
         std::fs::create_dir_all(dir.join("a/b")).unwrap();
         std::fs::write(dir.join("a/b/hero.tsx"), "").unwrap();
-        // Same depth as components/landing-page/hero.tsx; shorter path wins.
+        // A basename alone is insufficient evidence when more than one file matches.
         let result = resolve_in(&dir, "open hero dot tsx");
-        assert_eq!(result.as_deref(), Some("open a/b/hero.tsx"));
+        assert_eq!(result, None);
     }
 
     #[test]

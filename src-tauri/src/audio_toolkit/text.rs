@@ -16,10 +16,6 @@ fn build_ngram(words: &[&str]) -> String {
         .concat()
 }
 
-pub(crate) fn public_build_match_key(word: &str) -> String {
-    build_match_key(word)
-}
-
 fn build_match_key(word: &str) -> String {
     word.chars()
         .filter(|c| c.is_alphanumeric())
@@ -33,6 +29,10 @@ struct CustomWordMatchKey {
     /// Vowel-collapsed consonant skeleton of `key` for phonetic fallback
     /// matching (built-in lexicon only). Empty when the key is too short.
     skeleton: String,
+    /// Normalized key of the phrase's FIRST word. Multi-word windows must
+    /// start with it: "it gap" and "two gap" share a consonant frame, so
+    /// without this anchor loose matches drift across phrases.
+    first_word_key: String,
     /// Number of whitespace-separated words the phrase had before keying.
     /// A multi-word n-gram must only match a key with the SAME word count —
     /// comparing concatenated keys lets filler words ("make it flex layout"
@@ -86,6 +86,7 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
             word_index,
             key: primary_key.clone(),
             skeleton,
+            first_word_key: String::new(),
             // Custom words keep the legacy glue semantics (#1406): a spoken
             // "Mac Book Pro" must fuzzy-match the authored phrase
             // "MacBook Pro" across variable word counts, unlike authored
@@ -101,6 +102,7 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
                 word_index,
                 key: expanded_key,
                 skeleton: String::new(),
+                first_word_key: String::new(),
                 word_count: 1,
             });
         }
@@ -153,6 +155,16 @@ fn find_best_match<'a>(
         // by concatenation.
         if custom_word_key.word_count > 1 && custom_word_key.word_count != window_word_count {
             continue;
+        }
+        // Word-boundary anchor: a multi-word spoken phrase must begin with
+        // its own first word ("two gap" never absorbs "it gap").
+        if custom_word_key.word_count > 1 && !custom_word_key.first_word_key.is_empty() {
+            let first_word_len = custom_word_key.first_word_key.chars().count();
+            if !candidate
+                .starts_with(&custom_word_key.key[..first_word_len.min(candidate.chars().count())])
+            {
+                continue;
+            }
         }
         // Glue keys may span at most one extra spoken word unless the window
         // is a pure re-segmentation of the same letters ("mac book pro" ≡
@@ -276,7 +288,14 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
         .flat_map(|(index, word)| build_custom_word_match_keys(word, index))
         .collect();
 
-    apply_match_entries(text, custom_words, &custom_word_match_keys, threshold, true, false)
+    apply_match_entries(
+        text,
+        custom_words,
+        &custom_word_match_keys,
+        threshold,
+        true,
+        false,
+    )
 }
 
 /// Applies corrections driven by explicit (display form → spoken aliases) pairs.
@@ -334,10 +353,16 @@ pub fn apply_alias_entries(
                 } else {
                     String::new()
                 };
+            let first_word_key = phrase
+                .split_whitespace()
+                .next()
+                .map(build_match_key)
+                .unwrap_or_default();
             match_keys.push(CustomWordMatchKey {
                 word_index: entry_index,
                 key,
                 skeleton,
+                first_word_key,
                 word_count,
             });
         };

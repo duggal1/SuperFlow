@@ -3,6 +3,7 @@ pub mod catalog;
 pub mod constants;
 pub mod formatter;
 pub mod lang_id;
+pub mod normalization;
 pub mod programming_syntax;
 pub mod punctuation;
 pub mod styling;

@@ -5,10 +5,12 @@ use crate::apple_intelligence;
 use crate::llm_client;
 use crate::settings::AppSettings;
 
-use super::prompt::build_context_prompts;
-use crate::context::types::ContextSnapshot;
+use super::prompt::build_context_prompts_with_evidence;
+use super::validation::accept_model_output;
+use crate::context::types::{ContextSnapshot, Surface};
 
 const APPLE_MAX_TOKENS: i32 = 1024;
+const APPLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(12);
 
 #[derive(Debug)]
 pub enum AwarenessOutcome {
@@ -27,7 +29,13 @@ pub async fn compose_aware_reply(
     snapshot: &ContextSnapshot,
     transcript: &str,
 ) -> AwarenessOutcome {
-    let Some((system, user)) = build_context_prompts(snapshot, transcript) else {
+    let evidence = if matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
+        crate::workspace_context::collect(snapshot, transcript)
+    } else {
+        crate::workspace_context::WorkspaceEvidence::default()
+    };
+    let Some((system, user)) = build_context_prompts_with_evidence(snapshot, transcript, &evidence)
+    else {
         return AwarenessOutcome::Skipped("not_an_aware_context");
     };
 
@@ -35,35 +43,48 @@ pub async fn compose_aware_reply(
     if apple_intelligence::check_apple_intelligence_availability() {
         let apple_user = user.clone();
         let apple_system = system.clone();
-        let attempt = tokio::task::spawn_blocking(move || {
+        let task = tokio::task::spawn_blocking(move || {
             apple_intelligence::process_text_with_system_prompt(
                 &apple_system,
                 &apple_user,
                 APPLE_MAX_TOKENS,
             )
-        })
-        .await;
+        });
+        let attempt = tokio::time::timeout(APPLE_TIMEOUT, task).await;
 
         match attempt {
-            Ok(Ok(text)) if !text.trim().is_empty() => {
-                return AwarenessOutcome::Composed(text.trim().to_string());
+            Ok(Ok(Ok(text))) if !text.trim().is_empty() => {
+                if let Some(validated) = accept_model_output(transcript, &text) {
+                    return AwarenessOutcome::Composed(validated);
+                }
+                log::warn!("Apple Intelligence compose output failed validation");
             }
-            Ok(Err(e)) => {
+            Ok(Ok(Err(e))) => {
                 log::warn!("Apple Intelligence compose failed, falling back: {e}");
             }
-            Ok(Ok(_)) => {
+            Ok(Ok(Ok(_))) => {
                 log::warn!("Apple Intelligence returned empty output, falling back");
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 log::warn!("Apple Intelligence task join failed, falling back: {e}");
             }
+            Err(_) => log::warn!("Apple Intelligence compose timed out, falling back"),
         }
     }
 
-    cloud_fallback(settings, &system, &user).await
+    if matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
+        return AwarenessOutcome::Skipped("local_formatter_unavailable");
+    }
+
+    cloud_fallback(settings, &system, &user, transcript).await
 }
 
-async fn cloud_fallback(settings: &AppSettings, system: &str, user: &str) -> AwarenessOutcome {
+async fn cloud_fallback(
+    settings: &AppSettings,
+    system: &str,
+    user: &str,
+    transcript: &str,
+) -> AwarenessOutcome {
     // Same credential/model plumbing as regular post-processing — a provider
     // configured for post-processing is reused for awareness.
     let Some(provider) = settings.active_post_process_provider().cloned() else {
@@ -94,9 +115,11 @@ async fn cloud_fallback(settings: &AppSettings, system: &str, user: &str) -> Awa
     )
     .await
     {
-        Ok(Some(text)) if !text.trim().is_empty() => {
-            AwarenessOutcome::Composed(text.trim().to_string())
-        }
+        Ok(Some(text)) if !text.trim().is_empty() => accept_model_output(transcript, &text)
+            .map(AwarenessOutcome::Composed)
+            .unwrap_or_else(|| {
+                AwarenessOutcome::Failed("provider output failed validation".into())
+            }),
         Ok(_) => AwarenessOutcome::Failed("cloud provider returned no content".to_string()),
         Err(e) => AwarenessOutcome::Failed(e),
     }

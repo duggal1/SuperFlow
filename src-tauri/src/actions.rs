@@ -429,49 +429,26 @@ pub(crate) async fn process_transcription_output(
     transcription: &str,
     post_process: bool,
 ) -> ProcessedTranscription {
+    process_transcription_output_with_context(app, transcription, post_process, None).await
+}
+
+async fn process_transcription_output_with_context(
+    app: &AppHandle,
+    transcription: &str,
+    post_process: bool,
+    snapshot: Option<&crate::context::types::ContextSnapshot>,
+) -> ProcessedTranscription {
     let settings = get_settings(app);
     let mut final_text = transcription.to_string();
     let mut post_processed_text: Option<String> = None;
     let mut post_process_prompt: Option<String> = None;
-
-    // Intelligence Awareness: inside an aware surface (Gmail/Slack) with the
-    // toggle on, the transcript is an INSTRUCTION — compose finished text from
-    // page context instead of pasting raw dictation. Captured at finalize
-    // time; the user is still in the same app seconds after dictating.
-    if settings.intelligence_awareness_enabled {
-        let snapshot = crate::context::capture::capture_snapshot();
-        if snapshot.is_aware_surface() {
-            match crate::intelligence::compose_aware_reply(&settings, &snapshot, transcription)
-                .await
-            {
-                crate::intelligence::AwarenessOutcome::Composed(text) => {
-                    debug!(
-                        "Awareness composed {} chars for {}",
-                        text.len(),
-                        snapshot.surface.as_str()
-                    );
-                    return ProcessedTranscription {
-                        final_text: text.clone(),
-                        post_processed_text: Some(text),
-                        post_process_prompt: None,
-                    };
-                }
-                crate::intelligence::AwarenessOutcome::Skipped(reason) => {
-                    debug!("Awareness skipped: {reason}");
-                }
-                crate::intelligence::AwarenessOutcome::Failed(e) => {
-                    error!("Awareness composition failed, using raw transcription: {e}");
-                }
-            }
-        }
-    }
 
     // Resolve the language the transcription actually ran in (the persisted
     // intent coerced against the loaded model's capabilities) so OpenCC keys off
     // the effective language rather than a possibly-stale intent.
     let effective_language = resolve_effective_language(app, &settings);
     if let Some(converted_text) =
-        maybe_convert_chinese_variant(&effective_language, transcription).await
+        maybe_convert_chinese_variant(&effective_language, &final_text).await
     {
         final_text = converted_text;
     }
@@ -479,12 +456,44 @@ pub(crate) async fn process_transcription_output(
     // Smart file references: resolve spoken file names against the active dev
     // project when dictating into a terminal or editor. Local-only, best-effort.
     if settings.smart_file_references_enabled {
-        if let Some(resolved) = crate::file_refs::maybe_resolve(&final_text) {
+        if let Some(resolved) =
+            snapshot.and_then(|snapshot| crate::file_refs::maybe_resolve(snapshot, &final_text))
+        {
             debug!(
-                "Smart file reference resolved: '{}' → '{}'",
-                final_text, resolved
+                "Smart file reference resolved in {} characters",
+                final_text.len()
             );
             final_text = resolved;
+        }
+    }
+
+    if settings.intelligence_awareness_enabled {
+        if let Some(snapshot) = snapshot.filter(|snapshot| snapshot.is_aware_surface()) {
+            match crate::intelligence::compose_aware_reply(&settings, snapshot, &final_text).await {
+                crate::intelligence::AwarenessOutcome::Composed(text) => {
+                    debug!(
+                        "Awareness composed {} characters for {}",
+                        text.len(),
+                        snapshot.surface.as_str()
+                    );
+                    final_text = text;
+                }
+                crate::intelligence::AwarenessOutcome::Skipped(reason) => {
+                    debug!("Awareness skipped: {reason}");
+                    if reason == "local_formatter_unavailable"
+                        && matches!(
+                            snapshot.surface,
+                            crate::context::types::Surface::Terminal
+                                | crate::context::types::Surface::Editor
+                        )
+                    {
+                        final_text = crate::intelligence::structure_developer_text(&final_text);
+                    }
+                }
+                crate::intelligence::AwarenessOutcome::Failed(error) => {
+                    warn!("Awareness composition failed; using deterministic output: {error}");
+                }
+            }
         }
     }
 
@@ -524,7 +533,7 @@ fn is_implausibly_short_transcript(text: &str, sample_count: usize) -> bool {
     if minutes < 2.0 {
         return false;
     }
-    let words = text.trim().split_whitespace().count() as f64;
+    let words = text.split_whitespace().count() as f64;
     words < minutes * 15.0
 }
 
@@ -616,6 +625,7 @@ impl ShortcutAction for TranscribeAction {
 
         match rm.try_start_recording(&binding_id, vad_policy, Some(journal_path)) {
             Ok(readiness) => {
+                rm.begin_context_capture();
                 debug!(
                     "Recording request accepted in {:?}; waiting for first microphone samples",
                     recording_start_time.elapsed()
@@ -754,6 +764,7 @@ impl ShortcutAction for TranscribeAction {
 
             let stop_recording_time = Instant::now();
             if let Some(samples) = rm.stop_recording(&binding_id, cancel_generation) {
+                let context_snapshot = rm.take_context_snapshot();
                 debug!(
                     "Recording stopped and samples retrieved in {:?}, sample count: {}",
                     stop_recording_time.elapsed(),
@@ -858,10 +869,24 @@ impl ShortcutAction for TranscribeAction {
                     match transcription_result {
                         Ok(transcription) => {
                             debug!(
-                                "Transcription completed in {:?}: '{}'",
+                                "Transcription completed in {:?} ({} characters)",
                                 transcription_time.elapsed(),
-                                transcription
+                                transcription.len()
                             );
+
+                            if crate::secure_input::is_enabled_now() {
+                                if wav_saved {
+                                    if let Err(error) = std::fs::remove_file(&wav_path_for_verify) {
+                                        warn!("Failed to remove secure-input recording: {error}");
+                                    }
+                                }
+                                debug!(
+                                    "Secure Input active; discarded transcription and recording"
+                                );
+                                utils::hide_recording_overlay(&ah);
+                                change_tray_icon(&ah, TrayIconState::Idle);
+                                return;
+                            }
 
                             // A spoken terminal command ("please open four
                             // claude code ...") consumes the utterance: it
@@ -881,7 +906,12 @@ impl ShortcutAction for TranscribeAction {
                                 }
                             }
                             let Some(processed) = complete_unless_cancelled(
-                                process_transcription_output(&ah, &transcription, post_process),
+                                process_transcription_output_with_context(
+                                    &ah,
+                                    &transcription,
+                                    post_process,
+                                    context_snapshot.as_ref(),
+                                ),
                                 || rm.was_cancelled_since(cancel_generation),
                             )
                             .await
@@ -1056,6 +1086,7 @@ impl ShortcutAction for TranscribeAction {
                     }
                 }
             } else {
+                rm.clear_context_capture();
                 debug!("No samples retrieved from recording stop");
                 // Tear down any streaming worker so its channel doesn't leak.
                 tm.cancel_stream();
