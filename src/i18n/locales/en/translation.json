@@ -725,6 +725,11 @@
     "recorderBlocked": "Can't record shortcuts right now — macOS Secure Input is blocking key events. Resolve the Secure Input warning first.",
     "dismiss": "Dismiss"
   },
+  "introduction": {
+    "title": "Hi, Welcome to SuperFlow",
+    "description": "A free, powerful, context-aware AI speech-to-text tool for Vibe Coding and everyday workflows.",
+    "getStarted": "Get started"
+  },
   "home": {
     "title": "Home",
     "empty": "No transcriptions yet. Record something to fill your journal.",
