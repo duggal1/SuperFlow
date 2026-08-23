@@ -1194,6 +1194,7 @@ impl ShortcutAction for AiCleanupAction {
                     &app,
                     "Please select the text first.".to_string(),
                     "Select text".to_string(),
+                    "warning",
                 );
                 return;
             };
@@ -1210,7 +1211,7 @@ impl ShortcutAction for AiCleanupAction {
                     } else {
                         "Unavailable"
                     };
-                    crate::overlay::show_ai_cleanup_notice(&app, error, badge.to_string());
+                    crate::overlay::show_ai_cleanup_notice(&app, error, badge.to_string(), "error");
                     return;
                 }
             };

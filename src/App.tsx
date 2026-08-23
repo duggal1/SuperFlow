@@ -275,9 +275,12 @@ function App() {
         unstyled: true,
         classNames: {
           toast:
-            "bg-surface border border-stone-700 rounded-lg shadow-lg px-4 py-3 flex items-center gap-3 text-sm",
-          title: "font-medium",
-          description: "text-mid-gray",
+            "bg-surface text-text border-0 rounded-[7px] shadow-none px-3 py-2.5 flex items-center gap-2 text-sm",
+          error: "!bg-[#f43f5e]/[0.11] !text-[#f43f5e]",
+          warning: "!bg-[#fb8442]/[0.11] !text-[#fb8442]",
+          success: "!bg-[#22c55e]/[0.11] !text-[#22c55e]",
+          title: "font-normal text-current",
+          description: "text-current opacity-75",
           actionButton:
             "px-2 py-1 text-xs font-medium rounded-lg border bg-stone-900 border-stone-700 hover:bg-surface-hover hover:border-stone-600 cursor-pointer whitespace-nowrap",
         },

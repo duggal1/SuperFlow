@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
 
 const MODELS: DropdownOption[] = [
   { value: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite" },
@@ -225,42 +226,50 @@ export function AICleanupSettings() {
             className="min-w-44"
           />
         </SettingContainer>
-        <SettingContainer
-          title="Gemini API key"
-          description="Stored locally and used only for Gemini requests."
-          grouped
-        >
-          <div className="flex items-center gap-2">
-            <Input
-              type="password"
-              value={apiKeyDraft}
-              onChange={(event) => setApiKeyDraft(event.target.value)}
-              onBlur={() => void saveApiKey(apiKeyDraft)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") event.currentTarget.blur();
-              }}
-              disabled={apiKeySaving}
-              placeholder={
-                apiConfigured
-                  ? "Saved in macOS Keychain"
-                  : "Enter Gemini API key"
-              }
-              autoComplete="off"
-              className="min-w-[320px] text-stone-100"
-            />
-            <Badge variant={apiConfigured ? "green" : "rose"}>
+        <div className="px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-stone-100">
+                Gemini API key
+              </p>
+              <p className="mt-1 text-xs leading-5 text-stone-500">
+                Stored locally and used only for Gemini requests.
+              </p>
+            </div>
+            <Badge
+              variant={apiConfigured ? "green" : "rose"}
+              className="shrink-0 whitespace-nowrap"
+            >
               {apiConfigured ? "Configured" : "Missing key"}
             </Badge>
           </div>
-        </SettingContainer>
+          <Input
+            type="password"
+            value={apiKeyDraft}
+            onChange={(event) => setApiKeyDraft(event.target.value)}
+            onBlur={() => void saveApiKey(apiKeyDraft)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+            }}
+            disabled={apiKeySaving}
+            placeholder={
+              apiConfigured ? "Saved in macOS Keychain" : "Enter Gemini API key"
+            }
+            autoComplete="off"
+            className="mt-3 w-full min-w-0 text-stone-100"
+          />
+        </div>
       </SettingsGroup>
 
       <SettingsGroup
         title="Custom instruction"
-        titleClassName="text-xs font-normal text-stone-100 normal-case tracking-wide"
+        titleClassName="text-sm font-normal text-stone-100 normal-case tracking-normal"
+        descriptionClassName="text-[13px] leading-5 text-stone-400"
+        headerClassName="space-y-2 py-1"
+        className="space-y-3"
         description="Add preferences without changing the protected system prompt."
       >
-        <div className="rounded-[12px] bg-stone-800 p-3">
+        <div className="rounded-[14px] bg-stone-800 p-4">
           <Textarea
             variant="inset"
             value={configuration.custom_instruction}
@@ -268,7 +277,7 @@ export function AICleanupSettings() {
               update("custom_instruction", event.target.value)
             }
             maxLength={4000}
-            className="w-full !rounded-[10px] !text-stone-100"
+            className="w-full !rounded-[12px] !text-[15px] !text-stone-100"
             placeholder="For example: Keep my tone direct and preserve code paths exactly."
           />
         </div>
@@ -340,7 +349,11 @@ export function AICleanupSettings() {
         </div>
       </SettingsGroup>
 
-      {saveError && <p className="px-4 text-sm text-rose-400">{saveError}</p>}
+      {saveError && (
+        <Alert variant="error" className="mx-4">
+          {saveError}
+        </Alert>
+      )}
 
       <SettingsGroup title="Recent cleanups">
         {history.length === 0 ? (

@@ -3,6 +3,9 @@ import React from "react";
 interface SettingsGroupProps {
   title?: string;
   titleClassName?: string;
+  descriptionClassName?: string;
+  headerClassName?: string;
+  className?: string;
   description?: string;
   children: React.ReactNode;
 }
@@ -10,13 +13,16 @@ interface SettingsGroupProps {
 export const SettingsGroup: React.FC<SettingsGroupProps> = ({
   title,
   titleClassName,
+  descriptionClassName,
+  headerClassName = "",
+  className = "",
   description,
   children,
 }) => {
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${className}`}>
       {title && (
-        <div className="px-4">
+        <div className={`px-4 ${headerClassName}`}>
           <h2
             className={
               titleClassName ??
@@ -26,7 +32,11 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
             {title}
           </h2>
           {description && (
-            <p className="text-xs text-stone-500 mt-1">{description}</p>
+            <p
+              className={descriptionClassName ?? "mt-1 text-xs text-stone-500"}
+            >
+              {description}
+            </p>
           )}
         </div>
       )}

@@ -6,7 +6,7 @@ import { Check, Copy } from "@phosphor-icons/react";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import "./RecordingOverlay.css";
 import { commands, events } from "@/bindings";
-import { Badge } from "@/components/ui/Badge";
+import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import type {
   StreamPhase,
   StreamPhaseEvent,
@@ -27,7 +27,15 @@ type OverlayState =
 interface AiCleanupNotice {
   message: string;
   badge: string;
+  variant: "error" | "warning" | "success";
 }
+
+const NOTICE_BADGE_VARIANTS: Record<AiCleanupNotice["variant"], BadgeVariant> =
+  {
+    error: "rose",
+    warning: "orange",
+    success: "green",
+  };
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
@@ -447,12 +455,15 @@ const RecordingOverlay: React.FC = () => {
     return (
       <div dir={direction} className={`ov-stage ${position}`}>
         <motion.div
-          className="scard sai-notice"
+          className={`scard sai-notice ${aiCleanupNotice.variant}`}
           initial={dialogEnter(driftY)}
           animate={{ ...dialogShown, transition: dialogTransition }}
         >
           <span className="sai-notice-label">{aiCleanupNotice.message}</span>
-          <Badge variant="rose" className="rounded-[7px] text-[12px]">
+          <Badge
+            variant={NOTICE_BADGE_VARIANTS[aiCleanupNotice.variant]}
+            className="rounded-[7px] text-[12px]"
+          >
             {aiCleanupNotice.badge}
           </Badge>
         </motion.div>

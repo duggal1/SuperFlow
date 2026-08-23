@@ -638,7 +638,21 @@
   gap: 12px;
   padding: 0 10px 0 16px;
   border-radius: 16px;
+  border: none;
+  box-shadow: none;
   animation: none;
+}
+.scard.sai-notice.error {
+  color: #f43f5e;
+  background: color-mix(in srgb, #f43f5e 11%, transparent);
+}
+.scard.sai-notice.warning {
+  color: #fb8442;
+  background: color-mix(in srgb, #fb8442 11%, transparent);
+}
+.scard.sai-notice.success {
+  color: #22c55e;
+  background: color-mix(in srgb, #22c55e 11%, transparent);
 }
 .ov-stage.top .scard.sai-notice {
   flex-direction: row;
@@ -650,7 +664,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
-  font-weight: 500;
-  color: var(--s-muted);
+  font-weight: 400;
+  color: inherit;
   user-select: none;
 }

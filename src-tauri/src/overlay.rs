@@ -641,14 +641,19 @@ pub fn show_ai_prompting_overlay(app_handle: &AppHandle) {
     show_overlay_state_forced(app_handle, "prompting");
 }
 
-pub fn show_ai_cleanup_notice(app_handle: &AppHandle, message: String, badge: String) {
+pub fn show_ai_cleanup_notice(
+    app_handle: &AppHandle,
+    message: String,
+    badge: String,
+    variant: &'static str,
+) {
     show_overlay_state_forced(app_handle, "ai_notice");
     let handle = app_handle.clone();
     let _ = app_handle.run_on_main_thread(move || {
         let _ = handle.emit_to(
             "recording_overlay",
             "show-ai-cleanup-notice",
-            serde_json::json!({ "message": message, "badge": badge }),
+            serde_json::json!({ "message": message, "badge": badge, "variant": variant }),
         );
     });
 }
