@@ -2,15 +2,25 @@ import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ask } from "@tauri-apps/plugin-dialog";
 import {
+  CaretDown,
   ClockCounterClockwise,
   Equalizer,
+  Funnel,
   GlobeSimple,
   Translate,
 } from "@phosphor-icons/react";
+import { Badge } from "@/components/ui/Badge";
 import type { ModelCardStatus } from "@/components/onboarding";
 import { ModelCard } from "@/components/onboarding";
 import { useModelStore } from "@/stores/modelStore";
-import { Dropdown } from "@/components/ui/Dropdown";
+import {
+  Dropdown,
+  Menu,
+  MenuPopup,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuTrigger,
+} from "@/components/ui/Dropdown";
 import {
   getLanguageFlag,
   MODEL_CAPABILITY_LANGUAGES,
@@ -23,6 +33,26 @@ const modelSupportsLanguage = (model: ModelInfo, langCode: string): boolean => {
   return supportsLanguageCode(model.supported_languages, langCode);
 };
 
+// Filter modes for the model catalog.
+type SortMode = "default" | "accurate" | "fastest" | "ratio";
+
+// Accuracy-to-speed ratio via harmonic mean: a model must be BOTH fast and
+// accurate to rank high — strong on one axis alone drags the score down.
+const accuracySpeedRatio = (model: ModelInfo): number => {
+  const accuracy = Math.min(1, Math.max(0, model.accuracy_score));
+  const speed = Math.min(1, Math.max(0, model.speed_score));
+  if (accuracy <= 0 || speed <= 0) return 0;
+  return (2 * accuracy * speed) / (accuracy + speed);
+};
+
+// Sort menu options, in display order.
+const SORT_OPTIONS: { value: SortMode; labelKey: string }[] = [
+  { value: "default", labelKey: "settings.models.filters.sortDefault" },
+  { value: "accurate", labelKey: "settings.models.filters.sortAccurate" },
+  { value: "fastest", labelKey: "settings.models.filters.sortFastest" },
+  { value: "ratio", labelKey: "settings.models.filters.sortRatio" },
+];
+
 export const ModelsSettings: React.FC = () => {
   const { t } = useTranslation();
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
@@ -30,6 +60,7 @@ export const ModelsSettings: React.FC = () => {
   const [filterStreaming, setFilterStreaming] = useState(false);
   const [filterTranslation, setFilterTranslation] = useState(false);
   const [languageFilter, setLanguageFilter] = useState("all");
+  const [sortMode, setSortMode] = useState<SortMode>("accurate");
   const {
     models,
     currentModel,
@@ -138,10 +169,11 @@ export const ModelsSettings: React.FC = () => {
     }
   };
 
-  // Filter models by search query (name + description), language filter, and toggles
+  // Filter models by search query (name + description), language filter, and
+  // toggles, then sort by the selected filter mode (default keeps catalog order).
   const filteredModels = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return models.filter((model: ModelInfo) => {
+    const filtered = models.filter((model: ModelInfo) => {
       if (languageFilter !== "all") {
         if (!modelSupportsLanguage(model, languageFilter)) return false;
       }
@@ -154,7 +186,26 @@ export const ModelsSettings: React.FC = () => {
       }
       return true;
     });
-  }, [models, languageFilter, filterStreaming, filterTranslation, searchQuery]);
+
+    if (sortMode === "default") return filtered;
+
+    const sorted = [...filtered];
+    if (sortMode === "accurate") {
+      sorted.sort((a, b) => b.accuracy_score - a.accuracy_score);
+    } else if (sortMode === "fastest") {
+      sorted.sort((a, b) => b.speed_score - a.speed_score);
+    } else {
+      sorted.sort((a, b) => accuracySpeedRatio(b) - accuracySpeedRatio(a));
+    }
+    return sorted;
+  }, [
+    models,
+    languageFilter,
+    filterStreaming,
+    filterTranslation,
+    searchQuery,
+    sortMode,
+  ]);
 
   // Split filtered models into downloaded (including custom) and available sections
   const { downloadedModels, availableModels } = useMemo(() => {
@@ -291,6 +342,53 @@ export const ModelsSettings: React.FC = () => {
               />
             </div>
           </div>
+
+          {/* Filter — below the toggle row, icon prefix + label, shared radio-dot menu */}
+          <Menu>
+            <MenuTrigger
+              aria-label={t("settings.models.filters.sort")}
+              title={t("settings.models.filters.sort")}
+              className="flex h-7 cursor-pointer items-center gap-2 rounded-lg border border-transparent bg-[#37332f] px-3 text-[13px] text-text/60 shadow-none outline-none transition-colors duration-200 hover:border-stone-700 hover:bg-stone-800"
+            >
+              <Funnel size={16} />
+              <span>{t("settings.models.filters.sort")}</span>
+              {sortMode !== "default" && (
+                <Badge
+                  variant="blue"
+                  className="gap-1 px-1.5 py-0 text-[11px] font-medium"
+                >
+                  <span className="size-1.5 rounded-full bg-blue-600" />
+                  {t(
+                    SORT_OPTIONS.find((option) => option.value === sortMode)
+                      ?.labelKey ?? "",
+                  )}
+                </Badge>
+              )}
+              <CaretDown size={12} className="text-text/40" />
+            </MenuTrigger>
+            <MenuPopup
+              align="start"
+              className="min-w-40 rounded-lg border-none bg-stone-700 p-1 text-stone-50"
+            >
+              <MenuRadioGroup
+                value={sortMode}
+                onValueChange={(value) =>
+                  setSortMode(String(value) as SortMode)
+                }
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <MenuRadioItem
+                    key={option.value}
+                    value={option.value}
+                    className="flex cursor-pointer select-none items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-stone-50 outline-none data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:bg-stone-600"
+                  >
+                    {t(option.labelKey)}
+                  </MenuRadioItem>
+                ))}
+              </MenuRadioGroup>
+            </MenuPopup>
+          </Menu>
+
           {downloadedModels.map((model: ModelInfo) => (
             <ModelCard
               key={model.id}
