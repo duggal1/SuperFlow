@@ -108,7 +108,15 @@ pub fn play_canceled_sound(app: &AppHandle) {
 
 pub fn play_ai_cleanup_sound(app: &AppHandle, sound: AiCleanupSound) {
     let (file, gain) = match sound {
-        AiCleanupSound::Trigger => ("resources/pop_start.wav", 1.25),
+        AiCleanupSound::Trigger => {
+            let settings = settings::get_settings(app);
+            let Some(path) = resolve_sound_path(app, &settings, SoundType::Start) else {
+                warn!("AI cleanup trigger sound could not be resolved");
+                return;
+            };
+            play_sound_async(app, path, 1.0);
+            return;
+        }
         AiCleanupSound::Error => ("resources/ai-cleanup-error.wav", 1.10),
         AiCleanupSound::Complete => ("resources/ai-cleanup-complete.mp3", 1.30),
     };
