@@ -64,8 +64,7 @@
      the card's max footprint (--ov-work-w for compact, --ov-open-w for Live),
      since the card is anchored flush to the screen edge in CSS. Keep overlay.rs
      in sync when these change. */
-  --ov-rest-w: 172px; /* resting compact pill (minimal, recording) -- roomy enough
-                         for the English working label before the grow starts */
+  --ov-rest-w: 140px; /* resting compact pill: controls + waveform + clean gaps */
   --ov-pill-w: 184px; /* base width / Live pill before it opens or collapses */
   --ov-work-w: 216px; /* working pill (transcribing / polishing) -- wide enough to
                          center longer labels; shared by Live (collapsed) + minimal */
@@ -239,7 +238,7 @@
   background: var(--color-background);
 }
 .scard.compact .sbase {
-  padding-inline: 12px;
+  padding-inline: 8px;
 }
 .scard.compact .swork-label {
   font-size: 13px;
@@ -328,7 +327,7 @@
    symmetrical timer layout. */
 .scard:not(.open):not(.working) .sbase {
   grid-template-columns: 22px auto 22px;
-  column-gap: 8px;
+  column-gap: 10px;
   justify-content: center;
 }
 .scard:not(.open):not(.working) .sbase-l {
