@@ -6,6 +6,7 @@ import { cn } from "../lib/utils";
 export type LiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
   active?: boolean;
   processing?: boolean;
+  levels?: readonly number[];
   deviceId?: string;
   barWidth?: number;
   barHeight?: number;
@@ -29,6 +30,7 @@ export type LiveWaveformProps = HTMLAttributes<HTMLDivElement> & {
 export const LiveWaveform = ({
   active = false,
   processing = false,
+  levels: externalLevels,
   deviceId,
   barWidth = 2.5,
   barGap = 1.5,
@@ -65,8 +67,17 @@ export const LiveWaveform = ({
   const needsRedrawRef = useRef(true);
   const gradientCacheRef = useRef<CanvasGradient | null>(null);
   const lastWidthRef = useRef(0);
+  const externalLevelsRef = useRef<readonly number[] | null>(
+    externalLevels ?? null,
+  );
+  const hasExternalLevels = externalLevels !== undefined;
 
   const heightStyle = typeof height === "number" ? `${height}px` : height;
+
+  useEffect(() => {
+    externalLevelsRef.current = externalLevels ?? null;
+    needsRedrawRef.current = true;
+  }, [externalLevels]);
 
   // Handle canvas resizing
   useEffect(() => {
@@ -111,7 +122,8 @@ export const LiveWaveform = ({
 
         const processingData = [];
         const barCount = Math.floor(
-          (containerRef.current?.getBoundingClientRect().width || 200) /
+          ((containerRef.current?.getBoundingClientRect().width || 200) +
+            barGap) /
             (barWidth + barGap),
         );
 
@@ -229,6 +241,8 @@ export const LiveWaveform = ({
 
   // Handle microphone setup and teardown
   useEffect(() => {
+    if (hasExternalLevels) return;
+
     if (!active) {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -312,6 +326,7 @@ export const LiveWaveform = ({
     };
   }, [
     active,
+    hasExternalLevels,
     deviceId,
     fftSize,
     smoothingTimeConstant,
@@ -338,7 +353,38 @@ export const LiveWaveform = ({
       if (active && currentTime - lastUpdateRef.current > updateRate) {
         lastUpdateRef.current = currentTime;
 
-        if (analyserRef.current) {
+        const backendLevels = externalLevelsRef.current;
+        if (backendLevels) {
+          const barCount = Math.floor(
+            (rect.width + barGap) / (barWidth + barGap),
+          );
+          const newBars = Array.from({ length: barCount }, (_, index) => {
+            const dataIndex = Math.min(
+              backendLevels.length - 1,
+              Math.floor(
+                (index / Math.max(1, barCount)) * backendLevels.length,
+              ),
+            );
+            return Math.max(
+              0.05,
+              Math.min(1, (backendLevels[dataIndex] ?? 0) * sensitivity),
+            );
+          });
+
+          if (mode === "static") {
+            staticBarsRef.current = newBars;
+          } else {
+            const average =
+              newBars.reduce((sum, value) => sum + value, 0) /
+              Math.max(1, newBars.length);
+            historyRef.current.push(average);
+            if (historyRef.current.length > historySize) {
+              historyRef.current.shift();
+            }
+          }
+          lastActiveDataRef.current = newBars;
+          needsRedrawRef.current = true;
+        } else if (analyserRef.current) {
           const dataArray = new Uint8Array(
             analyserRef.current.frequencyBinCount,
           );
@@ -350,7 +396,9 @@ export const LiveWaveform = ({
             const endFreq = Math.floor(dataArray.length * 0.4);
             const relevantData = dataArray.slice(startFreq, endFreq);
 
-            const barCount = Math.floor(rect.width / (barWidth + barGap));
+            const barCount = Math.floor(
+              (rect.width + barGap) / (barWidth + barGap),
+            );
             const halfCount = Math.floor(barCount / 2);
             const newBars: number[] = [];
 
@@ -423,7 +471,7 @@ export const LiveWaveform = ({
         })();
 
       const step = barWidth + barGap;
-      const barCount = Math.floor(rect.width / step);
+      const barCount = Math.floor((rect.width + barGap) / step);
       const centerY = rect.height / 2;
 
       // Draw bars based on mode

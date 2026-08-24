@@ -16,6 +16,7 @@ import type {
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 import { Button } from "@/components/ui/Button";
+import { LiveWaveform } from "@/components/waves/live-waveform";
 
 type OverlayState =
   | "recording"
@@ -39,9 +40,9 @@ const NOTICE_BADGE_VARIANTS: Record<AiCleanupNotice["variant"], BadgeVariant> =
     success: "green",
   };
 
-// Number of reactive bars in the waveform (the simple, smoothed style shared by
-// every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
-const WAVE_BARS = 9;
+// The backend emits 16 FFT buckets. Every overlay form feeds the same smoothed
+// values into the shared LiveWaveform component.
+const WAVE_BUCKETS = 16;
 
 // How long the result card plays its blur-out before React tears it down. The
 // backend hides the native panel ~300ms after emitting "hide-overlay"; the
@@ -110,7 +111,7 @@ const RecordingOverlay: React.FC = () => {
   // Stay visually in an arming state until the backend processes the first
   // actual microphone sample chunk.
   const [captureReady, setCaptureReady] = useState(false);
-  const [levels, setLevels] = useState<number[]>(Array(WAVE_BARS).fill(0));
+  const [levels, setLevels] = useState<number[]>(Array(WAVE_BUCKETS).fill(0));
   const [streamText, setStreamText] = useState<StreamTextEvent>({
     committed: "",
     tentative: "",
@@ -271,7 +272,7 @@ const RecordingOverlay: React.FC = () => {
         ) {
           setCaptureReady(false);
           smoothedLevelsRef.current = Array(16).fill(0);
-          setLevels(Array(WAVE_BARS).fill(0));
+          setLevels(Array(WAVE_BUCKETS).fill(0));
           setStreamText({ committed: "", tentative: "" });
           // A new dictation replaces any result card or cancel toast.
           resetResultCard();
@@ -381,14 +382,13 @@ const RecordingOverlay: React.FC = () => {
 
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
-        // Exponential smoothing across the 16 buckets, then take the first N
-        // bars for the shared waveform.
+        // Exponential smoothing across the backend's 16 FFT buckets.
         const smoothed = smoothedLevelsRef.current.map((prev, i) => {
           const target = newLevels[i] || 0;
           return prev * 0.7 + target * 0.3;
         });
         smoothedLevelsRef.current = smoothed;
-        setLevels(smoothed.slice(0, WAVE_BARS));
+        setLevels(smoothed);
       });
 
       const unlistenStream = await events.streamTextEvent.listen((event) => {
@@ -666,16 +666,18 @@ const RecordingOverlay: React.FC = () => {
 
   // ---- Shared building blocks (one visual language for every overlay form) ----
   const waveform = (
-    <div className={`swave ${captureReady ? "ready" : "arming"}`}>
-      {levels.map((v, i) => (
-        <i
-          key={i}
-          style={{
-            height: `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`,
-          }}
-        />
-      ))}
-    </div>
+    <LiveWaveform
+      className="swave"
+      active={isVisible}
+      levels={levels}
+      height={18}
+      barWidth={4}
+      barGap={3}
+      barRadius={2}
+      barColor="#fafaf9"
+      fadeEdges={false}
+      mode="static"
+    />
   );
 
   const cancelBtn = (

@@ -334,9 +334,6 @@
   padding-left: 0;
   justify-self: center;
 }
-.scard:not(.open):not(.working) .swave {
-  padding-right: 0;
-}
 .sbase-l {
   display: flex;
   padding-left: 5px;
@@ -367,59 +364,12 @@
   opacity: 1;
 }
 
-/* Waveform — reactive only after the first microphone callback. While arming,
-   a muted travelling pulse acknowledges the shortcut without pretending that
-   audio levels are already being received. */
+/* Shared canvas waveform. Both standard and hands-free overlays feed it the
+   same backend FFT levels through LiveWaveform. */
 .swave {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding-right: 8px;
+  width: 60px;
   height: 18px;
   flex: none;
-}
-.swave i {
-  width: 4px;
-  min-height: 3px;
-  max-height: 18px;
-  border-radius: 2px;
-  background: #fafaf9;
-  transition:
-    height 80ms linear,
-    background-color 180ms ease,
-    opacity 180ms ease;
-}
-.swave.arming i {
-  height: 6px !important;
-  background: #fafaf9;
-  opacity: 0.35;
-  animation: swave-arming 900ms ease-in-out infinite;
-}
-.swave.arming i:nth-child(2),
-.swave.arming i:nth-child(8) {
-  animation-delay: 75ms;
-}
-.swave.arming i:nth-child(3),
-.swave.arming i:nth-child(7) {
-  animation-delay: 150ms;
-}
-.swave.arming i:nth-child(4),
-.swave.arming i:nth-child(6) {
-  animation-delay: 225ms;
-}
-.swave.arming i:nth-child(5) {
-  animation-delay: 300ms;
-}
-@keyframes swave-arming {
-  0%,
-  100% {
-    transform: scaleY(0.55);
-    opacity: 0.25;
-  }
-  50% {
-    transform: scaleY(1.5);
-    opacity: 0.7;
-  }
 }
 .sx {
   width: 22px;
