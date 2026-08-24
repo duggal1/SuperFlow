@@ -1,17 +1,15 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
-  ClockCounterClockwise,
-  Fire,
-  Flask,
-  Funnel,
-  Gear,
-  HouseSimple,
-  Info,
-  Notebook,
-  MagicWand,
-} from "@phosphor-icons/react";
+  AiBeautifyIcon,
+  BadgeInfoIcon,
+  HistoryIcon,
+  Home01Icon,
+  Settings01Icon,
+  ZapIcon,
+} from "@hugeicons/core-free-icons";
 import SuperFlowLogo from "./icons/SuperFlowTextLogo";
 import SidebarToggleIcon from "./icons/SidebarToggleIcon";
 import { HomePage } from "./home";
@@ -28,67 +26,59 @@ import {
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
 
-interface IconProps {
-  width?: number | string;
-  height?: number | string;
-  size?: number | string;
-  className?: string;
-  [key: string]: any;
-}
-
 interface SectionConfig {
   labelKey: string;
-  icon: React.ComponentType<IconProps>;
+  icon: IconSvgElement;
   component: React.ComponentType;
-  enabled: (settings: any) => boolean;
+  enabled: (settings: ReturnType<typeof useSettings>["settings"]) => boolean;
 }
 
 export const SECTIONS_CONFIG = {
   home: {
     labelKey: "sidebar.home",
-    icon: HouseSimple,
+    icon: Home01Icon,
     component: HomePage,
+    enabled: () => true,
+  },
+  models: {
+    labelKey: "sidebar.models",
+    icon: ZapIcon,
+    component: ModelsSettings,
     enabled: () => true,
   },
   general: {
     labelKey: "sidebar.general",
-    icon: Notebook,
+    icon: Home01Icon,
     component: GeneralSettings,
     enabled: () => true,
   },
   history: {
     labelKey: "sidebar.history",
-    icon: ClockCounterClockwise,
+    icon: HistoryIcon,
     component: HistorySettings,
-    enabled: () => true,
-  },
-  models: {
-    labelKey: "sidebar.models",
-    icon: Fire,
-    component: ModelsSettings,
     enabled: () => true,
   },
   aiCleanup: {
     labelKey: "sidebar.aiCleanup",
-    icon: MagicWand,
+    icon: AiBeautifyIcon,
     component: AICleanupSettings,
     enabled: () => true,
   },
   advanced: {
     labelKey: "sidebar.advanced",
-    icon: Gear,
+    icon: Settings01Icon,
     component: AdvancedSettings,
     enabled: () => true,
   },
   debug: {
     labelKey: "sidebar.debug",
-    icon: Flask,
+    icon: Settings01Icon,
     component: DebugSettings,
     enabled: (settings) => settings?.debug_mode ?? false,
   },
   about: {
     labelKey: "sidebar.about",
-    icon: Info,
+    icon: BadgeInfoIcon,
     component: AboutSettings,
     enabled: () => true,
   },
@@ -139,7 +129,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sections */}
         <nav className="flex w-full flex-col gap-0.5 border-t border-divider pt-2">
           {availableSections.map((section) => {
-            const Icon = section.icon;
             const isActive = activeSection === section.id;
 
             return (
@@ -154,7 +143,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : "text-stone-400 hover:bg-stone-900/60 hover:text-stone-200"
                 }`}
               >
-                <Icon size={17} className="shrink-0 opacity-80" />
+                <HugeiconsIcon
+                  icon={section.icon}
+                  size={17}
+                  className="shrink-0 opacity-80"
+                />
                 <span className="truncate">{t(section.labelKey)}</span>
               </button>
             );

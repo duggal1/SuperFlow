@@ -7,8 +7,9 @@ import {
   Equalizer,
   Funnel,
   GlobeSimple,
-  Translate,
 } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Search01Icon as MagnifyingGlassIcon } from "@hugeicons/core-free-icons";
 import type { ModelCardStatus } from "@/components/onboarding";
 import { ModelCard } from "@/components/onboarding";
 import { useModelStore } from "@/stores/modelStore";
@@ -57,7 +58,6 @@ export const ModelsSettings: React.FC = () => {
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStreaming, setFilterStreaming] = useState(false);
-  const [filterTranslation, setFilterTranslation] = useState(false);
   const [languageFilter, setLanguageFilter] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("accurate");
   const {
@@ -177,7 +177,6 @@ export const ModelsSettings: React.FC = () => {
         if (!modelSupportsLanguage(model, languageFilter)) return false;
       }
       if (filterStreaming && !model.supports_streaming) return false;
-      if (filterTranslation && !model.supports_translation) return false;
 
       if (q) {
         const haystack = `${model.name} ${model.description}`.toLowerCase();
@@ -197,14 +196,7 @@ export const ModelsSettings: React.FC = () => {
       sorted.sort((a, b) => accuracySpeedRatio(b) - accuracySpeedRatio(a));
     }
     return sorted;
-  }, [
-    models,
-    languageFilter,
-    filterStreaming,
-    filterTranslation,
-    searchQuery,
-    sortMode,
-  ]);
+  }, [models, languageFilter, filterStreaming, searchQuery, sortMode]);
 
   // Split filtered models into downloaded (including custom) and available sections
   const { downloadedModels, availableModels } = useMemo(() => {
@@ -260,13 +252,20 @@ export const ModelsSettings: React.FC = () => {
       </div>
 
       {/* Search bar — filter the catalog by name or description */}
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder={t("settings.models.searchPlaceholder")}
-        className="w-full px-3 py-2 text-sm bg-stone-900 border border-stone-700 rounded-lg focus:outline-none placeholder:text-text/40"
-      />
+      <label className="flex w-full items-center gap-2 rounded-lg bg-[#36322f] px-3 text-stone-400 transition-colors duration-150 hover:bg-stone-700 focus-within:bg-stone-700">
+        <HugeiconsIcon
+          icon={MagnifyingGlassIcon}
+          size={32}
+          className="shrink-0"
+        />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("settings.models.searchPlaceholder")}
+          className="min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-stone-100 outline-none ring-0 placeholder:text-text/40 focus:outline-none focus:ring-0"
+        />
+      </label>
 
       <div className="space-y-6">
         {/* Downloaded Models Section — header always visible so filter stays accessible */}
@@ -304,21 +303,6 @@ export const ModelsSettings: React.FC = () => {
               >
                 <Equalizer size={16} />
               </button>
-              <button
-                type="button"
-                onClick={() => setFilterTranslation((enabled) => !enabled)}
-                title={t("settings.models.filters.translation")}
-                aria-label={t("settings.models.filters.translation")}
-                aria-pressed={filterTranslation}
-                className={`flex items-center justify-center size-8 rounded-lg transition-colors ${
-                  filterTranslation
-                    ? "bg-blue-600/20 text-blue-500 hover:bg-blue-600/30"
-                    : "bg-stone-900 text-text/60 hover:bg-stone-800"
-                }`}
-              >
-                <Translate size={16} />
-              </button>
-
               {/* Language filter — shared Dropdown with flag prefixes */}
               <Dropdown
                 options={[

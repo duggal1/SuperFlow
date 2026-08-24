@@ -10,12 +10,12 @@
     "secureInputWarning": "⚠ Shortcuts blocked by Secure Input"
   },
   "sidebar": {
-    "general": "Journal",
+    "general": "General",
     "home": "Home",
     "models": "Models",
     "advanced": "Advanced",
     "postProcessing": "Post Process",
-    "aiCleanup": "Prompt generation",
+    "aiCleanup": "Prompt Engineering",
     "history": "History",
     "debug": "Debug",
     "about": "About"
