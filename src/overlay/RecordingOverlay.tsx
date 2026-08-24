@@ -15,6 +15,7 @@ import type {
 } from "@/bindings";
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
+import { Button } from "@/components/ui/Button";
 
 type OverlayState =
   | "recording"
@@ -508,13 +509,16 @@ const RecordingOverlay: React.FC = () => {
               {t("overlay.canceled")}
             </Badge>
             {cancelToastCanUndo && (
-              <button
-                type="button"
-                className="sundo"
+              <Button
+                variant="secondary"
+                size="sm"
+                role="button"
+                tabIndex={0}
+                className="rounded-lg"
                 onClick={() => void handleUndoCancel()}
               >
                 {t("overlay.undo")}
-              </button>
+              </Button>
             )}
           </div>
         </motion.div>

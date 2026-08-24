@@ -594,36 +594,6 @@
   align-items: center;
   gap: 8px;
 }
-/* Quiet ghost Undo — same geometry family as the result card's Copy button
-   (h-28, 7.5px radius) without the loud gradient treatment. */
-.sundo {
-  height: 28px;
-  padding: 0 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 7.5px;
-  border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent);
-  background: transparent;
-  font-family: var(--s-font);
-  font-size: 13px;
-  font-weight: 460;
-  letter-spacing: 0.15px;
-  color: var(--color-text);
-  -webkit-appearance: none;
-  appearance: none;
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    transform 100ms ease;
-}
-.sundo:hover {
-  background: var(--s-hair);
-}
-.sundo:active {
-  transform: scale(0.98);
-}
 
 .scard.sai-notice {
   box-sizing: border-box;
