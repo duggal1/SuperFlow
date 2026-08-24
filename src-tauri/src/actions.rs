@@ -475,7 +475,12 @@ async fn process_transcription_output_with_context(
             outcome.summary.lifecycle,
             crate::local_cleanup::metrics::CleanupLifecycle::Applied
         ) {
-            final_text = outcome.final_text;
+            // T2.5: technical vocabulary and token hygiene run after S1 so the
+            // model never receives pre-rewritten prose.
+            final_text = crate::audio_toolkit::apply_post_cleanup_vocabulary(
+                &outcome.final_text,
+                settings.tech_lexicon_enabled,
+            );
         }
     }
 

@@ -159,7 +159,7 @@ fn chunk_transcript(text: &str) -> Vec<String> {
 
 /// The model is English-only; running it over other languages corrupts them.
 /// Explicit `en` always runs; `auto` runs when the text itself reads English.
-fn should_run(effective_language: &str, text: &str) -> bool {
+pub(crate) fn should_run(effective_language: &str, text: &str) -> bool {
     match effective_language {
         "en" => true,
         "auto" | "" => whatlang::detect(text)

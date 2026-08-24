@@ -1991,6 +1991,22 @@ fn post_process_transcription_text(
             raw
         };
 
+        // T2.1: when S1-mini will consume this transcript, it receives raw
+        // ASR text plus only meaning-preserving hygiene and value
+        // normalization. The technical-vocabulary catalogs run AFTER cleanup
+        // (see `apply_post_cleanup_vocabulary`), and grammar, punctuation,
+        // capitalization, fillers, paragraphs, and lists have exactly one
+        // owner: S1-mini. Non-English and not-yet-ready paths keep the full
+        // deterministic fallback below.
+        let language_hint = output_language.language();
+        if crate::local_cleanup::is_ready()
+            && crate::local_cleanup::should_run(language_hint.unwrap_or("auto"), &corrected)
+        {
+            let normalized = normalize_transcription_output(&corrected);
+            let normalized = crate::audio_toolkit::formatter::normalize_values(&normalized);
+            return join_path_tokens(&normalized);
+        }
+
         // Built-in technical lexicon: canonical spellings for misheard
         // framework names ("next year" → "Next.js"), spoken file extensions
         // ("dot tsx" → ".tsx") and path separators ("slash" → "/"). Runs
