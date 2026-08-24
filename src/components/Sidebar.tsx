@@ -41,16 +41,16 @@ export const SECTIONS_CONFIG = {
     component: HomePage,
     enabled: () => true,
   },
-  models: {
-    labelKey: "sidebar.models",
-    icon: ZapIcon,
-    component: ModelsSettings,
-    enabled: () => true,
-  },
   general: {
     labelKey: "sidebar.general",
     icon: ComputerIcon,
     component: GeneralSettings,
+    enabled: () => true,
+  },
+  models: {
+    labelKey: "sidebar.models",
+    icon: ZapIcon,
+    component: ModelsSettings,
     enabled: () => true,
   },
   history: {
