@@ -1,6 +1,6 @@
 /* eslint-disable i18next/no-literal-string */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Plus, UploadSimple, X } from "@phosphor-icons/react";
+import { Copy, FileText, Plus, UploadSimple, X } from "@phosphor-icons/react";
 import { commands } from "@/bindings";
 import type {
   AiCleanupConfiguration,
@@ -171,6 +171,12 @@ export function AICleanupSettings() {
     );
     update("contexts", [...configuration.contexts, ...additions].slice(0, 12));
     if (fileInput.current) fileInput.current.value = "";
+  };
+
+  const copyCleanup = (text: string) => {
+    navigator.clipboard.writeText(text).catch((error) => {
+      console.error("Failed to copy cleanup:", error);
+    });
   };
 
   const saveApiKey = async (apiKey: string) => {
@@ -450,7 +456,18 @@ export function AICleanupSettings() {
                   </p>
                 </div>
                 <div>
-                  <p className="mb-1 text-xs text-stone-500">Clean prompt</p>
+                  <div className="mb-1 flex items-center justify-between gap-3">
+                    <p className="text-xs text-stone-500">Clean prompt</p>
+                    <button
+                      type="button"
+                      onClick={() => copyCleanup(entry.output_text)}
+                      aria-label="Copy clean prompt"
+                      title="Copy clean prompt"
+                      className="flex size-7 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-stone-700/60 hover:text-stone-100"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
                   <p className="whitespace-pre-wrap text-stone-100">
                     {entry.output_text}
                   </p>

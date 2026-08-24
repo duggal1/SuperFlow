@@ -347,7 +347,7 @@ export const ModelsSettings: React.FC = () => {
             <MenuTrigger
               aria-label={t("settings.models.filters.sort")}
               title={t("settings.models.filters.sort")}
-              className="flex h-7 cursor-pointer items-center gap-2 rounded-lg border border-[#37332f] bg-[#302c29] px-3 text-[13px] text-text/60 outline-none transition-colors duration-200 hover:border-[#44403c] hover:bg-[#292524]"
+              className="flex h-7 cursor-pointer items-center gap-2 rounded-lg border-0 bg-[#36322f] px-3 text-[13px] text-text/60 outline-none transition-colors duration-150 hover:bg-stone-700"
             >
               <Funnel size={16} />
               <span>{t("settings.models.filters.sort")}</span>

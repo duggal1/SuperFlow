@@ -142,3 +142,13 @@ select:not(:disabled) {
   stroke: var(--color-logo-stroke);
   stroke-width: 1;
 }
+
+@keyframes home-transcribe-pulse {
+  0%,
+  100% {
+    color: color-mix(in srgb, var(--color-text) 40%, transparent);
+  }
+  50% {
+    color: color-mix(in srgb, var(--color-text) 90%, transparent);
+  }
+}

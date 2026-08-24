@@ -62,63 +62,64 @@ export const CustomWords: React.FC<CustomWordsProps> = React.memo(
           descriptionMode={descriptionMode}
           grouped={grouped}
         >
-          <div className="flex items-center gap-2">
-            <Input
-              type="text"
-              className="max-w-40"
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={t("settings.advanced.customWords.placeholder")}
-              variant="compact"
-              disabled={isUpdating("custom_words")}
-            />
-            <Button
-              onClick={handleAddWord}
-              disabled={
-                !normalizedWord ||
-                normalizedWord.length > 50 ||
-                isUpdating("custom_words")
-              }
-              variant="primary"
-              size="md"
-            >
-              {t("settings.advanced.customWords.add")}
-            </Button>
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                className="max-w-40"
+                value={newWord}
+                onChange={(e) => setNewWord(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder={t("settings.advanced.customWords.placeholder")}
+                variant="compact"
+                disabled={isUpdating("custom_words")}
+              />
+              <Button
+                onClick={handleAddWord}
+                disabled={
+                  !normalizedWord ||
+                  normalizedWord.length > 50 ||
+                  isUpdating("custom_words")
+                }
+                variant="primary"
+                size="md"
+              >
+                {t("settings.advanced.customWords.add")}
+              </Button>
+            </div>
+            {customWords.length > 0 && (
+              <div className="flex max-w-72 flex-wrap justify-end gap-1">
+                {customWords.map((word) => (
+                  <button
+                    type="button"
+                    key={word}
+                    onClick={() => handleRemoveWord(word)}
+                    disabled={isUpdating("custom_words")}
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-stone-700 bg-stone-800 px-2 py-1 text-xs leading-none text-stone-100 transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label={t("settings.advanced.customWords.remove", {
+                      word,
+                    })}
+                  >
+                    <span>{word}</span>
+                    <svg
+                      className="h-3 w-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </SettingContainer>
-        {customWords.length > 0 && (
-          <div
-            className={`px-4 p-2 ${grouped ? "" : "rounded-[10px] bg-surface"} flex flex-wrap gap-1`}
-          >
-            {customWords.map((word) => (
-              <Button
-                key={word}
-                onClick={() => handleRemoveWord(word)}
-                disabled={isUpdating("custom_words")}
-                variant="secondary"
-                size="sm"
-                className="inline-flex items-center gap-1 cursor-pointer"
-                aria-label={t("settings.advanced.customWords.remove", { word })}
-              >
-                <span>{word}</span>
-                <svg
-                  className="w-3 h-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </Button>
-            ))}
-          </div>
-        )}
       </>
     );
   },

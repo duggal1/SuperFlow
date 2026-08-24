@@ -8,7 +8,6 @@ import {
   Copy,
   FolderOpen,
   ArrowCounterClockwise,
-  Star,
   Trash,
 } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
@@ -23,23 +22,19 @@ import { useOsType } from "@/hooks/useOsType";
 import { formatDateTime } from "@/utils/dateFormat";
 import { AudioPlayer, AudioPlayerGroup } from "../../ui/AudioPlayer";
 import { Button } from "../../ui/Button";
+import { Badge } from "../../ui/Badge";
 import { ExportFormatSelector } from "../ExportFormatSelector";
 
 const IconButton: React.FC<{
   onClick: () => void;
   title: string;
   disabled?: boolean;
-  active?: boolean;
   children: React.ReactNode;
-}> = ({ onClick, title, disabled, active, children }) => (
+}> = ({ onClick, title, disabled, children }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className={`flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-stone-700/60 cursor-pointer disabled:cursor-not-allowed disabled:text-text/20 ${
-      active
-        ? "text-blue-500 hover:text-blue-500/80"
-        : "text-text/50 hover:text-blue-500"
-    }`}
+    className="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-text/50 transition-colors hover:bg-stone-700/60 hover:text-blue-500 disabled:cursor-not-allowed disabled:text-text/20"
     title={title}
   >
     {children}
@@ -184,28 +179,6 @@ export const HistorySettings: React.FC = () => {
     };
   }, []);
 
-  const toggleSaved = async (id: number) => {
-    // Optimistic update
-    setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, saved: !e.saved } : e)),
-    );
-    try {
-      const result = await commands.toggleHistoryEntrySaved(id);
-      if (result.status !== "ok") {
-        // Revert on failure
-        setEntries((prev) =>
-          prev.map((e) => (e.id === id ? { ...e, saved: !e.saved } : e)),
-        );
-      }
-    } catch (error) {
-      console.error("Failed to toggle saved status:", error);
-      // Revert on failure
-      setEntries((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, saved: !e.saved } : e)),
-      );
-    }
-  };
-
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -292,7 +265,6 @@ export const HistorySettings: React.FC = () => {
                 key={entry.id}
                 entry={entry}
                 restoring={restoringIds.has(entry.id)}
-                onToggleSaved={() => toggleSaved(entry.id)}
                 onCopyText={() => copyToClipboard(entry.transcription_text)}
                 getAudioUrl={getAudioUrl}
                 deleteAudio={deleteAudioEntry}
@@ -333,7 +305,6 @@ export const HistorySettings: React.FC = () => {
 interface HistoryEntryProps {
   entry: HistoryEntry;
   restoring?: boolean;
-  onToggleSaved: () => void;
   onCopyText: () => void;
   getAudioUrl: (fileName: string) => Promise<string | null>;
   deleteAudio: (id: number) => Promise<void>;
@@ -343,7 +314,6 @@ interface HistoryEntryProps {
 const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   entry,
   restoring = false,
-  onToggleSaved,
   onCopyText,
   getAudioUrl,
   deleteAudio,
@@ -397,13 +367,28 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const formattedDate = formatDateTime(String(entry.timestamp), i18n.language);
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">{formattedDate}</p>
-        <div className="flex items-center">
+    <article className="flex flex-col gap-3 px-4 py-4 [content-visibility:auto] [contain-intrinsic-size:auto_156px]">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 text-sm font-medium tracking-tight text-stone-100">
+            {formattedDate}
+          </span>
+          {busy && (
+            <Badge variant="blue" className="px-1.5 py-0.5 text-[11px]">
+              <CircleNotch size={12} className="animate-spin" />
+              {t("settings.history.transcribing")}
+            </Badge>
+          )}
+          {!hasTranscription && !busy && (
+            <Badge variant="rose" className="px-1.5 py-0.5 text-[11px]">
+              {t("settings.history.transcriptionFailed")}
+            </Badge>
+          )}
+        </span>
+        <div className="flex shrink-0 items-center gap-0.5">
           <IconButton
             onClick={handleCopyText}
-            disabled={!hasTranscription || retrying}
+            disabled={!hasTranscription || busy}
             title={t("settings.history.copyToClipboard")}
           >
             {showCopied ? (
@@ -412,40 +397,17 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
               <Copy width={16} height={16} />
             )}
           </IconButton>
-          <IconButton
-            onClick={onToggleSaved}
-            disabled={retrying}
-            active={entry.saved}
-            title={
-              entry.saved
-                ? t("settings.history.unsave")
-                : t("settings.history.save")
-            }
-          >
-            <Star
-              width={16}
-              height={16}
-              fill={entry.saved ? "currentColor" : "none"}
-            />
-          </IconButton>
-          <IconButton
-            onClick={handleRetranscribe}
-            disabled={retrying}
-            title={t("settings.history.retranscribe")}
-          >
-            <ArrowCounterClockwise
-              width={16}
-              height={16}
-              style={
-                retrying
-                  ? { animation: "spin 1s linear infinite reverse" }
-                  : undefined
-              }
-            />
-          </IconButton>
+          {!hasTranscription && !busy && (
+            <IconButton
+              onClick={handleRetranscribe}
+              title={t("settings.history.retranscribe")}
+            >
+              <ArrowCounterClockwise width={16} height={16} />
+            </IconButton>
+          )}
           <IconButton
             onClick={handleDeleteEntry}
-            disabled={retrying}
+            disabled={busy}
             title={t("settings.history.delete")}
           >
             <Trash width={16} height={16} />
@@ -453,36 +415,24 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
         </div>
       </div>
 
-      <p
-        className={`italic text-sm pb-2 ${
-          retrying
-            ? ""
-            : hasTranscription
-              ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
-              : "text-text/40"
-        }`}
-        style={
-          retrying
-            ? { animation: "transcribe-pulse 3s ease-in-out infinite" }
-            : undefined
-        }
-      >
-        {retrying && (
-          <style>{`
-            @keyframes transcribe-pulse {
-              0%, 100% { color: color-mix(in srgb, var(--color-text) 40%, transparent); }
-              50% { color: color-mix(in srgb, var(--color-text) 90%, transparent); }
-            }
-          `}</style>
-        )}
-        {retrying
-          ? t("settings.history.transcribing")
-          : hasTranscription
-            ? entry.transcription_text
-            : t("settings.history.transcriptionFailed")}
-      </p>
+      {(busy || hasTranscription) && (
+        <p
+          className={`pb-2 text-sm leading-6 ${
+            busy
+              ? "text-stone-500"
+              : "select-text whitespace-pre-wrap break-words text-stone-200"
+          }`}
+          style={
+            busy
+              ? { animation: "home-transcribe-pulse 3s ease-in-out infinite" }
+              : undefined
+          }
+        >
+          {busy ? t("settings.history.transcribing") : entry.transcription_text}
+        </p>
+      )}
 
       <AudioPlayer onLoadRequest={handleLoadAudio} className="w-full" />
-    </div>
+    </article>
   );
 };

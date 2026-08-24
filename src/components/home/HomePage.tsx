@@ -47,6 +47,7 @@ import {
 } from "@/lib/utils/journalStats";
 
 const PAGE_SIZE = 30;
+const VISIBLE_PAGE_SIZE = 30;
 const DURATION_CONCURRENCY = 6;
 
 /** Only one transcript plays at a time across the whole page. */
@@ -132,7 +133,7 @@ interface TranscriptRowProps {
   onRetry: (id: number) => Promise<void>;
 }
 
-const TranscriptRow: React.FC<TranscriptRowProps> = ({
+const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
   entry,
   duration,
   restoring = false,
@@ -218,14 +219,7 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
   const words = countWords(entry.transcription_text);
 
   return (
-    <article className="px-4 py-4">
-      <style>{`
-        @keyframes home-transcribe-pulse {
-          0%, 100% { color: color-mix(in srgb, var(--color-text) 40%, transparent); }
-          50% { color: color-mix(in srgb, var(--color-text) 90%, transparent); }
-        }
-      `}</style>
-
+    <article className="px-4 py-4 [content-visibility:auto] [contain-intrinsic-size:auto_112px]">
       {/* Single header row: time + status chips on the left; word badge,
           duration and every action aligned horizontally on the right. */}
       <div className="flex items-center justify-between gap-3">
@@ -297,7 +291,9 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
       {busy ? (
         <p
           className="mt-2 text-sm text-stone-500"
-          style={{ animation: "home-transcribe-pulse 3s ease-in-out infinite" }}
+          style={{
+            animation: "home-transcribe-pulse 3s ease-in-out infinite",
+          }}
         >
           {t("settings.history.transcribing")}
         </p>
@@ -309,6 +305,8 @@ const TranscriptRow: React.FC<TranscriptRowProps> = ({
     </article>
   );
 };
+
+const TranscriptRow = React.memo(TranscriptRowComponent);
 
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
@@ -322,7 +320,9 @@ export const HomePage: React.FC = () => {
   const [exporting, setExporting] = useState(false);
   const [durations, setDurations] = useState<Record<number, number>>({});
   const [restoringIds, setRestoringIds] = useState<Set<number>>(new Set());
+  const [visibleCount, setVisibleCount] = useState(VISIBLE_PAGE_SIZE);
   const attemptedDurationsRef = useRef<Set<number>>(new Set());
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const loadAllEntries = useCallback(async () => {
     setLoading(true);
@@ -403,7 +403,9 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     if (loading) return;
     const pending = entries.filter(
-      (entry) => !attemptedDurationsRef.current.has(entry.id),
+      (entry) =>
+        entry.audio_duration_secs === null &&
+        !attemptedDurationsRef.current.has(entry.id),
     );
     if (pending.length === 0) return;
 
@@ -436,7 +438,29 @@ export const HomePage: React.FC = () => {
     [entries, durations],
   );
 
-  const groups = useMemo(() => groupEntriesByRecency(entries), [entries]);
+  const visibleEntries = useMemo(
+    () => entries.slice(0, visibleCount),
+    [entries, visibleCount],
+  );
+  const groups = useMemo(
+    () => groupEntriesByRecency(visibleEntries),
+    [visibleEntries],
+  );
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || visibleCount >= entries.length) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisibleCount((count) =>
+          Math.min(entries.length, count + VISIBLE_PAGE_SIZE),
+        );
+      }
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [entries.length, visibleCount]);
 
   const resolveAudioUrl = useCallback(
     (fileName: string) => getAudioUrl(fileName, osType),
@@ -621,7 +645,7 @@ export const HomePage: React.FC = () => {
                   <TranscriptRow
                     key={entry.id}
                     entry={entry}
-                    duration={durations[entry.id]}
+                    duration={entry.audio_duration_secs ?? durations[entry.id]}
                     restoring={restoringIds.has(entry.id)}
                     getAudioUrl={resolveAudioUrl}
                     onDelete={deleteEntry}
@@ -631,6 +655,9 @@ export const HomePage: React.FC = () => {
               </div>
             </section>
           ))
+        )}
+        {visibleCount < entries.length && (
+          <div ref={sentinelRef} className="h-1" aria-hidden="true" />
         )}
       </div>
     </div>
