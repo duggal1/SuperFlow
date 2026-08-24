@@ -2,3 +2,4 @@ iter	phase	verdict	score	blocking	major	change
 0	build	-	-	-	-	first-principles decomposition: 8 components, 8 tasks, validator clean
 1	T1-complete	go	-	-	-	cleanup outcome contract, run metrics, terminal event, extended status, fixtures; rust 11/11 tests, tsc, eslint green
 2	T2-complete	go	-	-	1	bare-word catalog aliases denylisted incl canonical self-keys; evidence-gated spans for get-request/right-join/today(); S1 now receives raw ASR; vocab normalization moved post-cleanup. Known pre-existing fuzzy collision: for-an -> for...in (logged for T8 corpus)
+3	T3-complete	go	-	-	-	trained control line formal/lists/general via typed enums; tokenizer-derived chunk budgets; per-reason validation codes; chunk-local fallback with PartiallyApplied; empty-output only valid for filler-only speech

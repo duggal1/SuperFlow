@@ -6,7 +6,6 @@
 //! (non-English transcripts, model not ready yet) which fail open to the raw
 //! text rather than blocking dictation.
 
-use std::collections::HashSet;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,7 +21,7 @@ pub mod metrics;
 use metrics::{
     record_terminal_run, CleanupChunkMetrics, CleanupFailureStage, CleanupFinalSource,
     CleanupLifecycle, CleanupOutcomeSummary, CleanupResult, CleanupRunId, CleanupRunMetrics,
-    CleanupRunStatusEvent, StageTimer,
+    CleanupRunStatusEvent, CleanupValidationReason, StageTimer,
 };
 
 const MODEL_FILENAME: &str = "s1-mini-q4_k_m.gguf";
@@ -35,11 +34,64 @@ const MODEL_SIZE_BYTES: u64 = 484_219_808;
 const MODEL_SHA256: &str = "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634";
 
 const SYSTEM_PROMPT: &str = "You are a text normalizer for speech-to-text transcripts. The input begins with a control line specifying the styling, structure, and context settings; clean the transcript to match those settings and output only the cleaned text.";
-const CONTROL_LINE: &str = "[Styling: semi-formal] [Structure: lists] [Context: general]";
+/// The model's trained control vocabulary. Production may only send values
+/// from this set — arbitrary prompt instructions, `markdown`, `bullets`,
+/// `work`, or CSS-like values are not trained and are unrepresentable here
+/// (T3.1/T3.2).
+#[derive(Debug, Clone, Copy)]
+pub enum CleanupStyling {
+    Formal,
+}
 
-/// The model card recommends keeping a single pass under ~1,000 tokens.
-/// 500 English words stays safely inside that with the exact prompt overhead.
-const MAX_CHUNK_WORDS: usize = 500;
+impl CleanupStyling {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Formal => "formal",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CleanupStructure {
+    Lists,
+}
+
+impl CleanupStructure {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Lists => "lists",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CleanupContext {
+    General,
+}
+
+impl CleanupContext {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::General => "general",
+        }
+    }
+}
+
+/// The exact control line sent with every request, assembled at startup from
+/// the trained vocabulary enums above — the only place these values exist
+/// (T3.2). A test pins the assembled string to the documented contract.
+fn control_line() -> &'static str {
+    static LINE: OnceLock<String> = OnceLock::new();
+    LINE.get_or_init(|| {
+        format!(
+            "[Styling: {}] [Structure: {}] [Context: {}]",
+            CleanupStyling::Formal.as_str(),
+            CleanupStructure::Lists.as_str(),
+            CleanupContext::General.as_str()
+        )
+    })
+}
+
 #[cfg(target_os = "macos")]
 const N_CTX: u32 = 2048;
 #[cfg(target_os = "macos")]
@@ -96,24 +148,26 @@ enum Job {
 pub(crate) fn build_prompt(transcript: &str) -> String {
     format!(
         "<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n\
-         <|im_start|>user\n{CONTROL_LINE}\n{transcript}<|im_end|>\n\
-         <|im_start|>assistant\n<think>\n\n</think>\n\n"
+         <|im_start|>user\n{}\n{transcript}<|im_end|>\n\
+         <|im_start|>assistant\n<think>\n\n</think>\n\n",
+        control_line()
     )
 }
 
 /// Split long transcripts at sentence boundaries so each S1-mini pass stays
-/// within the trained input window.
-fn chunk_transcript(text: &str) -> Vec<String> {
+/// within its token budget. `token_count` is the loaded model's tokenizer and
+/// `max_input_tokens` the derived per-chunk input ceiling (prompt overhead +
+/// worst-case output headroom included by the caller) — T3.3.
+fn chunk_transcript_with<F>(text: &str, token_count: F, max_input_tokens: usize) -> Vec<String>
+where
+    F: Fn(&str) -> usize,
+{
     let words: Vec<&str> = text.split_whitespace().collect();
-    if words.len() <= MAX_CHUNK_WORDS {
-        let trimmed = text.trim();
-        return if trimmed.is_empty() {
-            Vec::new()
-        } else {
-            vec![trimmed.to_string()]
-        };
+    if words.is_empty() {
+        return Vec::new();
     }
 
+    // Sentence segmentation for boundary-preferred splits.
     let mut sentences: Vec<Vec<&str>> = Vec::new();
     let mut current: Vec<&str> = Vec::new();
     for word in words {
@@ -127,34 +181,52 @@ fn chunk_transcript(text: &str) -> Vec<String> {
     }
 
     let mut chunks: Vec<String> = Vec::new();
-    let mut chunk: Vec<String> = Vec::new();
-    let mut chunk_len = 0usize;
-    for sentence in sentences {
-        if chunk_len > 0 && chunk_len + sentence.len() > MAX_CHUNK_WORDS {
+    let mut chunk: Vec<&str> = Vec::new();
+    let flush = |chunk: &mut Vec<&str>, chunks: &mut Vec<String>| {
+        if !chunk.is_empty() {
             chunks.push(chunk.join(" "));
             chunk.clear();
-            chunk_len = 0;
         }
-        // A single unbroken run longer than the cap is hard-split by words.
-        if sentence.len() > MAX_CHUNK_WORDS {
-            for piece in sentence.chunks(MAX_CHUNK_WORDS) {
-                chunks.push(
-                    piece
-                        .iter()
-                        .map(|s| s.to_string())
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                );
+    };
+
+    for sentence in sentences {
+        if token_count(&sentence.join(" ")) > max_input_tokens {
+            // A single sentence over budget: hard-split by words until each
+            // piece fits (binary halving keeps the piece count small).
+            flush(&mut chunk, &mut chunks);
+            let mut pieces: Vec<Vec<&str>> = vec![sentence];
+            while let Some(mut piece) = pieces.pop() {
+                let joined = piece.join(" ");
+                if token_count(&joined) <= max_input_tokens || piece.len() == 1 {
+                    chunks.push(joined);
+                    continue;
+                }
+                let mid = piece.len() / 2;
+                let tail = piece.split_off(mid);
+                pieces.push(tail);
+                pieces.push(piece);
             }
             continue;
         }
-        chunk.extend(sentence.iter().map(|s| s.to_string()));
-        chunk_len += sentence.len();
+
+        let mut candidate = chunk.clone();
+        candidate.extend_from_slice(&sentence);
+        if !chunk.is_empty() && token_count(&candidate.join(" ")) > max_input_tokens {
+            flush(&mut chunk, &mut chunks);
+        }
+        chunk.extend_from_slice(&sentence);
     }
-    if !chunk.is_empty() {
-        chunks.push(chunk.join(" "));
-    }
+    flush(&mut chunk, &mut chunks);
     chunks
+}
+
+/// Per-chunk input ceiling in model tokens (T3.3). Solves
+/// `input + prompt_overhead + 1.3×input + 32 + margin ≤ N_CTX` so the
+/// worst-case output budget can never overflow the context window.
+#[cfg(target_os = "macos")]
+fn max_chunk_input_tokens(base_prompt_tokens: u32) -> usize {
+    let usable = N_CTX as f64 - base_prompt_tokens as f64 - 48.0;
+    ((usable / 2.3).floor() as usize).max(128)
 }
 
 /// The model is English-only; running it over other languages corrupts them.
@@ -206,32 +278,68 @@ fn looks_like_file_token(token: &str) -> bool {
         .is_some_and(|(_, extension)| EXTENSIONS.contains(&extension))
 }
 
-fn validate_output(source: &str, candidate: &str) -> Option<String> {
+/// Validate one cleaned chunk against its raw source span (T3.4/T3.6).
+/// Returns the accepted text or a stable rejection reason.
+fn validate_output(source: &str, candidate: &str) -> Result<String, CleanupValidationReason> {
     let output = candidate.trim();
     if output.contains("<think>")
         || output.contains("```")
         || output
             .lines()
             .any(|line| line.trim_start().starts_with('#'))
-        || has_repetition_loop(output)
     {
-        return None;
+        return Err(CleanupValidationReason::ThinkTagLeakage);
+    }
+    if has_repetition_loop(output) {
+        return Err(CleanupValidationReason::RepetitionLoop);
     }
 
+    // Empty output is only meaningful for filler/noise-only speech (T3.6).
+    if output.is_empty() {
+        return if is_filler_only_source(source) {
+            Ok(String::new())
+        } else {
+            Err(CleanupValidationReason::EmptyForMeaningfulSpeech)
+        };
+    }
+
+    // Meaning-critical source tokens must survive cleanup, each class with
+    // its own reason code.
     let source_lower = source.to_lowercase();
     let output_lower = output.to_lowercase();
-    let required: HashSet<String> = source
-        .split_whitespace()
-        .filter_map(protected_token)
-        .collect();
-    if required.iter().any(|token| !output_lower.contains(token)) {
-        return None;
+    for token in source.split_whitespace().filter_map(protected_token) {
+        if !output_lower.contains(&token) {
+            let negation = matches!(
+                token.as_str(),
+                "not"
+                    | "never"
+                    | "no"
+                    | "don't"
+                    | "doesn't"
+                    | "can't"
+                    | "cannot"
+                    | "without"
+                    | "avoid"
+            );
+            let currency = token.contains('$') || token.contains('%');
+            return Err(if negation {
+                CleanupValidationReason::NegationChanged
+            } else if currency {
+                CleanupValidationReason::MissingCurrencyOrPercentage
+            } else if token.chars().any(|c| c.is_ascii_digit()) {
+                CleanupValidationReason::MissingNumericToken
+            } else if looks_like_file_token(&token) || token.contains('/') || token.contains('_') {
+                CleanupValidationReason::InventedIdentifier
+            } else {
+                CleanupValidationReason::ImplausibleTruncation
+            });
+        }
     }
 
     let source_words = source.split_whitespace().count();
     let output_words = output.split_whitespace().count();
     if source_words >= 20 && output_words * 100 < source_words * 45 {
-        return None;
+        return Err(CleanupValidationReason::ImplausibleTruncation);
     }
 
     let introduced_code = output
@@ -239,7 +347,28 @@ fn validate_output(source: &str, candidate: &str) -> Option<String> {
         .filter_map(protected_token)
         .filter(|token| looks_like_file_token(token) || token.contains('/') || token.contains('_'))
         .any(|token| !source_lower.contains(&token));
-    (!introduced_code).then(|| output.to_string())
+    if introduced_code {
+        return Err(CleanupValidationReason::InventedIdentifier);
+    }
+    Ok(output.to_string())
+}
+
+/// True when every word of `source` is a disfluency — the only case where an
+/// empty S1 result is a valid `Applied` outcome (T3.6).
+fn is_filler_only_source(source: &str) -> bool {
+    const FILLERS: &[&str] = &[
+        "um", "umm", "uhm", "uh", "uhh", "uhhh", "erm", "er", "ah", "ahh", "eh", "hmm", "hm",
+        "mmm", "mm", "mhm",
+    ];
+    let words: Vec<String> = source
+        .split_whitespace()
+        .map(|word| {
+            word.trim_matches(|c: char| !c.is_alphanumeric())
+                .to_lowercase()
+        })
+        .filter(|word| !word.is_empty())
+        .collect();
+    !words.is_empty() && words.iter().all(|word| FILLERS.contains(&word.as_str()))
 }
 
 fn has_repetition_loop(output: &str) -> bool {
@@ -650,7 +779,17 @@ fn fail_open_loop(mut rx: tokio::sync::mpsc::Receiver<Job>) {
     // No engine on this platform: fail open forever (READY is never set).
     while let Some(job) = rx.blocking_recv() {
         let Job::Normalize { reply, .. } = job;
-        let _ = reply.send(None);
+        let _ = reply.send(CleanupResult {
+            final_text: String::new(),
+            summary: CleanupOutcomeSummary {
+                run_id: 0,
+                lifecycle: CleanupLifecycle::Failed,
+                final_source: CleanupFinalSource::RawFallback,
+                failure_stage: Some(CleanupFailureStage::NotReady),
+                validation_reason: None,
+                metrics: CleanupRunMetrics::default(),
+            },
+        });
     }
 }
 
@@ -662,7 +801,7 @@ fn engine_loop(
 ) {
     use llama_cpp_2::llama_backend::LlamaBackend;
     use llama_cpp_2::model::params::LlamaModelParams;
-    use llama_cpp_2::model::LlamaModel;
+    use llama_cpp_2::model::{AddBos, LlamaModel};
 
     let backend = match LlamaBackend::init() {
         Ok(backend) => backend,
@@ -714,93 +853,100 @@ fn engine_loop(
         let received_at = Instant::now();
         let queue_wait_ms = received_at.duration_since(enqueued_at).as_secs_f64() * 1000.0;
         let started = StageTimer::start();
-        let chunks = chunk_transcript(&text);
-        let chunk_count = chunks.len();
-        let mut chunk_metrics: Vec<CleanupChunkMetrics> = Vec::with_capacity(chunk_count);
-        let outcome = match chunks {
-            chunks if chunks.is_empty() => Some(String::new()),
-            chunks => {
-                let mut results: Vec<String> = Vec::with_capacity(chunks.len());
-                let mut failed = false;
-                for (index, chunk) in chunks.iter().enumerate() {
-                    match generate(&mut context, &model, &build_prompt(chunk)) {
-                        Ok((cleaned, stats)) => {
-                            match validate_output(chunk, &cleaned) {
-                                Some(validated) => results.push(validated),
-                                None => {
-                                    warn!(
-                                        "S1-mini output failed fidelity validation; failing open"
-                                    );
-                                    failed = true;
-                                    break;
-                                }
+        let mut chunk_metrics: Vec<CleanupChunkMetrics> = Vec::new();
+        // T3.3: chunk limits derive from the model's own tokenizer, with the
+        // exact prompt overhead and worst-case output budget accounted for.
+        let base_prompt_tokens = model
+            .str_to_token(&build_prompt(""), AddBos::Never)
+            .map(|tokens| tokens.len())
+            .unwrap_or(0);
+        let max_input_tokens = max_chunk_input_tokens(base_prompt_tokens as u32);
+        let token_count = |sample: &str| -> usize {
+            model
+                .str_to_token(sample, AddBos::Never)
+                .map(|tokens| tokens.len())
+                .unwrap_or(usize::MAX)
+        };
+        let chunks = chunk_transcript_with(&text, token_count, max_input_tokens);
+
+        // T3.5: one failed chunk substitutes its source span and marks the
+        // run PartiallyApplied; accepted neighbor chunks survive assembly.
+        let mut any_failed = false;
+        let mut validation_reason: Option<CleanupValidationReason> = None;
+        let mut failure_stage: Option<CleanupFailureStage> = None;
+        let mut assembled: Vec<String> = Vec::with_capacity(chunks.len());
+        for (index, chunk) in chunks.iter().enumerate() {
+            match generate(&mut context, &model, &build_prompt(chunk)) {
+                Ok((cleaned, stats)) => {
+                    match validate_output(chunk, &cleaned) {
+                        Ok(validated) => assembled.push(validated),
+                        Err(reason) => {
+                            warn!(
+                                "S1-mini chunk {index} failed validation ({reason:?}); substituting source"
+                            );
+                            any_failed = true;
+                            if validation_reason.is_none() {
+                                validation_reason = Some(reason);
                             }
-                            chunk_metrics.push(CleanupChunkMetrics {
-                                chunk_index: index as u32,
-                                chunk_count: chunk_count as u32,
-                                queue_wait_ms,
-                                prompt_eval_ms: stats.prompt_eval_ms,
-                                generation_ms: stats.generation_ms,
-                                input_tokens: stats.input_tokens,
-                                output_tokens: stats.output_tokens,
-                                generated_tokens_per_second: if stats.generation_ms > 0.0 {
-                                    stats.output_tokens as f64 / (stats.generation_ms / 1000.0)
-                                } else {
-                                    0.0
-                                },
-                            });
-                        }
-                        Err(error) => {
-                            warn!("S1-mini generation failed; failing open: {error}");
-                            failed = true;
-                            break;
+                            failure_stage.get_or_insert(CleanupFailureStage::ValidationRejected);
+                            assembled.push(chunk.clone());
                         }
                     }
+                    chunk_metrics.push(CleanupChunkMetrics {
+                        chunk_index: index as u32,
+                        chunk_count: chunks.len() as u32,
+                        queue_wait_ms,
+                        prompt_eval_ms: stats.prompt_eval_ms,
+                        generation_ms: stats.generation_ms,
+                        input_tokens: stats.input_tokens,
+                        output_tokens: stats.output_tokens,
+                        generated_tokens_per_second: if stats.generation_ms > 0.0 {
+                            stats.output_tokens as f64 / (stats.generation_ms / 1000.0)
+                        } else {
+                            0.0
+                        },
+                    });
                 }
-                if failed {
-                    None
-                } else {
-                    Some(results.join("\n\n").trim().to_string())
+                Err(error) => {
+                    warn!(
+                        "S1-mini generation failed on chunk {index}; substituting source: {error}"
+                    );
+                    any_failed = true;
+                    failure_stage.get_or_insert(CleanupFailureStage::GenerationError);
+                    assembled.push(chunk.clone());
                 }
             }
-        };
+        }
         info!(
-            "S1-mini cleanup completed: {} chars in {} chunk(s), {:.2}s",
+            "S1-mini cleanup completed: {} chars in {} chunk(s), {:.2}s, failed_chunks={}",
             text.len(),
-            chunk_count,
-            started.elapsed_ms() / 1000.0
+            chunks.len(),
+            started.elapsed_ms() / 1000.0,
+            any_failed
         );
-        let result = match outcome {
-            Some(cleaned) => CleanupResult {
-                final_text: cleaned,
-                summary: CleanupOutcomeSummary {
-                    run_id,
-                    lifecycle: CleanupLifecycle::Applied,
-                    final_source: CleanupFinalSource::S1,
-                    failure_stage: None,
-                    validation_reason: None,
-                    metrics: CleanupRunMetrics {
-                        total_ms: started.elapsed_ms(),
-                        backend: CLEANUP_BACKEND.to_string(),
-                        chunks: chunk_metrics,
-                    },
+        // Chunk-local assembly (T3.5): accepted S1 chunks and substituted
+        // source chunks interleave in source order. Paragraph breaks only
+        // separate independently processed chunks.
+        let result = CleanupResult {
+            final_text: assembled.join("\n\n").trim().to_string(),
+            summary: CleanupOutcomeSummary {
+                run_id,
+                lifecycle: if any_failed {
+                    CleanupLifecycle::PartiallyApplied
+                } else {
+                    CleanupLifecycle::Applied
                 },
-            },
-            // Whole-run fallback stays until T3 makes it chunk-local; the raw
-            // source text is what the caller should paste in that case.
-            None => CleanupResult {
-                final_text: text,
-                summary: CleanupOutcomeSummary {
-                    run_id,
-                    lifecycle: CleanupLifecycle::Failed,
-                    final_source: CleanupFinalSource::RawFallback,
-                    failure_stage: Some(CleanupFailureStage::ValidationRejected),
-                    validation_reason: None,
-                    metrics: CleanupRunMetrics {
-                        total_ms: started.elapsed_ms(),
-                        backend: CLEANUP_BACKEND.to_string(),
-                        chunks: chunk_metrics,
-                    },
+                final_source: if any_failed {
+                    CleanupFinalSource::MixedChunkFallback
+                } else {
+                    CleanupFinalSource::S1
+                },
+                failure_stage,
+                validation_reason,
+                metrics: CleanupRunMetrics {
+                    total_ms: started.elapsed_ms(),
+                    backend: CLEANUP_BACKEND.to_string(),
+                    chunks: chunk_metrics,
                 },
             },
         };
@@ -940,29 +1086,58 @@ mod tests {
     fn prompt_matches_documented_format() {
         let prompt = build_prompt("hello world");
         assert!(prompt.starts_with("<|im_start|>system\nYou are a text normalizer"));
-        assert!(prompt.contains(CONTROL_LINE));
+        // T3.1/T3.2: the assembled control line is pinned to the trained
+        // contract — formal styling, lists structure, general context.
+        assert_eq!(
+            control_line(),
+            "[Styling: formal] [Structure: lists] [Context: general]"
+        );
+        assert!(prompt.contains(control_line()));
         assert!(prompt.ends_with("<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"));
     }
 
     #[test]
     fn short_input_is_one_chunk() {
-        assert_eq!(chunk_transcript("one two three"), vec!["one two three"]);
-        assert!(chunk_transcript("   ").is_empty());
+        let words = |s: &str| s.split_whitespace().count();
+        assert_eq!(
+            chunk_transcript_with("one two three", words, 500),
+            vec!["one two three"]
+        );
+        assert!(chunk_transcript_with("   ", words, 500).is_empty());
     }
 
     #[test]
     fn long_input_chunks_at_sentence_boundaries() {
         let sentence = "this is a moderately long sentence about testing. ";
         let text = sentence.repeat(400); // ~2800 words
-        let chunks = chunk_transcript(&text);
+        let chunks = chunk_transcript_with(&text, |s| s.split_whitespace().count(), 500);
         assert!(chunks.len() >= 4);
         for chunk in &chunks {
-            assert!(chunk.split_whitespace().count() <= MAX_CHUNK_WORDS);
+            assert!(chunk.split_whitespace().count() <= 500);
         }
         assert_eq!(
             chunks.join(" ").split_whitespace().count(),
             text.split_whitespace().count()
         );
+    }
+
+    #[test]
+    fn token_budget_never_exceeds_the_ceiling() {
+        // Token counter that over-counts (e.g. CJK or symbol-heavy speech):
+        // every produced chunk must respect the ceiling.
+        let expensive = |s: &str| s.chars().filter(|c| !c.is_whitespace()).count();
+        let text = "alpha beta gamma delta epsilon zeta eta theta. ".repeat(50);
+        for chunk in chunk_transcript_with(&text, expensive, 40) {
+            assert!(expensive(&chunk) <= 40, "chunk exceeded budget: {chunk}");
+        }
+    }
+
+    #[test]
+    fn max_chunk_input_tokens_leaves_output_headroom() {
+        let ceiling = max_chunk_input_tokens(60);
+        // Worst case must fit: input + prompt + 1.3×input + 32 ≤ N_CTX.
+        let worst = ceiling as f64 * 2.3 + 60.0 + 32.0;
+        assert!(worst <= N_CTX as f64, "ceiling {ceiling} overflows N_CTX");
     }
 
     #[test]
@@ -992,20 +1167,51 @@ mod tests {
         let candidate = "Please fix `src/payment.ts`:\n- Keep 12%\n- Update the API";
         assert_eq!(
             validate_output(source, candidate),
-            Some(candidate.to_string())
+            Ok(candidate.to_string())
         );
     }
 
     #[test]
-    fn output_validation_rejects_headings_and_invented_file_tokens() {
-        assert!(validate_output("fix the payment handler", "# Task\n\nFix the handler.").is_none());
-        assert!(validate_output("fix the payment handler", "Fix payment.ts.").is_none());
-        assert!(validate_output("do not change the handler", "Change the handler.").is_none());
-        assert!(validate_output(&"keep every detail ".repeat(30), "Keep the detail.").is_none());
+    fn output_validation_reports_exact_rejection_reasons() {
+        // Heading/template leakage.
+        assert_eq!(
+            validate_output("fix the payment handler", "# Task\n\nFix the handler."),
+            Err(CleanupValidationReason::ThinkTagLeakage)
+        );
+        // Invented code/path token.
+        assert_eq!(
+            validate_output("fix the payment handler", "Fix payment.ts."),
+            Err(CleanupValidationReason::InventedIdentifier)
+        );
+        // Lost negation.
+        assert_eq!(
+            validate_output(
+                "do not change the handler and never touch config",
+                "Change the handler and touch the config."
+            ),
+            Err(CleanupValidationReason::NegationChanged)
+        );
+        // Lost exact numeric token.
+        assert_eq!(
+            validate_output(
+                "the budget is 42 units for this project",
+                "The budget is 40 units."
+            ),
+            Err(CleanupValidationReason::MissingNumericToken)
+        );
+        // Implausible truncation.
+        assert!(matches!(
+            validate_output(&"keep every detail ".repeat(30), "Keep the detail."),
+            Err(CleanupValidationReason::ImplausibleTruncation)
+        ));
     }
 
     #[test]
-    fn output_validation_accepts_filler_only_empty_output() {
-        assert_eq!(validate_output("um uh", ""), Some(String::new()));
+    fn output_validation_accepts_filler_only_empty_output_and_rejects_meaningful_empties() {
+        assert_eq!(validate_output("um uh", ""), Ok(String::new()));
+        assert_eq!(
+            validate_output("please fix the login bug", ""),
+            Err(CleanupValidationReason::EmptyForMeaningfulSpeech)
+        );
     }
 }

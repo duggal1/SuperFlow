@@ -474,6 +474,7 @@ async fn process_transcription_output_with_context(
         if matches!(
             outcome.summary.lifecycle,
             crate::local_cleanup::metrics::CleanupLifecycle::Applied
+                | crate::local_cleanup::metrics::CleanupLifecycle::PartiallyApplied
         ) {
             // T2.5: technical vocabulary and token hygiene run after S1 so the
             // model never receives pre-rewritten prose.
