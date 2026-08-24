@@ -139,8 +139,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 title={t(section.labelKey)}
                 className={`flex w-full items-center gap-2.5 rounded-lg p-2 text-start text-sm font-normal tracking-tight transition-colors duration-150 ${
                   isActive
-                    ? "bg-surface-hover text-stone-50"
-                    : "text-stone-400 hover:bg-stone-900/60 hover:text-stone-200"
+                    ? "bg-stone-800 text-stone-50"
+                    : "text-stone-400 hover:bg-stone-850 hover:text-stone-200"
                 }`}
               >
                 <HugeiconsIcon

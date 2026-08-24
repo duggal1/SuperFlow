@@ -252,10 +252,10 @@ export const ModelsSettings: React.FC = () => {
       </div>
 
       {/* Search bar — filter the catalog by name or description */}
-      <label className="flex w-full items-center gap-2 rounded-lg bg-[#36322f] px-3 text-stone-400 transition-colors duration-150 hover:bg-stone-700 focus-within:bg-stone-700">
+      <label className="group flex w-full items-center gap-2 rounded-lg bg-stone-850 px-3 text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100 focus-within:bg-stone-800 focus-within:text-stone-100">
         <HugeiconsIcon
           icon={MagnifyingGlassIcon}
-          size={32}
+          size={18}
           className="shrink-0"
         />
         <input
@@ -263,7 +263,7 @@ export const ModelsSettings: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("settings.models.searchPlaceholder")}
-          className="min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-stone-100 outline-none ring-0 placeholder:text-text/40 focus:outline-none focus:ring-0"
+          className="min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-inherit outline-none ring-0 placeholder:text-stone-400 group-hover:placeholder:text-stone-100 group-focus-within:placeholder:text-stone-100 focus:outline-none focus:ring-0"
         />
       </label>
 
