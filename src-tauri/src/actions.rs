@@ -46,6 +46,7 @@ impl Drop for FinishGuard {
         // unregistering the cancel shortcut at trigger-key release happens
         // while this pipeline is still running.
         crate::escape_cancel::set_session_active(false);
+        crate::escape_cancel::set_hands_free_active(false);
         // The pipeline just freed its large transient buffers (captured PCM,
         // WAV copy, engine scratch); hand the cached pages back to the OS so
         // they don't sit in malloc arenas until they get swapped out (#1792).

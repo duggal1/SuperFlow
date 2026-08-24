@@ -55,7 +55,6 @@ enum HandsFreeAction {
     Passthrough,
     Start,
     Promote,
-    Finish,
     Ignore,
 }
 
@@ -76,8 +75,8 @@ fn classify_hands_free_event(
         };
     }
 
-    if binding_id == STANDARD_BINDING_ID && is_pressed && recording_is_hands_free {
-        HandsFreeAction::Finish
+    if binding_id == STANDARD_BINDING_ID && recording_is_hands_free {
+        HandsFreeAction::Ignore
     } else {
         HandsFreeAction::Passthrough
     }
@@ -185,6 +184,15 @@ impl TranscriptionCoordinator {
                                     pending_release = None;
                                     if matches!(stage, Stage::Idle) {
                                         start(&app, &mut stage, &binding_id, &hotkey_string);
+                                        if matches!(
+                                            stage,
+                                            Stage::Recording {
+                                                hands_free: true,
+                                                ..
+                                            }
+                                        ) {
+                                            crate::escape_cancel::set_hands_free_active(true);
+                                        }
                                     }
                                     continue;
                                 }
@@ -193,20 +201,8 @@ impl TranscriptionCoordinator {
                                     if let Stage::Recording { hands_free, .. } = &mut stage {
                                         *hands_free = true;
                                     }
+                                    crate::escape_cancel::set_hands_free_active(true);
                                     crate::overlay::show_hands_free_overlay(&app);
-                                    continue;
-                                }
-                                HandsFreeAction::Finish => {
-                                    pending_release = None;
-                                    if let Stage::Recording { binding_id, .. } = &stage {
-                                        let active_binding = binding_id.clone();
-                                        stop(
-                                            &app,
-                                            &mut stage,
-                                            &active_binding,
-                                            HANDS_FREE_BINDING_ID,
-                                        );
-                                    }
                                     continue;
                                 }
                                 HandsFreeAction::Ignore => continue,
@@ -274,6 +270,7 @@ impl TranscriptionCoordinator {
                             recording_was_active,
                         } => {
                             pending_release = None;
+                            crate::escape_cancel::set_hands_free_active(false);
                             // Don't reset during processing — wait for the pipeline to finish.
                             if !matches!(stage, Stage::Processing)
                                 && (recording_was_active
@@ -283,6 +280,7 @@ impl TranscriptionCoordinator {
                             }
                         }
                         Command::ProcessingFinished => {
+                            crate::escape_cancel::set_hands_free_active(false);
                             stage = Stage::Idle;
                         }
                         Command::CompleteHandsFree => {
@@ -376,6 +374,15 @@ fn start(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &s
 }
 
 fn stop(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &str) {
+    if matches!(
+        stage,
+        Stage::Recording {
+            hands_free: true,
+            ..
+        }
+    ) {
+        crate::escape_cancel::set_hands_free_active(false);
+    }
     let Some(action) = ACTION_MAP.get(binding_id) else {
         warn!("No action in ACTION_MAP for '{binding_id}'");
         return;
@@ -402,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn hands_free_releases_never_finish_the_recording() {
+    fn primary_key_events_never_finish_a_hands_free_recording() {
         assert_eq!(
             classify_hands_free_event(
                 HANDS_FREE_BINDING_ID,
@@ -414,15 +421,11 @@ mod tests {
         );
         assert_eq!(
             classify_hands_free_event(STANDARD_BINDING_ID, false, Some(STANDARD_BINDING_ID), true),
-            HandsFreeAction::Passthrough
+            HandsFreeAction::Ignore
         );
-    }
-
-    #[test]
-    fn standard_press_finishes_a_hands_free_recording() {
         assert_eq!(
             classify_hands_free_event(STANDARD_BINDING_ID, true, Some(STANDARD_BINDING_ID), true),
-            HandsFreeAction::Finish
+            HandsFreeAction::Ignore
         );
     }
 

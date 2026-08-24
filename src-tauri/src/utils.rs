@@ -111,6 +111,7 @@ pub fn cancel_current_operation(app: &AppHandle) {
         return;
     }
     LAST_CANCEL_MS.store(now, std::sync::atomic::Ordering::Relaxed);
+    crate::escape_cancel::set_hands_free_active(false);
 
     info!("Initiating operation cancellation...");
 

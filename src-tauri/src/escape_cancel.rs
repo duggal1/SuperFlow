@@ -12,6 +12,9 @@
 //! cannot even be registered through the Tauri global-shortcut backend ("fn"
 //! is invisible to it).
 //!
+//! The same tap finishes a latched hands-free transcription when Control is
+//! pressed after the Control used to start the chord has first been released.
+//!
 //! One listen-only session-level CGEventTap lives for the whole app lifetime
 //! (the app already requires Accessibility permission for paste injection);
 //! [`set_session_active`] merely gates what the callback does, so arming and
@@ -24,12 +27,15 @@ mod imp {
     use log::{error, info, warn};
     use std::collections::HashSet;
     use std::ffi::c_void;
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
     use std::sync::{LazyLock, Mutex, OnceLock};
     use tauri::{AppHandle, Manager};
 
     /// Escape keycode on macOS (kVK_Escape).
     const KVK_ESCAPE: i64 = 53;
+    /// Left and right Control keycodes on macOS.
+    const KVK_CONTROL: i64 = 59;
+    const KVK_RIGHT_CONTROL: i64 = 62;
     /// CGEventType values we care about.
     const KEY_DOWN: u32 = 10;
     const KEY_UP: u32 = 11;
@@ -40,8 +46,13 @@ mod imp {
     /// arrives as an ordinary keycode keydown on internal keyboards; it only
     /// shows up here (and as keycode-63 flagsChanged events).
     const FLAG_SECONDARY_FN: i64 = 0x0080_0000;
+    const FLAG_CONTROL: i64 = 0x0004_0000;
+    const CONTROL_INACTIVE: u8 = 0;
+    const CONTROL_WAITING_FOR_RELEASE: u8 = 1;
+    const CONTROL_READY: u8 = 2;
 
     static SESSION_ACTIVE: AtomicBool = AtomicBool::new(false);
+    static HANDS_FREE_CONTROL_GATE: AtomicU8 = AtomicU8::new(CONTROL_INACTIVE);
     static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
     /// Keycodes currently physically held, tracked from keyDown/keyUp/
     /// flagsChanged so the callback can tell a bare Escape from the
@@ -80,6 +91,7 @@ mod imp {
         fn CGEventTapEnable(tap: Cfmachportref, enable: bool);
         fn CGEventGetIntegerValueField(event: Cgeventref, field: u32) -> i64;
         fn CGEventGetFlags(event: Cgeventref) -> i64;
+        fn CGEventSourceKeyState(state_id: i32, key: u16) -> bool;
     }
 
     #[link(name = "CoreFoundation", kind = "framework")]
@@ -107,6 +119,34 @@ mod imp {
         static kCFRunLoopCommonModes: *const c_void;
     }
 
+    fn control_gate_transition(state: u8, control_is_down: bool) -> (u8, bool) {
+        match (state, control_is_down) {
+            (CONTROL_WAITING_FOR_RELEASE, false) => (CONTROL_READY, false),
+            (CONTROL_READY, true) => (CONTROL_WAITING_FOR_RELEASE, true),
+            (CONTROL_INACTIVE, _) => (CONTROL_INACTIVE, false),
+            _ => (state, false),
+        }
+    }
+
+    fn update_control_gate(control_is_down: bool) -> bool {
+        let mut state = HANDS_FREE_CONTROL_GATE.load(Ordering::SeqCst);
+        loop {
+            let (next, should_complete) = control_gate_transition(state, control_is_down);
+            if next == state {
+                return false;
+            }
+            match HANDS_FREE_CONTROL_GATE.compare_exchange(
+                state,
+                next,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => return should_complete,
+                Err(current) => state = current,
+            }
+        }
+    }
+
     unsafe extern "C-unwind" fn escape_tap_callback(
         _proxy: *mut c_void,
         event_type: u32,
@@ -130,12 +170,27 @@ mod imp {
         // Maintain the held-key map. flagsChanged events carry the modifier's
         // keycode (fn = 63, cmd = 54, …) with flags telling pressed vs released.
         if event_type == KEY_UP || event_type == FLAGS_CHANGED {
-            let down = event_type == KEY_DOWN || CGEventGetFlags(event) & 0x00FF_0000 != 0;
+            let flags = CGEventGetFlags(event);
+            let down = event_type == KEY_DOWN || flags & 0x00FF_0000 != 0;
             if let Ok(mut keys) = DOWN_KEYS.lock() {
                 if down {
                     keys.insert(keycode);
                 } else {
                     keys.remove(&keycode);
+                }
+            }
+
+            if event_type == FLAGS_CHANGED && matches!(keycode, KVK_CONTROL | KVK_RIGHT_CONTROL) {
+                let control_is_down = flags & FLAG_CONTROL != 0;
+                if update_control_gate(control_is_down) {
+                    if let Some(app) = APP_HANDLE.get() {
+                        info!("Control pressed during hands-free transcription — finishing");
+                        if let Some(coordinator) =
+                            app.try_state::<crate::TranscriptionCoordinator>()
+                        {
+                            coordinator.complete_hands_free();
+                        }
+                    }
                 }
             }
             return std::ptr::null_mut();
@@ -241,15 +296,70 @@ mod imp {
     pub fn set_session_active(active: bool) {
         SESSION_ACTIVE.store(active, Ordering::Relaxed);
     }
+
+    pub fn set_hands_free_active(active: bool) {
+        let state = if active {
+            let control_is_down = unsafe {
+                CGEventSourceKeyState(1, KVK_CONTROL as u16)
+                    || CGEventSourceKeyState(1, KVK_RIGHT_CONTROL as u16)
+            };
+            if control_is_down {
+                CONTROL_WAITING_FOR_RELEASE
+            } else {
+                CONTROL_READY
+            }
+        } else {
+            CONTROL_INACTIVE
+        };
+        HANDS_FREE_CONTROL_GATE.store(state, Ordering::SeqCst);
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn control_used_to_start_hands_free_must_be_released_before_completion() {
+            assert_eq!(
+                control_gate_transition(CONTROL_WAITING_FOR_RELEASE, true),
+                (CONTROL_WAITING_FOR_RELEASE, false)
+            );
+            assert_eq!(
+                control_gate_transition(CONTROL_WAITING_FOR_RELEASE, false),
+                (CONTROL_READY, false)
+            );
+            assert_eq!(
+                control_gate_transition(CONTROL_READY, true),
+                (CONTROL_WAITING_FOR_RELEASE, true)
+            );
+        }
+
+        #[test]
+        fn control_gate_ignores_inactive_and_repeated_events() {
+            assert_eq!(
+                control_gate_transition(CONTROL_INACTIVE, true),
+                (CONTROL_INACTIVE, false)
+            );
+            assert_eq!(
+                control_gate_transition(CONTROL_READY, false),
+                (CONTROL_READY, false)
+            );
+            assert_eq!(
+                control_gate_transition(CONTROL_WAITING_FOR_RELEASE, true),
+                (CONTROL_WAITING_FOR_RELEASE, false)
+            );
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
-pub use imp::{init, set_session_active};
+pub use imp::{init, set_hands_free_active, set_session_active};
 
 #[cfg(not(target_os = "macos"))]
 pub mod imp_stub {
     pub fn init(_app: &tauri::AppHandle) {}
     pub fn set_session_active(_active: bool) {}
+    pub fn set_hands_free_active(_active: bool) {}
 }
 #[cfg(not(target_os = "macos"))]
-pub use imp_stub::{init, set_session_active};
+pub use imp_stub::{init, set_hands_free_active, set_session_active};

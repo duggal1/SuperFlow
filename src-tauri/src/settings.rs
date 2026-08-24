@@ -1095,8 +1095,9 @@ pub fn get_default_settings() -> AppSettings {
         ShortcutBinding {
             id: "hands_free_transcribe".to_string(),
             name: "Hands-Free Transcription".to_string(),
-            description: "Start a latched transcription you can finish from the pill or your regular shortcut."
-                .to_string(),
+            description:
+                "Start a latched transcription you can finish from the pill or the Control key."
+                    .to_string(),
             default_binding: default_hands_free_shortcut.clone(),
             current_binding: default_hands_free_shortcut,
         },

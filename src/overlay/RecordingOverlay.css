@@ -65,7 +65,7 @@
      since the card is anchored flush to the screen edge in CSS. Keep overlay.rs
      in sync when these change. */
   --ov-rest-w: 140px; /* resting compact pill: controls + waveform + clean gaps */
-  --ov-pill-w: 184px; /* base width / Live pill before it opens or collapses */
+  --ov-pill-w: 144px; /* resting Live pill: no unused space beyond its row */
   --ov-work-w: 216px; /* working pill (transcribing / polishing) -- wide enough to
                          center longer labels; shared by Live (collapsed) + minimal */
   --ov-open-w: 392px; /* Live panel, expanded */
