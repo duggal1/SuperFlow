@@ -735,6 +735,7 @@
     "copy": "Copy",
     "copied": "Copied",
     "transcriptionCanceled": "Transcription canceled",
+    "canceled": "Canceled",
     "undo": "Undo"
   },
   "secureInput": {

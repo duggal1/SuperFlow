@@ -589,6 +589,11 @@
   color: var(--s-muted);
   user-select: none;
 }
+.scancel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 /* Quiet ghost Undo — same geometry family as the result card's Copy button
    (h-28, 7.5px radius) without the loud gradient treatment. */
 .sundo {

@@ -502,18 +502,21 @@ const RecordingOverlay: React.FC = () => {
               : { ...dialogShown, transition: dialogTransition }
           }
         >
-          <span className="scancel-label">
-            {t("overlay.transcriptionCanceled")}
-          </span>
-          {cancelToastCanUndo && (
-            <button
-              type="button"
-              className="sundo"
-              onClick={() => void handleUndoCancel()}
-            >
-              {t("overlay.undo")}
-            </button>
-          )}
+          <span className="scancel-label">{t("overlay.transcript")}</span>
+          <div className="scancel-actions">
+            <Badge variant="rose" className="rounded-[7px] text-[12px]">
+              {t("overlay.canceled")}
+            </Badge>
+            {cancelToastCanUndo && (
+              <button
+                type="button"
+                className="sundo"
+                onClick={() => void handleUndoCancel()}
+              >
+                {t("overlay.undo")}
+              </button>
+            )}
+          </div>
         </motion.div>
       </div>
     );
