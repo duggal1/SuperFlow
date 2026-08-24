@@ -18,12 +18,9 @@ use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, Emitter, Manager};
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
     self, get_settings, AutoSubmitKey, ClipboardHandling, KeyboardImplementation, LLMPrompt,
     OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding, SoundTheme, Theme, TypingTool,
-    APPLE_INTELLIGENCE_PROVIDER_ID,
 };
 use crate::tray;
 
@@ -1200,18 +1197,6 @@ pub async fn fetch_post_process_models(
         .iter()
         .find(|p| p.id == provider_id)
         .ok_or_else(|| format!("Provider '{}' not found", provider_id))?;
-
-    if provider.id == APPLE_INTELLIGENCE_PROVIDER_ID {
-        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-        {
-            return Ok(vec![APPLE_INTELLIGENCE_DEFAULT_MODEL_ID.to_string()]);
-        }
-
-        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-        {
-            return Err("Apple Intelligence is only available on Apple silicon Macs running macOS 15 or later.".to_string());
-        }
-    }
 
     // Get API key
     let api_key = settings

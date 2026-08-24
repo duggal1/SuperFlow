@@ -1,7 +1,5 @@
 mod actions;
 mod ai_cleanup;
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-mod apple_intelligence;
 mod audio_feedback;
 pub mod audio_toolkit;
 mod autostart;
@@ -864,7 +862,6 @@ pub fn run(cli_args: CliArgs) {
             commands::open_recordings_folder,
             commands::open_log_dir,
             commands::open_app_data_dir,
-            commands::check_apple_intelligence_available,
             commands::initialize_enigo,
             commands::initialize_shortcuts,
             commands::models::get_available_models,

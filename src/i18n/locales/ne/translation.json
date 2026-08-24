@@ -402,7 +402,7 @@
       },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
-        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
+        "description": "Uses bounded visible context to compose messages in Gmail and Slack and execution-ready prompts in terminals and code editors."
       }
     },
     "postProcessing": {
@@ -414,9 +414,6 @@
         "provider": {
           "title": "प्रदायक",
           "description": "OpenAI-अनुकूल प्रदायक चयन गर्नुहोस्।"
-        },
-        "appleIntelligence": {
-          "unavailable": "यो डिभाइसमा Apple Intelligence उपलब्ध छैन। macOS Tahoe (26.0) वा पछिको संस्करण चलिरहेको र System Settings मा Apple Intelligence सक्षम गरिएको Apple Silicon Mac आवश्यक छ।"
         },
         "baseUrl": {
           "title": "आधार URL",

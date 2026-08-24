@@ -402,7 +402,7 @@
       },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
-        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
+        "description": "Uses bounded visible context to compose messages in Gmail and Slack and execution-ready prompts in terminals and code editors."
       }
     },
     "postProcessing": {
@@ -414,9 +414,6 @@
         "provider": {
           "title": "Poskytovatel",
           "description": "Vyberte poskytovatele kompatibilního s OpenAI."
-        },
-        "appleIntelligence": {
-          "unavailable": "Apple Intelligence není na tomto zařízení k dispozici. Vyžaduje Mac s Apple Silicon a macOS Tahoe (26.0) nebo novější a povolené Apple Intelligence v Nastavení systému."
         },
         "baseUrl": {
           "title": "Základní URL",

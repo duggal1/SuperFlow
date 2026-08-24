@@ -402,7 +402,7 @@
       },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
-        "description": "When dictating into Gmail, Slack, a terminal or a code editor with this on, what you say is interpreted using the app's visible context (Apple Intelligence on-device first; no audio or transcript leaves your machine for the on-device path)."
+        "description": "Uses bounded visible context to compose messages in Gmail and Slack and execution-ready prompts in terminals and code editors."
       }
     },
     "postProcessing": {
@@ -414,9 +414,6 @@
         "provider": {
           "title": "供應商",
           "description": "選擇一個相容 OpenAI 的供應商"
-        },
-        "appleIntelligence": {
-          "unavailable": "Apple Intelligence 在此裝置上不可用。需要執行 macOS Tahoe（26.0）或更高版本的 Apple Silicon Mac，並在系統設定中啟用 Apple Intelligence"
         },
         "baseUrl": {
           "title": "基礎網址",

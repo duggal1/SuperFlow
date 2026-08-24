@@ -6,8 +6,8 @@
 //! - N worker panes (batches of up to 8 per visible page/grid),
 //! - one extra BRAIN supervisor pane when a count was spoken (the last one),
 //! - each pane boots the chosen agent CLI (`claude` | `codex` | `opencode`),
-//! - Apple Intelligence (on-device) splits the spoken mission into one brief
-//!   per worker; the brain receives the full mission + roster,
+//! - each worker receives the faithful spoken mission; the brain receives the
+//!   same mission plus the worker roster,
 //! - sessions attach to Ghostty tabs (Terminal.app fallback).
 //!
 //! Mechanism ported from the proven Terminal-kit (`sp`) tmux surface: real

@@ -8,9 +8,6 @@ use std::fmt;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
-pub const APPLE_INTELLIGENCE_PROVIDER_ID: &str = "apple_intelligence";
-pub const APPLE_INTELLIGENCE_DEFAULT_MODEL_ID: &str = "Apple Intelligence";
-
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
@@ -783,22 +780,6 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         },
     ];
 
-    // Note: We always include Apple Intelligence on macOS ARM64 without checking availability
-    // at startup. The availability check is deferred to when the user actually tries to use it
-    // (in actions.rs). This prevents crashes on macOS 26.x beta where accessing
-    // SystemLanguageModel.default during early app initialization causes SIGABRT.
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    {
-        providers.push(PostProcessProvider {
-            id: APPLE_INTELLIGENCE_PROVIDER_ID.to_string(),
-            label: "Apple Intelligence".to_string(),
-            base_url: "apple-intelligence://local".to_string(),
-            allow_base_url_edit: false,
-            models_endpoint: None,
-            supports_structured_output: true,
-        });
-    }
-
     // AWS Bedrock via Mantle (OpenAI-compatible endpoint)
     providers.push(PostProcessProvider {
         id: "bedrock_mantle".to_string(),
@@ -830,10 +811,7 @@ fn default_post_process_api_keys() -> SecretMap {
     SecretMap(map)
 }
 
-fn default_model_for_provider(provider_id: &str) -> String {
-    if provider_id == APPLE_INTELLIGENCE_PROVIDER_ID {
-        return APPLE_INTELLIGENCE_DEFAULT_MODEL_ID.to_string();
-    }
+fn default_model_for_provider(_provider_id: &str) -> String {
     String::new()
 }
 
@@ -907,6 +885,33 @@ pub static BUILTIN_TONE_PROMPTS: Lazy<Vec<LLMPrompt>> = Lazy::new(|| {
 
 fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     let mut changed = false;
+    const RETIRED_PROVIDER_ID: &str = "apple_intelligence";
+
+    let provider_count = settings.post_process_providers.len();
+    settings
+        .post_process_providers
+        .retain(|provider| provider.id != RETIRED_PROVIDER_ID);
+    if settings.post_process_providers.len() != provider_count {
+        changed = true;
+    }
+    if settings
+        .post_process_api_keys
+        .remove(RETIRED_PROVIDER_ID)
+        .is_some()
+    {
+        changed = true;
+    }
+    if settings
+        .post_process_models
+        .remove(RETIRED_PROVIDER_ID)
+        .is_some()
+    {
+        changed = true;
+    }
+    if settings.post_process_provider_id == RETIRED_PROVIDER_ID {
+        settings.post_process_provider_id = default_post_process_provider_id();
+        changed = true;
+    }
 
     // Seed built-in tone presets (and re-seed the stock cleanup prompt) for
     // users whose store predates them. Existing user edits win: an entry with
@@ -1785,5 +1790,38 @@ mod tests {
         let out = format!("{:?}", map);
         assert!(!out.contains("secret"));
         assert!(out.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn retired_native_provider_is_removed_from_stored_settings() {
+        let mut settings = get_default_settings();
+        settings.post_process_provider_id = "apple_intelligence".into();
+        settings.post_process_providers.push(PostProcessProvider {
+            id: "apple_intelligence".into(),
+            label: "Retired native provider".into(),
+            base_url: "retired://local".into(),
+            allow_base_url_edit: false,
+            models_endpoint: None,
+            supports_structured_output: true,
+        });
+        settings
+            .post_process_api_keys
+            .insert("apple_intelligence".into(), "legacy".into());
+        settings
+            .post_process_models
+            .insert("apple_intelligence".into(), "legacy".into());
+
+        assert!(ensure_post_process_defaults(&mut settings));
+        assert_eq!(settings.post_process_provider_id, "openai");
+        assert!(settings
+            .post_process_providers
+            .iter()
+            .all(|provider| provider.id != "apple_intelligence"));
+        assert!(!settings
+            .post_process_api_keys
+            .contains_key("apple_intelligence"));
+        assert!(!settings
+            .post_process_models
+            .contains_key("apple_intelligence"));
     }
 }

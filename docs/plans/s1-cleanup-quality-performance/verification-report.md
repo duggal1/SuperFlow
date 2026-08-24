@@ -23,7 +23,7 @@ Release decision: **NO-GO pending live application soak and UI smoke**
 | Real M1 quality sanity check             | pass                            | raw lowercase ASR normalized without random uppercase; pre-corrupted uppercase remained uppercase, confirming T2 ordering is required |
 | Accelerated 30-minute model replay       | pass with evidence boundary     | 22 background spans; 60-word tail completed in 1.122 s; protected invariants passed                                                   |
 | Developer-context routing                | pass                            | terminal/editor prompts now use bounded visible, project, branch, tracked-change, and repository-instruction metadata                 |
-| Local developer fallback                 | pass                            | Apple Intelligence is unavailable on this Mac; context packaging still produces a faithful Claude Code-ready prompt without a cloud model |
+| Local developer fallback                 | pass                            | context packaging produces a faithful Claude Code-ready prompt without requiring a cloud model                                         |
 
 ## Known repository-wide gate failures
 

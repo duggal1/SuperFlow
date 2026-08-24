@@ -1,7 +1,6 @@
-//! Provider routing for awareness composition: Apple Intelligence first,
-//! configured cloud provider (Gemini/OpenAI-compatible) as fallback.
+//! Provider routing for awareness composition through the configured provider,
+//! with a guaranteed local developer-context fallback.
 
-use crate::apple_intelligence;
 use crate::llm_client;
 use crate::settings::AppSettings;
 
@@ -9,9 +8,6 @@ use super::prompt::{build_context_prompts, build_local_developer_prompt};
 use super::validation::accept_model_output;
 use crate::context::developer::DeveloperContext;
 use crate::context::types::ContextSnapshot;
-
-const APPLE_MAX_TOKENS: i32 = 1024;
-const APPLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(12);
 
 #[derive(Debug)]
 pub enum AwarenessOutcome {
@@ -35,39 +31,6 @@ pub async fn compose_aware_reply(
     else {
         return AwarenessOutcome::Skipped("not_an_aware_context");
     };
-
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    if apple_intelligence::check_apple_intelligence_availability() {
-        let apple_user = user.clone();
-        let apple_system = system.clone();
-        let task = tokio::task::spawn_blocking(move || {
-            apple_intelligence::process_text_with_system_prompt(
-                &apple_system,
-                &apple_user,
-                APPLE_MAX_TOKENS,
-            )
-        });
-        let attempt = tokio::time::timeout(APPLE_TIMEOUT, task).await;
-
-        match attempt {
-            Ok(Ok(Ok(text))) if !text.trim().is_empty() => {
-                if let Some(validated) = accept_model_output(transcript, &text) {
-                    return AwarenessOutcome::Composed(validated);
-                }
-                log::warn!("Apple Intelligence compose output failed validation");
-            }
-            Ok(Ok(Err(e))) => {
-                log::warn!("Apple Intelligence compose failed, falling back: {e}");
-            }
-            Ok(Ok(Ok(_))) => {
-                log::warn!("Apple Intelligence returned empty output, falling back");
-            }
-            Ok(Err(e)) => {
-                log::warn!("Apple Intelligence task join failed, falling back: {e}");
-            }
-            Err(_) => log::warn!("Apple Intelligence compose timed out, falling back"),
-        }
-    }
 
     let cloud = cloud_fallback(settings, &system, &user, transcript).await;
     if matches!(
