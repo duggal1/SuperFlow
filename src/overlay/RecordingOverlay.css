@@ -324,6 +324,20 @@
   grid-template-columns: minmax(22px, 1fr) auto minmax(22px, 1fr);
   align-items: center;
 }
+/* Keep the resting pill compact without disturbing the expanded panel's
+   symmetrical timer layout. */
+.scard:not(.open):not(.working) .sbase {
+  grid-template-columns: 22px auto 22px;
+  column-gap: 8px;
+  justify-content: center;
+}
+.scard:not(.open):not(.working) .sbase-l {
+  padding-left: 0;
+  justify-self: center;
+}
+.scard:not(.open):not(.working) .swave {
+  padding-right: 0;
+}
 .sbase-l {
   display: flex;
   padding-left: 5px;
