@@ -1,6 +1,5 @@
 mod actions;
 mod ai_cleanup;
-mod local_cleanup;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
@@ -19,6 +18,7 @@ mod helpers;
 mod input;
 mod intelligence;
 mod llm_client;
+mod local_cleanup;
 mod managers;
 mod memory;
 mod overlay;
@@ -918,6 +918,7 @@ pub fn run(cli_args: CliArgs) {
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
+            local_cleanup::metrics::CleanupRunStatusEvent,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

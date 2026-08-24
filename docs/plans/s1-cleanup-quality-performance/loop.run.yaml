@@ -1,0 +1,12 @@
+prompt: >-
+  Produce an implementation-ready plan to eliminate global deterministic grammar,
+  punctuation, and unsafe common-word canonicalization; make S1-mini cleanup
+  observable and reliable; process long streaming transcripts incrementally; and
+  minimize stop-to-paste latency on an Apple M1 MacBook Air with 8 GB unified
+  memory without sacrificing transcript fidelity.
+repo: .
+plan_file: ./docs/plans/s1-cleanup-quality-performance/plan.md
+tasks_file: ./docs/plans/s1-cleanup-quality-performance/tasks.json
+pr_loc: "100-400"
+sandbox_root: ./docs/plans/s1-cleanup-quality-performance
+budget: 5

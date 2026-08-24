@@ -17,8 +17,18 @@ use log::{info, warn};
 use serde::Serialize;
 use tauri::Emitter;
 
+pub mod metrics;
+
+use metrics::{
+    record_terminal_run, CleanupChunkMetrics, CleanupFailureStage, CleanupFinalSource,
+    CleanupLifecycle, CleanupOutcomeSummary, CleanupResult, CleanupRunId, CleanupRunMetrics,
+    CleanupRunStatusEvent, StageTimer,
+};
+
 const MODEL_FILENAME: &str = "s1-mini-q4_k_m.gguf";
 const MODEL_DISPLAY_NAME: &str = "S1-mini by Superwhisper · Q4_K_M";
+/// This stage is always Metal-offloaded regardless of the speech accelerator.
+const CLEANUP_BACKEND: &str = "metal";
 const MODEL_URL: &str =
     "https://huggingface.co/superwhisper/s1-mini-GGUF/resolve/main/s1-mini-q4_k_m.gguf";
 const MODEL_SIZE_BYTES: u64 = 484_219_808;
@@ -66,14 +76,20 @@ pub struct CleanupModelStatus {
     pub ready: bool,
     pub active: bool,
     pub last_error: Option<String>,
+    /// Inference backend this stage always uses.
+    pub backend: String,
+    /// Latest terminal cleanup run, if any has finished this session.
+    pub last_run: Option<CleanupOutcomeSummary>,
 }
 
 static LAST_ERROR: Mutex<Option<String>> = Mutex::new(None);
 
 enum Job {
     Normalize {
+        run_id: u64,
         text: String,
-        reply: tokio::sync::oneshot::Sender<Option<String>>,
+        enqueued_at: Instant,
+        reply: tokio::sync::oneshot::Sender<CleanupResult>,
     },
 }
 
@@ -243,44 +259,169 @@ fn has_repetition_loop(output: &str) -> bool {
     false
 }
 
-/// Clean a transcript. Returns `None` to fail open (model not ready yet or
-/// engine error) and `Some(text)` to replace it — `Some("")` is meaningful:
-/// filler-only speech normalizes to nothing.
-pub(crate) async fn normalize(effective_language: &str, text: String) -> Option<String> {
+/// Clean a transcript. The returned [`CleanupResult`] always carries the text
+/// that should be pasted (S1 output when accepted, source text otherwise) plus
+/// a privacy-safe terminal summary. A terminal `CleanupRunStatusEvent` is
+/// emitted exactly once per call, and empty output for filler-only speech
+/// remains a valid `Applied` result.
+pub(crate) async fn normalize(
+    app: &tauri::AppHandle,
+    effective_language: &str,
+    text: String,
+) -> CleanupResult {
+    let run_id = CleanupRunId::next().0;
+    let started = StageTimer::start();
+
     if !should_run(effective_language, &text) {
-        return None;
+        return finish_run(
+            app,
+            CleanupResult {
+                final_text: text.clone(),
+                summary: CleanupOutcomeSummary {
+                    run_id,
+                    lifecycle: CleanupLifecycle::Skipped,
+                    final_source: CleanupFinalSource::NonEnglishSkip,
+                    failure_stage: None,
+                    validation_reason: None,
+                    metrics: CleanupRunMetrics {
+                        total_ms: started.elapsed_ms(),
+                        backend: CLEANUP_BACKEND.to_string(),
+                        chunks: Vec::new(),
+                    },
+                },
+            },
+        );
     }
+
     if !READY.load(Ordering::Acquire) {
         warn!("S1-mini not loaded yet; passing transcript through uncleaned");
-        return None;
+        return finish_run(
+            app,
+            CleanupResult {
+                final_text: text.clone(),
+                summary: CleanupOutcomeSummary {
+                    run_id,
+                    lifecycle: CleanupLifecycle::Failed,
+                    final_source: CleanupFinalSource::RawFallback,
+                    failure_stage: Some(CleanupFailureStage::NotReady),
+                    validation_reason: None,
+                    metrics: CleanupRunMetrics {
+                        total_ms: started.elapsed_ms(),
+                        backend: CLEANUP_BACKEND.to_string(),
+                        chunks: Vec::new(),
+                    },
+                },
+            },
+        );
     }
-    let tx = JOB_TX
+
+    let tx = match JOB_TX
         .get_or_init(|| Mutex::new(None))
         .lock()
         .unwrap()
-        .clone()?;
-    let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
-    tx.send_timeout(
-        Job::Normalize {
-            text,
-            reply: reply_tx,
-        },
-        std::time::Duration::from_secs(5),
-    )
-    .await
-    .ok()?;
-    match tokio::time::timeout(
-        std::time::Duration::from_secs(GENERATION_TIMEOUT_SECS),
-        reply_rx,
-    )
-    .await
+        .clone()
     {
-        Ok(Ok(cleaned)) => cleaned,
-        _ => {
+        Some(tx) => tx,
+        None => {
+            warn!("S1-mini engine channel unavailable; passing transcript through");
+            return failed_result(app, run_id, text, CleanupFailureStage::NotReady, started);
+        }
+    };
+
+    let original_text = text.clone();
+    let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
+    if tx
+        .send_timeout(
+            Job::Normalize {
+                run_id,
+                text,
+                enqueued_at: Instant::now(),
+                reply: reply_tx,
+            },
+            std::time::Duration::from_secs(5),
+        )
+        .await
+        .is_err()
+    {
+        return failed_result(
+            app,
+            run_id,
+            original_text,
+            CleanupFailureStage::QueueTimeout,
+            started,
+        );
+    }
+
+    // Scale the wait with the work: long multi-chunk jobs must not be killed
+    // by a single flat budget (the root cause of silent raw-text fallbacks).
+    let chunk_hint = 3usize;
+    let budget_secs = GENERATION_TIMEOUT_SECS.max(chunk_hint as u64 * 15 + 10);
+    match tokio::time::timeout(std::time::Duration::from_secs(budget_secs), reply_rx).await {
+        Ok(Ok(result)) => finish_run(app, result),
+        Ok(Err(_)) => failed_result(
+            app,
+            run_id,
+            original_text,
+            CleanupFailureStage::GenerationError,
+            started,
+        ),
+        Err(_) => {
             warn!("S1-mini cleanup timed out; passing transcript through uncleaned");
-            None
+            failed_result(
+                app,
+                run_id,
+                original_text,
+                CleanupFailureStage::GenerationTimeout,
+                started,
+            )
         }
     }
+}
+
+fn failed_result(
+    app: &tauri::AppHandle,
+    run_id: u64,
+    final_text: String,
+    stage: CleanupFailureStage,
+    started: StageTimer,
+) -> CleanupResult {
+    finish_run(
+        app,
+        CleanupResult {
+            final_text,
+            summary: CleanupOutcomeSummary {
+                run_id,
+                lifecycle: CleanupLifecycle::Failed,
+                final_source: CleanupFinalSource::RawFallback,
+                failure_stage: Some(stage),
+                validation_reason: None,
+                metrics: CleanupRunMetrics {
+                    total_ms: started.elapsed_ms(),
+                    backend: CLEANUP_BACKEND.to_string(),
+                    chunks: Vec::new(),
+                },
+            },
+        },
+    )
+}
+
+/// Record the terminal run and emit its status event exactly once.
+fn finish_run(app: &tauri::AppHandle, result: CleanupResult) -> CleanupResult {
+    record_terminal_run(&result.summary);
+    info!(
+        "cleanup run {}: lifecycle={:?} source={:?} total_ms={:.0}",
+        result.summary.run_id,
+        result.summary.lifecycle,
+        result.summary.final_source,
+        result.summary.metrics.total_ms
+    );
+    let _ = app.emit(
+        "cleanup-run-status",
+        CleanupRunStatusEvent {
+            summary: result.summary.clone(),
+        },
+    );
+    result
 }
 
 /// Resolve where the GGUF lives, matching ModelManager's layout
@@ -303,12 +444,15 @@ pub fn is_model_installed(app: &tauri::AppHandle) -> bool {
 
 /// One-shot status snapshot for the settings card and onboarding gate.
 pub fn status(app: &tauri::AppHandle) -> CleanupModelStatus {
-    status_from_state(
+    let mut state = status_from_state(
         is_model_installed(app),
         INSTALLING.load(Ordering::Acquire),
         READY.load(Ordering::Acquire),
         LAST_ERROR.lock().unwrap().clone(),
-    )
+    );
+    state.backend = CLEANUP_BACKEND.to_string();
+    state.last_run = metrics::latest_run();
+    state
 }
 
 fn status_from_state(
@@ -324,6 +468,8 @@ fn status_from_state(
         ready,
         active: installed && ready,
         last_error,
+        backend: CLEANUP_BACKEND.to_string(),
+        last_run: None,
     }
 }
 
@@ -559,25 +705,51 @@ fn engine_loop(
     let _ = app.emit("cleanup-model-ready", ());
 
     while let Some(job) = rx.blocking_recv() {
-        let Job::Normalize { text, reply } = job;
-        let started = Instant::now();
+        let Job::Normalize {
+            run_id,
+            text,
+            enqueued_at,
+            reply,
+        } = job;
+        let received_at = Instant::now();
+        let queue_wait_ms = received_at.duration_since(enqueued_at).as_secs_f64() * 1000.0;
+        let started = StageTimer::start();
         let chunks = chunk_transcript(&text);
         let chunk_count = chunks.len();
+        let mut chunk_metrics: Vec<CleanupChunkMetrics> = Vec::with_capacity(chunk_count);
         let outcome = match chunks {
             chunks if chunks.is_empty() => Some(String::new()),
             chunks => {
                 let mut results: Vec<String> = Vec::with_capacity(chunks.len());
                 let mut failed = false;
-                for chunk in &chunks {
+                for (index, chunk) in chunks.iter().enumerate() {
                     match generate(&mut context, &model, &build_prompt(chunk)) {
-                        Ok(cleaned) => match validate_output(chunk, &cleaned) {
-                            Some(validated) => results.push(validated),
-                            None => {
-                                warn!("S1-mini output failed fidelity validation; failing open");
-                                failed = true;
-                                break;
+                        Ok((cleaned, stats)) => {
+                            match validate_output(chunk, &cleaned) {
+                                Some(validated) => results.push(validated),
+                                None => {
+                                    warn!(
+                                        "S1-mini output failed fidelity validation; failing open"
+                                    );
+                                    failed = true;
+                                    break;
+                                }
                             }
-                        },
+                            chunk_metrics.push(CleanupChunkMetrics {
+                                chunk_index: index as u32,
+                                chunk_count: chunk_count as u32,
+                                queue_wait_ms,
+                                prompt_eval_ms: stats.prompt_eval_ms,
+                                generation_ms: stats.generation_ms,
+                                input_tokens: stats.input_tokens,
+                                output_tokens: stats.output_tokens,
+                                generated_tokens_per_second: if stats.generation_ms > 0.0 {
+                                    stats.output_tokens as f64 / (stats.generation_ms / 1000.0)
+                                } else {
+                                    0.0
+                                },
+                            });
+                        }
                         Err(error) => {
                             warn!("S1-mini generation failed; failing open: {error}");
                             failed = true;
@@ -596,9 +768,43 @@ fn engine_loop(
             "S1-mini cleanup completed: {} chars in {} chunk(s), {:.2}s",
             text.len(),
             chunk_count,
-            started.elapsed().as_secs_f64()
+            started.elapsed_ms() / 1000.0
         );
-        let _ = reply.send(outcome);
+        let result = match outcome {
+            Some(cleaned) => CleanupResult {
+                final_text: cleaned,
+                summary: CleanupOutcomeSummary {
+                    run_id,
+                    lifecycle: CleanupLifecycle::Applied,
+                    final_source: CleanupFinalSource::S1,
+                    failure_stage: None,
+                    validation_reason: None,
+                    metrics: CleanupRunMetrics {
+                        total_ms: started.elapsed_ms(),
+                        backend: CLEANUP_BACKEND.to_string(),
+                        chunks: chunk_metrics,
+                    },
+                },
+            },
+            // Whole-run fallback stays until T3 makes it chunk-local; the raw
+            // source text is what the caller should paste in that case.
+            None => CleanupResult {
+                final_text: text,
+                summary: CleanupOutcomeSummary {
+                    run_id,
+                    lifecycle: CleanupLifecycle::Failed,
+                    final_source: CleanupFinalSource::RawFallback,
+                    failure_stage: Some(CleanupFailureStage::ValidationRejected),
+                    validation_reason: None,
+                    metrics: CleanupRunMetrics {
+                        total_ms: started.elapsed_ms(),
+                        backend: CLEANUP_BACKEND.to_string(),
+                        chunks: chunk_metrics,
+                    },
+                },
+            },
+        };
+        let _ = reply.send(result);
     }
 }
 
@@ -628,12 +834,21 @@ fn new_context<'model>(
         .map_err(|error| error.to_string())
 }
 
+/// Per-chunk stage timings and token counts (T1.3). No text content.
+#[cfg(target_os = "macos")]
+struct ChunkGenerationStats {
+    prompt_eval_ms: f64,
+    generation_ms: f64,
+    input_tokens: u32,
+    output_tokens: u32,
+}
+
 #[cfg(target_os = "macos")]
 fn generate(
     ctx: &mut llama_cpp_2::context::LlamaContext<'_>,
     model: &llama_cpp_2::model::LlamaModel,
     prompt: &str,
-) -> Result<String, String> {
+) -> Result<(String, ChunkGenerationStats), String> {
     use llama_cpp_2::llama_batch::LlamaBatch;
     use llama_cpp_2::model::AddBos;
     use llama_cpp_2::sampling::LlamaSampler;
@@ -644,7 +859,15 @@ fn generate(
         .str_to_token(prompt, AddBos::Never)
         .map_err(|e| e.to_string())?;
     if tokens.is_empty() {
-        return Ok(String::new());
+        return Ok((
+            String::new(),
+            ChunkGenerationStats {
+                prompt_eval_ms: 0.0,
+                generation_ms: 0.0,
+                input_tokens: 0,
+                output_tokens: 0,
+            },
+        ));
     }
     if tokens.len() as u32 >= N_CTX - 64 {
         return Err(format!(
@@ -664,13 +887,16 @@ fn generate(
             .add(*token, index as i32, &[0], is_last)
             .map_err(|e| e.to_string())?;
     }
+    let prompt_started = Instant::now();
     ctx.decode(&mut prompt_batch).map_err(|e| e.to_string())?;
+    let prompt_eval_ms = prompt_started.elapsed().as_secs_f64() * 1000.0;
 
     let mut sampler = LlamaSampler::chain_simple([LlamaSampler::greedy()]);
     let mut generated: Vec<u8> = Vec::with_capacity(max_new * 4);
     let mut generated_tokens = 0usize;
     let mut next_batch = LlamaBatch::new(1, 1);
     let mut position = tokens.len();
+    let generation_started = Instant::now();
 
     loop {
         let token = sampler.sample(&ctx, -1);
@@ -693,8 +919,17 @@ fn generate(
         ctx.decode(&mut next_batch).map_err(|e| e.to_string())?;
         position += 1;
     }
+    let generation_ms = generation_started.elapsed().as_secs_f64() * 1000.0;
 
-    Ok(String::from_utf8_lossy(&generated).trim().to_string())
+    Ok((
+        String::from_utf8_lossy(&generated).trim().to_string(),
+        ChunkGenerationStats {
+            prompt_eval_ms,
+            generation_ms,
+            input_tokens: tokens.len() as u32,
+            output_tokens: generated_tokens as u32,
+        },
+    ))
 }
 
 #[cfg(test)]

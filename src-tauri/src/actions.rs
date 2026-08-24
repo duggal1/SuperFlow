@@ -458,19 +458,24 @@ async fn process_transcription_output_with_context(
 
     // Mandatory local cleanup stage: S1-mini rewrites the raw transcript as
     // clean written text (grammar, punctuation, fillers, spoken numbers).
-    // Runs unconditionally on English transcripts — no user toggle. The model
-    // legitimately returns "" for filler-only speech; anything else failing
-    // open keeps the uncleaned text so dictation never blocks or loses words.
+    // Runs unconditionally on English transcripts — no user toggle. Every run
+    // reports its terminal outcome; only accepted S1 output replaces text.
     if !final_text.trim().is_empty() {
-        if let Some(cleaned) =
-            crate::local_cleanup::normalize(&effective_language, final_text.clone()).await
-        {
-            debug!(
-                "S1-mini cleanup: {} -> {} chars",
-                final_text.len(),
-                cleaned.len()
-            );
-            final_text = cleaned;
+        let outcome =
+            crate::local_cleanup::normalize(app, &effective_language, final_text.clone()).await;
+        debug!(
+            "cleanup run {}: {:?} via {:?} ({} -> {} chars)",
+            outcome.summary.run_id,
+            outcome.summary.lifecycle,
+            outcome.summary.final_source,
+            final_text.len(),
+            outcome.final_text.len()
+        );
+        if matches!(
+            outcome.summary.lifecycle,
+            crate::local_cleanup::metrics::CleanupLifecycle::Applied
+        ) {
+            final_text = outcome.final_text;
         }
     }
 

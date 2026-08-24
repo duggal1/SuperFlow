@@ -46,6 +46,13 @@ export function useCleanupModel() {
       void refresh();
     });
 
+    const unlistenRunStatus = listen<{ summary: { run_id: number } }>(
+      "cleanup-run-status",
+      () => {
+        void refresh();
+      },
+    );
+
     const unlistenFailed = listen<{ error: string }>(
       "cleanup-model-failed",
       () => {
@@ -57,6 +64,7 @@ export function useCleanupModel() {
       unlistenProgress.then((fn) => fn());
       unlistenComplete.then((fn) => fn());
       unlistenReady.then((fn) => fn());
+      unlistenRunStatus.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
   }, [refresh]);

@@ -1,0 +1,3 @@
+iter	phase	verdict	score	blocking	major	change
+0	build	-	-	-	-	first-principles decomposition: 8 components, 8 tasks, validator clean
+1	T1-complete	go	-	-	-	cleanup outcome contract, run metrics, terminal event, extended status, fixtures; rust 11/11 tests, tsc, eslint green

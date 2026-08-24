@@ -1034,10 +1034,12 @@ async isLaptop() : Promise<Result<boolean, string>> {
 
 
 export const events = __makeEvents__<{
+cleanupRunStatusEvent: CleanupRunStatusEvent,
 historyUpdatePayload: HistoryUpdatePayload,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
+cleanupRunStatusEvent: "cleanup-run-status",
 historyUpdatePayload: "history-update-payload",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
@@ -1147,7 +1149,15 @@ export type BindingResponse = { success: boolean; binding: ShortcutBinding | nul
 /**
  * Full install state for one UI render pass.
  */
-export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null }
+export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null; backend: string; last_run: CleanupOutcomeSummary | null }
+export type CleanupLifecycle = "applied" | "partially_applied" | "skipped" | "rejected" | "failed" | "cancelled"
+export type CleanupFinalSource = "s1" | "mixed_chunk_fallback" | "raw_fallback" | "non_english_skip"
+export type CleanupFailureStage = "not_ready" | "queue_timeout" | "generation_timeout" | "generation_error" | "validation_rejected" | "cancelled"
+export type CleanupValidationReason = "think_tag_leakage" | "repetition_loop" | "invented_identifier" | "missing_numeric_token" | "missing_currency_or_percentage" | "negation_changed" | "implausible_truncation" | "empty_for_meaningful_speech"
+export type CleanupChunkMetrics = { chunk_index: number; chunk_count: number; queue_wait_ms: number; prompt_eval_ms: number; generation_ms: number; input_tokens: number; output_tokens: number; generated_tokens_per_second: number }
+export type CleanupRunMetrics = { total_ms: number; backend: string; chunks: CleanupChunkMetrics[] | null }
+export type CleanupOutcomeSummary = { run_id: number; lifecycle: CleanupLifecycle; final_source: CleanupFinalSource; failure_stage: CleanupFailureStage | null; validation_reason: CleanupValidationReason | null; metrics: CleanupRunMetrics }
+export type CleanupRunStatusEvent = { summary: CleanupOutcomeSummary }
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CustomSounds = { start: boolean; stop: boolean }
 export type EngineType = 
