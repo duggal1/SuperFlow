@@ -919,6 +919,7 @@ pub fn run(cli_args: CliArgs) {
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
             local_cleanup::metrics::CleanupRunStatusEvent,
+            local_cleanup::CleanupProgressEvent,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

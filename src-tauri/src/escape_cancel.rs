@@ -46,8 +46,7 @@ mod imp {
     /// Keycodes currently physically held, tracked from keyDown/keyUp/
     /// flagsChanged so the callback can tell a bare Escape from the
     /// hold-trigger-hit-Escape combo gesture.
-    static DOWN_KEYS: LazyLock<Mutex<HashSet<i64>>> =
-        LazyLock::new(|| Mutex::new(HashSet::new()));
+    static DOWN_KEYS: LazyLock<Mutex<HashSet<i64>>> = LazyLock::new(|| Mutex::new(HashSet::new()));
     /// Re-enabling a disabled tap needs the port; stored once at install.
     /// Raw mach port; only ever dereferenced on the main thread.
     #[derive(Clone, Copy)]
@@ -131,8 +130,7 @@ mod imp {
         // Maintain the held-key map. flagsChanged events carry the modifier's
         // keycode (fn = 63, cmd = 54, …) with flags telling pressed vs released.
         if event_type == KEY_UP || event_type == FLAGS_CHANGED {
-            let down =
-                event_type == KEY_DOWN || CGEventGetFlags(event) & 0x00FF_0000 != 0;
+            let down = event_type == KEY_DOWN || CGEventGetFlags(event) & 0x00FF_0000 != 0;
             if let Ok(mut keys) = DOWN_KEYS.lock() {
                 if down {
                     keys.insert(keycode);

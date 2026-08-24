@@ -5,9 +5,10 @@ use crate::apple_intelligence;
 use crate::llm_client;
 use crate::settings::AppSettings;
 
-use super::prompt::build_context_prompts;
+use super::prompt::{build_context_prompts, build_local_developer_prompt};
 use super::validation::accept_model_output;
-use crate::context::types::{ContextSnapshot, Surface};
+use crate::context::developer::DeveloperContext;
+use crate::context::types::ContextSnapshot;
 
 const APPLE_MAX_TOKENS: i32 = 1024;
 const APPLE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(12);
@@ -27,16 +28,11 @@ pub enum AwarenessOutcome {
 pub async fn compose_aware_reply(
     settings: &AppSettings,
     snapshot: &ContextSnapshot,
+    developer_context: Option<&DeveloperContext>,
     transcript: &str,
 ) -> AwarenessOutcome {
-    // Developer-surface context must never rewrite dictated text. It was both
-    // a fidelity risk (invented paths/identifiers) and an extra model call on
-    // every dictation. Explicit file references remain a separate local pass.
-    if matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
-        return AwarenessOutcome::Skipped("developer_surface_plain_dictation");
-    }
-
-    let Some((system, user)) = build_context_prompts(snapshot, transcript) else {
+    let Some((system, user)) = build_context_prompts(snapshot, transcript, developer_context)
+    else {
         return AwarenessOutcome::Skipped("not_an_aware_context");
     };
 
@@ -73,7 +69,19 @@ pub async fn compose_aware_reply(
         }
     }
 
-    cloud_fallback(settings, &system, &user, transcript).await
+    let cloud = cloud_fallback(settings, &system, &user, transcript).await;
+    if matches!(
+        snapshot.surface,
+        crate::context::types::Surface::Terminal | crate::context::types::Surface::Editor
+    ) && !matches!(cloud, AwarenessOutcome::Composed(_))
+    {
+        if let Some(prompt) = build_local_developer_prompt(snapshot, transcript, developer_context)
+        {
+            log::info!("Using local developer-context fallback");
+            return AwarenessOutcome::Composed(prompt);
+        }
+    }
+    cloud
 }
 
 async fn cloud_fallback(
@@ -130,7 +138,7 @@ mod tests {
     async fn other_surface_skips_without_touching_providers() {
         let settings = AppSettings::default();
         let snap = ContextSnapshot::other("Finder");
-        match compose_aware_reply(&settings, &snap, "hello").await {
+        match compose_aware_reply(&settings, &snap, None, "hello").await {
             AwarenessOutcome::Skipped(reason) => assert_eq!(reason, "not_an_aware_context"),
             other => panic!("expected skip, got {other:?}"),
         }

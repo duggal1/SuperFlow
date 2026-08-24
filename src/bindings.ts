@@ -1034,11 +1034,13 @@ async isLaptop() : Promise<Result<boolean, string>> {
 
 
 export const events = __makeEvents__<{
+cleanupProgressEvent: CleanupProgressEvent,
 cleanupRunStatusEvent: CleanupRunStatusEvent,
 historyUpdatePayload: HistoryUpdatePayload,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
+cleanupProgressEvent: "cleanup-progress",
 cleanupRunStatusEvent: "cleanup-run-status",
 historyUpdatePayload: "history-update-payload",
 streamPhaseEvent: "stream-phase-event",
@@ -1149,7 +1151,8 @@ export type BindingResponse = { success: boolean; binding: ShortcutBinding | nul
 /**
  * Full install state for one UI render pass.
  */
-export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null; backend: string; last_run: CleanupOutcomeSummary | null }
+export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null; backend: string; last_run: CleanupOutcomeSummary | null; pending_jobs: number; cleaning: boolean }
+export type CleanupProgressEvent = { pending_jobs: number }
 export type CleanupLifecycle = "applied" | "partially_applied" | "skipped" | "rejected" | "failed" | "cancelled"
 export type CleanupFinalSource = "s1" | "mixed_chunk_fallback" | "raw_fallback" | "non_english_skip"
 export type CleanupFailureStage = "not_ready" | "queue_timeout" | "generation_timeout" | "generation_error" | "validation_rejected" | "cancelled"
@@ -1330,7 +1333,7 @@ export type StreamTextEvent = { committed: string; tentative: string }
 /**
  * Semantic kind of "working" phase, used to localize the spinner label.
  */
-export type StreamWorkKind = "transcribing" | "polishing"
+export type StreamWorkKind = "transcribing" | "polishing" | "finalizing"
 /**
  * UI appearance mode. `System` follows the OS `prefers-color-scheme`; `Light`
  * and `Dark` force one of the two palettes SuperFlow already ships.

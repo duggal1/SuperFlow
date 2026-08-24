@@ -1,10 +1,9 @@
 //! Intelligence Awareness (Lane A): context-conditioned composition.
 //!
-//! When the user dictates inside an aware surface (Gmail/Slack) with the
-//! toggle enabled, the transcript is treated as an INSTRUCTION and the
-//! configured intelligence turns it into finished text using the captured
-//! page context. Apple Intelligence runs first; the configured post-process
-//! provider (e.g. Gemini) is the fallback.
+//! When the user dictates inside an aware surface with the toggle enabled,
+//! the transcript is treated as an instruction and the configured intelligence
+//! turns it into finished text using bounded context. Developer surfaces emit
+//! execution-ready coding-agent prompts; Gmail and Slack emit finished prose.
 
 pub(crate) mod prompt;
 mod router;

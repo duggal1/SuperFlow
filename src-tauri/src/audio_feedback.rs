@@ -90,10 +90,9 @@ pub fn play_canceled_sound(app: &AppHandle) {
     if !settings.audio_feedback {
         return;
     }
-    let path = app.path().resolve(
-        "resources/error.wav",
-        tauri::path::BaseDirectory::Resource,
-    );
+    let path = app
+        .path()
+        .resolve("resources/error.wav", tauri::path::BaseDirectory::Resource);
     let Ok(path) = path else {
         warn!("error.wav could not be resolved from resources");
         return;

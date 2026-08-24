@@ -6,7 +6,7 @@ use crate::audio_toolkit::{
     },
     AudioRecorder, SileroVad, VadPolicy,
 };
-use crate::context::types::ContextSnapshot;
+use crate::context::RecordingContext;
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
 use crate::settings::{get_settings, write_settings, AppSettings};
@@ -379,7 +379,7 @@ pub struct AudioRecordingManager {
     /// stop to name the final WAV so the journal, the WAV and the history
     /// row all reference the same recording even after a crash.
     journal_stem: Arc<Mutex<Option<String>>>,
-    context_capture: Arc<Mutex<Option<mpsc::Receiver<ContextSnapshot>>>>,
+    context_capture: Arc<Mutex<Option<mpsc::Receiver<RecordingContext>>>>,
 }
 
 impl AudioRecordingManager {
@@ -1003,16 +1003,19 @@ impl AudioRecordingManager {
         self.journal_stem.lock().unwrap().take()
     }
 
-    pub fn begin_context_capture(&self) {
+    pub fn begin_context_capture(&self, resolve_project: bool, capture_developer_context: bool) {
         let (sender, receiver) = mpsc::channel();
         *self.context_capture.lock().unwrap() = Some(receiver);
         std::thread::spawn(move || {
-            let snapshot = crate::context::capture::capture_snapshot();
-            let _ = sender.send(snapshot);
+            let context = crate::context::capture::capture_recording_context(
+                resolve_project,
+                capture_developer_context,
+            );
+            let _ = sender.send(context);
         });
     }
 
-    pub fn take_context_snapshot(&self) -> Option<ContextSnapshot> {
+    pub fn take_recording_context(&self) -> Option<RecordingContext> {
         let receiver = self.context_capture.lock().unwrap().take()?;
         receiver.recv_timeout(Duration::from_millis(50)).ok()
     }

@@ -93,13 +93,6 @@ const EDITOR_STORAGE: &[(&str, &str)] = &[
     ),
 ];
 
-/// Entry point used by the transcription pipeline. Returns the corrected text
-/// when at least one spoken file reference was resolved, else `None`.
-pub fn maybe_resolve(snapshot: &ContextSnapshot, text: &str) -> Option<String> {
-    let root = project_root_for_snapshot(snapshot)?;
-    resolve_references(&root, text)
-}
-
 pub(crate) fn project_root_for_snapshot(snapshot: &ContextSnapshot) -> Option<PathBuf> {
     if !matches!(snapshot.surface, Surface::Terminal | Surface::Editor) {
         return None;

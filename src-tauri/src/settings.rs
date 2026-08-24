@@ -462,8 +462,8 @@ pub struct AppSettings {
     pub auto_submit_key: AutoSubmitKey,
     #[serde(default = "default_post_process_enabled")]
     pub post_process_enabled: bool,
-    /// Intelligence Awareness: treat dictation as an instruction inside aware
-    /// surfaces (Gmail/Slack) and compose finished text from page context.
+    /// Intelligence Awareness: compose finished text or developer prompts from
+    /// bounded context captured from Gmail, Slack, terminals, and editors.
     #[serde(default = "default_intelligence_awareness_enabled")]
     pub intelligence_awareness_enabled: bool,
     #[serde(default = "default_post_process_provider_id")]

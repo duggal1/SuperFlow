@@ -17,6 +17,7 @@ use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
 use std::time::Duration;
 
 use super::types::{now_millis, ContextSnapshot, Surface};
+use super::RecordingContext;
 use serde::{Deserialize, Serialize};
 
 /// Hard ceiling for one helper round-trip. AX captures are single-digit ms
@@ -37,6 +38,28 @@ pub struct SelectionSnapshot {
     pub pid: i32,
     pub app_name: String,
     pub text: String,
+}
+
+pub fn capture_recording_context(
+    resolve_project: bool,
+    capture_developer_context: bool,
+) -> RecordingContext {
+    let snapshot = capture_snapshot();
+    let project_root = resolve_project
+        .then(|| crate::file_refs::project_root_for_snapshot(&snapshot))
+        .flatten();
+    let developer = capture_developer_context
+        .then(|| {
+            project_root
+                .as_deref()
+                .map(super::developer::DeveloperContext::capture)
+        })
+        .flatten();
+    RecordingContext {
+        snapshot,
+        project_root,
+        developer,
+    }
 }
 
 fn breaker_open() -> bool {

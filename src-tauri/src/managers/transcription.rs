@@ -93,6 +93,7 @@ pub enum StreamPhase {
 pub enum StreamWorkKind {
     Transcribing,
     Polishing,
+    Finalizing,
 }
 
 /// Emitted to switch the streaming overlay to a working spinner.
@@ -1081,6 +1082,12 @@ impl TranscriptionManager {
                                     // punctuation, and structure belong exclusively
                                     // to S1-mini after the stream is finalized.
                                     self.emit_stream_text(&text.committed, &text.tentative);
+                                    // T4: seal newly stable sentences for
+                                    // background cleanup while capture continues.
+                                    crate::local_cleanup::submit_committed(
+                                        update.revision,
+                                        &text.committed,
+                                    );
                                 }
                                 perf.maybe_log();
                             }

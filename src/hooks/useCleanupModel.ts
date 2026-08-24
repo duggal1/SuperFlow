@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { commands, type CleanupModelStatus } from "@/bindings";
+import { commands, events, type CleanupModelStatus } from "@/bindings";
 
 export interface CleanupModelState {
   status: CleanupModelStatus | null;
@@ -46,12 +46,13 @@ export function useCleanupModel() {
       void refresh();
     });
 
-    const unlistenRunStatus = listen<{ summary: { run_id: number } }>(
-      "cleanup-run-status",
-      () => {
-        void refresh();
-      },
-    );
+    const unlistenRunStatus = events.cleanupRunStatusEvent.listen(() => {
+      void refresh();
+    });
+
+    const unlistenProgressState = events.cleanupProgressEvent.listen(() => {
+      void refresh();
+    });
 
     const unlistenFailed = listen<{ error: string }>(
       "cleanup-model-failed",
@@ -65,6 +66,7 @@ export function useCleanupModel() {
       unlistenComplete.then((fn) => fn());
       unlistenReady.then((fn) => fn());
       unlistenRunStatus.then((fn) => fn());
+      unlistenProgressState.then((fn) => fn());
       unlistenFailed.then((fn) => fn());
     };
   }, [refresh]);

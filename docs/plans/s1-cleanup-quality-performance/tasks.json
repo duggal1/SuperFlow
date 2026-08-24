@@ -1,611 +1,322 @@
 {
-  "objective": "Replace the current opaque, end-of-recording cleanup path with a measurable and fidelity-safe S1-mini pipeline that removes deterministic grammar and punctuation rewriting, prevents common English words from being canonicalized as code, incrementally cleans committed streaming transcript chunks on Apple Metal, and keeps final stop-to-paste latency bounded for long dictations.",
-  "end_state": "English streaming dictation is cleaned by S1-mini using its exact trained prompt with Styling formal, Structure lists, Context general, temperature-zero greedy decoding, and forced Metal offload. Ordinary prose never acquires catalog-driven ALL-CAPS tokens. Cleanup begins from stable ASR commits while recording, results are assembled in source order, only the unresolved tail remains at stop, every model rejection or fallback is explicit and observable, and measured quality, latency, memory, and ASR coexistence gates pass on the target M1 8 GB machine.",
+  "objective": "Finish the current S1-mini work from the real baseline at commit 37edaf2 plus the preserved in-progress T4 working-tree changes: make incremental cleanup session-safe and lossless, benchmark and integrate the fastest bounded Metal scheduler on the target M1, expose truthful lifecycle state, and prove quality and long-session latency before release.",
+  "end_state": "Committed T1-T3 behavior remains intact. Streaming English dictation cleans stable source spans during recording without ever blocking ASR, final ASR revisions reconcile by exact source offsets, the measured Metal scheduler has bounded concurrency and hard deadlines, the overlay and Journal reflect real applied or degraded state, and the complete production path passes quality, latency, memory, cancellation, failure, and 30-minute soak gates on the M1 8 GB machine.",
   "non_goals": [
-    "Do not claim or build rich Markdown headings, bold text, links, summaries, or arbitrary instruction following; S1-mini only supports prose and conservative lists.",
-    "Do not send the 5,000-line normalization, styling, or programming JSON catalogs inside the model prompt.",
-    "Do not add an unbounded worker pool, duplicate model weights per worker, or promise a token-per-second number without measuring it on the target machine.",
-    "Do not redesign the Journal or settings UI; only expose truthful cleanup lifecycle and degraded-state information using the existing surfaces.",
-    "Do not change non-English behavior beyond preserving its current safe fallback path because S1-mini is English-only.",
-    "Do not modify the optional explicit cloud AI cleanup feature or turn S1-mini into a general prompt-rewriting model.",
-    "Do not commit or redistribute the GGUF weight file; it remains an installed runtime asset covered by the existing downloader and license obligations."
+    "Do not reimplement or rewrite committed T1, T2, or T3 unless a remaining-task regression test proves a defect.",
+    "Do not discard, reset, stash, or overwrite the existing uncommitted T4 work in actions.rs, managers/transcription.rs, local_cleanup/mod.rs, audio_feedback.rs, or escape_cancel.rs.",
+    "Do not promise rich Markdown headings, bold, links, summaries, or arbitrary instruction following; S1-mini supports clean prose and conservative lists.",
+    "Do not send catalog JSON to S1-mini, add unbounded concurrency, duplicate model weights, or add a cleanup accelerator dropdown.",
+    "Do not redesign the Journal or recording overlay, persist cleanup provenance in history, or modify the optional cloud AI cleanup feature.",
+    "Do not commit or redistribute the GGUF runtime asset."
   ],
   "environment": {
-    "language": "Rust 2021 backend with strict TypeScript/React frontend",
-    "runtime": "Tauri 2.11.5, transcribe-cpp 0.2.0 streaming ASR, llama-cpp-2 0.1.154 with Metal",
-    "package_manager": "Bun for frontend commands and Cargo for Rust commands",
+    "language": "Rust 2021 backend with strict TypeScript and React frontend",
+    "runtime": "Tauri 2.11.5, transcribe-cpp 0.2.0, llama-cpp-2 0.1.154 with Metal",
+    "package_manager": "Cargo for Rust and Bun for frontend commands",
     "os": "macOS on Apple M1 MacBook Air with 8 GB unified memory",
-    "test_command": "cargo test --manifest-path src-tauri/Cargo.toml --lib && bun run build && bun run lint && bun run format:check",
-    "notes": "The production backend is local Rust/Tauri, not a remote HTTP service. The current S1 engine already forces 99 Metal layers independently of the speech accelerator setting."
+    "test_command": "cargo test --manifest-path src-tauri/Cargo.toml --all-targets && bun run build && bun run lint && bun run format:check",
+    "notes": "Baseline HEAD is 37edaf2. T1-T3 are committed. T4 has overlapping uncommitted production changes that must be audited and evolved in place."
   },
+  "completed_baseline": [
+    "T1 at 57694b0: internal CleanupResult, serializable CleanupOutcomeSummary, real metrics, terminal event, status, bindings, hook refresh, and sanitized fixtures.",
+    "T2 at 4b15b3a: raw ASR reaches S1, ambiguous bare programming aliases are denied or evidence-gated, and technical vocabulary normalization moved after cleanup.",
+    "T3 at 37edaf2: formal/lists/general typed controls, exact prompt, greedy decoding, tokenizer-derived chunk budgets, precise validation reasons, and chunk-local fallback."
+  ],
   "components": [
     {
-      "id": "c1",
-      "name": "cleanup evidence and observability",
-      "description": "Stage-level traces, typed outcomes, privacy-safe metrics, fixtures, and a reproducible benchmark that prove which transform produced the final text and where time is spent."
-    },
-    {
-      "id": "c2",
-      "name": "safe normalization boundary",
-      "description": "A narrow post-S1 token canonicalization path that preserves exact technical terms and values without deterministic grammar, punctuation, casing, or broad common-word rewrites."
-    },
-    {
-      "id": "c3",
-      "name": "S1 model contract and validation",
-      "description": "The exact trained S1 prompt, formal/lists/general controls, greedy decoding, per-chunk fidelity checks, explicit degradation reasons, and chunk-local fallback behavior."
-    },
-    {
       "id": "c4",
-      "name": "incremental streaming cleanup",
-      "description": "A recording-scoped scheduler that consumes monotonic committed ASR text, retains a revision tail, cleans stable chunks during capture, and finalizes only unresolved text at stop."
+      "name": "lossless incremental cleanup session",
+      "description": "A non-blocking, language-aware, cancellable recording session that owns exact source spans, retained tail, final divergence reconciliation, and batch fallback."
     },
     {
       "id": "c5",
-      "name": "bounded Metal throughput",
-      "description": "Measured selection and implementation of the fastest safe llama.cpp scheduling strategy on the target M1 without unbounded concurrency, duplicate model loads, swap, or ASR starvation."
+      "name": "measured Metal scheduler",
+      "description": "A production-faithful benchmark and the smallest bounded shared-model scheduling configuration that wins without swap or ASR starvation."
     },
     {
       "id": "c6",
-      "name": "ordered fidelity-safe assembly",
-      "description": "Sequence-numbered result ordering, boundary handling, cancellation, backpressure, final reconciliation, and exact preservation invariants across chunks."
+      "name": "deadline and overload safety",
+      "description": "Hard queue, generation, and finish deadlines; decode cancellation; KV recovery; backpressure; priority; and exactly-once completion."
     },
     {
       "id": "c7",
-      "name": "truthful frontend lifecycle",
-      "description": "Existing Journal and recording surfaces show real ready, cleaning, finalizing, degraded, and unavailable states without implying success when S1 output was discarded."
+      "name": "truthful cleanup UI lifecycle",
+      "description": "The existing overlay and Journal card consume real backend events and distinguish cleaning, finalizing, applied, degraded, loading, and unavailable states."
     },
     {
       "id": "c8",
       "name": "quality and performance release gate",
-      "description": "A repeatable target-hardware evaluation, before/after report, soak test, rollback criteria, and full project validation."
+      "description": "Runnable deterministic and real-model replay, long-session benchmarks, failure injection, soak tests, and an explicit release decision."
     }
   ],
   "open_questions": [],
   "tasks": [
     {
-      "id": "T1",
-      "title": "Make every cleanup stage and fallback measurable",
-      "serves": ["c1", "c3", "c7"],
-      "description": "Add a recording-scoped cleanup trace and separate internal/public outcome contracts before changing behavior. The internal CleanupResult carries final transcript text for paste and is never serialized. CleanupOutcomeSummary carries only privacy-safe state and metrics for status/events. Capture stage durations, token and chunk counts, queue wait, prompt evaluation, generation speed, validation result, and final source selection without logging transcript contents. Expose the latest aggregate state through the existing cleanup status command and a typed terminal event so a rejected model output can no longer masquerade as active cleanup.",
-      "building_blocks": [
-        "CleanupRunId newtype",
-        "Internal CleanupResult containing final_text and CleanupOutcomeSummary",
-        "Serializable CleanupOutcomeSummary with Applied, PartiallyApplied, Skipped, Rejected, Failed, and Cancelled lifecycle variants",
-        "CleanupRunMetrics with durations, input/output token counts, chunk counts, queue depth, backend, and fallback reason",
-        "Existing CleanupModelStatus command and Tauri cleanup lifecycle events"
-      ],
-      "tools": ["Rust unit tests", "existing superflow.log", "target-hardware fixture replay"],
-      "packages": ["existing log, serde, specta, tauri, and llama-cpp-2 crates only"],
-      "files": [
-        {
-          "path": "src-tauri/src/local_cleanup.rs",
-          "action": "modify",
-          "what": "Replace Option<String> job replies with CleanupOutcome and attach run IDs and aggregate metrics."
-        },
-        {
-          "path": "src-tauri/src/local_cleanup/metrics.rs",
-          "action": "create",
-          "what": "Own privacy-safe run metrics, reason codes, stage timing, and latest-status aggregation."
-        },
-        {
-          "path": "src-tauri/src/commands/local_cleanup.rs",
-          "action": "modify",
-          "what": "Return the real latest cleanup state and degraded reason in the existing status contract."
-        },
-        {
-          "path": "src-tauri/src/lib.rs",
-          "action": "modify",
-          "what": "Register CleanupRunStatusEvent in the existing Specta collect_events list."
-        },
-        {
-          "path": "src/bindings.ts",
-          "action": "modify",
-          "what": "Regenerate typed CleanupModelStatus and cleanup event payloads through the existing Specta binding workflow."
-        },
-        {
-          "path": "src-tauri/tests/fixtures/s1_cleanup_quality.jsonl",
-          "action": "create",
-          "what": "Add sanitized raw-ASR fixtures for common-word casing, repetition, self-correction, numbers, code tokens, prose, and enumerations."
-        }
-      ],
-      "subtasks": [
-        {
-          "id": "T1.1",
-          "description": "Define internal CleanupResult { final_text: String, summary: CleanupOutcomeSummary } and serializable CleanupOutcomeSummary, CleanupRunId, CleanupFallbackReason, CleanupValidationReason, and CleanupRunMetrics types; final_text must not implement Specta event serialization."
-        },
-        {
-          "id": "T1.2",
-          "description": "Assign one run ID at the start of output handling and propagate it through enqueue, generation, validation, assembly, status, and final paste selection."
-        },
-        {
-          "id": "T1.3",
-          "description": "Record queue_wait_ms, prompt_eval_ms, generation_ms, input_tokens, output_tokens, generated_tokens_per_second, chunk_index, chunk_count, and total_ms without recording transcript text."
-        },
-        {
-          "id": "T1.4",
-          "description": "Replace generic validation warnings with stable reason codes and log the exact final source: s1, mixed_chunk_fallback, raw_fallback, or non_english_skip."
-        },
-        {
-          "id": "T1.5",
-          "description": "Extend CleanupModelStatus with backend, lifecycle state, and last-run summary while preserving installed plus ready as active; define CleanupRunStatusEvent carrying the same privacy-safe summary and register it in lib.rs."
-        },
-        {
-          "id": "T1.6",
-          "description": "Emit CleanupRunStatusEvent exactly once for every terminal run and create sanitized fixtures derived from the reported TODAY, AND, RIGHT, repetitive prose, launch-list, and long-dictation failures."
-        }
-      ],
-      "tests": [
-        {
-          "description": "Unit-test every CleanupOutcome and reason-code serialization shape used by Specta and Tauri.",
-          "kind": "unit"
-        },
-        {
-          "description": "Integration-test an accepted candidate, a validation rejection, a not-ready engine, a timeout, and a non-English skip and assert the recorded final source.",
-          "kind": "integration"
-        },
-        {
-          "description": "Run one real short Metal cleanup and verify logs contain timing and reason fields but no transcript contents.",
-          "kind": "manual"
-        }
-      ],
-      "acceptance_criteria": [
-        "Every cleanup attempt has one run ID and one terminal typed outcome.",
-        "A discarded S1 result is observable as Rejected or Failed and never reported as a successful active cleanup run.",
-        "The latest status remains real backend state and contains no fabricated frontend inference.",
-        "Metrics contain no raw transcript, model prompt, clipboard content, file content, API key, or other PII.",
-        "Only internal CleanupResult contains final_text; CleanupOutcomeSummary, CleanupModelStatus, logs, bindings, and Tauri events cannot contain transcript text.",
-        "Every terminal run emits one CleanupRunStatusEvent so mounted frontend consumers can refresh without polling.",
-        "The reported 2,584-character failure can be classified by a concrete validation reason instead of one generic warning."
-      ],
-      "depends_on": [],
-      "estimated_loc": 360,
-      "suggested_skills": ["anomaly-investigation", "engineeringkit-backend-discipline", "elite-backend-engineering"]
-    },
-    {
-      "id": "T2",
-      "title": "Remove deterministic prose rewriting and unsafe global catalog aliases",
-      "serves": ["c2", "c3", "c6"],
-      "description": "Change the English path so S1 receives raw ASR text rather than text already rewritten by global styling/programming catalogs. Keep only meaning-preserving normalization after S1. Remove production calls that infer grammar, punctuation, capitalization, paragraphs, or Markdown. Prevent bare common English aliases from becoming SQL, spreadsheet, API, or shell tokens outside an explicitly detected technical span.",
-      "building_blocks": [
-        "English CleanupInput containing raw ASR text plus language evidence",
-        "PostCleanupTokenNormalizer for explicit technical tokens and numeric/value normalization only",
-        "TechnicalSpan classifier requiring an unambiguous multiword or syntax-shaped cue",
-        "Existing tech_lexicon, styling, programming_syntax, normalize_values, custom words, and language evidence"
-      ],
-      "tools": ["Rust differential tests", "catalog collision audit", "fixture replay"],
-      "packages": ["no new packages"],
-      "files": [
-        {
-          "path": "src-tauri/src/managers/transcription.rs",
-          "action": "modify",
-          "what": "Split raw ASR finalization from language-specific deterministic fallback and stop running global English prose catalogs before S1."
-        },
-        {
-          "path": "src-tauri/src/actions.rs",
-          "action": "modify",
-          "what": "Run mandatory S1 on raw English ASR, then invoke only safe token normalization before optional downstream features."
-        },
-        {
-          "path": "src-tauri/src/audio_toolkit/programming_syntax.rs",
-          "action": "modify",
-          "what": "Reject or context-gate ambiguous single-word aliases such as and, right, today, now, left, match, search, and filter."
-        },
-        {
-          "path": "src-tauri/src/audio_toolkit/styling.rs",
-          "action": "modify",
-          "what": "Limit styling canonicalization to explicit class-shaped or multiword Tailwind utterances and never rewrite normal prose."
-        },
-        {
-          "path": "src-tauri/src/audio_toolkit/formatter.rs",
-          "action": "modify",
-          "what": "Keep numeric, currency, percentage, unit, date, and exact token normalization callable while deleting or leaving unreachable all production grammar, punctuation, casing, and list formatting paths."
-        },
-        {
-          "path": "src-tauri/src/catalog/programming-syntax.json",
-          "action": "modify",
-          "what": "Mark or remove ambiguous bare-prose aliases from globally eligible token substitutions while retaining the catalog as reference data."
-        }
-      ],
-      "subtasks": [
-        {
-          "id": "T2.1",
-          "description": "Introduce a raw-versus-normalized transcript boundary so the English S1 request is built from untouched ASR output."
-        },
-        {
-          "id": "T2.2",
-          "description": "Inventory all production callers of formatter::format, punctuation::punctuate, normalize_transcription_output, styling::apply, and programming_syntax::apply and remove English grammar/punctuation/casing callers."
-        },
-        {
-          "id": "T2.3",
-          "description": "Classify catalog aliases as globally_safe or technical_context_only; default ambiguous single English words to technical_context_only."
-        },
-        {
-          "id": "T2.4",
-          "description": "Require explicit evidence such as SQL query language, an HTTP request phrase, a formula marker, a file extension, a path, or a class prefix before applying technical_context_only aliases."
-        },
-        {
-          "id": "T2.5",
-          "description": "Apply approved technical and value normalization after S1 so ordinary English words are never injected into the model as uppercase syntax tokens."
-        },
-        {
-          "id": "T2.6",
-          "description": "Retain the existing non-English fallback branch and verify it does not run the English-only S1 model or English-only value rules."
-        }
-      ],
-      "tests": [
-        {
-          "description": "Regression-test the exact prose family: today, and, right, now, get, left, match, search, filter, sort, upper, lower, and trim remain normal sentence-case words.",
-          "kind": "unit"
-        },
-        {
-          "description": "Test explicit technical phrases such as GET request, RIGHT JOIN, SQL AND, TODAY(), DATABASE_URL, dot tsx, and bg stone 700 still normalize correctly.",
-          "kind": "unit"
-        },
-        {
-          "description": "Differential-test the English production path and prove no deterministic function adds sentence punctuation, title casing, headings, or lists before or after S1.",
-          "kind": "integration"
-        },
-        {
-          "description": "Run the existing non-English language tests unchanged.",
-          "kind": "integration"
-        }
-      ],
-      "acceptance_criteria": [
-        "The reported ordinary prose never outputs TODAY, AND, RIGHT, or NOW unless the source explicitly contains those uppercase tokens or technical-span evidence requires them.",
-        "English grammar, punctuation, capitalization, paragraphing, filler cleanup, and list structure have one owner: S1-mini.",
-        "Safe normalization preserves exact code tokens, paths, file extensions, numbers, currency, percentages, units, dates, and negations without inventing them.",
-        "No JSON catalog is inserted into the S1 prompt.",
-        "Non-English dictation behavior remains unchanged and S1 remains skipped for unsupported languages."
-      ],
-      "depends_on": ["T1"],
-      "estimated_loc": 390,
-      "suggested_skills": ["blue-team", "engineeringkit-backend-discipline"]
-    },
-    {
-      "id": "T3",
-      "title": "Make the S1 contract exact and fallback chunk-local",
-      "serves": ["c1", "c3", "c6"],
-      "description": "Lock production inference to the model's trained interface and stop discarding an entire long transcript when one chunk fails. Interpret the dictated request for full formal cleanup as the valid S1 Styling formal control; keep Structure lists and Context general. Validate each chunk against the corresponding raw source and substitute only the failed chunk while reporting a partially applied outcome.",
-      "building_blocks": [
-        "Exact system prompt and control line constants",
-        "CleanupChunkInput and CleanupChunkResult contracts",
-        "Greedy sampler with empty think block",
-        "Per-invariant validation reasons",
-        "Chunk-local raw fallback"
-      ],
-      "tools": ["Rust unit tests", "real llama.cpp fixture replay", "golden output comparison"],
-      "packages": ["existing llama-cpp-2 crate only"],
-      "files": [
-        {
-          "path": "src-tauri/src/local_cleanup.rs",
-          "action": "modify",
-          "what": "Declare child modules and replace the all-or-nothing sequential outcome path."
-        },
-        {
-          "path": "src-tauri/src/local_cleanup/contract.rs",
-          "action": "create",
-          "what": "Own exact S1 prompt constants, valid controls, typed chunk input/result, and terminal outcomes."
-        },
-        {
-          "path": "src-tauri/src/local_cleanup/validation.rs",
-          "action": "create",
-          "what": "Own fidelity invariants and precise rejection reasons independently of model execution."
-        },
-        {
-          "path": "src-tauri/src/local_cleanup/chunker.rs",
-          "action": "create",
-          "what": "Token-counted chunk construction with source spans and stable sequence IDs."
-        }
-      ],
-      "subtasks": [
-        {
-          "id": "T3.1",
-          "description": "Set the exact control line to [Styling: formal] [Structure: lists] [Context: general] and retain the documented system prompt and empty think prefix verbatim."
-        },
-        {
-          "id": "T3.2",
-          "description": "Keep greedy sampling explicit on every generation call and reject any future configuration value outside the trained control vocabulary at compile time."
-        },
-        {
-          "id": "T3.3",
-          "description": "Replace the 500-word cap with tokenizer-derived input limits that include prompt overhead and output headroom under N_CTX."
-        },
-        {
-          "id": "T3.4",
-          "description": "Return validation reason codes for repetition, think leakage, invented code/path tokens, lost negation, lost exact numeric token, implausible truncation, and invalid UTF-8 repair."
-        },
-        {
-          "id": "T3.5",
-          "description": "Assemble accepted model chunks with source chunks substituted only where validation or generation failed and mark the run PartiallyApplied."
-        },
-        {
-          "id": "T3.6",
-          "description": "Treat an empty S1 result as valid only for filler/noise-only input; reject empty output for meaningful source content."
-        }
-      ],
-      "tests": [
-        {
-          "description": "Snapshot-test the exact trained prompt bytes, formal/lists/general control values, empty think block, and greedy sampler construction.",
-          "kind": "unit"
-        },
-        {
-          "description": "Tokenize boundary fixtures through the installed llama-cpp tokenizer and prove every prompt plus maximum output budget fits N_CTX.",
-          "kind": "integration"
-        },
-        {
-          "description": "Inject one rejected middle chunk between two accepted chunks and assert the accepted chunks survive while only the middle source span falls back.",
-          "kind": "integration"
-        },
-        {
-          "description": "Replay filler-only, prose, self-correction, number/date/currency, code-token, and three-item enumeration fixtures through the real Metal model.",
-          "kind": "manual"
-        }
-      ],
-      "acceptance_criteria": [
-        "Production uses only trained S1 control values; no bullets, markdown, work, font-normal, or arbitrary prompt instructions are sent.",
-        "One failed chunk cannot discard successful cleanup for other chunks.",
-        "Every chunk is bounded by actual model tokens rather than an English word-count estimate.",
-        "Validation preserves meaning-critical tokens and produces an exact rejection reason.",
-        "The plan does not claim headings, bold, links, summaries, or guaranteed lists for non-enumerable prose."
-      ],
-      "depends_on": ["T1"],
-      "estimated_loc": 350,
-      "suggested_skills": ["blue-team", "elite-backend-engineering"]
-    },
-    {
       "id": "T4",
-      "title": "Clean stable ASR commits during recording",
-      "serves": ["c3", "c4", "c6"],
-      "description": "Introduce a recording-scoped cleanup session beside the existing transcribe-cpp stream. Feed only monotonic committed text, never tentative text, into a token-aware segment assembler. Hold a small unresolved tail for cross-boundary self-corrections and list structure, enqueue stable chunks during capture, and reconcile against the finalized ASR text at stop.",
+      "title": "Finish the in-progress incremental cleanup session safely",
+      "serves": ["c4", "c6"],
+      "description": "Audit and evolve the existing dirty T4 implementation rather than replacing it. Move session ownership out of the now-1,488-line local_cleanup/mod.rs, add a session generation ID and effective language, make committed publication non-blocking through a coalescing latest-snapshot mailbox, schedule stable token spans without depending on punctuation, cancel stale work, and reconcile final ASR by exact source offsets and longest common prefix.",
       "building_blocks": [
-        "CleanupSessionId tied to the existing streaming worker ID",
-        "Begin, Commit, Finish, and Cancel commands",
-        "Committed-prefix delta calculation keyed by stream revision",
-        "StableSegmentAssembler with retained revision tail",
-        "Finalization reply containing ordered cleaned chunks and unresolved tail"
+        "Existing start_session, submit_committed, finalize_session, SpanSlot, SessionInner, and seal_boundary code",
+        "CleanupSessionId and effective-language guard",
+        "NonBlockingCommitBridge with latest snapshot, scheduled byte cursor, try_send wake, and overload state",
+        "Token-aware StableSegmentAssembler with exact source byte spans and 40/60/80-token candidate tails",
+        "Longest-common-prefix final reconciler",
+        "Existing CleanupResult and chunk-local fallback"
       ],
-      "tools": ["deterministic stream-update tests", "recorded ASR fixture replay", "cancellation stress test"],
-      "packages": ["existing std mpsc and tokio channels only"],
+      "tools": ["git diff", "Rust unit and integration tests", "synthetic stream update replay"],
+      "packages": ["existing std, tokio, transcribe-cpp, and llama-cpp-2 only"],
       "files": [
+        {
+          "path": "src-tauri/src/local_cleanup/mod.rs",
+          "action": "modify",
+          "what": "Preserve install, status, prompt, validation, engine, and T1-T3 behavior; move T4 session logic behind a focused child module."
+        },
         {
           "path": "src-tauri/src/local_cleanup/session.rs",
           "action": "create",
-          "what": "Own session commands, committed-prefix tracking, stable segment assembly, reconciliation, and cancellation."
+          "what": "Own session IDs, non-blocking ingress, source spans, token-tail sealing, overload, cancellation, and final reconciliation."
         },
         {
           "path": "src-tauri/src/managers/transcription.rs",
           "action": "modify",
-          "what": "Start, feed, finish, or cancel one cleanup session from the existing streaming lifecycle and committed_changed updates."
+          "what": "Publish committed snapshots without blocking stream.feed and finalize or cancel the exact cleanup session."
         },
         {
           "path": "src-tauri/src/actions.rs",
           "action": "modify",
-          "what": "Consume the finalized cleanup session output instead of always issuing a new whole-transcript S1 request after stop."
+          "what": "Start one language-aware session per recording and consume its CleanupResult, retaining whole-text cleanup for batch-only paths."
+        },
+        {
+          "path": "src-tauri/src/escape_cancel.rs",
+          "action": "modify",
+          "what": "Preserve the current working-tree changes and connect cancellation to the active cleanup session only where the real recording cancellation path requires it."
         }
       ],
       "subtasks": [
         {
           "id": "T4.1",
-          "description": "Define begin_session(session_id, language), push_committed(session_id, revision, committed_snapshot), finish_session(session_id, final_text), and cancel_session(session_id) contracts."
+          "description": "Snapshot the current dirty diff, map every new T4 caller and state transition, and add characterization tests before refactoring; do not restore or overwrite user changes."
         },
         {
           "id": "T4.2",
-          "description": "On each committed_changed update, verify the committed snapshot is monotonic, derive the new suffix, and ignore duplicate or stale revisions."
+          "description": "Replace process-global anonymous ACTIVE_SESSION with CleanupSessionId { generation: u64 } plus effective language; reject non-English incremental work and ignore late results whose generation is no longer active."
         },
         {
           "id": "T4.3",
-          "description": "Accumulate actual model tokens and close a chunk at the strongest available boundary before the cap while retaining a configurable 40-to-80-token provisional tail."
+          "description": "Implement publish_committed as a non-blocking operation on the ASR worker: update the latest monotonic snapshot under a short lock and try_send one wake; when full, coalesce later snapshots without losing the scheduled byte cursor."
         },
         {
           "id": "T4.4",
-          "description": "Keep tentative ASR text visible in the overlay but out of S1 so changing hypotheses cannot create duplicate cleanup work."
+          "description": "On the cleanup side, own latest_snapshot[scheduled_cursor..] exactly once, prefer paragraph or sentence boundaries, but seal by tokenizer budget when raw committed ASR has no punctuation; leave a measured candidate tail of 40, 60, or 80 tokens provisional."
         },
         {
           "id": "T4.5",
-          "description": "At finalize, compare the concatenated committed source with final_text, invalidate only the first divergent provisional span, and enqueue the changed tail."
+          "description": "Represent every sealed slot as source Range<usize>, exact original source slice, boundary metadata, sequence number, and asynchronous CleanupResult; never reconstruct a prefix by trimming and joining strings."
         },
         {
           "id": "T4.6",
-          "description": "Propagate recording cancellation to queued and generating cleanup work and guarantee that a late result cannot enter a newer session."
+          "description": "At finalization compute the longest common prefix of committed snapshot and final_text, retain only completed spans ending before the divergence offset, invalidate every intersecting or later span, and reschedule final_text from the first invalidated source offset. If safe byte mapping fails, discard incremental results and run complete final-text cleanup."
+        },
+        {
+          "id": "T4.7",
+          "description": "Cancel queued and generating jobs for stop-abandon, Escape, model switch, failed stream, and superseded session; guarantee one terminal result and no stale paste or event."
+        },
+        {
+          "id": "T4.8",
+          "description": "Keep non-streaming and failed-streaming ASR on the production whole-text token-aware cleanup path and retain all committed T1-T3 acceptance tests."
         }
       ],
       "tests": [
         {
-          "description": "Feed synthetic committed and tentative update sequences and assert every committed source token is scheduled exactly once in order.",
-          "kind": "unit"
-        },
-        {
-          "description": "Test self-correction across a proposed boundary, including Friday no wait Thursday, and assert the correction remains in one provisional tail.",
-          "kind": "unit"
-        },
-        {
-          "description": "Test duplicate revisions, stale revisions, a non-monotonic final snapshot, cancel during generation, and immediate next-session start.",
+          "description": "Saturate cleanup while continuously feeding ASR and prove publish_committed never blocks, later snapshots coalesce, and every source byte is eventually owned exactly once.",
           "kind": "integration"
         },
         {
-          "description": "Replay a 10-minute and a 30-minute committed-stream trace and assert finish schedules only the unresolved tail under normal operation.",
+          "description": "Replay punctuation-free committed text past multiple token caps and prove background spans seal while a provisional tail remains.",
+          "kind": "unit"
+        },
+        {
+          "description": "Test final divergence before the first span, inside an early sealed span, at a middle boundary, inside the provisional tail, and as total replacement; assert no duplicate, omitted, or reordered source.",
+          "kind": "integration"
+        },
+        {
+          "description": "Test non-English sessions, duplicate/stale revisions, cancellation during generation, rapid next recording, batch-only ASR, and failed streaming fallback.",
           "kind": "integration"
         }
       ],
       "acceptance_criteria": [
-        "S1 work starts during recording for streaming-capable English ASR instead of waiting for stop.",
-        "Tentative text is never cleaned, committed text is never duplicated, and source order is stable.",
-        "Cross-boundary self-corrections remain revisable until their retained tail is sealed.",
-        "Finish reuses completed chunks and submits only changed or unresolved text.",
-        "Cancel fully isolates sessions and produces no stale paste or status event."
+        "Existing T1-T3 behavior and tests remain green and the current dirty T4 work is evolved rather than overwritten.",
+        "Cleanup cannot block stream.feed; overload coalesces wake notifications while retaining the complete latest committed source.",
+        "Punctuation-free raw ASR still schedules token-bounded background work.",
+        "Only English sessions invoke S1 and every late result is scoped to the matching session generation.",
+        "Final divergence retains only exact source spans ending before the longest-common-prefix offset and safely reschedules every later byte.",
+        "Cancel, batch fallback, and failed-streaming paths terminate exactly once without stale text."
       ],
-      "depends_on": ["T2", "T3"],
+      "depends_on": [],
       "estimated_loc": 400,
-      "suggested_skills": ["engineeringkit-backend-discipline", "elite-backend-engineering"]
+      "suggested_skills": ["engineeringkit-backend-discipline", "anomaly-investigation", "blue-team"]
     },
     {
       "id": "T5",
-      "title": "Benchmark bounded llama.cpp scheduling on the target M1",
-      "serves": ["c1", "c5", "c8"],
-      "description": "Run a controlled experiment before choosing concurrency. Compare the current single reusable context, two shared-model contexts, and llama.cpp multi-sequence batching supported by llama-cpp-2 0.1.154. Measure aggregate generation throughput, per-chunk latency, prompt evaluation, ASR real-time factor, memory pressure, swap, and thermal behavior at concurrency 1, 2, 3, and 4. Select the smallest configuration that materially improves end-to-end latency without starving streaming ASR.",
+      "title": "Benchmark concurrency, deadlines, and revision-tail constants on the M1",
+      "serves": ["c5", "c6", "c8"],
+      "description": "Use an ignored in-crate benchmark module so the experiment executes the private production prompt, tokenizer, T4 session path, validator, engine, and assembler. Compare serial, shared-model two-context, and llama.cpp multi-sequence candidates while Parakeet streams. Select concurrency and exact queue, generation, finish, and retained-tail constants from recorded distributions, not intuition.",
       "building_blocks": [
-        "Existing tmp-s1bench fixture runner corrected to the production prompt",
-        "Production local_cleanup engine behind a benchmark-only adapter",
-        "llama-cpp-2 LlamaContextParams n_seq_max, n_batch, n_ubatch, and sequence IDs",
-        "One-model shared-weight experiment",
-        "Before/after benchmark report"
+        "cfg(test) local_cleanup benchmark module",
+        "Current serial reusable-context baseline",
+        "Shared-model context candidate",
+        "llama.cpp n_seq_max and sequence-ID batching candidate",
+        "Warm p50, p95, and p99 distributions",
+        "Exact SchedulerConfig selection rules"
       ],
-      "tools": ["Cargo benchmark binary", "powermetrics or Activity Monitor sampling", "existing stream performance logs", "10-minute and 30-minute fixture traces"],
+      "tools": ["ignored Cargo tests", "powermetrics or Activity Monitor", "stream performance logs", "fixed fixture hashes"],
       "packages": ["no new runtime packages"],
       "files": [
         {
-          "path": "src-tauri/src/audio_toolkit/bin/s1_bench.rs",
+          "path": "src-tauri/src/local_cleanup/bench.rs",
           "action": "create",
-          "what": "Run production prompt, tokenizer, validation, chunking, and candidate schedulers against fixed fixtures."
+          "what": "Run production-private scheduling candidates and emit machine-readable measurements under cfg(test)."
         },
         {
-          "path": "src-tauri/Cargo.toml",
+          "path": "src-tauri/src/local_cleanup/mod.rs",
           "action": "modify",
-          "what": "Register the local benchmark binary without changing shipped runtime dependencies."
+          "what": "Register bench.rs only under cfg(test)."
         },
         {
           "path": "docs/plans/s1-cleanup-quality-performance/benchmark-results.md",
           "action": "create",
-          "what": "Record hardware, fixture hashes, exact commands, raw metrics, before/after table, and selected configuration."
+          "what": "Record exact hardware, model hash, fixture hashes, commands, raw samples, distributions, rejected candidates, winner, and selected constants."
         },
         {
           "path": "tmp-s1bench/bench.py",
           "action": "delete",
-          "what": "Remove the stale invalid-control benchmark after the production-faithful Rust harness replaces it."
+          "what": "Remove the stale invalid-control benchmark after the production-faithful harness replaces it."
         }
       ],
       "subtasks": [
         {
           "id": "T5.1",
-          "description": "Make the benchmark use the exact formal/lists/general prompt, greedy decoding, empty think block, production tokenizer budget, validator, and model path."
+          "description": "Run with cargo test --manifest-path src-tauri/Cargo.toml --lib local_cleanup::bench:: -- --ignored --nocapture and pin formal/lists/general, empty think block, greedy decode, production tokenizer, validator, session, and model hash."
         },
         {
           "id": "T5.2",
-          "description": "Measure serial one-context baseline over short, 2,584-character, 10-minute, and 30-minute fixtures with warm-up excluded and at least 10 measured repetitions per short case."
+          "description": "Measure warm serial baseline and concurrency 2, 3, and 4 candidates over short, 2,584-character, 10-minute, and 30-minute traces with at least 10 repetitions for short/medium and three for long traces."
         },
         {
           "id": "T5.3",
-          "description": "Prototype shared-model two-context scheduling and record whether LlamaModel sharing is safe and whether extra KV memory causes pressure or swap."
+          "description": "Run every candidate concurrently with Parakeet streaming and collect prompt-eval speed, generation speed, queue wait, per-chunk and stop-tail latency, aggregate throughput, ASR RTF, RSS, memory pressure, swap, and failures."
         },
         {
           "id": "T5.4",
-          "description": "Prototype one-context multi-sequence batching using n_seq_max and sequence IDs and compare n_batch, n_ubatch, and flash-attention policy only where supported."
+          "description": "Select the smallest concurrency that improves aggregate cleanup throughput by at least 20 percent and stop-to-paste p95 by at least 15 percent, with no semantic-output change, swap, red memory pressure, or ASR RTF regression above 10 percent; otherwise select serial incremental execution."
         },
         {
           "id": "T5.5",
-          "description": "Run each candidate concurrently with live Parakeet streaming and reject any configuration that materially worsens ASR real-time factor, drops commits, causes memory pressure, or swaps."
+          "description": "Choose retained_tail_tokens as the smallest of 40, 60, or 80 with zero boundary-fidelity failures and normal stop backlog no larger than one chunk plus tail; if none passes, record no-go."
         },
         {
           "id": "T5.6",
-          "description": "Select bounded concurrency only if it improves aggregate cleanup throughput by at least 20 percent and stop-to-paste p95 by at least 15 percent with no quality failures; otherwise retain one worker and rely on incremental scheduling."
+          "description": "Derive queue_deadline = clamp(2 * warm p99 queue wait, 250 ms, 2 s), generation_deadline = clamp(1.5 * warm p99 maximum-chunk generation + 250 ms, 2 s, 8 s), and finish_deadline = clamp(2 * warm p99 stop-tail + 250 ms, 1.5 s, 5 s). Record exact values and overload evidence."
         }
       ],
       "tests": [
         {
-          "description": "Run identical fixture hashes through every candidate and assert byte-identical greedy output or record and reject semantic differences.",
+          "description": "Assert identical fixture hashes and greedy output semantics across candidates before comparing cost.",
           "kind": "integration"
         },
         {
-          "description": "Measure concurrency 1 through 4 while Parakeet streams and capture p50, p95, aggregate tokens per second, ASR RTF, RSS, memory pressure, swap, and failures.",
-          "kind": "manual"
-        },
-        {
-          "description": "Repeat the winning configuration after a cold app start and after a 30-minute soak.",
+          "description": "Repeat the winner after cold app start and after a 30-minute concurrent ASR/cleanup soak.",
           "kind": "manual"
         }
       ],
       "acceptance_criteria": [
-        "benchmark-results.md contains reproducible commands, hardware, model hash, fixture hashes, raw samples, medians, p95 values, and a before/after table.",
-        "The plan never equates prompt-processing throughput with generation throughput; both are reported separately.",
-        "The selected strategy loads model weights once, has a hard concurrency cap, and creates no swap under the accepted workload.",
-        "Unbounded or merely higher concurrency is rejected when it harms end-to-end latency, ASR, memory, thermals, or quality.",
-        "If no parallel candidate clears the gate, one incremental worker is the documented production choice."
+        "benchmark-results.md contains reproducible commands, raw samples, p50/p95/p99 values, before/after table, and reasons every candidate was accepted or rejected.",
+        "Prompt evaluation and output generation throughput are reported separately.",
+        "The selected model/context strategy loads weights once, has a hard concurrency cap, causes no swap, and does not materially slow ASR.",
+        "Exact concurrency, retained_tail_tokens, queue_deadline, generation_deadline, and finish_deadline values are recorded for T6; T6 may not choose new values."
       ],
-      "depends_on": ["T1", "T3"],
+      "depends_on": ["T4"],
       "estimated_loc": 300,
       "suggested_skills": ["optimize-loop", "engineeringkit-backend-discipline"]
     },
     {
       "id": "T6",
-      "title": "Integrate the measured Metal scheduler with backpressure",
-      "serves": ["c4", "c5", "c6"],
-      "description": "Implement only the scheduling strategy selected by T5. Keep the model permanently on Apple Metal and independent of the speech accelerator dropdown. Reuse one loaded model, bound active sequences and queued chunks, prioritize final-tail work over background commits, and preserve deterministic ordered output under completion reordering.",
+      "title": "Integrate the measured Metal scheduler and hard deadlines",
+      "serves": ["c5", "c6"],
+      "description": "Implement only the T5 winner. Keep one Metal-loaded model independent of the speech accelerator dropdown, bound active contexts or sequences and queue capacity, prioritize final tails, enforce the recorded queue/generation/finish deadlines inside token decode, recover KV state after timeout, and deliver every session exactly once in source order.",
       "building_blocks": [
-        "Measured SchedulerConfig frozen from benchmark results",
-        "Bounded high-priority final queue and normal committed queue",
-        "Context or sequence ownership guard",
-        "Per-session cancellation token",
-        "Ordered result channel"
+        "T5 SchedulerConfig constants",
+        "One LlamaBackend and LlamaModel",
+        "Bounded commit and finish queues",
+        "Per-session cancellation and deadline tokens",
+        "Existing source-span ordered CleanupResult"
       ],
-      "tools": ["Rust concurrency tests", "stress fixture", "target-hardware profiler"],
-      "packages": ["existing llama-cpp-2 and tokio crates only"],
+      "tools": ["Rust concurrency and failure tests", "target-hardware profiler"],
+      "packages": ["existing llama-cpp-2 and tokio only"],
       "files": [
         {
           "path": "src-tauri/src/local_cleanup/engine.rs",
           "action": "create",
-          "what": "Own one Metal model, selected context or multi-sequence scheduler, greedy generation, and engine lifecycle."
+          "what": "Own the single Metal model, selected context or multi-sequence configuration, greedy decode, token-loop deadlines, and KV recovery."
         },
         {
           "path": "src-tauri/src/local_cleanup/scheduler.rs",
           "action": "create",
-          "what": "Own bounded queues, priorities, fairness, cancellation, backpressure, and ordered completion delivery."
+          "what": "Own bounded queues, priority, fairness, overload, cancellation, deadlines, and exactly-once result delivery."
         },
         {
-          "path": "src-tauri/src/local_cleanup.rs",
+          "path": "src-tauri/src/local_cleanup/mod.rs",
           "action": "modify",
-          "what": "Delegate engine and scheduling work to focused modules while preserving install, readiness, and Tauri command entry points."
+          "what": "Delegate the existing job loop to engine and scheduler modules while preserving install/status and committed T1-T4 contracts."
         }
       ],
       "subtasks": [
         {
           "id": "T6.1",
-          "description": "Encode the T5 winner as explicit constants or a typed internal configuration with the benchmark report as its source of truth."
+          "description": "Encode the exact T5 concurrency, retained tail, queue deadline, generation deadline, and finish deadline in one typed SchedulerConfig; reference the benchmark report and do not retune during implementation."
         },
         {
           "id": "T6.2",
-          "description": "Initialize exactly one LlamaBackend and one LlamaModel with METAL_GPU_LAYERS independent of transcribe_accelerator and transcribe_gpu_device."
+          "description": "Initialize exactly one LlamaBackend and LlamaModel with 99 Metal layers regardless of transcribe_accelerator or transcribe_gpu_device."
         },
         {
           "id": "T6.3",
-          "description": "Implement the measured context or multi-sequence cap and enforce bounded queue capacity with explicit backpressure rather than dropping committed text."
+          "description": "Bound active work and queue capacity, coalesce commit notifications through T4 ingress, prioritize finish-tail work, and retain starvation-free background progress."
         },
         {
           "id": "T6.4",
-          "description": "Prioritize Finish tail jobs over background Commit jobs while retaining starvation-free progress for active recordings."
+          "description": "Check cancellation and generation_deadline at every decode token; on expiry remove the affected KV sequence or recreate the context and return a typed chunk-local timeout fallback."
         },
         {
           "id": "T6.5",
-          "description": "Attach session ID, sequence number, and cancellation generation to every job and ignore late cancelled completions."
+          "description": "Enforce queue_deadline before dispatch and finish_deadline at session orchestration; terminate every waiter once and ignore late cancelled, expired, or superseded completions."
         },
         {
           "id": "T6.6",
-          "description": "On fatal engine failure set READY false, fail all pending replies exactly once, emit cleanup-model-failed, and allow the existing install or preload path to recover."
+          "description": "On fatal engine failure set READY false, fail pending work once, emit cleanup-model-failed, and permit existing preload/install recovery."
         }
       ],
       "tests": [
         {
-          "description": "Stress concurrent sessions and out-of-order completions and assert ordered, exactly-once result delivery with no deadlock.",
+          "description": "Stress queue saturation, priority, out-of-order completions, concurrent sessions, and cancellation without deadlock or source loss.",
           "kind": "integration"
         },
         {
-          "description": "Fill the queue to capacity, finalize one session, cancel another, and assert backpressure, priority, and cancellation behavior.",
+          "description": "Exercise timeout before dispatch, timeout during decode, finish expiry, KV/context recovery, and a successful job immediately after each timeout.",
           "kind": "integration"
         },
         {
-          "description": "Toggle the speech accelerator among CPU, Auto, and GPU and verify cleanup status and logs continue to report Metal with identical S1 configuration.",
+          "description": "Toggle speech CPU/Auto/GPU and verify S1 stays Metal with identical scheduler configuration.",
           "kind": "e2e"
-        },
-        {
-          "description": "Inject an engine failure and assert all waiters terminate, readiness becomes false, and no stale text is pasted.",
-          "kind": "integration"
         }
       ],
       "acceptance_criteria": [
-        "Cleanup always runs on Metal on supported macOS hardware regardless of speech accelerator selection.",
-        "Only the benchmark-approved number of contexts or sequences can execute concurrently.",
-        "One model weight allocation is shared; no worker reloads or duplicates the GGUF.",
-        "Queue saturation applies measurable backpressure and never silently drops source text.",
-        "Cancellation, failure, and restart paths terminate every request exactly once."
+        "T6 consumes the exact T5 constants and strategy without introducing an unmeasured alternative.",
+        "One model allocation is shared and cleanup remains Metal-only independent of speech acceleration.",
+        "Queue saturation cannot block ASR or drop source ownership.",
+        "Every queue, decode, and finish timeout produces a typed fallback, cleans its sequence state, and resolves exactly once.",
+        "Fatal failure and recovery paths leave no stuck overlay, waiter, session, or stale paste."
       ],
       "depends_on": ["T4", "T5"],
       "estimated_loc": 400,
@@ -613,209 +324,184 @@
     },
     {
       "id": "T7",
-      "title": "Finalize ordered text and expose truthful cleanup progress",
-      "serves": ["c6", "c7"],
-      "description": "Assemble sequence-numbered accepted and fallback chunks without deterministic grammar rewriting, avoid artificial paragraph breaks at hard token boundaries, and surface the real cleanup state through the existing overlay and Journal card. The UI should show finalizing only while unresolved tail work exists and should distinguish fully applied from degraded fallback outcomes.",
+      "title": "Expose truthful cleaning, finalizing, and degraded state",
+      "serves": ["c7"],
+      "description": "Wire the already-typed CleanupRunStatusEvent and CleanupModelStatus.last_run into the mounted hook, overlay, and existing Journal card. Show cleaning only for real backlog, finalizing only for unresolved stop-tail work, and degraded only for mixed or raw fallback. Keep active tied to installed plus ready and make no layout redesign or history migration.",
       "building_blocks": [
-        "OrderedChunkAssembler",
-        "Boundary metadata preserving source whitespace and paragraph intent",
-        "StreamWorkKind Cleaning and Finalizing states",
-        "Existing CleanupModelStatus, StatusPing, Badge, and RecordingOverlay"
+        "Committed T1 CleanupRunStatusEvent and CleanupOutcomeSummary",
+        "Existing StreamPhaseEvent and StreamWorkKind",
+        "Existing useCleanupModel, RecordingOverlay, AIModelsStatusCard, StatusPing, and Badge"
       ],
-      "tools": ["Rust assembly tests", "TypeScript build and lint", "Playwright or manual Tauri UI verification"],
+      "tools": ["TypeScript build and lint", "translation checker", "Tauri UI smoke"],
       "packages": ["no new packages"],
       "files": [
         {
-          "path": "src-tauri/src/local_cleanup/assembly.rs",
-          "action": "create",
-          "what": "Own ordered chunk assembly, boundary whitespace, degraded spans, and final-source metadata."
-        },
-        {
           "path": "src-tauri/src/managers/transcription.rs",
           "action": "modify",
-          "what": "Emit Cleaning and Finalizing phases from real scheduler state."
-        },
-        {
-          "path": "src-tauri/src/actions.rs",
-          "action": "modify",
-          "what": "Paste the assembled result and persist the real cleanup outcome with history."
+          "what": "Emit cleaning and finalizing only from real scheduler backlog and unresolved-tail state."
         },
         {
           "path": "src/overlay/RecordingOverlay.tsx",
           "action": "modify",
-          "what": "Render existing restrained working state for cleaning or finalizing without redesigning the overlay."
-        },
-        {
-          "path": "src/components/settings/general/AIModelsStatusCard.tsx",
-          "action": "modify",
-          "what": "Keep active tied to installed plus ready and surface degraded or unavailable last-run state without fake inference."
+          "what": "Render existing restrained working UI for cleaning and finalizing without changing the layout."
         },
         {
           "path": "src/hooks/useCleanupModel.ts",
           "action": "modify",
-          "what": "Consume typed lifecycle and last-run state from the existing status command and events."
+          "what": "Listen for CleanupRunStatusEvent and refresh real status after applied, degraded, failed, or cancelled runs."
         },
         {
-          "path": "src/i18n/locales/en/translation.json",
+          "path": "src/components/settings/general/AIModelsStatusCard.tsx",
           "action": "modify",
-          "what": "Add concise cleaning, finalizing, and degraded labels before propagating them through the existing locale workflow."
+          "what": "Map backend ready and last-run summary to active, loading, degraded, and unavailable ping/badge states."
+        },
+        {
+          "path": "src/i18n/locales/*/translation.json",
+          "action": "modify",
+          "what": "Add concise cleaning, finalizing, and degraded labels through the existing locale workflow."
         }
       ],
       "subtasks": [
         {
           "id": "T7.1",
-          "description": "Define OrderedChunkAssembler::push(sequence, source_span, outcome) and finish(expected_count) -> AssembledCleanup with duplicate and missing-sequence errors."
+          "description": "Extend StreamWorkKind exhaustively with cleaning and finalizing and emit transitions only from backend queue/tail state."
         },
         {
           "id": "T7.2",
-          "description": "Carry boundary metadata from chunk construction and join chunks using source paragraph boundaries; never insert blank lines solely because a token cap was reached."
+          "description": "Subscribe useCleanupModel to events.cleanupRunStatusEvent, update or refresh last_run, and remove no existing install/ready/failure listener."
         },
         {
           "id": "T7.3",
-          "description": "Persist whether the final output is fully_s1, mixed_fallback, raw_fallback, or skipped alongside the existing history output without storing private metrics."
+          "description": "Map installed plus ready to Active; PartiallyApplied or raw fallback to Degraded; installation/loading to orange; engine error/unavailable to rose."
         },
         {
           "id": "T7.4",
-          "description": "Extend StreamWorkKind with cleaning and finalizing and emit them only while the scheduler reports background backlog or unresolved tail."
+          "description": "Reuse the overlay's existing working presentation for Cleaning and Finalizing and hide it immediately when cleanup has already caught up."
         },
         {
           "id": "T7.5",
-          "description": "Map backend states to the existing green, orange, and rose ping and badge semantics; do not infer active from a static label."
-        },
-        {
-          "id": "T7.6",
-          "description": "Add translation keys to every locale through the existing translation-check workflow without changing the card layout."
+          "description": "Add all locale keys and run the translation checker; do not persist per-entry cleanup provenance or change the Journal layout."
         }
       ],
       "tests": [
         {
-          "description": "Assemble deliberately out-of-order results with one fallback and assert exact source order, preserved paragraph boundaries, and mixed_fallback status.",
+          "description": "Type-check exhaustive rendering of every lifecycle and final-source combination.",
           "kind": "unit"
         },
         {
-          "description": "Type-check exhaustive TypeScript rendering for every cleanup lifecycle and last-run outcome.",
-          "kind": "unit"
-        },
-        {
-          "description": "Use the Tauri app to verify short, long, degraded, unavailable, and cancelled flows show truthful labels and never leave the overlay stuck.",
+          "description": "Tauri smoke short, long, degraded, unavailable, cancelled, and already-caught-up flows and assert no stuck or false state.",
           "kind": "e2e"
         },
         {
-          "description": "Run the translation checker and verify every newly introduced key exists in all locales.",
+          "description": "Run the translation checker with every new key present.",
           "kind": "integration"
         }
       ],
       "acceptance_criteria": [
-        "Chunk completion order cannot change pasted text order.",
-        "Hard token chunking cannot create arbitrary blank paragraphs.",
-        "The overlay disappears immediately when background cleanup has already caught up and shows finalizing only for real tail work.",
-        "The Journal card remains minimal and reports installed plus ready as active, with degraded or unavailable state derived from the backend.",
-        "All frontend state is fully typed and all locale keys are complete."
+        "The backend, not static copy, is the only source of cleanup state.",
+        "Cleaning and Finalizing appear only while corresponding work exists.",
+        "A rejected or mixed-fallback run cannot appear as a successful cleanup run.",
+        "The Journal card stays visually unchanged apart from truthful text and state, and every locale is complete."
       ],
       "depends_on": ["T4", "T6"],
-      "estimated_loc": 380,
+      "estimated_loc": 260,
       "suggested_skills": ["engineeringkit-frontend-skills", "engineeringkit-backend-discipline"]
     },
     {
       "id": "T8",
-      "title": "Prove quality, latency, memory, and rollout safety",
-      "serves": ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"],
-      "description": "Run the complete production path on the target M1 using representative short, 2-to-5-minute, 10-minute, 20-minute, and 30-minute traces. Compare raw ASR, pre-S1 input, per-chunk S1 output, validator decisions, final text, queue metrics, and stop-to-paste latency. Ship only when invariant, human-quality, ASR coexistence, memory, and reliability gates pass; otherwise keep the previous release behind a rollback switch while fixing the failed gate.",
+      "title": "Run the full production-path quality, latency, and soak gate",
+      "serves": ["c4", "c5", "c6", "c7", "c8"],
+      "description": "Create runnable deterministic and ignored real-model replay modules, then measure the exact shipped path on short, 2-to-5-minute, 10-minute, 20-minute, and 30-minute traces. Verify fidelity invariants, no common-word ALL-CAPS regressions, stop-to-paste distributions, backlog, ASR coexistence, memory, cancellation, failure recovery, and frontend state. Record an explicit go or no-go.",
       "building_blocks": [
-        "Golden invariant suite",
-        "Blind human preference rubric",
-        "Long-session trace replay",
-        "Before/after performance table",
-        "Failure injection and soak test",
-        "Internal rollback flag removed after confidence window"
+        "SessionTrace JSONL schema",
+        "Deterministic in-crate replay tests",
+        "Ignored real-model M1 tests",
+        "Quality corpus and blind A/B rubric",
+        "Long-session and failure-injection report"
       ],
-      "tools": ["Cargo test", "Bun build, lint, and format check", "Tauri app", "target-hardware benchmark harness", "git diff and status"],
+      "tools": ["Cargo", "Bun", "Tauri app", "target-hardware benchmark harness", "git diff"],
       "packages": ["no new packages"],
       "files": [
         {
           "path": "src-tauri/tests/fixtures/s1_cleanup_quality.jsonl",
           "action": "modify",
-          "what": "Expand the corpus to cover every reported regression and boundary invariant."
+          "what": "Expand committed fixtures for every quality and collision invariant."
         },
         {
           "path": "src-tauri/tests/fixtures/s1_stream_traces.jsonl",
           "action": "create",
-          "what": "Store sanitized committed and tentative stream transitions for long-session replay."
+          "what": "Store sanitized SessionTrace records with session ID, language, revisions, committed/tentative snapshots, final text, source hash, and expected invariants."
+        },
+        {
+          "path": "src-tauri/src/local_cleanup/replay_tests.rs",
+          "action": "create",
+          "what": "Run deterministic production-module trace replay and ignored real-model M1 cases under crate-private access."
         },
         {
           "path": "docs/plans/s1-cleanup-quality-performance/verification-report.md",
           "action": "create",
-          "what": "Record final commands, fixture hashes, quality results, timing distributions, memory, failures, and go or no-go decision."
-        },
-        {
-          "path": "src-tauri/src/local_cleanup.rs",
-          "action": "modify",
-          "what": "Remove temporary compatibility or rollback plumbing after the confidence window, or document the explicit no-go state."
+          "what": "Record commands, hashes, quality decisions, p50/p95/p99 latency, backlog, memory, failures, and final go/no-go."
         }
       ],
       "subtasks": [
         {
           "id": "T8.1",
-          "description": "Build a sanitized corpus with conversational prose, profanity, repetitions, false starts, self-corrections, exact numbers, dates, currency, email, code tokens, paths, negations, three-item lists, non-lists, and filler-only audio."
+          "description": "Define and parse SessionTrace JSONL and cover conversation, profanity, repetitions, corrections, values, negations, code, paths, three-item lists, non-lists, filler-only, punctuation-free commits, divergence, overload, non-English, and cancellation."
         },
         {
           "id": "T8.2",
-          "description": "Assert 100 percent invariant preservation for explicit numbers, currency, paths, extensions, identifiers, negations, source ordering, and no invented headings or code tokens."
+          "description": "Require 100 percent preservation of explicit numbers, currency, percentages, paths, extensions, identifiers, negations, source ordering, no invented syntax/headings, and zero unexplained common-word ALL-CAPS."
         },
         {
           "id": "T8.3",
-          "description": "Run blind A/B review against the current release and require at least an 80 percent preference for the new output with zero common-word ALL-CAPS regressions."
+          "description": "Run blind A/B against the f9e1c16 output baseline and require at least 80 percent preference with no hard-invariant failure."
         },
         {
           "id": "T8.4",
-          "description": "Measure stop-to-paste p50 and p95 by duration and require at most 1.5 seconds p50 and 3 seconds p95 for 10-minute streaming recordings, and at most 2.5 seconds p50 and 5 seconds p95 for 30-minute recordings when cleanup kept pace during capture."
+          "description": "Require stop-to-paste at most 1.5 s p50 and 3 s p95 for 10-minute streams, and 2.5 s p50 and 5 s p95 for 30-minute streams when cleanup kept pace; report overload separately."
         },
         {
           "id": "T8.5",
-          "description": "Require cleanup backlog at stop to be at most one normal chunk plus the retained tail for steady-state recordings; separately report overload cases rather than hiding them."
+          "description": "Run 30-minute concurrent Parakeet/S1 soak with no crash, deadlock, swap, stale result, lost text, or ASR RTF regression above 10 percent."
         },
         {
           "id": "T8.6",
-          "description": "Run 30-minute concurrent ASR plus cleanup soak tests and require no crash, deadlock, swap, stale session output, lost text, or ASR real-time-factor regression greater than 10 percent."
+          "description": "Run deterministic replay with cargo test --manifest-path src-tauri/Cargo.toml --lib local_cleanup::replay_tests and real-model replay with cargo test --manifest-path src-tauri/Cargo.toml --lib local_cleanup::replay_tests::real_model -- --ignored --nocapture."
         },
         {
           "id": "T8.7",
-          "description": "Run cargo fmt check, clippy with warnings denied where supported, the full Rust library suite, Bun build, lint, format check, translation check, and targeted Tauri smoke flows."
+          "description": "Run cargo fmt check, cargo clippy --all-targets -D warnings, cargo test --all-targets, bun run build, bun run lint, bun run format:check, bun run check:translations, and targeted Tauri UI smoke."
         },
         {
           "id": "T8.8",
-          "description": "Write verification-report.md with every result and an explicit go, conditional-go, or no-go decision; do not claim completion for unrun or failed checks."
+          "description": "Write verification-report.md and declare go only if every new gate passes; identify exact pre-existing failures and leave no-go for any new or unrun gate."
         }
       ],
       "tests": [
         {
-          "description": "Run the full invariant corpus through the same modules and engine used in production.",
+          "description": "Run deterministic fixtures through the same session, scheduler, validator, and assembler modules used in production.",
           "kind": "integration"
         },
         {
-          "description": "Run target-hardware 2-, 5-, 10-, 20-, and 30-minute stream replays and collect p50 and p95 metrics.",
+          "description": "Run real Metal 2-, 5-, 10-, 20-, and 30-minute traces and failure injection on the target M1.",
           "kind": "e2e"
         },
         {
-          "description": "Inject validator rejection, queue saturation, cancellation, engine failure, not-ready state, and app restart during cleanup.",
-          "kind": "integration"
-        },
-        {
-          "description": "Run cargo test --manifest-path src-tauri/Cargo.toml --lib, cargo fmt --manifest-path src-tauri/Cargo.toml -- --check, cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings, bun run build, bun run lint, bun run format:check, and bun run check:translations.",
+          "description": "Run the complete Rust, TypeScript, lint, format, translation, and Tauri smoke command set.",
           "kind": "integration"
         }
       ],
       "acceptance_criteria": [
-        "Zero fixture emits unexplained common-word ALL-CAPS tokens, invented paths or extensions, lost negations, reordered chunks, or repetition loops.",
-        "The S1 model is proven used or explicitly degraded for every English run; no silent fallback remains.",
-        "The long-stream stop-to-paste, backlog, ASR coexistence, memory, and reliability gates pass on the target M1 8 GB machine.",
-        "benchmark-results.md and verification-report.md distinguish prompt evaluation speed, generation speed, total latency, queue wait, and final tail latency.",
-        "All required Rust and frontend checks pass, or the report names the exact pre-existing or new blocker and the release remains no-go."
+        "Every English run proves S1 applied or reports a typed degraded/fallback reason; no silent fallback remains.",
+        "Zero fixture loses or reorders source, changes protected values or negations, invents syntax, loops, or produces unexplained common-word ALL-CAPS.",
+        "Long-stream latency, backlog, ASR coexistence, memory, cancellation, timeout, and soak gates pass on the M1 8 GB machine.",
+        "verification-report.md distinguishes prompt evaluation, generation, queue wait, total time, and stop-tail latency and labels every unrun check honestly.",
+        "The release remains no-go for any new failure or missing target-hardware evidence."
       ],
-      "depends_on": ["T2", "T3", "T6", "T7"],
+      "depends_on": ["T4", "T5", "T6", "T7"],
       "estimated_loc": 300,
       "suggested_skills": ["blue-team", "optimize-loop", "engineeringkit-backend-discipline"]
     }
   ],
-  "order": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"]
+  "order": ["T4", "T5", "T6", "T7", "T8"]
 }

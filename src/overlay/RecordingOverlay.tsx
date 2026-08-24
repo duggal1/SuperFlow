@@ -758,9 +758,11 @@ const RecordingOverlay: React.FC = () => {
           </div>
           {working
             ? workingRow(
-                workKind === "polishing"
-                  ? t("overlay.processing")
-                  : t("overlay.transcribing"),
+                workKind === "finalizing"
+                  ? t("overlay.finalizing", { defaultValue: "Finalizing..." })
+                  : workKind === "polishing"
+                    ? t("overlay.processing")
+                    : t("overlay.transcribing"),
                 true,
               )
             : listeningRow(open, true)}

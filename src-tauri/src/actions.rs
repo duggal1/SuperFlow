@@ -439,7 +439,7 @@ async fn process_transcription_output_with_context(
     app: &AppHandle,
     transcription: &str,
     post_process: bool,
-    snapshot: Option<&crate::context::types::ContextSnapshot>,
+    context: Option<&crate::context::RecordingContext>,
 ) -> ProcessedTranscription {
     let settings = get_settings(app);
     let mut final_text = transcription.to_string();
@@ -462,7 +462,15 @@ async fn process_transcription_output_with_context(
     // reports its terminal outcome; only accepted S1 output replaces text.
     if !final_text.trim().is_empty() {
         let outcome =
-            crate::local_cleanup::normalize(app, &effective_language, final_text.clone()).await;
+            match crate::local_cleanup::finalize_session(app, &effective_language, &final_text)
+                .await
+            {
+                Some(outcome) => outcome,
+                None => {
+                    crate::local_cleanup::normalize(app, &effective_language, final_text.clone())
+                        .await
+                }
+            };
         debug!(
             "cleanup run {}: {:?} via {:?} ({} -> {} chars)",
             outcome.summary.run_id,
@@ -488,8 +496,9 @@ async fn process_transcription_output_with_context(
     // Smart file references: resolve spoken file names against the active dev
     // project when dictating into a terminal or editor. Local-only, best-effort.
     if settings.smart_file_references_enabled {
-        if let Some(resolved) =
-            snapshot.and_then(|snapshot| crate::file_refs::maybe_resolve(snapshot, &final_text))
+        if let Some(resolved) = context
+            .and_then(|context| context.project_root.as_deref())
+            .and_then(|root| crate::file_refs::resolve_references(root, &final_text))
         {
             debug!(
                 "Smart file reference resolved in {} characters",
@@ -500,13 +509,20 @@ async fn process_transcription_output_with_context(
     }
 
     if settings.intelligence_awareness_enabled {
-        if let Some(snapshot) = snapshot.filter(|snapshot| snapshot.is_aware_surface()) {
-            match crate::intelligence::compose_aware_reply(&settings, snapshot, &final_text).await {
+        if let Some(context) = context.filter(|context| context.snapshot.is_aware_surface()) {
+            match crate::intelligence::compose_aware_reply(
+                &settings,
+                &context.snapshot,
+                context.developer.as_ref(),
+                &final_text,
+            )
+            .await
+            {
                 crate::intelligence::AwarenessOutcome::Composed(text) => {
                     debug!(
                         "Awareness composed {} characters for {}",
                         text.len(),
-                        snapshot.surface.as_str()
+                        context.snapshot.surface.as_str()
                     );
                     final_text = text;
                 }
@@ -627,6 +643,8 @@ impl ShortcutAction for TranscribeAction {
         // Get the microphone mode to determine audio feedback timing
         let plan_started = Instant::now();
         let settings = get_settings(app);
+        let cleanup_language = resolve_effective_language(app, &settings);
+        crate::local_cleanup::start_session(app, &cleanup_language);
         let is_always_on = settings.always_on_microphone;
 
         let selected_model_info = app
@@ -687,7 +705,11 @@ impl ShortcutAction for TranscribeAction {
 
         match rm.try_start_recording(&binding_id, vad_policy, Some(journal_path)) {
             Ok(readiness) => {
-                rm.begin_context_capture();
+                rm.begin_context_capture(
+                    settings.smart_file_references_enabled
+                        || settings.intelligence_awareness_enabled,
+                    settings.intelligence_awareness_enabled,
+                );
                 debug!(
                     "Recording request accepted in {:?}; waiting for first microphone samples",
                     recording_start_time.elapsed()
@@ -826,7 +848,7 @@ impl ShortcutAction for TranscribeAction {
 
             let stop_recording_time = Instant::now();
             if let Some(samples) = rm.stop_recording(&binding_id, cancel_generation) {
-                let context_snapshot = rm.take_context_snapshot();
+                let recording_context = rm.take_recording_context();
                 debug!(
                     "Recording stopped and samples retrieved in {:?}, sample count: {}",
                     stop_recording_time.elapsed(),
@@ -961,6 +983,9 @@ impl ShortcutAction for TranscribeAction {
                             }
 
                             let auto_ai_cleanup = get_settings(&ah).auto_ai_cleanup_enabled;
+                            if use_streaming_overlay {
+                                tm.emit_stream_working(StreamWorkKind::Finalizing);
+                            }
                             if auto_ai_cleanup {
                                 crate::audio_feedback::play_ai_cleanup_sound(
                                     &ah,
@@ -979,7 +1004,7 @@ impl ShortcutAction for TranscribeAction {
                                     &ah,
                                     &transcription,
                                     post_process,
-                                    context_snapshot.as_ref(),
+                                    recording_context.as_ref(),
                                 ),
                                 || rm.was_cancelled_since(cancel_generation),
                             )

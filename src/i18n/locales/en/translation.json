@@ -422,7 +422,7 @@
       },
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
-        "description": "In Gmail and Slack, interprets what you say using visible context. Terminal and editor dictation always stays faithful to your transcript."
+        "description": "Uses bounded visible context to compose messages in Gmail and Slack and execution-ready prompts in terminals and code editors."
       }
     },
     "postProcessing": {

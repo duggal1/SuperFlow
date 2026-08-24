@@ -1,0 +1,5 @@
+{"id":"monotonic_punctuation_free","language":"en","revisions":[{"revision":1,"committed":"one two three four five six seven eight nine ten"},{"revision":2,"committed":"one two three four five six seven eight nine ten eleven twelve"}],"final_text":"one two three four five six seven eight nine ten eleven twelve","expected_divergence":62}
+{"id":"tail_self_correction","language":"en","revisions":[{"revision":1,"committed":"send the report by friday"},{"revision":2,"committed":"send the report by friday no wait"}],"final_text":"send the report by thursday","expected_divergence":19}
+{"id":"middle_revision","language":"en","revisions":[{"revision":1,"committed":"alpha beta gamma delta epsilon"},{"revision":2,"committed":"alpha beta corrected delta epsilon zeta"}],"final_text":"alpha beta final delta epsilon zeta","expected_divergence":11}
+{"id":"unicode_revision","language":"en","revisions":[{"revision":1,"committed":"hello café today"}],"final_text":"hello café tomorrow","expected_divergence":14}
+{"id":"non_english_skip","language":"fr","revisions":[{"revision":1,"committed":"bonjour le monde"}],"final_text":"bonjour le monde","expected_divergence":16}

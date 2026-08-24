@@ -9,23 +9,49 @@ import { useCleanupModel } from "@/hooks/useCleanupModel";
 export const AIModelsStatusCard: React.FC = () => {
   const { t } = useTranslation();
   const { status } = useCleanupModel();
+  const degraded =
+    status?.last_run?.lifecycle === "partially_applied" ||
+    status?.last_run?.lifecycle === "rejected" ||
+    status?.last_run?.lifecycle === "failed";
 
-  const tone: StatusPingTone = status?.active
-    ? "green"
-    : status?.installing || (status?.installed && !status.last_error)
-      ? "orange"
-      : "rose";
+  const tone: StatusPingTone =
+    status?.active && !degraded && !status.cleaning
+      ? "green"
+      : degraded ||
+          status?.installing ||
+          (status?.installed && !status.last_error)
+        ? "orange"
+        : "rose";
 
-  const badge = status?.active
-    ? { label: t("modelSelector.active"), variant: "green" as const }
-    : status?.installing
-      ? { label: t("settings.aiModels.installing"), variant: "orange" as const }
-      : status?.installed && !status.last_error
-        ? { label: t("settings.aiModels.loading"), variant: "orange" as const }
-        : {
-            label: t("settings.aiModels.unavailable"),
-            variant: "rose" as const,
-          };
+  const badge =
+    status?.active && status.cleaning
+      ? {
+          label: t("settings.aiModels.cleaning", { defaultValue: "Cleaning" }),
+          variant: "orange" as const,
+        }
+      : status?.active && degraded
+        ? {
+            label: t("settings.aiModels.degraded", {
+              defaultValue: "Degraded",
+            }),
+            variant: "orange" as const,
+          }
+        : status?.active
+          ? { label: t("modelSelector.active"), variant: "green" as const }
+          : status?.installing
+            ? {
+                label: t("settings.aiModels.installing"),
+                variant: "orange" as const,
+              }
+            : status?.installed && !status.last_error
+              ? {
+                  label: t("settings.aiModels.loading"),
+                  variant: "orange" as const,
+                }
+              : {
+                  label: t("settings.aiModels.unavailable"),
+                  variant: "rose" as const,
+                };
 
   return (
     <SettingsGroup title={t("settings.aiModels.title")}>
