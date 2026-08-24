@@ -358,12 +358,14 @@ export const LiveWaveform = ({
           const barCount = Math.floor(
             (rect.width + barGap) / (barWidth + barGap),
           );
+          const centerBar = Math.floor(barCount / 2);
           const newBars = Array.from({ length: barCount }, (_, index) => {
+            // Voice energy is concentrated in the lower backend FFT buckets.
+            // Mirror those responsive buckets around the center instead of
+            // assigning quiet high-frequency buckets to the right-hand bars.
             const dataIndex = Math.min(
               backendLevels.length - 1,
-              Math.floor(
-                (index / Math.max(1, barCount)) * backendLevels.length,
-              ),
+              Math.abs(index - centerBar),
             );
             return Math.max(
               0.05,
