@@ -23,24 +23,3 @@ pub use text::{
 };
 pub use utils::get_cpal_host;
 pub use vad::{SileroVad, VoiceActivityDetector};
-
-/// Vocabulary-only normalization applied AFTER S1-mini cleanup (T2.5).
-///
-/// Canonical brand/framework spellings, spoken Tailwind classes, and explicit
-/// technical tokens are restored here so they never corrupt the model's input
-/// as pre-rewritten prose. Everything is meaning-preserving: near-exact alias
-/// hits only, ambiguous bare English words denylisted in the programming
-/// catalog, plus whitespace/stutter hygiene and spoken-path rejoining.
-pub fn apply_post_cleanup_vocabulary(text: &str, tech_lexicon_enabled: bool) -> String {
-    if text.is_empty() {
-        return text.to_string();
-    }
-    let corrected = if tech_lexicon_enabled {
-        let corrected = tech_lexicon::apply(text);
-        let corrected = styling::apply(&corrected);
-        programming_syntax::apply(&corrected)
-    } else {
-        text.to_string()
-    };
-    join_path_tokens(&normalize_transcription_output(&corrected))
-}

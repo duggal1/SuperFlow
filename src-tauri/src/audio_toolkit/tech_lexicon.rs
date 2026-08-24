@@ -1,11 +1,13 @@
-//! Built-in technical vocabulary for post-transcription correction.
+//! Built-in technical vocabulary for pre-cleanup correction.
 //!
 //! Ships a curated lexicon of technology terms with their common mishearings
 //! ("next year" → "Next.js", "tail winds" → "Tailwind CSS") and applies it to
-//! every transcription through the same n-gram fuzzy engine used for user
-//! custom words. Entirely local — no network, no model, no API key.
+//! every eligible English transcript through the same n-gram fuzzy engine used
+//! for user custom words before S1-mini. Entirely local — no network or API key.
 
 use std::sync::OnceLock;
+
+use crate::audio_toolkit::text::AliasMatcher;
 
 /// Embedded at compile time from the catalog; see `catalog/tech_lexicon.json`.
 const LEXICON_JSON: &str = include_str!("../catalog/tech_lexicon.json");
@@ -18,6 +20,41 @@ const MATCH_THRESHOLD: f64 = 0.2;
 type LexiconEntries = Vec<(String, Vec<String>)>;
 
 static LEXICON: OnceLock<LexiconEntries> = OnceLock::new();
+static MATCHER: OnceLock<AliasMatcher> = OnceLock::new();
+
+const AMBIGUOUS_PROSE_ALIASES: &[&str] = &[
+    "render",
+    "go",
+    "bun",
+    "react",
+    "swift",
+    "rust",
+    "yarn",
+    "spring",
+    "motion",
+    "dart",
+    "flutter",
+    "solid",
+    "remix",
+    "express",
+    "linear",
+    "notion",
+    "railway",
+    "use transition",
+    "transition",
+    "transaction",
+];
+
+fn safe_alias(canonical: &str, alias: &str) -> bool {
+    let normalized = alias.trim().to_lowercase();
+    if AMBIGUOUS_PROSE_ALIASES.contains(&normalized.as_str()) {
+        return false;
+    }
+    if canonical.starts_with("use") {
+        return normalized.contains(" hook") || normalized.contains("react ");
+    }
+    true
+}
 
 fn entries() -> &'static LexiconEntries {
     LEXICON.get_or_init(|| {
@@ -27,7 +64,14 @@ fn entries() -> &'static LexiconEntries {
                 crate::audio_toolkit::catalog::harvest(&document, &mut pairs);
                 pairs
                     .into_iter()
-                    .map(|pair| (pair.canonical, pair.aliases))
+                    .filter_map(|pair| {
+                        let aliases = pair
+                            .aliases
+                            .into_iter()
+                            .filter(|alias| safe_alias(&pair.canonical, alias))
+                            .collect::<Vec<_>>();
+                        (!aliases.is_empty()).then_some((pair.canonical, aliases))
+                    })
                     .collect()
             }
             Err(e) => {
@@ -103,7 +147,13 @@ pub fn apply(text: &str) -> String {
     if text.is_empty() {
         return text.to_string();
     }
-    crate::audio_toolkit::text::apply_alias_entries(text, entries(), MATCH_THRESHOLD)
+    MATCHER
+        .get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD))
+        .apply(text)
+}
+
+pub(crate) fn warm_up() {
+    let _ = MATCHER.get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD));
 }
 
 #[cfg(test)]
@@ -199,9 +249,19 @@ mod tests {
             apply("i will rest at the sea shore"),
             "i will rest at the sea shore"
         );
-        // Single common-word entries deliberately win in dev dictation:
-        // "Bun" the runtime vastly outweighs bread in this context.
-        assert_eq!(apply("a bun in the oven"), "a Bun in the oven");
+        assert_eq!(apply("a bun in the oven"), "a bun in the oven");
+    }
+
+    #[test]
+    fn ambiguous_product_and_hook_words_need_technical_context() {
+        assert_eq!(
+            apply("render it and use transition while we go"),
+            "render it and use transition while we go"
+        );
+        assert_eq!(
+            apply("deploy on render hosting with the use transition hook"),
+            "deploy on Render with the useTransition"
+        );
     }
 
     #[test]

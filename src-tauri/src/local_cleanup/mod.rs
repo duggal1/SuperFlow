@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use log::{info, warn};
+use log::{debug, info, warn};
 use serde::Serialize;
 use tauri::Emitter;
 use tauri_specta::Event as SpectaEvent;
@@ -105,8 +105,8 @@ const CHUNK_GENERATION_TIMEOUT_SECS: u64 = 12;
 const SESSION_FINISH_TIMEOUT_SECS: u64 = 5;
 const QUEUE_DEADLINE: Duration = Duration::from_secs(2);
 const RETAINED_TAIL_WORDS: usize = 60;
-const TARGET_SPAN_WORDS: usize = 180;
-const MIN_STABLE_SPAN_WORDS: usize = 24;
+const TARGET_SPAN_WORDS: usize = 160;
+const MIN_STABLE_SPAN_WORDS: usize = 72;
 
 static JOB_TX: OnceLock<Mutex<Option<tokio::sync::mpsc::Sender<Job>>>> = OnceLock::new();
 static READY: AtomicBool = AtomicBool::new(false);
@@ -167,8 +167,59 @@ struct SpanSlot {
     sequence: u64,
     range: Range<usize>,
     source: String,
+    prepared_source: String,
     reply: tokio::sync::oneshot::Receiver<CleanupResult>,
     cancel: Arc<AtomicBool>,
+}
+
+#[derive(Clone)]
+struct CleanupPreparation {
+    custom_words: Vec<String>,
+    word_correction_threshold: f64,
+    tech_lexicon_enabled: bool,
+}
+
+impl CleanupPreparation {
+    fn from_app(app: &tauri::AppHandle) -> Self {
+        let settings = crate::settings::get_settings(app);
+        Self {
+            custom_words: settings.custom_words,
+            word_correction_threshold: settings.word_correction_threshold,
+            tech_lexicon_enabled: settings.tech_lexicon_enabled,
+        }
+    }
+
+    fn apply(&self, text: &str) -> String {
+        let started = Instant::now();
+        let corrected = if self.custom_words.is_empty() {
+            text.to_string()
+        } else {
+            crate::audio_toolkit::apply_custom_words(
+                text,
+                &self.custom_words,
+                self.word_correction_threshold,
+            )
+        };
+        let corrected = if self.tech_lexicon_enabled {
+            let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
+            let corrected = crate::audio_toolkit::styling::apply(&corrected);
+            crate::audio_toolkit::programming_syntax::apply(&corrected)
+        } else {
+            corrected
+        };
+        // S1 alone owns fillers, repetitions, false starts, grammar,
+        // punctuation, capitalization, paragraphs, and Markdown structure.
+        // Only meaning-preserving vocabulary/value/path normalization runs
+        // before the model.
+        let normalized = crate::audio_toolkit::formatter::normalize_values(corrected.trim());
+        let prepared = crate::audio_toolkit::join_path_tokens(&normalized);
+        debug!(
+            "S1 cleanup preparation completed: {} chars in {:.2}ms",
+            text.len(),
+            started.elapsed().as_secs_f64() * 1000.0
+        );
+        prepared
+    }
 }
 
 struct SessionInner {
@@ -183,6 +234,7 @@ pub struct CleanupSession {
     id: u64,
     app: tauri::AppHandle,
     effective_language: String,
+    preparation: CleanupPreparation,
     cancelled: AtomicBool,
     terminal_emitted: AtomicBool,
     inner: Mutex<SessionInner>,
@@ -199,6 +251,7 @@ pub fn start_session(app: &tauri::AppHandle, effective_language: &str) -> u64 {
         id,
         app: app.clone(),
         effective_language: effective_language.to_string(),
+        preparation: CleanupPreparation::from_app(app),
         cancelled: AtomicBool::new(false),
         terminal_emitted: AtomicBool::new(false),
         inner: Mutex::new(SessionInner {
@@ -489,7 +542,8 @@ impl CleanupSession {
             let Some(source) = committed.get(range.clone()).map(str::to_string) else {
                 break;
             };
-            let model_input = source.trim().to_string();
+            let prepared_source = self.preparation.apply(&source);
+            let model_input = prepared_source.trim().to_string();
             if model_input.is_empty() {
                 inner.scheduled_until = boundary;
                 continue;
@@ -521,6 +575,7 @@ impl CleanupSession {
                         sequence,
                         range,
                         source,
+                        prepared_source,
                         reply: reply_rx,
                         cancel,
                     });
@@ -607,13 +662,14 @@ impl CleanupSession {
                     span.cancel.store(true, Ordering::Release);
                     degraded = true;
                     first_failure.get_or_insert(CleanupFailureStage::GenerationTimeout);
-                    output.push_str(&span.source);
+                    output.push_str(&replace_trimmed_core(&span.source, &span.prepared_source));
                 }
             }
             cursor = span.range.end;
         }
 
         let suffix = final_text.get(cursor..).unwrap_or(final_text).to_string();
+        let prepared_suffix = self.preparation.apply(&suffix);
         let tail_cancel = Arc::new(AtomicBool::new(false));
         let remaining = finish_deadline.saturating_duration_since(Instant::now());
         let tail_result = if suffix.trim().is_empty() {
@@ -628,7 +684,7 @@ impl CleanupSession {
                 enqueue_normalize(
                     &self.app,
                     run_id,
-                    suffix.trim().to_string(),
+                    prepared_suffix.trim().to_string(),
                     Arc::clone(&tail_cancel),
                 ),
             )
@@ -649,7 +705,7 @@ impl CleanupSession {
             output.push_str(&replace_trimmed_core(&suffix, &result.final_text));
         } else {
             if !suffix.is_empty() {
-                output.push_str(&suffix);
+                output.push_str(&replace_trimmed_core(&suffix, &prepared_suffix));
             }
         }
 
@@ -723,17 +779,39 @@ fn protected_token(token: &str) -> Option<String> {
         .trim_end_matches(['.', '!', '?'])
         .to_lowercase();
     let is_number = token.chars().any(|character| character.is_ascii_digit());
-    let is_negation = matches!(
-        token.as_str(),
-        "not" | "never" | "no" | "don't" | "doesn't" | "can't" | "cannot" | "without" | "avoid"
-    );
     let is_code = token.contains('/')
         || token.contains('\\')
         || token.contains('_')
         || token.contains("::")
         || token.contains("()")
         || looks_like_file_token(&token);
-    (token.len() >= 2 && (is_number || is_negation || is_code)).then_some(token)
+    (token.len() >= 2 && (is_number || is_code)).then_some(token)
+}
+
+fn negation_count(text: &str) -> usize {
+    let normalized = text.to_lowercase().replace('\u{2019}', "'");
+    let words = normalized
+        .split_whitespace()
+        .map(|word| {
+            word.trim_matches(|character: char| !character.is_alphanumeric() && character != '\'')
+        })
+        .filter(|word| !word.is_empty())
+        .collect::<Vec<_>>();
+    let mut count = 0usize;
+    for (index, word) in words.iter().enumerate() {
+        match word {
+            &"no"
+                if matches!(words.get(index + 1), Some(&"wait") | Some(&"sorry"))
+                    || matches!(
+                        (words.get(index + 1), words.get(index + 2)),
+                        (Some(&"i"), Some(&"mean"))
+                    ) => {}
+            &"not" | &"cannot" | &"never" | &"no" | &"without" | &"avoid" => count += 1,
+            contraction if contraction.ends_with("n't") => count += 1,
+            _ => {}
+        }
+    }
+    count
 }
 
 fn looks_like_file_token(token: &str) -> bool {
@@ -753,12 +831,7 @@ fn looks_like_file_token(token: &str) -> bool {
 /// Returns the accepted text or a stable rejection reason.
 fn validate_output(source: &str, candidate: &str) -> Result<String, CleanupValidationReason> {
     let output = candidate.trim();
-    if output.contains("<think>")
-        || output.contains("```")
-        || output
-            .lines()
-            .any(|line| line.trim_start().starts_with('#'))
-    {
+    if output.contains("<think>") || output.contains("<|im_") {
         return Err(CleanupValidationReason::ThinkTagLeakage);
     }
     if has_repetition_loop(output) {
@@ -778,24 +851,13 @@ fn validate_output(source: &str, candidate: &str) -> Result<String, CleanupValid
     // its own reason code.
     let source_lower = source.to_lowercase();
     let output_lower = output.to_lowercase();
+    if negation_count(source) != negation_count(output) {
+        return Err(CleanupValidationReason::NegationChanged);
+    }
     for token in source.split_whitespace().filter_map(protected_token) {
         if !output_lower.contains(&token) {
-            let negation = matches!(
-                token.as_str(),
-                "not"
-                    | "never"
-                    | "no"
-                    | "don't"
-                    | "doesn't"
-                    | "can't"
-                    | "cannot"
-                    | "without"
-                    | "avoid"
-            );
             let currency = token.contains('$') || token.contains('%');
-            return Err(if negation {
-                CleanupValidationReason::NegationChanged
-            } else if currency {
+            return Err(if currency {
                 CleanupValidationReason::MissingCurrencyOrPercentage
             } else if token.chars().any(|c| c.is_ascii_digit()) {
                 CleanupValidationReason::MissingNumericToken
@@ -892,6 +954,8 @@ pub(crate) async fn normalize(
             },
         );
     }
+
+    let text = CleanupPreparation::from_app(app).apply(&text);
 
     if !READY.load(Ordering::Acquire) {
         warn!("S1-mini not loaded yet; passing transcript through uncleaned");
@@ -1433,6 +1497,14 @@ fn engine_loop(
             return;
         }
     };
+    let vocabulary_started = Instant::now();
+    crate::audio_toolkit::tech_lexicon::warm_up();
+    crate::audio_toolkit::styling::warm_up();
+    crate::audio_toolkit::programming_syntax::warm_up();
+    info!(
+        "S1 cleanup vocabulary matchers warmed in {:.2}ms",
+        vocabulary_started.elapsed().as_secs_f64() * 1000.0
+    );
     info!(
         "S1-mini model loaded from {} with {} Metal GPU layers",
         model_path.display(),
@@ -1916,13 +1988,18 @@ mod tests {
             validate_output(source, candidate),
             Ok(candidate.to_string())
         );
+        let markdown = "# Task\n\n```text\nfix src/payment.ts and keep 12% then update API\n```";
+        assert_eq!(validate_output(source, markdown), Ok(markdown.to_string()));
     }
 
     #[test]
     fn output_validation_reports_exact_rejection_reasons() {
-        // Heading/template leakage.
+        // Actual model control leakage.
         assert_eq!(
-            validate_output("fix the payment handler", "# Task\n\nFix the handler."),
+            validate_output(
+                "fix the payment handler",
+                "<think>analysis</think> Fix the payment handler."
+            ),
             Err(CleanupValidationReason::ThinkTagLeakage)
         );
         // Invented code/path token.
@@ -1951,6 +2028,20 @@ mod tests {
             validate_output(&"keep every detail ".repeat(30), "Keep the detail."),
             Err(CleanupValidationReason::ImplausibleTruncation)
         ));
+    }
+
+    #[test]
+    fn output_validation_allows_faithful_negation_rewrites() {
+        assert!(validate_output("don't change it", "Do not change it.").is_ok());
+        assert!(validate_output("do not change it", "Don't change it.").is_ok());
+        assert!(validate_output("avoid changing it", "Do not change it.").is_ok());
+        assert!(validate_output("without changing it", "Do not change it.").is_ok());
+        assert!(validate_output("no changes", "Do not make changes.").is_ok());
+        assert!(validate_output("no wait I mean fix it", "Fix it.").is_ok());
+        assert_eq!(
+            validate_output("change it", "Do not change it."),
+            Err(CleanupValidationReason::NegationChanged)
+        );
     }
 
     #[test]

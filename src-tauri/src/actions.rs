@@ -434,18 +434,7 @@ async fn process_transcription_output_with_context(
             final_text.len(),
             outcome.final_text.len()
         );
-        if matches!(
-            outcome.summary.lifecycle,
-            crate::local_cleanup::metrics::CleanupLifecycle::Applied
-                | crate::local_cleanup::metrics::CleanupLifecycle::PartiallyApplied
-        ) {
-            // T2.5: technical vocabulary and token hygiene run after S1 so the
-            // model never receives pre-rewritten prose.
-            final_text = crate::audio_toolkit::apply_post_cleanup_vocabulary(
-                &outcome.final_text,
-                settings.tech_lexicon_enabled,
-            );
-        }
+        final_text = outcome.final_text;
     }
 
     // Smart file references: resolve spoken file names against the active dev

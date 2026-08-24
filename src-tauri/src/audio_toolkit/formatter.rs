@@ -944,6 +944,23 @@ mod tests {
     }
 
     #[test]
+    fn ten_minute_catalog_pipeline_reuses_compiled_matchers() {
+        let paragraph = "please use next jays with background stone six hundred and deploy on render hosting then keep this normal prose unchanged ";
+        let input = paragraph.repeat(100);
+        crate::audio_toolkit::tech_lexicon::warm_up();
+        crate::audio_toolkit::styling::warm_up();
+        crate::audio_toolkit::programming_syntax::warm_up();
+
+        let started = std::time::Instant::now();
+        let output = full_pipeline(&input, PunctuationStyle::Formal);
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
+        assert!(output.contains("Next.js"));
+        assert!(output.contains("bg-stone-600"));
+        assert!(output.contains("Render"));
+        assert!(output.contains("normal prose"));
+    }
+
+    #[test]
     fn parses_clock_times_with_context() {
         assert_eq!(
             normalize_numerics("meet at three thirty pm"),

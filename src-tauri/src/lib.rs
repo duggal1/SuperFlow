@@ -286,6 +286,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
         let app = app_handle.clone();
         let history = Arc::clone(&history_manager);
         let transcription = Arc::clone(&transcription_manager);
+        let recording = Arc::clone(&recording_manager);
         tauri::async_runtime::spawn(async move {
             let _ = tauri::async_runtime::spawn_blocking(|| {
                 std::thread::sleep(std::time::Duration::from_secs(8))
@@ -318,6 +319,18 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                 ids.len()
             );
             for id in ids {
+                // Recovery is strictly background work. Wait for a quiet
+                // window before every entry so a launch backlog cannot steal
+                // the active model from foreground dictation.
+                loop {
+                    while recording.is_recording() || transcription.is_streaming() {
+                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(750)).await;
+                    if !recording.is_recording() && !transcription.is_streaming() {
+                        break;
+                    }
+                }
                 if let Err(e) = commands::history::retranscribe_entry(
                     app.clone(),
                     Arc::clone(&history),
@@ -328,6 +341,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
                 {
                     log::warn!("Startup recovery failed for entry {}: {}", id, e);
                 }
+                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
             }
         });
     }

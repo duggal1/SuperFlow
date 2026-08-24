@@ -13,6 +13,7 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 
 use super::catalog::{harvest, AliasPair};
+use crate::audio_toolkit::text::AliasMatcher;
 
 const STYLING_JSON: &str = include_str!("../catalog/styling.json");
 const STYLINGS_JSON: &str = include_str!("../catalog/stylings.json");
@@ -38,9 +39,25 @@ fn safe_alias_for_hex(canonical: &str, alias: &str) -> bool {
     )
 }
 
+fn safe_styling_alias(canonical: &str, alias: &str) -> bool {
+    if !safe_alias_for_hex(canonical, alias) {
+        return false;
+    }
+    let normalized = alias.trim().to_lowercase();
+    if normalized == "right zero" {
+        return false;
+    }
+    let bare_word = normalized.split_whitespace().count() == 1
+        && normalized
+            .chars()
+            .all(|character| character.is_alphabetic());
+    !(bare_word && canonical.to_lowercase() != normalized)
+}
+
 type AliasEntries = Vec<(String, Vec<String>)>;
 
 static STYLING: OnceLock<AliasEntries> = OnceLock::new();
+static MATCHER: OnceLock<AliasMatcher> = OnceLock::new();
 
 fn entries() -> &'static AliasEntries {
     STYLING.get_or_init(|| {
@@ -64,7 +81,7 @@ fn entries() -> &'static AliasEntries {
             let aliases: Vec<String> = pair
                 .aliases
                 .into_iter()
-                .filter(|alias| safe_alias_for_hex(&pair.canonical, alias))
+                .filter(|alias| safe_styling_alias(&pair.canonical, alias))
                 .collect();
             out.push((pair.canonical, aliases));
         }
@@ -116,7 +133,13 @@ pub fn apply(text: &str) -> String {
     if text.is_empty() {
         return text.to_string();
     }
-    crate::audio_toolkit::text::apply_alias_entries(text, entries(), MATCH_THRESHOLD)
+    MATCHER
+        .get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD))
+        .apply(text)
+}
+
+pub(crate) fn warm_up() {
+    let _ = MATCHER.get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD));
 }
 
 /// Same strictness as the technical lexicon: near-exact alias or canonical
@@ -160,6 +183,11 @@ mod tests {
     fn plain_prose_passes_through() {
         let text = "please review the layout tomorrow";
         assert_eq!(apply(text), text);
+        assert_eq!(
+            apply("right now use the normal model"),
+            "right now use the normal model"
+        );
+        assert_eq!(apply("set right position zero"), "set right-0");
     }
 }
 

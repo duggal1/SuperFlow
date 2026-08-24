@@ -1988,6 +1988,17 @@ fn post_process_transcription_text(
     supported_languages: &[String],
 ) -> String {
     fail_open_text_transform(raw, |raw| {
+        // Streaming commits and the finalized transcript must stay byte-identical
+        // until CleanupSession reconciles them. S1 performs the shared custom-word,
+        // technical-vocabulary, value, and path preparation immediately before
+        // each incremental span and final tail generation.
+        let language_hint = output_language.language();
+        if crate::local_cleanup::is_ready()
+            && crate::local_cleanup::should_run(language_hint.unwrap_or("auto"), &raw)
+        {
+            return raw;
+        }
+
         let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
             apply_custom_words(
                 &raw,
@@ -1997,22 +2008,6 @@ fn post_process_transcription_text(
         } else {
             raw
         };
-
-        // T2.1: when S1-mini will consume this transcript, it receives raw
-        // ASR text plus only meaning-preserving hygiene and value
-        // normalization. The technical-vocabulary catalogs run AFTER cleanup
-        // (see `apply_post_cleanup_vocabulary`), and grammar, punctuation,
-        // capitalization, fillers, paragraphs, and lists have exactly one
-        // owner: S1-mini. Non-English and not-yet-ready paths keep the full
-        // deterministic fallback below.
-        let language_hint = output_language.language();
-        if crate::local_cleanup::is_ready()
-            && crate::local_cleanup::should_run(language_hint.unwrap_or("auto"), &corrected)
-        {
-            let normalized = normalize_transcription_output(&corrected);
-            let normalized = crate::audio_toolkit::formatter::normalize_values(&normalized);
-            return join_path_tokens(&normalized);
-        }
 
         // Built-in technical lexicon: canonical spellings for misheard
         // framework names ("next year" → "Next.js"), spoken file extensions

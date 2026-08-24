@@ -18,6 +18,7 @@ use std::collections::HashSet;
 use std::sync::OnceLock;
 
 use super::catalog::{harvest, AliasPair};
+use crate::audio_toolkit::text::AliasMatcher;
 
 const PROGRAMMING_SYNTAX_JSON: &str = include_str!("../catalog/programming-syntax.json");
 
@@ -53,8 +54,12 @@ const AMBIGUOUS_BARE_ALIASES: &[&str] = &[
     "and", "or", "not", "in", "as", "if", "is", "by", "to", "at", "on", "get", "put", "set", "let",
     "date", "left", "right", "inner", "outer", "cross", "today", "now", "match", "search",
     "filter", "sort", "upper", "lower", "trim", "round", "max", "min", "sum", "count", "mean",
-    "index", "value", "values", "text",
+    "index", "value", "values", "text", "like", "generic", "normal", "medium", "thin", "bold",
+    "light", "flex", "grid", "block", "inline", "hidden", "delete", "post", "patch", "head",
+    "options",
 ];
+
+const AMBIGUOUS_SQL_CANONICALS: &[&str] = &["LIKE", "IS NULL", "IS NOT NULL", "NOT NULL"];
 
 /// True when `alias` is a single bare word that would rewrite ordinary prose.
 fn alias_is_ambiguous_bare_word(alias: &str) -> bool {
@@ -75,9 +80,10 @@ fn denylist_ambiguous_aliases(pairs: Vec<AliasPair>) -> Vec<AliasPair> {
             let canonical = pair.canonical.trim();
             // Multiword or symbol-shaped canonicals ("RIGHT JOIN",
             // "./src", "bg-stone-500") carry their own evidence.
-            !(canonical.split_whitespace().count() == 1
-                && !canonical.contains(['-', '_', '/', '.', '(', ')'])
-                && AMBIGUOUS_BARE_ALIASES.contains(&canonical.to_lowercase().as_str()))
+            !(AMBIGUOUS_SQL_CANONICALS.contains(&canonical)
+                || (canonical.split_whitespace().count() == 1
+                    && !canonical.contains(['-', '_', '/', '.', '(', ')'])
+                    && AMBIGUOUS_BARE_ALIASES.contains(&canonical.to_lowercase().as_str())))
         })
         .map(|pair| {
             let aliases: Vec<String> = pair
@@ -105,6 +111,11 @@ fn apply_technical_spans(text: &str) -> String {
     static SQL_JOIN: Lazy<Regex> =
         Lazy::new(|| Regex::new(r"(?i)\b(left|right|inner|outer|cross)\s+joins?\b").unwrap());
     static SHEET_FN: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?i)\b(today|now)\s*\(\)").unwrap());
+    static SQL_NULL: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"(?i)\b(where|having)\s+([a-z_][a-z0-9_.]*)\s+is\s+(not\s+)?null\b").unwrap()
+    });
+    static SQL_LIKE: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"(?i)\b(where|having)\s+([a-z_][a-z0-9_.]*)\s+like\b").unwrap());
 
     let text = HTTP_METHOD.replace_all(text, |caps: &regex::Captures| {
         format!("{} {}", caps[1].to_uppercase(), &caps[2])
@@ -112,9 +123,18 @@ fn apply_technical_spans(text: &str) -> String {
     let text = SQL_JOIN.replace_all(&text, |caps: &regex::Captures| {
         format!("{} JOIN", caps[1].to_uppercase())
     });
-    SHEET_FN
+    let text = SHEET_FN
         .replace_all(&text, |caps: &regex::Captures| {
             format!("{}()", caps[1].to_uppercase())
+        })
+        .into_owned();
+    let text = SQL_NULL.replace_all(&text, |caps: &regex::Captures| {
+        let not = caps.get(3).map_or("", |_| "NOT ");
+        format!("{} {} IS {not}NULL", &caps[1], &caps[2])
+    });
+    SQL_LIKE
+        .replace_all(&text, |caps: &regex::Captures| {
+            format!("{} {} LIKE", &caps[1], &caps[2])
         })
         .into_owned()
 }
@@ -122,6 +142,7 @@ fn apply_technical_spans(text: &str) -> String {
 type AliasEntries = Vec<(String, Vec<String>)>;
 
 static PROGRAMMING: OnceLock<AliasEntries> = OnceLock::new();
+static MATCHER: OnceLock<AliasMatcher> = OnceLock::new();
 
 fn entries() -> &'static AliasEntries {
     PROGRAMMING.get_or_init(|| {
@@ -219,10 +240,15 @@ pub fn apply(text: &str) -> String {
     if text.is_empty() {
         return text.to_string();
     }
-    let corrected =
-        crate::audio_toolkit::text::apply_alias_entries(text, entries(), MATCH_THRESHOLD);
+    let corrected = MATCHER
+        .get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD))
+        .apply(text);
     let corrected = apply_technical_spans(&corrected);
     crate::audio_toolkit::text::join_path_tokens(&corrected)
+}
+
+pub(crate) fn warm_up() {
+    let _ = MATCHER.get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD));
 }
 
 /// Same strictness as the other catalogs: near-exact hits only.
@@ -282,6 +308,12 @@ mod tests {
             apply("I goofed around with my mom all day"),
             "I goofed around with my mom all day"
         );
+        assert_eq!(
+            apply("like this is null generic normal delete right now"),
+            "like this is null generic normal delete right now"
+        );
+        assert_eq!(apply("and I like this"), "and I like this");
+        assert_eq!(apply("and it is null today"), "and it is null today");
     }
 
     #[test]
@@ -303,6 +335,9 @@ mod tests {
             "set the DATABASE_URL env var"
         );
         assert_eq!(apply("cd dot slash src"), "cd ./src");
+        assert_eq!(apply("where email is null"), "where email IS NULL");
+        assert_eq!(apply("where name like"), "where name LIKE");
+        assert_eq!(apply("use a generic type"), "use a <T>");
     }
 
     #[test]

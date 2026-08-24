@@ -875,6 +875,10 @@ impl HistoryManager {
 
     pub async fn get_entry_by_id(&self, id: i64) -> Result<Option<HistoryEntry>> {
         let conn = self.get_connection()?;
+        Self::get_entry_by_id_with_conn(&conn, id)
+    }
+
+    fn get_entry_by_id_with_conn(conn: &Connection, id: i64) -> Result<Option<HistoryEntry>> {
         let mut stmt = conn.prepare(
             "SELECT
                 id,
@@ -885,7 +889,11 @@ impl HistoryManager {
                 transcription_text,
                 post_processed_text,
                 post_process_prompt,
-                post_process_requested
+                post_process_requested,
+                word_count,
+                audio_duration_secs,
+                avg_wpm,
+                time_saved_secs
              FROM transcription_history
              WHERE id = ?1",
         )?;
@@ -965,6 +973,25 @@ mod tests {
         conn
     }
 
+    fn setup_legacy_conn() -> Connection {
+        let conn = Connection::open_in_memory().expect("open legacy in-memory db");
+        conn.execute_batch(
+            "CREATE TABLE transcription_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_name TEXT NOT NULL,
+                timestamp INTEGER NOT NULL,
+                saved BOOLEAN NOT NULL DEFAULT 0,
+                title TEXT NOT NULL,
+                transcription_text TEXT NOT NULL,
+                post_processed_text TEXT,
+                post_process_prompt TEXT,
+                post_process_requested BOOLEAN NOT NULL DEFAULT 0
+            );",
+        )
+        .expect("create legacy transcription_history table");
+        conn
+    }
+
     fn insert_entry(conn: &Connection, timestamp: i64, text: &str, post_processed: Option<&str>) {
         conn.execute(
             "INSERT INTO transcription_history (
@@ -1033,7 +1060,7 @@ mod tests {
     /// queries succeed instead of emptying the journal on every launch.
     #[test]
     fn ensure_stats_columns_heals_upgraded_database() {
-        let conn = setup_conn();
+        let conn = setup_legacy_conn();
 
         // Simulate the upgraded database: version claims migrations applied.
         conn.pragma_update(None, "user_version", 6)
@@ -1083,6 +1110,28 @@ mod tests {
             )
             .expect("read persisted word_count");
         assert_eq!(words, 2);
+    }
+
+    #[test]
+    fn get_entry_by_id_reads_all_stats_columns() {
+        let conn = setup_conn();
+        conn.execute(
+            "INSERT INTO transcription_history (
+                file_name, timestamp, saved, title, transcription_text,
+                post_processed_text, post_process_prompt, post_process_requested,
+                word_count, audio_duration_secs, avg_wpm, time_saved_secs
+             ) VALUES ('a.wav', 1, 0, 't', 'hello world', NULL, NULL, 0, 2, 4.0, 30.0, 1.0)",
+            [],
+        )
+        .expect("insert with stats");
+
+        let entry = HistoryManager::get_entry_by_id_with_conn(&conn, 1)
+            .expect("read entry")
+            .expect("entry exists");
+        assert_eq!(entry.word_count, 2);
+        assert_eq!(entry.audio_duration_secs, Some(4.0));
+        assert_eq!(entry.avg_wpm, Some(30.0));
+        assert_eq!(entry.time_saved_secs, Some(1.0));
     }
 
     #[test]

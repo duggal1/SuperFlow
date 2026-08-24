@@ -1,7 +1,7 @@
 use natural::phonetics::soundex;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use strsim::levenshtein;
 
 /// Builds an n-gram string by cleaning and concatenating words
@@ -23,6 +23,14 @@ fn build_match_key(word: &str) -> String {
         .collect()
 }
 
+fn match_anchor(key: &str) -> char {
+    match key.chars().next().unwrap_or('\0') {
+        'c' | 'k' | 'q' => 'k',
+        's' | 'z' => 's',
+        character => character,
+    }
+}
+
 struct CustomWordMatchKey {
     word_index: usize,
     key: String,
@@ -38,6 +46,9 @@ struct CustomWordMatchKey {
     /// comparing concatenated keys lets filler words ("make it flex layout"
     /// vs "flex layout") get absorbed into a match and deleted.
     word_count: usize,
+    /// Generated structured-display self keys only accept an exact normalized
+    /// spelling/re-segmentation; they never fuzzy-match ordinary prose.
+    exact_only: bool,
 }
 
 /// Maps ASR-equivalent consonants to a shared letter and drops vowels and
@@ -92,6 +103,7 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
             // "MacBook Pro" across variable word counts, unlike authored
             // lexicon aliases which align strictly.
             word_count: 1,
+            exact_only: false,
         });
     }
 
@@ -104,6 +116,7 @@ fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWord
                 skeleton: String::new(),
                 first_word_key: String::new(),
                 word_count: 1,
+                exact_only: false,
             });
         }
     }
@@ -132,10 +145,10 @@ fn supports_soundex(key: &str) -> bool {
 ///
 /// # Returns
 /// The best matching custom word and its score, if any match was found
-fn find_best_match<'a>(
+fn find_best_match<'a, 'key>(
     candidate: &str,
     custom_words: &'a [String],
-    custom_word_match_keys: &[&CustomWordMatchKey],
+    custom_word_match_keys: impl Iterator<Item = &'key CustomWordMatchKey>,
     window_word_count: usize,
     threshold: f64,
     allow_phonetic_boost: bool,
@@ -156,6 +169,9 @@ fn find_best_match<'a>(
         if custom_word_key.word_count > 1 && custom_word_key.word_count != window_word_count {
             continue;
         }
+        if custom_word_key.exact_only && candidate != custom_word_key.key {
+            continue;
+        }
         // Word-boundary anchor: a multi-word spoken phrase must begin with
         // its own first word ("two gap" never absorbs "it gap").
         if custom_word_key.word_count > 1 && !custom_word_key.first_word_key.is_empty() {
@@ -173,6 +189,12 @@ fn find_best_match<'a>(
         // "TypeScript") is rejected.
         if custom_word_key.word_count == 1 && window_word_count > 1 {
             let exact_resegmentation = candidate == custom_word_key.key;
+            // Built-in catalogs may rejoin a genuinely split token
+            // ("play wright" -> Playwright), but fuzzy cross-word matches are
+            // unsafe ("use transition" must not become Transaction).
+            if !allow_phonetic_boost && !exact_resegmentation {
+                continue;
+            }
             if window_word_count > custom_word_key.word_count + 1 && !exact_resegmentation {
                 continue;
             }
@@ -311,88 +333,115 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
 /// * `text` - The input text to correct
 /// * `entries` - Tuples of (display form, spoken alias phrases)
 /// * `threshold` - Maximum similarity score to accept per alias key
+pub(crate) struct AliasMatcher {
+    displays: Vec<String>,
+    match_keys: Vec<CustomWordMatchKey>,
+    threshold: f64,
+}
+
+impl AliasMatcher {
+    pub(crate) fn new(entries: &[(String, Vec<String>)], threshold: f64) -> Self {
+        let displays: Vec<String> = entries.iter().map(|(d, _)| d.clone()).collect();
+        let mut seen: HashSet<(String, usize)> = HashSet::new();
+        let mut match_keys: Vec<CustomWordMatchKey> = Vec::new();
+
+        for (entry_index, (_, aliases)) in entries.iter().enumerate() {
+            let mut push_key = |phrase: &str, phonetic: bool| {
+                // Normalize exactly like transcript n-grams: clean each word, join.
+                let key = phrase
+                    .split_whitespace()
+                    .map(build_match_key)
+                    .collect::<Vec<_>>()
+                    .concat();
+                let word_count = phrase.split_whitespace().count();
+                if !is_supported_fuzzy_key(&key) {
+                    return;
+                }
+                // Dedupe by (key, word count): every spoken segmentation of an
+                // entry coexists ("api"@1 for written form, "a p i"@3 for
+                // speech), while exact duplicate spellings collapse.
+                if !seen.insert((key.clone(), word_count)) {
+                    return;
+                }
+                // Phonetic fallback only for MULTI-WORD keys: authored spoken
+                // phrases benefit ("coober netees"), while single-token keys
+                // turned every loose consonant neighbor into a rewrite
+                // ("envvar"→never, "it gap"→gap-2). Single-word entries still
+                // match exactly/fuzzily through the orthographic path.
+                let skeleton =
+                    if phonetic && word_count >= 2 && key.chars().count() >= SKELETON_MIN_CHARS {
+                        consonant_skeleton(&key)
+                    } else {
+                        String::new()
+                    };
+                let first_word_key = phrase
+                    .split_whitespace()
+                    .next()
+                    .map(build_match_key)
+                    .unwrap_or_default();
+                match_keys.push(CustomWordMatchKey {
+                    word_index: entry_index,
+                    key,
+                    skeleton,
+                    first_word_key,
+                    word_count,
+                    exact_only: !phonetic,
+                });
+            };
+
+            for alias in aliases {
+                push_key(alias, true);
+            }
+            // Canonical self-keys must be authored explicitly. Inventing them here
+            // turns contextual aliases such as "delete request" into unsafe bare
+            // rewrites such as ordinary "delete" becoming "DELETE". Structured
+            // class/file tokens are safe to re-segment exactly ("p 6" -> "p-6").
+            let display = &displays[entry_index];
+            let structured = display.chars().any(|character| {
+                matches!(character, '-' | '.' | '_') || character.is_ascii_digit()
+            });
+            if structured
+                && display.chars().all(|character| {
+                    character.is_alphanumeric() || matches!(character, '-' | '.' | '_')
+                })
+                && display
+                    .chars()
+                    .next()
+                    .is_some_and(|character| character.is_ascii_alphabetic())
+            {
+                push_key(display, false);
+            }
+        }
+
+        Self {
+            displays,
+            match_keys,
+            threshold,
+        }
+    }
+
+    pub(crate) fn apply(&self, text: &str) -> String {
+        if text.is_empty() || self.match_keys.is_empty() {
+            return text.to_string();
+        }
+        // Built-in lexicon entries always render their canonical display form.
+        apply_match_entries(
+            text,
+            &self.displays,
+            &self.match_keys,
+            self.threshold,
+            false,
+            true,
+        )
+    }
+}
+
 pub fn apply_alias_entries(
     text: &str,
     entries: &[(String, Vec<String>)],
     threshold: f64,
 ) -> String {
-    if entries.is_empty() {
-        return text.to_string();
-    }
-
-    let displays: Vec<String> = entries.iter().map(|(d, _)| d.clone()).collect();
-    let mut seen: HashSet<(String, usize)> = HashSet::new();
-    let mut match_keys: Vec<CustomWordMatchKey> = Vec::new();
-
-    for (entry_index, (_, aliases)) in entries.iter().enumerate() {
-        let mut push_key = |phrase: &str, phonetic: bool| {
-            // Normalize exactly like transcript n-grams: clean each word, join.
-            let key = phrase
-                .split_whitespace()
-                .map(build_match_key)
-                .collect::<Vec<_>>()
-                .concat();
-            let word_count = phrase.split_whitespace().count();
-            if !is_supported_fuzzy_key(&key) {
-                return;
-            }
-            // Dedupe by (key, word count): every spoken segmentation of an
-            // entry coexists ("api"@1 for written form, "a p i"@3 for
-            // speech), while exact duplicate spellings collapse.
-            if !seen.insert((key.clone(), word_count)) {
-                return;
-            }
-            // Phonetic fallback only for MULTI-WORD keys: authored spoken
-            // phrases benefit ("coober netees"), while single-token keys
-            // turned every loose consonant neighbor into a rewrite
-            // ("envvar"→never, "it gap"→gap-2). Single-word entries still
-            // match exactly/fuzzily through the orthographic path.
-            let skeleton =
-                if phonetic && word_count >= 2 && key.chars().count() >= SKELETON_MIN_CHARS {
-                    consonant_skeleton(&key)
-                } else {
-                    String::new()
-                };
-            let first_word_key = phrase
-                .split_whitespace()
-                .next()
-                .map(build_match_key)
-                .unwrap_or_default();
-            match_keys.push(CustomWordMatchKey {
-                word_index: entry_index,
-                key,
-                skeleton,
-                first_word_key,
-                word_count,
-            });
-        };
-
-        for alias in aliases {
-            push_key(alias, true);
-        }
-        // The display form self-key enables casing normalization ("nextjs" →
-        // Next.js). Symbol-bearing displays ("src/", "./") are excluded:
-        // stripping their punctuation would mint phantom keys that rewrite
-        // ordinary words ("src" → "src/"). Self-keys are orthographic-only —
-        // no skeleton — so loose consonant matches can never borrow the
-        // display's identity ("envvar" ≁ "never").
-        let display = &displays[entry_index];
-        if display
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '-' || c == '.' || c == '_')
-            && display
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_ascii_alphabetic())
-        {
-            push_key(display, false);
-        }
-    }
-
-    // Built-in lexicon entries always render their canonical display form —
-    // shouted input ("PLAYWRIGHT") must not shout the replacement. Only the
-    // user custom-words path inherits source casing.
-    apply_match_entries(text, &displays, &match_keys, threshold, false, true)
+    AliasMatcher::new(entries, threshold).apply(text)
 }
 
 fn apply_match_entries(
@@ -412,16 +461,22 @@ fn apply_match_entries(
     // legacy 3-word window stays available even when every alias is short.
     let longest_alias = match_keys.iter().map(|k| k.word_count).max().unwrap_or(1);
     let max_n = longest_alias.max(3).clamp(1, 6);
-    let mut buckets: Vec<Vec<&CustomWordMatchKey>> = vec![Vec::new(); max_n + 1];
+    let mut buckets: Vec<BTreeMap<(char, usize), Vec<&CustomWordMatchKey>>> =
+        vec![BTreeMap::new(); max_n + 1];
     for key in match_keys {
+        let key_len = key.key.chars().count();
+        let anchor = match_anchor(&key.key);
         if key.word_count == 1 {
             // Single-word keys may glue onto any window size ("Charge B" →
             // ChargeBee), so they participate in every bucket.
             for bucket in buckets.iter_mut().skip(1) {
-                bucket.push(key);
+                bucket.entry((anchor, key_len)).or_default().push(key);
             }
         } else if key.word_count <= max_n {
-            buckets[key.word_count].push(key);
+            buckets[key.word_count]
+                .entry((anchor, key_len))
+                .or_default()
+                .push(key);
         }
     }
 
@@ -449,15 +504,35 @@ fn apply_match_entries(
                 continue;
             }
             let ngram = build_ngram(ngram_words);
+            let candidate_len = ngram.chars().count();
+            let anchor = match_anchor(&ngram);
+            let min_key_len = candidate_len.saturating_sub((candidate_len / 4).max(2));
+            let max_key_len = ((candidate_len * 4).div_ceil(3)).max(candidate_len + 2);
+            let matched = if allow_phonetic_boost {
+                // User-authored custom-word lists are small and retain their
+                // legacy ability to correct a wrong initial sound/letter.
+                find_best_match(
+                    &ngram,
+                    displays,
+                    buckets[n].values().flat_map(|keys| keys.iter().copied()),
+                    n,
+                    threshold,
+                    true,
+                )
+            } else {
+                find_best_match(
+                    &ngram,
+                    displays,
+                    buckets[n]
+                        .range((anchor, min_key_len)..=(anchor, max_key_len))
+                        .flat_map(|(_, keys)| keys.iter().copied()),
+                    n,
+                    threshold,
+                    false,
+                )
+            };
 
-            if let Some((replacement, score)) = find_best_match(
-                &ngram,
-                displays,
-                buckets[n].as_slice(),
-                n,
-                threshold,
-                allow_phonetic_boost,
-            ) {
+            if let Some((replacement, score)) = matched {
                 let is_better = best_match
                     .as_ref()
                     .is_none_or(|(_, _, best_score)| score < *best_score);
