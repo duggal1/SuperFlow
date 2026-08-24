@@ -647,9 +647,9 @@
       "acknowledgments": {
         "title": "Acknowledgments",
         "ggml": {
-          "title": "ggml",
-          "description": "High-performance tensor library for on-device machine learning inference",
-          "details": "SuperFlow's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
+          "title": "llama.cpp",
+          "description": "The engine behind SuperFlow's local AI cleanup",
+          "details": "Right now, SuperFlow uses llama.cpp to run AI cleanup locally on your Mac. Thanks to Georgi Gerganov and everyone who contributes to the project."
         }
       }
     },

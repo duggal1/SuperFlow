@@ -10,6 +10,7 @@ import { AppLanguageSelector } from "../AppLanguageSelector";
 import { ShowWhatsNewOnUpdate } from "../ShowWhatsNewOnUpdate";
 import { ThemeSelector } from "../ThemeSelector";
 import { LogDirectory } from "../debug";
+import { Badge } from "../../ui/Badge";
 
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -22,7 +23,7 @@ export const AboutSettings: React.FC = () => {
         setVersion(appVersion);
       } catch (error) {
         console.error("Failed to get app version:", error);
-        setVersion("0.1.2");
+        setVersion("1.0.0");
       }
     };
 
@@ -47,8 +48,16 @@ export const AboutSettings: React.FC = () => {
           description={t("settings.about.version.description")}
           grouped={true}
         >
-          {/* eslint-disable-next-line i18next/no-literal-string */}
-          <span className="text-sm font-mono">v{version}</span>
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line i18next/no-literal-string */}
+            <span className="font-mono text-sm">
+              v{version === "1.0.0" ? "1.0" : version}
+            </span>
+            {/* eslint-disable-next-line i18next/no-literal-string */}
+            <Badge variant="violet" className="px-1.5 py-0 text-[11px]">
+              Beta
+            </Badge>
+          </div>
         </SettingContainer>
 
         <ShowWhatsNewOnUpdate descriptionMode="tooltip" grouped={true} />
