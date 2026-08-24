@@ -322,7 +322,9 @@ export function AICleanupSettings() {
             }}
             disabled={apiKeySaving}
             placeholder={
-              apiConfigured ? "Saved in macOS Keychain" : "Enter Gemini API key"
+              apiConfigured
+                ? "Gemini API key configured"
+                : "Enter Gemini API key"
             }
             autoComplete="off"
             className="mt-3 w-full min-w-0 text-stone-100"

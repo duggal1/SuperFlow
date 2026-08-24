@@ -6195,7 +6195,6 @@ dependencies = [
  "rusqlite",
  "rusqlite_migration",
  "rustfft",
- "security-framework",
  "serde",
  "serde_json",
  "sha2",

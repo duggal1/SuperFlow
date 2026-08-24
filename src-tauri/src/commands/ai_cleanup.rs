@@ -88,12 +88,17 @@ pub fn get_ai_cleanup_history(
 
 #[tauri::command]
 #[specta::specta]
-pub fn set_gemini_api_key(api_key: String) -> Result<(), String> {
-    ai_cleanup::credentials::save(&api_key)
+pub fn set_gemini_api_key(app: AppHandle, api_key: String) -> Result<(), String> {
+    let mut current = settings::get_settings(&app);
+    ai_cleanup::credentials::save(&mut current, &api_key)?;
+    settings::write_settings(&app, current);
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
-pub fn is_gemini_api_configured() -> Result<bool, String> {
-    ai_cleanup::credentials::is_configured()
+pub fn is_gemini_api_configured(app: AppHandle) -> Result<bool, String> {
+    Ok(ai_cleanup::credentials::is_configured(
+        &settings::get_settings(&app),
+    ))
 }

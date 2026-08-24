@@ -46,7 +46,7 @@ pub async fn clean(input: &str, settings: &AppSettings) -> Result<String, String
         &settings.ai_cleanup_model,
         settings.ai_cleanup_thinking_level,
     )?;
-    let api_key = credentials::load()?;
+    let api_key = credentials::load(settings)?;
 
     client::generate(
         &api_key,

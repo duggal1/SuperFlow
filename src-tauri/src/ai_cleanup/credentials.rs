@@ -1,5 +1,6 @@
-const SERVICE: &str = "com.superflow.app.ai-cleanup";
-const ACCOUNT: &str = "gemini-api-key";
+use crate::settings::AppSettings;
+
+pub const SETTINGS_KEY: &str = "gemini";
 const MAX_API_KEY_CHARS: usize = 4_096;
 pub(super) const MISSING_API_KEY_ERROR: &str = "Error: please configure your API Key first.";
 
@@ -14,55 +15,31 @@ fn resolve(stored: Option<String>, environment: Option<String>) -> Option<String
     normalized(stored).or_else(|| normalized(environment))
 }
 
-#[cfg(target_os = "macos")]
-fn stored() -> Result<Option<String>, String> {
-    use security_framework::passwords::get_generic_password;
-
-    match get_generic_password(SERVICE, ACCOUNT) {
-        Ok(bytes) => String::from_utf8(bytes)
-            .map(Some)
-            .map_err(|_| "Gemini API key in macOS Keychain is invalid".to_string()),
-        Err(error) if error.code() == -25_300 => Ok(None),
-        Err(_) => Err("Gemini API key could not be read from macOS Keychain".to_string()),
-    }
+pub fn load(settings: &AppSettings) -> Result<String, String> {
+    resolve(
+        settings.post_process_api_keys.get(SETTINGS_KEY).cloned(),
+        std::env::var("GEMINI_API_KEY").ok(),
+    )
+    .ok_or_else(|| MISSING_API_KEY_ERROR.to_string())
 }
 
-#[cfg(not(target_os = "macos"))]
-fn stored() -> Result<Option<String>, String> {
-    Ok(None)
+pub fn is_configured(settings: &AppSettings) -> bool {
+    resolve(
+        settings.post_process_api_keys.get(SETTINGS_KEY).cloned(),
+        std::env::var("GEMINI_API_KEY").ok(),
+    )
+    .is_some()
 }
 
-pub fn load() -> Result<String, String> {
-    resolve(stored()?, std::env::var("GEMINI_API_KEY").ok())
-        .ok_or_else(|| MISSING_API_KEY_ERROR.to_string())
-}
-
-pub fn is_configured() -> Result<bool, String> {
-    Ok(resolve(stored()?, std::env::var("GEMINI_API_KEY").ok()).is_some())
-}
-
-#[cfg(target_os = "macos")]
-pub fn save(api_key: &str) -> Result<(), String> {
-    use security_framework::passwords::{delete_generic_password, set_generic_password};
-
+pub fn save(settings: &mut AppSettings, api_key: &str) -> Result<(), String> {
     let api_key = api_key.trim();
     if api_key.chars().count() > MAX_API_KEY_CHARS {
         return Err("Gemini API key is too long".to_string());
     }
-    if api_key.is_empty() {
-        return match delete_generic_password(SERVICE, ACCOUNT) {
-            Ok(()) => Ok(()),
-            Err(error) if error.code() == -25_300 => Ok(()),
-            Err(_) => Err("Gemini API key could not be removed from macOS Keychain".to_string()),
-        };
-    }
-    set_generic_password(SERVICE, ACCOUNT, api_key.as_bytes())
-        .map_err(|_| "Gemini API key could not be saved to macOS Keychain".to_string())
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn save(_api_key: &str) -> Result<(), String> {
-    Err("Gemini API key storage is only available on macOS".to_string())
+    settings
+        .post_process_api_keys
+        .insert(SETTINGS_KEY.to_string(), api_key.to_string());
+    Ok(())
 }
 
 #[cfg(test)]
@@ -80,6 +57,16 @@ mod tests {
     #[test]
     fn blank_sources_are_not_configured() {
         assert_eq!(resolve(Some("  ".to_string()), Some(String::new())), None);
+    }
+
+    #[test]
+    fn key_is_saved_in_the_existing_settings_secret_map() {
+        let mut settings = crate::settings::get_default_settings();
+        save(&mut settings, "  gemini-key  ").unwrap();
+        assert_eq!(
+            settings.post_process_api_keys.get(SETTINGS_KEY),
+            Some(&"gemini-key".to_string())
+        );
     }
 
     #[test]

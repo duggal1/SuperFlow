@@ -886,6 +886,7 @@ fn default_post_process_api_keys() -> SecretMap {
     for provider in default_post_process_providers() {
         map.insert(provider.id, String::new());
     }
+    map.insert("gemini".to_string(), String::new());
     SecretMap(map)
 }
 
@@ -964,6 +965,7 @@ pub static BUILTIN_TONE_PROMPTS: Lazy<Vec<LLMPrompt>> = Lazy::new(|| {
 fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     let mut changed = false;
     const RETIRED_PROVIDER_ID: &str = "apple_intelligence";
+    const GEMINI_API_KEY_ID: &str = "gemini";
 
     let provider_count = settings.post_process_providers.len();
     settings
@@ -988,6 +990,15 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
     }
     if settings.post_process_provider_id == RETIRED_PROVIDER_ID {
         settings.post_process_provider_id = default_post_process_provider_id();
+        changed = true;
+    }
+    if !settings
+        .post_process_api_keys
+        .contains_key(GEMINI_API_KEY_ID)
+    {
+        settings
+            .post_process_api_keys
+            .insert(GEMINI_API_KEY_ID.to_string(), String::new());
         changed = true;
     }
 
@@ -1915,6 +1926,35 @@ mod tests {
         let out = format!("{:?}", map);
         assert!(!out.contains("secret"));
         assert!(out.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn default_settings_include_gemini_api_key_storage() {
+        assert_eq!(
+            get_default_settings().post_process_api_keys.get("gemini"),
+            Some(&String::new())
+        );
+    }
+
+    #[test]
+    fn gemini_api_key_storage_is_added_without_overwriting_an_existing_key() {
+        let mut settings = get_default_settings();
+        settings.post_process_api_keys.remove("gemini");
+
+        assert!(ensure_post_process_defaults(&mut settings));
+        assert_eq!(
+            settings.post_process_api_keys.get("gemini"),
+            Some(&String::new())
+        );
+
+        settings
+            .post_process_api_keys
+            .insert("gemini".into(), "saved-key".into());
+        assert!(!ensure_post_process_defaults(&mut settings));
+        assert_eq!(
+            settings.post_process_api_keys.get("gemini"),
+            Some(&"saved-key".to_string())
+        );
     }
 
     #[test]
