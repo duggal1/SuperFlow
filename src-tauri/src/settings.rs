@@ -84,6 +84,84 @@ pub struct ShortcutBinding {
     pub current_binding: String,
 }
 
+fn is_shortcut_modifier(part: &str) -> bool {
+    matches!(
+        part.trim().to_ascii_lowercase().as_str(),
+        "ctrl"
+            | "control"
+            | "shift"
+            | "alt"
+            | "option"
+            | "meta"
+            | "command"
+            | "cmd"
+            | "super"
+            | "win"
+            | "windows"
+            | "fn"
+            | "function"
+    )
+}
+
+fn canonical_shortcut_part(part: &str) -> String {
+    match part.trim().to_ascii_lowercase().as_str() {
+        "control" => "ctrl".to_string(),
+        "function" => "fn".to_string(),
+        "alt" => "option".to_string(),
+        "meta" | "cmd" => "command".to_string(),
+        "win" | "windows" => "super".to_string(),
+        part => part.to_string(),
+    }
+}
+
+pub fn compose_hands_free_binding(standard: &str, secondary: &str) -> String {
+    let mut parts = standard
+        .split('+')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    let secondary = secondary.trim();
+    let canonical_secondary = canonical_shortcut_part(secondary);
+    if secondary.is_empty()
+        || parts
+            .iter()
+            .any(|part| canonical_shortcut_part(part) == canonical_secondary)
+    {
+        return parts.join("+");
+    }
+
+    let insertion = if is_shortcut_modifier(secondary) {
+        parts
+            .iter()
+            .position(|part| !is_shortcut_modifier(part))
+            .unwrap_or(parts.len())
+    } else {
+        parts.len()
+    };
+    parts.insert(insertion, secondary.to_string());
+    parts.join("+")
+}
+
+pub fn default_hands_free_secondary(standard: &str) -> &'static str {
+    let parts = standard
+        .split('+')
+        .map(|part| part.trim().to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    for candidate in ["ctrl", "alt", "shift", "command"] {
+        let present = parts.iter().any(|part| match candidate {
+            "ctrl" => part == "ctrl" || part == "control",
+            "alt" => part == "option" || part == "alt",
+            "command" => part == "command" || part == "cmd" || part == "meta",
+            value => part == value,
+        });
+        if !present {
+            return candidate;
+        }
+    }
+    "fn"
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct LLMPrompt {
     pub id: String,
@@ -1008,6 +1086,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_shortcut.to_string(),
         },
     );
+    let default_hands_free_shortcut = compose_hands_free_binding(
+        default_shortcut,
+        default_hands_free_secondary(default_shortcut),
+    );
+    bindings.insert(
+        "hands_free_transcribe".to_string(),
+        ShortcutBinding {
+            id: "hands_free_transcribe".to_string(),
+            name: "Hands-Free Transcription".to_string(),
+            description: "Start a latched transcription you can finish from the pill or your regular shortcut."
+                .to_string(),
+            default_binding: default_hands_free_shortcut.clone(),
+            current_binding: default_hands_free_shortcut,
+        },
+    );
     #[cfg(target_os = "windows")]
     let default_post_process_shortcut = "ctrl+shift+space";
     #[cfg(target_os = "macos")]
@@ -1192,7 +1285,17 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
         }
 
         // Merge in any bindings added since this store was written.
-        for (key, value) in get_default_settings().bindings {
+        for (key, mut value) in get_default_settings().bindings {
+            if key == "hands_free_transcribe" {
+                if let Some(standard) = settings.bindings.get("transcribe") {
+                    let derived = compose_hands_free_binding(
+                        &standard.current_binding,
+                        default_hands_free_secondary(&standard.current_binding),
+                    );
+                    value.default_binding = derived.clone();
+                    value.current_binding = derived;
+                }
+            }
             if let std::collections::hash_map::Entry::Vacant(entry) = settings.bindings.entry(key) {
                 debug!("Adding missing binding: {}", entry.key());
                 entry.insert(value);
@@ -1379,6 +1482,27 @@ pub fn get_recording_retention_period(app: &AppHandle) -> RecordingRetentionPeri
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hands_free_binding_adds_control_without_reordering_the_primary_shortcut() {
+        assert_eq!(compose_hands_free_binding("fn", "ctrl"), "fn+ctrl");
+        assert_eq!(
+            compose_hands_free_binding("option+space", "ctrl"),
+            "option+ctrl+space"
+        );
+    }
+
+    #[test]
+    fn hands_free_binding_never_duplicates_an_existing_key() {
+        assert_eq!(
+            compose_hands_free_binding("ctrl+space", "ctrl"),
+            "ctrl+space"
+        );
+        assert_eq!(
+            compose_hands_free_binding("control+space", "ctrl"),
+            "control+space"
+        );
+    }
 
     fn default_settings_json() -> serde_json::Value {
         serde_json::to_value(get_default_settings()).unwrap()

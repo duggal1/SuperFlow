@@ -851,6 +851,7 @@ pub fn run(cli_args: CliArgs) {
             trigger_update_check,
             show_main_window_command,
             commands::cancel_operation,
+            commands::complete_hands_free_transcription,
             commands::hide_result_overlay,
             commands::undo_canceled_transcription,
             commands::is_portable,

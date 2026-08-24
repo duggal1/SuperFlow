@@ -622,6 +622,10 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "recording");
 }
 
+pub fn show_hands_free_overlay(app_handle: &AppHandle) {
+    show_overlay_state(app_handle, "hands_free");
+}
+
 /// Shows the larger streaming overlay that displays live transcription text
 pub fn show_streaming_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "streaming");
@@ -809,6 +813,14 @@ pub fn emit_levels(app_handle: &AppHandle, levels: &[f32]) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hands_free_overlay_uses_the_compact_window() {
+        assert_eq!(
+            overlay_dimensions("hands_free"),
+            (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        );
+    }
 
     #[test]
     fn monitor_hit_test_uses_half_open_physical_bounds() {

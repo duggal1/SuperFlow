@@ -554,6 +554,9 @@ async showMainWindowCommand() : Promise<Result<null, string>> {
 async cancelOperation() : Promise<void> {
     await TAURI_INVOKE("cancel_operation");
 },
+async completeHandsFreeTranscription() : Promise<void> {
+    await TAURI_INVOKE("complete_hands_free_transcription");
+},
 /**
  * Dismisses the transcript result card. Called by the overlay's Copy button
  * (after the text is on the clipboard) and by its auto-dismiss timer.

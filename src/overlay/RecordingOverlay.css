@@ -455,6 +455,31 @@
 .sx:active {
   transform: scale(0.95);
 }
+.scomplete {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1c1917;
+  background: #f5f5f4;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    transform 100ms ease;
+}
+.scomplete:hover {
+  background: #e7e5e4;
+}
+.scomplete:active {
+  transform: scale(0.95);
+}
 
 /* working state (transcribing / polishing) — spinner + label */
 .sspinner {

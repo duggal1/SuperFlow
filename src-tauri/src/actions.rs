@@ -557,6 +557,7 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+        let is_hands_free = binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID;
 
         // The mandatory S1-mini clean-up stage must be live before any speech
         // is captured — transcripts are never produced without it. While it
@@ -629,9 +630,12 @@ impl ShortcutAction for TranscribeAction {
         // pill instead of an oversized transparent live window.
         let overlay_started = Instant::now();
         match settings.overlay_style {
+            OverlayStyle::Live | OverlayStyle::Minimal if is_hands_free => {
+                crate::overlay::show_hands_free_overlay(app)
+            }
             OverlayStyle::Live if model_supports_streaming => utils::show_streaming_overlay(app),
             OverlayStyle::Live | OverlayStyle::Minimal => show_recording_overlay(app),
-            OverlayStyle::None => {} // show_overlay_state no-ops on None anyway
+            OverlayStyle::None => {}
         }
         // Everything above runs before capture can begin, so each span here is
         // added keypress->capture latency.
@@ -751,7 +755,7 @@ impl ShortcutAction for TranscribeAction {
         );
     }
 
-    fn stop(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
+    fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) {
         // Prevent a slow microphone from emitting a ready event or start chime
         // after the user has already requested stop.
         app.state::<Arc<AudioRecordingManager>>()
@@ -776,7 +780,10 @@ impl ShortcutAction for TranscribeAction {
         let style = get_settings(app).overlay_style;
         // Capture this before finalizing the stream so every later working state
         // targets the same overlay that was shown for this transcription.
-        let use_streaming_overlay = should_use_streaming_overlay(style, tm.is_streaming());
+        let is_hands_free = binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID
+            || shortcut_str == crate::transcription_coordinator::HANDS_FREE_BINDING_ID;
+        let use_streaming_overlay =
+            !is_hands_free && should_use_streaming_overlay(style, tm.is_streaming());
         if use_streaming_overlay {
             tm.emit_stream_working(StreamWorkKind::Transcribing);
         } else {
@@ -1314,6 +1321,12 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
     map.insert(
         "transcribe_with_post_process".to_string(),
         Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        crate::transcription_coordinator::HANDS_FREE_BINDING_ID.to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+        }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "cancel".to_string(),

@@ -9,6 +9,8 @@ use tauri::{AppHandle, Manager};
 
 const DEBOUNCE: Duration = Duration::from_millis(30);
 const RELEASE_GRACE: Duration = Duration::from_millis(50);
+pub const HANDS_FREE_BINDING_ID: &str = "hands_free_transcribe";
+const STANDARD_BINDING_ID: &str = "transcribe";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum PttAction {
@@ -34,14 +36,51 @@ enum Command {
     Cancel {
         recording_was_active: bool,
     },
+    CompleteHandsFree,
     ProcessingFinished,
 }
 
 /// Pipeline lifecycle, owned exclusively by the coordinator thread.
 enum Stage {
     Idle,
-    Recording(String), // binding_id
+    Recording {
+        binding_id: String,
+        hands_free: bool,
+    },
     Processing,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HandsFreeAction {
+    Passthrough,
+    Start,
+    Promote,
+    Finish,
+    Ignore,
+}
+
+fn classify_hands_free_event(
+    binding_id: &str,
+    is_pressed: bool,
+    recording_binding: Option<&str>,
+    recording_is_hands_free: bool,
+) -> HandsFreeAction {
+    if binding_id == HANDS_FREE_BINDING_ID {
+        if !is_pressed {
+            return HandsFreeAction::Ignore;
+        }
+        return match recording_binding {
+            None => HandsFreeAction::Start,
+            Some(STANDARD_BINDING_ID) if !recording_is_hands_free => HandsFreeAction::Promote,
+            _ => HandsFreeAction::Ignore,
+        };
+    }
+
+    if binding_id == STANDARD_BINDING_ID && is_pressed && recording_is_hands_free {
+        HandsFreeAction::Finish
+    } else {
+        HandsFreeAction::Passthrough
+    }
 }
 
 fn classify_ptt_event(
@@ -76,7 +115,7 @@ pub struct TranscriptionCoordinator {
 }
 
 pub fn is_transcribe_binding(id: &str) -> bool {
-    id == "transcribe" || id == "transcribe_with_post_process"
+    id == STANDARD_BINDING_ID || id == "transcribe_with_post_process" || id == HANDS_FREE_BINDING_ID
 }
 
 impl TranscriptionCoordinator {
@@ -97,7 +136,7 @@ impl TranscriptionCoordinator {
                             Ok(cmd) => cmd,
                             Err(mpsc::RecvTimeoutError::Timeout) => {
                                 if let Some(pending) = pending_release.take() {
-                                    if matches!(&stage, Stage::Recording(id) if id == &pending.binding_id)
+                                    if matches!(&stage, Stage::Recording { binding_id, .. } if binding_id == &pending.binding_id)
                                     {
                                         stop(
                                             &app,
@@ -128,10 +167,51 @@ impl TranscriptionCoordinator {
                             let pending_release_binding = pending_release
                                 .as_ref()
                                 .map(|pending| pending.binding_id.as_str());
-                            let recording_binding = match &stage {
-                                Stage::Recording(id) => Some(id.as_str()),
-                                _ => None,
+                            let (recording_binding, recording_is_hands_free) = match &stage {
+                                Stage::Recording {
+                                    binding_id,
+                                    hands_free,
+                                } => (Some(binding_id.as_str()), *hands_free),
+                                _ => (None, false),
                             };
+
+                            match classify_hands_free_event(
+                                &binding_id,
+                                is_pressed,
+                                recording_binding,
+                                recording_is_hands_free,
+                            ) {
+                                HandsFreeAction::Start => {
+                                    pending_release = None;
+                                    if matches!(stage, Stage::Idle) {
+                                        start(&app, &mut stage, &binding_id, &hotkey_string);
+                                    }
+                                    continue;
+                                }
+                                HandsFreeAction::Promote => {
+                                    pending_release = None;
+                                    if let Stage::Recording { hands_free, .. } = &mut stage {
+                                        *hands_free = true;
+                                    }
+                                    crate::overlay::show_hands_free_overlay(&app);
+                                    continue;
+                                }
+                                HandsFreeAction::Finish => {
+                                    pending_release = None;
+                                    if let Stage::Recording { binding_id, .. } = &stage {
+                                        let active_binding = binding_id.clone();
+                                        stop(
+                                            &app,
+                                            &mut stage,
+                                            &active_binding,
+                                            HANDS_FREE_BINDING_ID,
+                                        );
+                                    }
+                                    continue;
+                                }
+                                HandsFreeAction::Ignore => continue,
+                                HandsFreeAction::Passthrough => {}
+                            }
 
                             match classify_ptt_event(
                                 pending_release_binding,
@@ -170,7 +250,7 @@ impl TranscriptionCoordinator {
                                 if is_pressed && matches!(stage, Stage::Idle) {
                                     start(&app, &mut stage, &binding_id, &hotkey_string);
                                 } else if !is_pressed
-                                    && matches!(&stage, Stage::Recording(id) if id == &binding_id)
+                                    && matches!(&stage, Stage::Recording { binding_id: id, .. } if id == &binding_id)
                                 {
                                     stop(&app, &mut stage, &binding_id, &hotkey_string);
                                 }
@@ -179,7 +259,9 @@ impl TranscriptionCoordinator {
                                     Stage::Idle => {
                                         start(&app, &mut stage, &binding_id, &hotkey_string);
                                     }
-                                    Stage::Recording(id) if id == &binding_id => {
+                                    Stage::Recording { binding_id: id, .. }
+                                        if id == &binding_id =>
+                                    {
                                         stop(&app, &mut stage, &binding_id, &hotkey_string);
                                     }
                                     _ => {
@@ -194,13 +276,25 @@ impl TranscriptionCoordinator {
                             pending_release = None;
                             // Don't reset during processing — wait for the pipeline to finish.
                             if !matches!(stage, Stage::Processing)
-                                && (recording_was_active || matches!(stage, Stage::Recording(_)))
+                                && (recording_was_active
+                                    || matches!(stage, Stage::Recording { .. }))
                             {
                                 stage = Stage::Idle;
                             }
                         }
                         Command::ProcessingFinished => {
                             stage = Stage::Idle;
+                        }
+                        Command::CompleteHandsFree => {
+                            pending_release = None;
+                            if let Stage::Recording {
+                                binding_id,
+                                hands_free: true,
+                            } = &stage
+                            {
+                                let active_binding = binding_id.clone();
+                                stop(&app, &mut stage, &active_binding, HANDS_FREE_BINDING_ID);
+                            }
                         }
                     }
                 }
@@ -254,6 +348,12 @@ impl TranscriptionCoordinator {
             warn!("Transcription coordinator channel closed");
         }
     }
+
+    pub fn complete_hands_free(&self) {
+        if self.tx.send(Command::CompleteHandsFree).is_err() {
+            warn!("Transcription coordinator channel closed");
+        }
+    }
 }
 
 fn start(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &str) {
@@ -266,7 +366,10 @@ fn start(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &s
         .try_state::<Arc<AudioRecordingManager>>()
         .is_some_and(|a| a.is_recording())
     {
-        *stage = Stage::Recording(binding_id.to_string());
+        *stage = Stage::Recording {
+            binding_id: binding_id.to_string(),
+            hands_free: binding_id == HANDS_FREE_BINDING_ID,
+        };
     } else {
         debug!("Start for '{binding_id}' did not begin recording; staying idle");
     }
@@ -284,6 +387,52 @@ fn stop(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &st
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hands_free_chord_promotes_the_standard_recording() {
+        assert_eq!(
+            classify_hands_free_event(
+                HANDS_FREE_BINDING_ID,
+                true,
+                Some(STANDARD_BINDING_ID),
+                false,
+            ),
+            HandsFreeAction::Promote
+        );
+    }
+
+    #[test]
+    fn hands_free_releases_never_finish_the_recording() {
+        assert_eq!(
+            classify_hands_free_event(
+                HANDS_FREE_BINDING_ID,
+                false,
+                Some(STANDARD_BINDING_ID),
+                true,
+            ),
+            HandsFreeAction::Ignore
+        );
+        assert_eq!(
+            classify_hands_free_event(STANDARD_BINDING_ID, false, Some(STANDARD_BINDING_ID), true),
+            HandsFreeAction::Passthrough
+        );
+    }
+
+    #[test]
+    fn standard_press_finishes_a_hands_free_recording() {
+        assert_eq!(
+            classify_hands_free_event(STANDARD_BINDING_ID, true, Some(STANDARD_BINDING_ID), true),
+            HandsFreeAction::Finish
+        );
+    }
+
+    #[test]
+    fn hands_free_chord_can_start_directly_when_idle() {
+        assert_eq!(
+            classify_hands_free_event(HANDS_FREE_BINDING_ID, true, None, false),
+            HandsFreeAction::Start
+        );
+    }
 
     #[test]
     fn push_to_talk_release_while_recording_defers_release() {

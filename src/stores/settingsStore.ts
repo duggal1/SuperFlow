@@ -381,6 +381,9 @@ export const useSettingsStore = create<SettingsStore>()(
         if (!result.data.success) {
           throw new Error(result.data.error || "Failed to update binding");
         }
+        if (id === "transcribe") {
+          await get().refreshSettings();
+        }
       } catch (error) {
         console.error(`Failed to update binding ${id}:`, error);
 

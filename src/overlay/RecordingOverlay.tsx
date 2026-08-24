@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/Button";
 
 type OverlayState =
   | "recording"
+  | "hands_free"
   | "streaming"
   | "transcribing"
   | "processing"
@@ -263,7 +264,11 @@ const RecordingOverlay: React.FC = () => {
         // Reset synchronously before settings I/O. A fast microphone can emit
         // recording-ready while the awaits below are in flight; resetting after
         // them would overwrite that event and leave the overlay stuck arming.
-        if (overlayState === "recording" || overlayState === "streaming") {
+        if (
+          overlayState === "recording" ||
+          overlayState === "hands_free" ||
+          overlayState === "streaming"
+        ) {
           setCaptureReady(false);
           smoothedLevelsRef.current = Array(16).fill(0);
           setLevels(Array(WAVE_BARS).fill(0));
@@ -690,6 +695,16 @@ const RecordingOverlay: React.FC = () => {
     </button>
   );
 
+  const completeBtn = (
+    <button
+      className="scomplete"
+      aria-label="Finish transcription"
+      onClick={() => commands.completeHandsFreeTranscription()}
+    >
+      <Check size={13} weight="bold" aria-hidden="true" />
+    </button>
+  );
+
   // logo (left) | waveform (center) | timer + cancel (right) — same structure for
   // pill & panel, so the Live morph is a pure width change.
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
@@ -716,6 +731,25 @@ const RecordingOverlay: React.FC = () => {
       <div className="sbase-r">{showCancel && cancelBtn}</div>
     </div>
   );
+
+  const handsFreeRow = (
+    <div className="sbase">
+      <div className="sbase-l">{cancelBtn}</div>
+      {waveform}
+      <div className="sbase-r">{completeBtn}</div>
+    </div>
+  );
+
+  if (state === "hands_free") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact">{handsFreeRow}</div>
+      </div>
+    );
+  }
 
   // ---- Live overlay: a pill that sculpts open into a panel ----
   if (state === "streaming") {

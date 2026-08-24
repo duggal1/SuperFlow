@@ -16,6 +16,7 @@ pub mod tauri_impl;
 use log::{debug, error, info, warn};
 use serde::Serialize;
 use specta::Type;
+use std::collections::HashSet;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::settings::{
@@ -114,6 +115,121 @@ pub struct BindingResponse {
     error: Option<String>,
 }
 
+const STANDARD_TRANSCRIBE_BINDING_ID: &str = "transcribe";
+const HANDS_FREE_TRANSCRIBE_BINDING_ID: &str = "hands_free_transcribe";
+
+fn canonical_shortcut_part(part: &str) -> String {
+    match part.trim().to_ascii_lowercase().as_str() {
+        "control" => "ctrl".to_string(),
+        "function" => "fn".to_string(),
+        "alt" => "option".to_string(),
+        "meta" | "cmd" => "command".to_string(),
+        "win" | "windows" => "super".to_string(),
+        part => part.to_string(),
+    }
+}
+
+fn shortcut_parts(binding: &str) -> HashSet<String> {
+    binding
+        .split('+')
+        .map(canonical_shortcut_part)
+        .filter(|part| !part.is_empty())
+        .collect()
+}
+
+fn hands_free_secondary_key(standard: &str, hands_free: &str) -> Result<String, String> {
+    let standard_parts = shortcut_parts(standard);
+    let hands_free_parts = shortcut_parts(hands_free);
+    if standard_parts.is_empty() || !standard_parts.is_subset(&hands_free_parts) {
+        return Err(
+            "Hands-free transcription must include the standard transcription shortcut".to_string(),
+        );
+    }
+
+    let additional = hands_free_parts
+        .difference(&standard_parts)
+        .cloned()
+        .collect::<Vec<_>>();
+    if additional.len() != 1 {
+        return Err(
+            "Hands-free transcription must add exactly one key to the standard transcription shortcut"
+                .to_string(),
+        );
+    }
+    Ok(additional[0].clone())
+}
+
+fn change_standard_transcribe_binding(
+    app: &AppHandle,
+    mut settings: crate::settings::AppSettings,
+    previous_standard: ShortcutBinding,
+    new_standard: String,
+) -> Result<BindingResponse, String> {
+    let previous_hands_free = settings
+        .bindings
+        .get(HANDS_FREE_TRANSCRIBE_BINDING_ID)
+        .cloned()
+        .ok_or_else(|| "Hands-free transcription shortcut is missing".to_string())?;
+    let secondary = hands_free_secondary_key(
+        &previous_standard.current_binding,
+        &previous_hands_free.current_binding,
+    )?;
+    let new_hands_free = crate::settings::compose_hands_free_binding(&new_standard, &secondary);
+
+    validate_shortcut_for_implementation(&new_standard, settings.keyboard_implementation)?;
+    validate_shortcut_for_implementation(&new_hands_free, settings.keyboard_implementation)?;
+    hands_free_secondary_key(&new_standard, &new_hands_free)?;
+
+    let _ = unregister_shortcut(app, previous_standard.clone());
+    let _ = unregister_shortcut(app, previous_hands_free.clone());
+
+    let mut updated_standard = previous_standard.clone();
+    updated_standard.current_binding = new_standard;
+    let mut updated_hands_free = previous_hands_free.clone();
+    updated_hands_free.current_binding = new_hands_free;
+    updated_hands_free.default_binding = crate::settings::compose_hands_free_binding(
+        &updated_standard.current_binding,
+        crate::settings::default_hands_free_secondary(&updated_standard.current_binding),
+    );
+
+    if let Err(error) = register_shortcut(app, updated_standard.clone()) {
+        restore_registration(app, &previous_standard);
+        restore_registration(app, &previous_hands_free);
+        return Ok(BindingResponse {
+            success: false,
+            binding: None,
+            error: Some(format!("Failed to register shortcut: {error}")),
+        });
+    }
+    if let Err(error) = register_shortcut(app, updated_hands_free.clone()) {
+        let _ = unregister_shortcut(app, updated_standard.clone());
+        restore_registration(app, &previous_standard);
+        restore_registration(app, &previous_hands_free);
+        return Ok(BindingResponse {
+            success: false,
+            binding: None,
+            error: Some(format!("Failed to register hands-free shortcut: {error}")),
+        });
+    }
+
+    settings.bindings.insert(
+        STANDARD_TRANSCRIBE_BINDING_ID.to_string(),
+        updated_standard.clone(),
+    );
+    settings.bindings.insert(
+        HANDS_FREE_TRANSCRIBE_BINDING_ID.to_string(),
+        updated_hands_free,
+    );
+    settings::write_settings(app, settings);
+    crate::secure_input::reconcile_fallback(app);
+
+    Ok(BindingResponse {
+        success: true,
+        binding: Some(updated_standard),
+        error: None,
+    })
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_binding(
@@ -154,6 +270,18 @@ pub fn change_binding(
             }
         }
     };
+
+    if id == STANDARD_TRANSCRIBE_BINDING_ID {
+        return change_standard_transcribe_binding(&app, settings, binding_to_modify, binding);
+    }
+
+    if id == HANDS_FREE_TRANSCRIBE_BINDING_ID {
+        let standard = settings
+            .bindings
+            .get(STANDARD_TRANSCRIBE_BINDING_ID)
+            .ok_or_else(|| "Standard transcription shortcut is missing".to_string())?;
+        hands_free_secondary_key(&standard.current_binding, &binding)?;
+    }
 
     // If this is the cancel binding, just update the settings and return
     // It's managed dynamically, so we don't register/unregister here
@@ -990,6 +1118,35 @@ pub fn change_auto_submit_key_setting(app: AppHandle, key: String) -> Result<(),
     settings.auto_submit_key = parsed;
     settings::write_settings(&app, settings);
     Ok(())
+}
+
+#[cfg(test)]
+mod hands_free_tests {
+    use super::hands_free_secondary_key;
+
+    #[test]
+    fn hands_free_shortcut_requires_the_standard_shortcut_plus_one_key() {
+        assert_eq!(hands_free_secondary_key("fn", "fn+ctrl").unwrap(), "ctrl");
+        assert_eq!(
+            hands_free_secondary_key("option+space", "option+ctrl+space").unwrap(),
+            "ctrl"
+        );
+    }
+
+    #[test]
+    fn hands_free_shortcut_rejects_duplicates_and_unrelated_chords() {
+        assert!(hands_free_secondary_key("fn", "fn").is_err());
+        assert!(hands_free_secondary_key("fn", "option+space").is_err());
+        assert!(hands_free_secondary_key("option+space", "option+ctrl+shift+space").is_err());
+    }
+
+    #[test]
+    fn shortcut_comparison_normalizes_common_aliases() {
+        assert_eq!(
+            hands_free_secondary_key("function", "fn+control").unwrap(),
+            "ctrl"
+        );
+    }
 }
 
 #[tauri::command]

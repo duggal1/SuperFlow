@@ -16,6 +16,14 @@ pub fn cancel_operation(app: AppHandle) {
     cancel_current_operation(&app);
 }
 
+#[tauri::command]
+#[specta::specta]
+pub fn complete_hands_free_transcription(app: AppHandle) {
+    if let Some(coordinator) = app.try_state::<crate::TranscriptionCoordinator>() {
+        coordinator.complete_hands_free();
+    }
+}
+
 /// Dismisses the transcript result card. Called by the overlay's Copy button
 /// (after the text is on the clipboard) and by its auto-dismiss timer.
 #[tauri::command]
