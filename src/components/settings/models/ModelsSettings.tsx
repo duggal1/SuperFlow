@@ -252,7 +252,7 @@ export const ModelsSettings: React.FC = () => {
       </div>
 
       {/* Search bar — filter the catalog by name or description */}
-      <label className="group flex w-full items-center gap-2 rounded-lg bg-stone-850 px-3 text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100 focus-within:bg-stone-800 focus-within:text-stone-100">
+      <label className="group flex w-full items-center gap-2 rounded-lg bg-stone-800 px-3 text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100 focus-within:bg-stone-800 focus-within:text-stone-100">
         <HugeiconsIcon
           icon={MagnifyingGlassIcon}
           size={18}
