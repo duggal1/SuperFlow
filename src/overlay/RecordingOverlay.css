@@ -312,8 +312,8 @@
   }
 }
 
-/* base row — dot (left) | waveform (center) | timer + cancel (right).
-   Same structure for pill & panel; the dot stays anchored left in both. */
+/* base row — logo (left) | waveform (center) | timer + cancel (right).
+   Same structure for pill & panel; the logo stays anchored left in both. */
 .sbase {
   height: var(--ov-base-h);
   padding: 0 10px;
@@ -336,34 +336,11 @@
   gap: 10px;
   justify-self: end;
 }
-.sdot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+.slogo {
+  width: 13px;
+  height: 13px;
+  display: block;
   flex: none;
-  box-sizing: border-box;
-  transition:
-    background-color 180ms ease,
-    opacity 180ms ease;
-}
-.sdot.ready {
-  background: var(--s-accent);
-  opacity: 1;
-  animation: sdot-pulse 1.9s infinite;
-}
-/* A quiet neutral dot while the host has not delivered its first sample yet. */
-.sdot.arming {
-  background: var(--s-muted);
-  opacity: 0.45;
-  animation: none;
-}
-@keyframes sdot-pulse {
-  0% {
-    box-shadow: 0 0 0 0 var(--s-accent-soft);
-  }
-  70% {
-    box-shadow: 0 0 0 7px transparent;
-  }
 }
 .stimer {
   font-size: 12px;
@@ -393,7 +370,7 @@
   min-height: 3px;
   max-height: 18px;
   border-radius: 2px;
-  background: var(--s-accent);
+  background: #fafaf9;
   transition:
     height 80ms linear,
     background-color 180ms ease,
@@ -401,7 +378,7 @@
 }
 .swave.arming i {
   height: 6px !important;
-  background: var(--s-muted);
+  background: #fafaf9;
   opacity: 0.35;
   animation: swave-arming 900ms ease-in-out infinite;
 }
