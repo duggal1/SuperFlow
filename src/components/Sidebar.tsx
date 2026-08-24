@@ -5,6 +5,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   AiBeautifyIcon,
   BadgeInfoIcon,
+  ComputerIcon,
   HistoryIcon,
   Home01Icon,
   Settings01Icon,
@@ -48,7 +49,7 @@ export const SECTIONS_CONFIG = {
   },
   general: {
     labelKey: "sidebar.general",
-    icon: Home01Icon,
+    icon: ComputerIcon,
     component: GeneralSettings,
     enabled: () => true,
   },

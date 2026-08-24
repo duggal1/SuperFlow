@@ -369,16 +369,18 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   return (
     <article className="flex flex-col gap-3 px-4 py-4 [content-visibility:auto] [contain-intrinsic-size:auto_156px]">
       <div className="flex items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="shrink-0 text-sm font-medium tracking-tight text-stone-100">
-            {formattedDate}
+        <span className="flex min-w-0 flex-col items-start gap-1.5">
+          <span className="flex items-center gap-2">
+            <span className="shrink-0 text-sm font-medium tracking-tight text-stone-100">
+              {formattedDate}
+            </span>
+            {busy && (
+              <Badge variant="blue" className="px-1.5 py-0.5 text-[11px]">
+                <CircleNotch size={12} className="animate-spin" />
+                {t("settings.history.transcribing")}
+              </Badge>
+            )}
           </span>
-          {busy && (
-            <Badge variant="blue" className="px-1.5 py-0.5 text-[11px]">
-              <CircleNotch size={12} className="animate-spin" />
-              {t("settings.history.transcribing")}
-            </Badge>
-          )}
           {!hasTranscription && !busy && (
             <Badge variant="rose" className="px-1.5 py-0.5 text-[11px]">
               {t("settings.history.transcriptionFailed")}
