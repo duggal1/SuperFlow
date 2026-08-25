@@ -1036,8 +1036,8 @@ historyUpdatePayload: HistoryUpdatePayload,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
-cleanupProgressEvent: "cleanup-progress",
-cleanupRunStatusEvent: "cleanup-run-status",
+cleanupProgressEvent: "cleanup-progress-event",
+cleanupRunStatusEvent: "cleanup-run-status-event",
 historyUpdatePayload: "history-update-payload",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
@@ -1097,8 +1097,8 @@ selected_channel?: number | null; clamshell_microphone?: string | null; selected
  */
 export_format?: ExportFormat; recording_retention_period?: RecordingRetentionPeriod; paste_method?: PasteMethod; clipboard_handling?: ClipboardHandling; auto_submit?: boolean; auto_submit_key?: AutoSubmitKey; post_process_enabled?: boolean; 
 /**
- * Intelligence Awareness: treat dictation as an instruction inside aware
- * surfaces (Gmail/Slack) and compose finished text from page context.
+ * Intelligence Awareness: compose finished text or developer prompts from
+ * bounded context captured from Gmail, Slack, terminals, and editors.
  */
 intelligence_awareness_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; ai_cleanup_enabled?: boolean; auto_ai_cleanup_enabled?: boolean; ai_cleanup_model?: string; ai_cleanup_thinking_level?: AiCleanupThinkingLevel; ai_cleanup_custom_instruction?: string; ai_cleanup_style?: AiCleanupStyle; ai_cleanup_style_tone?: string; ai_cleanup_contexts?: string[]; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
 /**
@@ -1145,18 +1145,75 @@ export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
 /**
+ * Timing and token accounting for one chunk. No text fields, by design.
+ */
+export type CleanupChunkMetrics = { chunk_index: number; chunk_count: number; queue_wait_ms: number; prompt_eval_ms: number; generation_ms: number; input_tokens: number; output_tokens: number; generated_tokens_per_second: number }
+/**
+ * Stage at which a failed run stopped. Stable reason codes — never free text.
+ */
+export type CleanupFailureStage = "not_ready" | "queue_timeout" | "generation_timeout" | "generation_error" | "validation_rejected" | "cancelled"
+/**
+ * Where the pasted text actually came from.
+ */
+export type CleanupFinalSource = "s1" | "mixed_chunk_fallback" | "raw_fallback" | "non_english_skip"
+/**
+ * Terminal lifecycle of a cleanup run.
+ */
+export type CleanupLifecycle = 
+/**
+ * Full S1 output accepted for every chunk.
+ */
+"applied" | 
+/**
+ * At least one chunk fell back to its source span; neighbors kept.
+ */
+"partially_applied" | 
+/**
+ * No cleanup attempted (non-English or empty input).
+ */
+"skipped" | 
+/**
+ * Model output rejected by validation; source text substituted.
+ */
+"rejected" | 
+/**
+ * Engine, timeout, queue, or lifecycle failure; source text substituted.
+ */
+"failed" | 
+/**
+ * Superseded or cancelled before completion.
+ */
+"cancelled"
+/**
  * Full install state for one UI render pass.
  */
-export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null; backend: string; last_run: CleanupOutcomeSummary | null; pending_jobs: number; cleaning: boolean }
-export type CleanupProgressEvent = { pending_jobs: number }
-export type CleanupLifecycle = "applied" | "partially_applied" | "skipped" | "rejected" | "failed" | "cancelled"
-export type CleanupFinalSource = "s1" | "mixed_chunk_fallback" | "raw_fallback" | "non_english_skip"
-export type CleanupFailureStage = "not_ready" | "queue_timeout" | "generation_timeout" | "generation_error" | "validation_rejected" | "cancelled"
-export type CleanupValidationReason = "think_tag_leakage" | "repetition_loop" | "invented_identifier" | "missing_numeric_token" | "missing_currency_or_percentage" | "negation_changed" | "implausible_truncation" | "empty_for_meaningful_speech"
-export type CleanupChunkMetrics = { chunk_index: number; chunk_count: number; queue_wait_ms: number; prompt_eval_ms: number; generation_ms: number; input_tokens: number; output_tokens: number; generated_tokens_per_second: number }
-export type CleanupRunMetrics = { total_ms: number; backend: string; chunks: CleanupChunkMetrics[] | null }
+export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null; 
+/**
+ * Inference backend this stage always uses.
+ */
+backend: string; 
+/**
+ * Latest terminal cleanup run, if any has finished this session.
+ */
+last_run: CleanupOutcomeSummary | null; 
+/**
+ * Queued or generating S1 jobs. This is lifecycle state, not an estimate.
+ */
+pending_jobs: number; cleaning: boolean }
+/**
+ * Serializable terminal summary for one run: safe for events, status, UI.
+ */
 export type CleanupOutcomeSummary = { run_id: number; lifecycle: CleanupLifecycle; final_source: CleanupFinalSource; failure_stage: CleanupFailureStage | null; validation_reason: CleanupValidationReason | null; metrics: CleanupRunMetrics }
+export type CleanupProgressEvent = { pending_jobs: number }
+export type CleanupRunMetrics = { total_ms: number; backend: string; chunks: CleanupChunkMetrics[] }
+/**
+ * Typed terminal event emitted exactly once per finished run.
+ */
 export type CleanupRunStatusEvent = { summary: CleanupOutcomeSummary }
+/**
+ * Stable per-chunk validation rejection codes (full set enforced from T3).
+ */
+export type CleanupValidationReason = "think_tag_leakage" | "repetition_loop" | "invented_identifier" | "missing_numeric_token" | "missing_currency_or_percentage" | "negation_changed" | "implausible_truncation" | "empty_for_meaningful_speech"
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CustomSounds = { start: boolean; stop: boolean }
 export type EngineType = 

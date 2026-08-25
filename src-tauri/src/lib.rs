@@ -153,90 +153,6 @@ fn should_force_show_permissions_window(app: &AppHandle) -> bool {
     false
 }
 
-/// Convert crash-durability journals (`*.f32part`) left by sessions that died
-/// mid-recording into real WAVs with history rows. Audio is journaled to disk
-/// while the user speaks, so a hard crash mid-dictation costs nothing: this
-/// runs before the failed-entry sweep so recovered recordings go through the
-/// full three-layer fallback chain like any other stranded recording.
-fn recover_recording_journals(history_manager: &HistoryManager) {
-    let dir = history_manager.recordings_dir();
-    let entries = match std::fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(e) => {
-            log::warn!("Startup recovery: failed to list recordings dir: {}", e);
-            return;
-        }
-    };
-
-    let mut recovered = 0usize;
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("f32part") {
-            continue;
-        }
-        let samples = match crate::audio_toolkit::audio::read_f32_part(&path) {
-            Ok(samples) => samples,
-            Err(e) => {
-                log::warn!("Startup recovery: unreadable journal {:?}: {}", path, e);
-                continue;
-            }
-        };
-        // Consumed either way so a torn file can never retry-loop forever.
-        let _ = std::fs::remove_file(&path);
-        if samples.is_empty() {
-            continue;
-        }
-
-        let stem = path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_else(|| format!("superflow-{}", chrono::Utc::now().timestamp()));
-        let file_name = format!("{stem}.wav");
-        let wav_path = dir.join(&file_name);
-        if wav_path.exists() {
-            continue; // the real recording already made it; stale journal
-        }
-        if let Err(e) = crate::audio_toolkit::save_wav_file(&wav_path, &samples) {
-            log::warn!(
-                "Startup recovery: failed to write WAV for {:?}: {}",
-                wav_path,
-                e
-            );
-            continue;
-        }
-
-        let duration_secs = samples.len() as f64 / 16_000.0;
-        let timestamp = stem
-            .rsplit('-')
-            .next()
-            .and_then(|digits| digits.parse::<i64>().ok())
-            .unwrap_or_else(|| chrono::Utc::now().timestamp());
-        if let Err(e) = history_manager.save_entry_at(
-            file_name,
-            String::new(),
-            false,
-            None,
-            None,
-            duration_secs,
-            timestamp,
-        ) {
-            log::warn!("Startup recovery: failed to save recovered entry: {}", e);
-            continue;
-        }
-        recovered += 1;
-        log::info!(
-            "Startup recovery: restored a crashed {:.0}s dictation from its journal",
-            duration_secs
-        );
-    }
-    if recovered > 0 {
-        log::info!(
-            "Startup recovery: {} crashed recording(s) queued for transcription",
-            recovered
-        );
-    }
-}
-
 fn initialize_core_logic(app_handle: &AppHandle) {
     // Note: Enigo (keyboard/mouse simulation) is NOT initialized here.
     // The frontend is responsible for calling the `initialize_enigo` command
@@ -276,75 +192,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
-
-    // Automatic recovery sweep: every saved recording whose transcription
-    // never produced text runs back through the three-layer fallback chain
-    // (fresh-load retries, then an alternate downloaded model), so a failure
-    // never survives an app restart. Waits briefly so the launch-time model
-    // load is not contended, and processes entries sequentially.
-    {
-        let app = app_handle.clone();
-        let history = Arc::clone(&history_manager);
-        let transcription = Arc::clone(&transcription_manager);
-        let recording = Arc::clone(&recording_manager);
-        tauri::async_runtime::spawn(async move {
-            let _ = tauri::async_runtime::spawn_blocking(|| {
-                std::thread::sleep(std::time::Duration::from_secs(8))
-            })
-            .await;
-
-            if crate::settings::get_settings(&app)
-                .selected_model
-                .trim()
-                .is_empty()
-            {
-                return;
-            }
-
-            // Convert crash-durability journals left by sessions that died
-            // mid-recording into real WAVs + history rows. Runs before the
-            // failed-entry sweep so recovered audio goes through the full
-            // fallback chain like any other stranded recording.
-            recover_recording_journals(&history);
-
-            let Ok(ids) = history.get_failed_entry_ids().await else {
-                log::warn!("Startup recovery: failed to list stranded recordings");
-                return;
-            };
-            if ids.is_empty() {
-                return;
-            }
-            log::info!(
-                "Startup recovery: re-transcribing {} recording(s) with no text",
-                ids.len()
-            );
-            for id in ids {
-                // Recovery is strictly background work. Wait for a quiet
-                // window before every entry so a launch backlog cannot steal
-                // the active model from foreground dictation.
-                loop {
-                    while recording.is_recording() || transcription.is_streaming() {
-                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                    }
-                    tokio::time::sleep(std::time::Duration::from_millis(750)).await;
-                    if !recording.is_recording() && !transcription.is_streaming() {
-                        break;
-                    }
-                }
-                if let Err(e) = commands::history::retranscribe_entry(
-                    app.clone(),
-                    Arc::clone(&history),
-                    Arc::clone(&transcription),
-                    id,
-                )
-                .await
-                {
-                    log::warn!("Startup recovery failed for entry {}: {}", id, e);
-                }
-                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
-            }
-        });
-    }
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command
@@ -843,6 +690,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_vad_enabled_setting,
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_tech_lexicon_enabled_setting,
+            shortcut::change_cleanup_model_enabled_setting,
             shortcut::change_smart_file_references_enabled_setting,
             shortcut::change_live_punctuation_enabled_setting,
             shortcut::change_punctuation_style_setting,

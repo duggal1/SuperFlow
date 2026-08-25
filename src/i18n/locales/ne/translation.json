@@ -268,7 +268,7 @@
         "description": "रेकर्डिङ रोकिएपछि 30 सेकेन्डसम्म माइक्रोफोन स्ट्रिम खुला राख्छ, जसले लगातारका ट्रान्सक्रिप्सनहरूको ढिलाइ घटाउँछ। सक्रिय हुँदा Bluetooth अडियो गुणस्तर घट्न सक्छ।"
       },
       "acceleration": {
-        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
+        "cleanupDetails": "Apple Metal · Formal · Lists · Greedy",
         "transcribe": {
           "title": "transcribe.cpp एक्सेलेरेसन",
           "description": "transcribe.cpp (Whisper परिवार) मोडेलहरूका लागि हार्डवेयर एक्सेलेरेसन। Auto ले उपलब्ध भए GPU प्रयोग गर्छ (macOS मा Metal, Windows/Linux मा Vulkan)।"

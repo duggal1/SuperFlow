@@ -288,7 +288,7 @@
         "description": "Keeps the microphone stream open for 30 seconds after recording stops, reducing latency for back-to-back transcriptions. May degrade Bluetooth audio quality while active."
       },
       "acceleration": {
-        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
+        "cleanupDetails": "Apple Metal · Formal · Lists · Greedy",
         "transcribe": {
           "title": "transcribe.cpp Acceleration",
           "description": "Hardware acceleration for transcribe.cpp (Whisper-family) models. Auto uses GPU if available (Metal on macOS, Vulkan on Windows/Linux)."

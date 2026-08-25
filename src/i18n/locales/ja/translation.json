@@ -268,7 +268,7 @@
         "description": "録音停止後マイクを30秒間有効なままにし、連続した文字起こしの遅延を軽減します。Bluetooth 音声品質に影響する場合があります。"
       },
       "acceleration": {
-        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
+        "cleanupDetails": "Apple Metal · Formal · Lists · Greedy",
         "transcribe": {
           "title": "transcribe.cpp アクセラレーション",
           "description": "transcribe.cpp (Whisper 系) モデルのハードウェアアクセラレーション。「自動」では利用可能な場合 GPU を使用します (macOS では Metal、Windows/Linux では Vulkan)。"

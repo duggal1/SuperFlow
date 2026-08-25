@@ -268,7 +268,7 @@
         "description": "Giữ luồng micro mở trong 30 giây sau khi dừng ghi âm, giảm độ trễ khi phiên âm liên tiếp. Có thể làm giảm chất lượng âm thanh Bluetooth khi đang hoạt động."
       },
       "acceleration": {
-        "cleanupDetails": "Apple Metal · Semi-formal · Lists · Greedy",
+        "cleanupDetails": "Apple Metal · Formal · Lists · Greedy",
         "transcribe": {
           "title": "Tăng tốc Whisper",
           "description": "Tăng tốc phần cứng cho các mô hình Whisper. Chế độ tự động sử dụng GPU nếu có (Metal trên macOS, Vulkan trên Windows/Linux)."

@@ -4,22 +4,17 @@ use crate::managers::{
     history::{HistoryManager, PaginatedHistory},
     transcription::TranscriptionManager,
 };
-use log::{debug, info, warn};
+use log::warn;
 use serde_json::json;
 use std::sync::Arc;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
 /// Total attempts per restore, including the immediate first one. The first
 /// attempt runs right away (the common transient failure recovers instantly);
 /// later attempts get a short backoff to let a model reload or a still-running
 /// stream worker release the engine.
 const RETRANSCRIBE_ATTEMPTS: usize = 3;
-
-/// Attempts for the final fallback layer: transcribing with a *different*
-/// downloaded model after the selected model failed every retry. Two tries
-/// absorb a flaky first load without dragging recovery out.
-const FALLBACK_ATTEMPTS: usize = 2;
 
 /// Store a recovered transcription (with its post-processing pass) on an
 /// existing history entry. Shared by both recovery layers.
@@ -42,49 +37,15 @@ async fn persist_recovered_transcription(
         .map_err(|e| e.to_string())
 }
 
-/// Put the user's selected model back into the engine slot after the fallback
-/// layer swapped in a substitute. Their selection is never rewritten — this
-/// only restores the runtime so future dictations use their choice again.
-/// Waits out an active dictation briefly instead of yanking the engine from a
-/// live stream; if the selected model fails to come back (the usual reason a
-/// fallback was needed), the working substitute stays loaded and the warning
-/// is logged.
-fn restore_selected_model_later(app: AppHandle, selected_model: String) {
-    tauri::async_runtime::spawn(async move {
-        for _ in 0..2 {
-            if !app.state::<Arc<TranscriptionManager>>().is_streaming() {
-                break;
-            }
-            let _ =
-                tauri::async_runtime::spawn_blocking(|| std::thread::sleep(Duration::from_secs(5)))
-                    .await;
-        }
-        let tm = Arc::clone(&*app.state::<Arc<TranscriptionManager>>());
-        let model = selected_model.clone();
-        match tauri::async_runtime::spawn_blocking(move || tm.ensure_model_loaded(&model)).await {
-            Ok(Ok(())) => debug!("Restored selected model after fallback"),
-            Ok(Err(e)) => warn!(
-                "Selected model '{}' could not be restored after fallback: {}",
-                selected_model, e
-            ),
-            Err(e) => warn!("Model restore task panicked: {}", e),
-        }
-    });
-}
-
-/// Recover a failed transcription through the full three-layer chain, all
-/// against the always-present saved WAV file:
+/// Re-transcribe a failed entry with the user's selected model, retrying a
+/// few times with short backoffs so a transient failure recovers. Runs only
+/// when explicitly requested (the manual Retry action) — never automatically,
+/// so the app can never start transcribing on its own.
 ///
-/// 1. *(live)* the original dictation attempt — handled in `actions.rs`;
-/// 2. fresh-load retries of the selected model (`RETRANSCRIBE_ATTEMPTS`);
-/// 3. a different downloaded model entirely (`FALLBACK_ATTEMPTS`) when the
-///    selected model itself is the problem.
-///
-/// Emits `history-retranscribe` events (`started` / `fallback` / `completed` /
-/// `failed`, plus the substitute model name on `fallback`) so the UI reflects
-/// each stage in real time, plays the stop sound when recovery lands, and
-/// updates the stored entry on success (which also emits the typed history
-/// update event every open page already listens for).
+/// Emits `history-retranscribe` events (`started` / `completed` / `failed`)
+/// so the UI reflects each stage in real time, plays the stop sound when the
+/// retry lands, and updates the stored entry on success (which also emits the
+/// typed history update event every open page already listens for).
 pub async fn retranscribe_entry(
     app: AppHandle,
     history_manager: Arc<HistoryManager>,
@@ -125,9 +86,6 @@ pub async fn retranscribe_entry(
 
     emit_status("started");
 
-    // ------------------------------------------------------------------
-    // Layer 2 — the selected model again, freshly loaded each time.
-    // ------------------------------------------------------------------
     let mut last_error = String::new();
     for attempt in 1..=RETRANSCRIBE_ATTEMPTS {
         if attempt > 1 {
@@ -148,7 +106,7 @@ pub async fn retranscribe_entry(
         match result {
             Err(e) => {
                 warn!(
-                    "Background re-transcription attempt {}/{} failed for entry {}: {}",
+                    "Re-transcription attempt {}/{} failed for entry {}: {}",
                     attempt, RETRANSCRIBE_ATTEMPTS, id, e
                 );
                 last_error = e.to_string();
@@ -172,79 +130,7 @@ pub async fn retranscribe_entry(
         }
     }
 
-    // ------------------------------------------------------------------
-    // Layer 3 — the selected model is persistently broken (every fresh
-    // reload failed), so hand the audio to a different downloaded model.
-    // The user's selection stays untouched; the engine is restored after.
-    // ------------------------------------------------------------------
-    let Some((fallback_id, fallback_name)) =
-        transcription_manager.fallback_model_candidate(&selected_model)
-    else {
-        info!(
-            "No alternate downloaded model available; entry {} stays failed ({})",
-            id, last_error
-        );
-        emit_status("failed");
-        return Err(last_error);
-    };
-
-    let _ = app.emit(
-        "history-retranscribe",
-        json!({ "id": id, "status": "fallback", "model": fallback_name }),
-    );
-    info!(
-        "Falling back to model '{}' for entry {} after selected model failed: {}",
-        fallback_id, id, last_error
-    );
-
-    for attempt in 1..=FALLBACK_ATTEMPTS {
-        if attempt > 1 {
-            let _ = tauri::async_runtime::spawn_blocking(|| {
-                std::thread::sleep(Duration::from_millis(1500))
-            })
-            .await;
-        }
-
-        let tm = Arc::clone(&transcription_manager);
-        let model_id = fallback_id.clone();
-        let attempt_samples = samples.clone();
-        let result = tauri::async_runtime::spawn_blocking(move || {
-            tm.ensure_model_loaded(&model_id)?;
-            tm.transcribe(attempt_samples)
-        })
-        .await
-        .map_err(|e| format!("Fallback transcription task panicked: {}", e))?;
-
-        match result {
-            Err(e) => {
-                warn!(
-                    "Fallback attempt {}/{} with '{}' failed for entry {}: {}",
-                    attempt, FALLBACK_ATTEMPTS, fallback_id, id, e
-                );
-                last_error = e.to_string();
-            }
-            Ok(transcription) if transcription.trim().is_empty() => {
-                last_error = "Recording contains no speech".to_string();
-            }
-            Ok(transcription) => {
-                persist_recovered_transcription(
-                    &app,
-                    &history_manager,
-                    id,
-                    entry.post_process_requested,
-                    transcription,
-                )
-                .await?;
-                emit_status("completed");
-                play_feedback_sound(&app, SoundType::Stop);
-                restore_selected_model_later(app, selected_model);
-                return Ok(());
-            }
-        }
-    }
-
     emit_status("failed");
-    restore_selected_model_later(app, selected_model);
     Err(last_error)
 }
 

@@ -35,11 +35,7 @@ const MODEL_URL: &str =
 const MODEL_SIZE_BYTES: u64 = 484_219_808;
 const MODEL_SHA256: &str = "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634";
 
-const SYSTEM_PROMPT: &str = "You are a text normalizer for speech-to-text transcripts. The input begins with a control line specifying the styling, structure, and context settings; clean the transcript to match those settings and output only the cleaned text.";
-/// The model's trained control vocabulary. Production may only send values
-/// from this set — arbitrary prompt instructions, `markdown`, `bullets`,
-/// `work`, or CSS-like values are not trained and are unrepresentable here
-/// (T3.1/T3.2).
+
 #[derive(Debug, Clone, Copy)]
 pub enum CleanupStyling {
     Formal,

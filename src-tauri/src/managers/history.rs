@@ -800,22 +800,6 @@ impl HistoryManager {
         Self::get_latest_completed_entry_with_conn(&conn)
     }
 
-    /// Ids of every entry whose transcription never produced text — the
-    /// stranded recordings the background recovery chain should sweep at
-    /// startup, newest first.
-    pub async fn get_failed_entry_ids(&self) -> Result<Vec<i64>> {
-        let conn = self.get_connection()?;
-        let mut stmt = conn.prepare(
-            "SELECT id FROM transcription_history
-             WHERE TRIM(transcription_text) = ''
-             ORDER BY id DESC",
-        )?;
-        let ids = stmt
-            .query_map([], |row| row.get::<_, i64>(0))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-        Ok(ids)
-    }
-
     fn get_latest_completed_entry_with_conn(conn: &Connection) -> Result<Option<HistoryEntry>> {
         let mut stmt = conn.prepare(
             "SELECT

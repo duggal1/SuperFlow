@@ -411,11 +411,12 @@ async fn process_transcription_output_with_context(
         final_text = converted_text;
     }
 
-    // Mandatory local cleanup stage: S1-mini rewrites the raw transcript as
-    // clean written text (grammar, punctuation, fillers, spoken numbers).
-    // Runs unconditionally on English transcripts — no user toggle. Every run
-    // reports its terminal outcome; only accepted S1 output replaces text.
-    if !final_text.trim().is_empty() {
+    // Optional local cleanup stage: when enabled, S1-mini rewrites the raw
+    // transcript as clean written text (grammar, punctuation, fillers,
+    // spoken numbers). Disabled by default — raw transcript passes through.
+    // Every run reports its terminal outcome; only accepted S1 output
+    // replaces text.
+    if settings.cleanup_model_enabled && !final_text.trim().is_empty() {
         let outcome =
             match crate::local_cleanup::finalize_session(app, &effective_language, &final_text)
                 .await
@@ -549,11 +550,12 @@ impl ShortcutAction for TranscribeAction {
         debug!("TranscribeAction::start called for binding: {}", binding_id);
         let is_hands_free = binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID;
 
-        // The mandatory S1-mini clean-up stage must be live before any speech
-        // is captured — transcripts are never produced without it. While it
-        // downloads/loads, recording is refused with a distinct error type the
-        // UI maps to a "still installing" toast.
-        if !crate::local_cleanup::is_ready() {
+        // The optional S1-mini clean-up stage only constrains dictation when
+        // the user explicitly enabled it: then the engine must be live before
+        // any speech is captured, and while it downloads/loads recording is
+        // refused with a distinct error type the UI maps to a toast. With the
+        // model disabled (the default) dictation never waits on it.
+        if get_settings(app).cleanup_model_enabled && !crate::local_cleanup::is_ready() {
             debug!("Dictation refused: clean-up model not ready yet");
             let _ = app.emit(
                 "recording-error",
@@ -589,7 +591,9 @@ impl ShortcutAction for TranscribeAction {
         let plan_started = Instant::now();
         let settings = get_settings(app);
         let cleanup_language = resolve_effective_language(app, &settings);
-        crate::local_cleanup::start_session(app, &cleanup_language);
+        if settings.cleanup_model_enabled {
+            crate::local_cleanup::start_session(app, &cleanup_language);
+        }
         let is_always_on = settings.always_on_microphone;
 
         let selected_model_info = app
@@ -1092,12 +1096,11 @@ impl ShortcutAction for TranscribeAction {
                             // Surface the failure to the UI (toast). The full
                             // message is also in superflow.log via the line above.
                             let _ = ah.emit("transcription-error", err.to_string());
-                            // Save entry with empty text, then immediately
-                            // re-run the transcription in the background from
-                            // the saved WAV so a transient failure never leaves
-                            // a permanent "failed" entry.
+                            // Save entry with empty text so it shows up as
+                            // failed in history; the user can Retry manually
+                            // from there. No automatic re-transcription runs.
                             if wav_saved {
-                                match hm.save_entry(
+                                if let Err(save_err) = hm.save_entry(
                                     file_name,
                                     String::new(),
                                     post_process,
@@ -1105,31 +1108,7 @@ impl ShortcutAction for TranscribeAction {
                                     None,
                                     sample_count as f64 / 16_000.0,
                                 ) {
-                                    Ok(failed_entry) => {
-                                        let bg_app = ah.clone();
-                                        tauri::async_runtime::spawn(async move {
-                                            let hm = bg_app.state::<Arc<HistoryManager>>();
-                                            let tm = bg_app.state::<Arc<TranscriptionManager>>();
-                                            if let Err(e) =
-                                                crate::commands::history::retranscribe_entry(
-                                                    bg_app.clone(),
-                                                    Arc::clone(&hm),
-                                                    Arc::clone(&tm),
-                                                    failed_entry.id,
-                                                )
-                                                .await
-                                            {
-                                                error!(
-                                                    "Background re-transcription failed for entry {}: {}",
-                                                    failed_entry.id,
-                                                    e
-                                                );
-                                            }
-                                        });
-                                    }
-                                    Err(save_err) => {
-                                        error!("Failed to save failed history entry: {}", save_err)
-                                    }
+                                    error!("Failed to save failed history entry: {}", save_err);
                                 }
                             }
                             utils::hide_recording_overlay(&ah);
