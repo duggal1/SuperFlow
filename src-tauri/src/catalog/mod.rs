@@ -119,13 +119,40 @@ static ROOT: Lazy<CatalogRoot> = Lazy::new(|| {
         .expect("bundled catalog.json is valid JSON matching the catalog schema")
 });
 
+/// Batch-only catalog entries that ship anyway, by HF repo id. The live
+/// pipeline streams when the selected model supports it and otherwise runs a
+/// full offline pass over the finished recording (the stop path falls back to
+/// batch transcription), so these high-accuracy batch models are still
+/// first-class citizens — selectable, downloadable, transcribing.
+const CURATED_BATCH_REPOS: &[&str] = &[
+    "handy-computer/cohere-transcribe-03-2026-gguf",
+    "handy-computer/granite-speech-4.1-2b-nar-gguf",
+    "handy-computer/granite-speech-4.1-2b-gguf",
+    "handy-computer/granite-4.0-1b-speech-gguf",
+    "handy-computer/parakeet-tdt-1.1b-gguf",
+    "handy-computer/parakeet-rnnt-1.1b-gguf",
+    "handy-computer/canary-1b-flash-gguf",
+    "handy-computer/canary-1b-gguf",
+    "handy-computer/canary-qwen-2.5b-gguf",
+];
+
+/// True when `model_id` (registry id `"{repo_id}/{filename}"`, any quant)
+/// belongs to a [`CURATED_BATCH_REPOS`] entry.
+pub fn is_curated_batch_model(model_id: &str) -> bool {
+    CURATED_BATCH_REPOS.iter().any(|repo| {
+        model_id
+            .strip_prefix(repo)
+            .is_some_and(|rest| rest.starts_with('/'))
+    })
+}
+
 /// The bundled catalog, parsed once and normalised into descriptors.
-/// Streaming-capable models only — SuperFlow ships live transcription,
-/// so batch-only catalog entries are deliberately excluded.
+/// Streaming-capable models plus the curated batch-only set — everything else
+/// is excluded because SuperFlow has no live use for it.
 pub static CATALOG: Lazy<Vec<ModelDescriptor>> = Lazy::new(|| {
     ROOT.models
         .iter()
-        .filter(|m| m.capabilities.streaming)
+        .filter(|m| m.capabilities.streaming || CURATED_BATCH_REPOS.contains(&m.id.as_str()))
         .map(ModelDescriptor::from)
         .collect()
 });
@@ -230,14 +257,23 @@ mod tests {
     }
 
     #[test]
-    fn catalog_is_streaming_only() {
-        assert!(
-            CATALOG
-                .iter()
-                .all(|d| d.caps.supports_streaming == Some(true)),
-            "catalog must only contain streaming-capable models"
-        );
-        assert!(!CATALOG.is_empty(), "streaming-only catalog is empty");
+    fn catalog_is_streaming_or_curated_batch() {
+        assert!(!CATALOG.is_empty(), "catalog is empty");
+        for d in CATALOG.iter() {
+            assert!(
+                d.caps.supports_streaming == Some(true) || is_curated_batch_model(&d.id),
+                "{} must stream or be a curated batch model",
+                d.id
+            );
+        }
+        let curated: Vec<&str> = CURATED_BATCH_REPOS.to_vec();
+        assert_eq!(curated.len(), 9, "curated batch set drifted");
+        for repo in curated {
+            assert!(
+                ROOT.models.iter().any(|m| &m.id == repo),
+                "curated batch repo {repo} missing from catalog.json"
+            );
+        }
     }
 
     #[test]

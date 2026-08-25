@@ -1120,10 +1120,9 @@ impl ModelManager {
         // Auto-discover transcribe-cpp GGUF models already in the shared HF cache.
         Self::discover_hf_cache_models(&mut available_models);
 
-        // Streaming-only product: drop every registry entry without live
-        // streaming support (legacy table, batch-only catalog leftovers,
-        // non-streaming cache finds). See `retain_streaming_only`.
-        Self::retain_streaming_only(&mut available_models);
+        // Keep shippable models only: streaming-capable entries plus the
+        // curated batch-only catalog set. See `retain_shipped_models`.
+        Self::retain_shipped_models(&mut available_models);
 
         let manager = Self {
             app_handle: app_handle.clone(),
@@ -1189,17 +1188,20 @@ impl ModelManager {
         info!("Seeded {} catalog model(s) into the registry", added);
     }
 
-    /// Keep streaming-capable entries only. SuperFlow is a live-transcription
-    /// product: batch-only models (legacy table, non-streaming catalog/cache
-    /// finds) are removed from the registry so they never show up, download,
-    /// or get auto-selected. Runs after every seeding/discovery pass.
-    fn retain_streaming_only(available_models: &mut HashMap<String, ModelInfo>) {
+    /// Keep shippable entries only: streaming-capable models plus the curated
+    /// batch-only catalog set (transcribed offline after recording). Everything
+    /// else — legacy table leftovers, non-streaming catalog/cache finds — is
+    /// removed from the registry so it never shows up, downloads, or gets
+    /// auto-selected. Runs after every seeding/discovery pass.
+    fn retain_shipped_models(available_models: &mut HashMap<String, ModelInfo>) {
         let before = available_models.len();
-        available_models.retain(|_, info| info.supports_streaming);
+        available_models.retain(|id, info| {
+            info.supports_streaming || crate::catalog::is_curated_batch_model(id)
+        });
         let removed = before - available_models.len();
         if removed > 0 {
             info!(
-                "Removed {} non-streaming model(s); {} streaming model(s) remain",
+                "Removed {} non-shippable model(s); {} remain",
                 removed,
                 available_models.len()
             );
@@ -1247,7 +1249,8 @@ impl ModelManager {
             warn!("Rescan: failed to discover custom models: {}", e);
         }
         Self::discover_hf_cache_models(&mut snapshot);
-        Self::retain_streaming_only(&mut snapshot);
+        // Same shippable filter as startup: streaming plus curated batch.
+        Self::retain_shipped_models(&mut snapshot);
 
         // Merge only the genuinely-new ids back into the live registry. `or_insert`
         // leaves every existing entry exactly as it was.
