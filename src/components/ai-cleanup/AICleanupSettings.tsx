@@ -1,6 +1,7 @@
 /* eslint-disable i18next/no-literal-string */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Copy, FileText, Plus, UploadSimple, X } from "@phosphor-icons/react";
+import { toast } from "sonner";
 import { commands } from "@/bindings";
 import type {
   AiCleanupConfiguration,
@@ -179,7 +180,7 @@ export function AICleanupSettings() {
     });
   };
 
-  const saveApiKey = async (apiKey: string) => {
+  const saveApiKey = async (apiKey: string, successMessage?: string) => {
     if (!apiKey.trim()) return;
     setApiKeySaving(true);
     const result = await commands.setGeminiApiKey(apiKey);
@@ -191,6 +192,7 @@ export function AICleanupSettings() {
     setApiKeyDraft("");
     setSaveError(null);
     await loadStatus();
+    if (successMessage) toast.success(successMessage);
   };
 
   return (
@@ -310,7 +312,7 @@ export function AICleanupSettings() {
             </Badge>
           </div>
           <Input
-            type="password"
+            type="text"
             value={apiKeyDraft}
             onChange={(event) => setApiKeyDraft(event.target.value)}
             onPaste={(event) => {
@@ -320,7 +322,7 @@ export function AICleanupSettings() {
               // of waiting for a blur that may never come.
               event.preventDefault();
               setApiKeyDraft(pasted);
-              void saveApiKey(pasted);
+              void saveApiKey(pasted, "API_KEY pasted successfully");
             }}
             onBlur={() => void saveApiKey(apiKeyDraft)}
             onKeyDown={(event) => {
@@ -333,7 +335,10 @@ export function AICleanupSettings() {
                 : "Enter Gemini API key"
             }
             autoComplete="off"
-            className="mt-3 w-full min-w-0 text-stone-100"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="mt-3 w-full min-w-0 text-stone-100 [-webkit-text-security:disc]"
           />
         </div>
       </SettingsGroup>
