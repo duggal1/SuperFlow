@@ -14,10 +14,7 @@ import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import SecureInputWarning from "./components/SecureInputWarning";
 import { CleanupModelToast } from "./components/CleanupModelToast";
 import Footer from "./components/footer";
-import Onboarding, {
-  AccessibilityOnboarding,
-  CleanupModelSetup,
-} from "./components/onboarding";
+import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
 import { Introduction } from "./components/introduction";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
@@ -28,12 +25,7 @@ import { useSettingsStore } from "./stores/settingsStore";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
-type OnboardingStep =
-  | "introduction"
-  | "accessibility"
-  | "model"
-  | "cleanup"
-  | "done";
+type OnboardingStep = "introduction" | "accessibility" | "model" | "done";
 
 const renderSettingsContent = (section: SidebarSection) => {
   const ActiveComponent =
@@ -278,13 +270,8 @@ function App() {
   };
 
   const handleModelSelected = () => {
-    // The mandatory clean-up model must be installed before the dashboard —
-    // no skip path exists for it.
-    setOnboardingStep("cleanup");
-  };
-
-  const handleCleanupComplete = () => {
-    // Transition to main app - user has installed the clean-up model
+    // The S1-mini clean-up model is optional and disabled by default; it can
+    // be enabled later from the model card. Onboarding ends at model choice.
     setOnboardingStep("done");
   };
 
@@ -342,8 +329,6 @@ function App() {
     );
   } else if (onboardingStep === "model") {
     content = <Onboarding onModelSelected={handleModelSelected} />;
-  } else if (onboardingStep === "cleanup") {
-    content = <CleanupModelSetup onComplete={handleCleanupComplete} />;
   } else {
     content = (
       <div
@@ -392,10 +377,8 @@ function App() {
   return (
     <>
       {toaster}
-      {/* Global live indicator for the background clean-up model install.
-          Suppressed on the dedicated onboarding install page, which shows
-          the same progress inline. */}
-      <CleanupModelToast enabled={onboardingStep !== "cleanup"} />
+      {/* Global live indicator for the background clean-up model install. */}
+      <CleanupModelToast />
       {content}
     </>
   );

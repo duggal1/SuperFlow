@@ -1,11 +1,3 @@
-//! Mandatory local transcript cleanup powered by S1-mini (superwhisper).
-//!
-//! Pipeline position: STT → deterministic token/value normalization → **this
-//! stage** → optional explicit cleanup → paste. There is no user-facing toggle
-//! by design; the only skips are correctness guards
-//! (non-English transcripts, model not ready yet) which fail open to the raw
-//! text rather than blocking dictation.
-
 use std::io::Write;
 use std::ops::Range;
 use std::path::PathBuf;
@@ -35,6 +27,28 @@ const MODEL_URL: &str =
 const MODEL_SIZE_BYTES: u64 = 484_219_808;
 const MODEL_SHA256: &str = "3b41ebe2502cbd03e811d5d16b022f5ab551eda58d62597d152f89535003c634";
 
+/// S1-mini requires this system prompt verbatim.
+/// Do not append product instructions or rewrite its wording.
+const SYSTEM_PROMPT: &str = "You are a text normalizer for speech-to-text transcripts. \
+The input begins with a control line specifying the styling, structure, and context settings; \
+clean the transcript to match those settings and output only the cleaned text.";
+
+const DEFAULT_STYLING: &str = "formal";
+const DEFAULT_STRUCTURE: &str = "lists";
+const DEFAULT_CONTEXT: &str = "general";
+
+/// Build the exact input format S1-mini was trained on.
+///
+/// Production defaults:
+/// - formal: full capitalization/punctuation + expanded contractions
+/// - lists: converts genuine enumerations into Markdown bullet lists
+/// - general: normal non-email formatting
+fn build_s1_mini_prompt(transcript: &str) -> String {
+    format!(
+        "[Styling: {DEFAULT_STYLING}] [Structure: {DEFAULT_STRUCTURE}] [Context: {DEFAULT_CONTEXT}]\n{}",
+        transcript.trim()
+    )
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum CleanupStyling {
@@ -1261,6 +1275,12 @@ fn status_from_state(
 /// users, first-run race for new users). Progress streams via events so any
 /// UI can render live state. Explicit install calls are single-flight-safe.
 pub fn preload(app: tauri::AppHandle) {
+    // Opt-in: no auto-download and no auto-load unless the user enabled the
+    // model. This is the default-off guarantee for every fresh install.
+    if !crate::settings::get_settings(&app).cleanup_model_enabled {
+        info!("S1-mini disabled by setting; skipping preload");
+        return;
+    }
     if is_model_installed(&app) {
         let Some(path) = model_path(&app) else {
             return;
@@ -1270,6 +1290,20 @@ pub fn preload(app: tauri::AppHandle) {
     }
     info!("S1-mini missing; starting background auto-install");
     install(app);
+}
+
+/// Stop using — and unload — the cleanup engine after the user disables it.
+/// Clearing `READY` immediately blocks every run path; dropping the job sender
+/// closes the channel so the engine loop exits and the thread frees the model
+/// and its Metal context on the way out. A later enable re-runs `install`.
+pub fn deactivate(_app: &tauri::AppHandle) {
+    READY.store(false, Ordering::Release);
+    *LAST_ERROR.lock().unwrap() = None;
+    JOB_TX
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap()
+        .take();
 }
 
 /// True once the engine is loaded and serving normalization jobs. Dictation
@@ -1408,6 +1442,11 @@ fn sha256_hex(path: &PathBuf) -> Result<String, String> {
 }
 
 fn start_engine_thread(app: tauri::AppHandle, model_path: PathBuf) {
+    // Hard gate: an engine must never come up while the user has the model
+    // disabled (covers races with deactivate during an in-flight install).
+    if !crate::settings::get_settings(&app).cleanup_model_enabled {
+        return;
+    }
     let (tx, rx) = tokio::sync::mpsc::channel::<Job>(16);
     *JOB_TX.get_or_init(|| Mutex::new(None)).lock().unwrap() = Some(tx);
     std::thread::Builder::new()

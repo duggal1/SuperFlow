@@ -6,6 +6,7 @@ use crate::audio_toolkit::{
     },
     AudioRecorder, SileroVad, VadPolicy,
 };
+use crate::context::capture::SelectionSnapshot;
 use crate::context::RecordingContext;
 use crate::helpers::clamshell;
 use crate::managers::transcription::StreamRouter;
@@ -380,6 +381,7 @@ pub struct AudioRecordingManager {
     /// row all reference the same recording even after a crash.
     journal_stem: Arc<Mutex<Option<String>>>,
     context_capture: Arc<Mutex<Option<mpsc::Receiver<RecordingContext>>>>,
+    edit_selection_capture: Arc<Mutex<Option<mpsc::Receiver<Option<SelectionSnapshot>>>>>,
 }
 
 impl AudioRecordingManager {
@@ -413,6 +415,7 @@ impl AudioRecordingManager {
             cached_device: Arc::new(Mutex::new(None)),
             journal_stem: Arc::new(Mutex::new(None)),
             context_capture: Arc::new(Mutex::new(None)),
+            edit_selection_capture: Arc::new(Mutex::new(None)),
         };
 
         // Always-on?  Open immediately.
@@ -1023,6 +1026,26 @@ impl AudioRecordingManager {
     pub fn clear_context_capture(&self) {
         self.context_capture.lock().unwrap().take();
     }
+
+    pub fn begin_edit_selection_capture(&self) {
+        let (sender, receiver) = mpsc::channel();
+        *self.edit_selection_capture.lock().unwrap() = Some(receiver);
+        std::thread::spawn(move || {
+            let _ = sender.send(crate::context::capture::capture_selected_text());
+        });
+    }
+
+    pub fn take_edit_selection(&self) -> Option<SelectionSnapshot> {
+        let receiver = self.edit_selection_capture.lock().unwrap().take()?;
+        receiver
+            .recv_timeout(Duration::from_millis(950))
+            .ok()
+            .flatten()
+    }
+
+    pub fn clear_edit_selection_capture(&self) {
+        self.edit_selection_capture.lock().unwrap().take();
+    }
     pub fn is_recording(&self) -> bool {
         // Lock-free: mirrors the `state` {Recording, Stopping} membership via
         // an atomic maintained by `set_state()`. Polled from the webview/main
@@ -1035,6 +1058,7 @@ impl AudioRecordingManager {
     /// Cancel any ongoing recording without returning audio samples
     pub fn cancel_recording(&self) {
         self.clear_context_capture();
+        self.clear_edit_selection_capture();
         self.invalidate_recording_readiness();
         self.cancel_generation.fetch_add(1, Ordering::AcqRel);
         let mut state = self.state.lock().unwrap();

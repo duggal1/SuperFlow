@@ -272,4 +272,63 @@ mod tests {
         assert!(hint.len() < 200);
         assert!(hint.iter().any(|t| t == "Next.js"));
     }
+
+    #[test]
+    fn corrects_2026_model_names() {
+        assert!(apply("i am using opers five today").contains("Claude Opus 5"));
+        assert!(apply("switch to opus 5 now").contains("Claude Opus 5"));
+        assert!(apply("run it on he cows 4.5").contains("Claude Haiku 4.5"));
+        assert!(apply("the hekau model is fast").contains("Claude Haiku 4.5"));
+        assert!(apply("hikau 4.5 is outdated now").contains("Claude Haiku 4.5"));
+        assert!(apply("try chatgpt 5.6 seoul").contains("GPT-5.6 Sol"));
+        assert!(apply("gpt 5.6 soul vs gpt 5.6 terror").contains("GPT-5.6 Sol"));
+        assert!(apply("gpt 5.6 terror benchmark").contains("GPT-5.6 Terra"));
+        assert!(apply("deploy deepseek v4 flash").contains("DeepSeek-V4-Flash"));
+        assert!(apply("compare kimi k two point five and kimi k three").contains("Kimi K2.5"));
+        assert!(apply("grok four point six released").contains("Grok 4.6"));
+        assert!(apply("glm five point three scores").contains("GLM-5.3"));
+        assert!(apply("the jamnia model by google").contains("Gemini"));
+        assert!(apply("sonnet five vs fable five").contains("Claude Sonnet 5"));
+    }
+
+    #[test]
+    fn corrects_august_2026_wave() {
+        assert!(apply("what about moose park 1.2 from meta").contains("Muse Spark 1.2"));
+        assert!(apply("moose spark benchmarks dropped").contains("Muse Spark"));
+        assert!(apply("muse glimmer is multimodal").contains("Muse Glimmer"));
+        assert!(apply("kimmy k three launched today").contains("Kimi K3"));
+        assert!(apply("kimmy k two point five will launch").contains("Kimi K2.5"));
+        assert!(apply("kimi k2.7 code is out").contains("Kimi K2.7 Code"));
+        assert!(apply("quinn 3.7 plus pricing").contains("Qwen3.7-Plus"));
+        assert!(
+            apply("queen 3.8 max vs q when 3.7").contains("Qwen3.8-Max")
+                && apply("queen 3.8 max vs q when 3.7").contains("Qwen3.7")
+        );
+        assert!(apply("glm five point two shipped").contains("GLM-5.2"));
+    }
+
+    #[test]
+    fn everyday_prose_is_never_mangled_by_model_aliases() {
+        // The user guardrail: non-developer daily speech stays untouched.
+        assert_eq!(apply("my soul left the room"), "my soul left the room");
+        assert_eq!(
+            apply("she read a fable to the kids"),
+            "she read a fable to the kids"
+        );
+        assert_eq!(apply("the cows graze all day"), "the cows graze all day");
+        assert_eq!(apply("seoul is sunny today"), "seoul is sunny today");
+        assert_eq!(apply("he wrote a haiku"), "he wrote a haiku");
+        assert_eq!(
+            apply("terra firma under our feet"),
+            "terra firma under our feet"
+        );
+        assert_eq!(apply("luna lit the sky"), "luna lit the sky");
+        assert_eq!(apply("an opera about mythos"), "an opera about mythos");
+        assert_eq!(
+            apply("a queen rules the kingdom"),
+            "a queen rules the kingdom"
+        );
+        assert_eq!(apply("a moose in the forest"), "a moose in the forest");
+        assert_eq!(apply("the glimmer of hope"), "the glimmer of hope");
+    }
 }

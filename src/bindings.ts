@@ -304,6 +304,14 @@ async updateCustomWords(words: string[]) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async updateShortcuts(shortcuts: Shortcut[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_shortcuts", { shortcuts }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Temporarily unregister all bindings while the user is recording a
  * shortcut in the UI. This avoids firing actions while keys are recorded.
@@ -370,6 +378,19 @@ async changeFillerWordRemovalEnabledSetting(enabled: boolean) : Promise<Result<n
 async changeTechLexiconEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_tech_lexicon_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * S1-mini cleanup model master switch (default off). Enabling persists the
+ * setting and immediately downloads/loads the model with live progress
+ * events; disabling unloads it so nothing downloads or runs until re-enabled.
+ */
+async changeCleanupModelEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_cleanup_model_enabled_setting", { enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1091,7 +1112,11 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * Which input channel to use on the selected microphone device.
  * None means "average all channels" (original behavior).
  */
-selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
+selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; overlay_position?: OverlayPosition; debug_mode?: boolean; log_level?: LogLevel; custom_words?: string[]; 
+/**
+ * Named dictation shortcuts expanded inline at paste time.
+ */
+shortcuts?: Shortcut[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
 /**
  * Format used by the journal's Export action. Markdown by default.
  */
@@ -1112,6 +1137,12 @@ reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: strin
  * Local-only; complements user custom words on every model path.
  */
 tech_lexicon_enabled?: boolean; 
+/**
+ * S1-mini cleanup model master switch. Opt-in and disabled by default:
+ * the model is never auto-downloaded, loaded, or run unless explicitly
+ * enabled here.
+ */
+cleanup_model_enabled?: boolean; 
 /**
  * Resolve spoken file names ("hero dot tsx") against the active dev
  * project when dictating into a terminal or editor. Local-only.
@@ -1353,6 +1384,11 @@ uncovered_bindings: string[];
  * warning banner appears and explains why recording refused.
  */
 recorder_blocked: boolean }
+/**
+ * A user-defined dictation shortcut: a spoken name that expands to stored
+ * content (markdown prompt, email address, link, phone number — anything).
+ */
+export type Shortcut = { id: string; name: string; content: string }
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
 export type SoundTheme = "marimba" | "pop" | "custom"
 /**

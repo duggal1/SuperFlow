@@ -125,6 +125,17 @@ fn should_use_streaming_overlay(style: OverlayStyle, is_streaming: bool) -> bool
     style == OverlayStyle::Live && is_streaming
 }
 
+fn should_enter_edit_mode(binding_id: &str, post_process: bool, has_selection: bool) -> bool {
+    binding_id == "transcribe" && !post_process && has_selection
+}
+
+fn selection_is_unchanged(
+    original: &crate::context::capture::SelectionSnapshot,
+    current: Option<&crate::context::capture::SelectionSnapshot>,
+) -> bool {
+    current.is_some_and(|current| current.pid == original.pid && current.text == original.text)
+}
+
 async fn post_process_transcription(settings: &AppSettings, transcription: &str) -> Option<String> {
     if is_blank_transcription(transcription) {
         debug!("Post-processing skipped because the transcription is empty");
@@ -390,6 +401,38 @@ pub(crate) async fn process_transcription_output(
     process_transcription_output_with_context(app, transcription, post_process, None).await
 }
 
+async fn apply_local_transcript_cleanup(
+    app: &AppHandle,
+    transcription: &str,
+    settings: &AppSettings,
+) -> String {
+    let effective_language = resolve_effective_language(app, settings);
+    let mut text = transcription.to_string();
+    if let Some(converted_text) = maybe_convert_chinese_variant(&effective_language, &text).await {
+        text = converted_text;
+    }
+
+    if settings.cleanup_model_enabled && !text.trim().is_empty() {
+        let outcome = match crate::local_cleanup::finalize_session(app, &effective_language, &text)
+            .await
+        {
+            Some(outcome) => outcome,
+            None => crate::local_cleanup::normalize(app, &effective_language, text.clone()).await,
+        };
+        debug!(
+            "cleanup run {}: {:?} via {:?} ({} -> {} chars)",
+            outcome.summary.run_id,
+            outcome.summary.lifecycle,
+            outcome.summary.final_source,
+            text.len(),
+            outcome.final_text.len()
+        );
+        text = outcome.final_text;
+    }
+
+    text
+}
+
 async fn process_transcription_output_with_context(
     app: &AppHandle,
     transcription: &str,
@@ -397,51 +440,18 @@ async fn process_transcription_output_with_context(
     context: Option<&crate::context::RecordingContext>,
 ) -> ProcessedTranscription {
     let settings = get_settings(app);
-    let mut final_text = transcription.to_string();
+    let mut final_text = apply_local_transcript_cleanup(app, transcription, &settings).await;
     let mut post_processed_text: Option<String> = None;
     let mut post_process_prompt: Option<String> = None;
-
-    // Resolve the language the transcription actually ran in (the persisted
-    // intent coerced against the loaded model's capabilities) so OpenCC keys off
-    // the effective language rather than a possibly-stale intent.
-    let effective_language = resolve_effective_language(app, &settings);
-    if let Some(converted_text) =
-        maybe_convert_chinese_variant(&effective_language, &final_text).await
-    {
-        final_text = converted_text;
-    }
-
-    // Optional local cleanup stage: when enabled, S1-mini rewrites the raw
-    // transcript as clean written text (grammar, punctuation, fillers,
-    // spoken numbers). Disabled by default — raw transcript passes through.
-    // Every run reports its terminal outcome; only accepted S1 output
-    // replaces text.
-    if settings.cleanup_model_enabled && !final_text.trim().is_empty() {
-        let outcome =
-            match crate::local_cleanup::finalize_session(app, &effective_language, &final_text)
-                .await
-            {
-                Some(outcome) => outcome,
-                None => {
-                    crate::local_cleanup::normalize(app, &effective_language, final_text.clone())
-                        .await
-                }
-            };
-        debug!(
-            "cleanup run {}: {:?} via {:?} ({} -> {} chars)",
-            outcome.summary.run_id,
-            outcome.summary.lifecycle,
-            outcome.summary.final_source,
-            final_text.len(),
-            outcome.final_text.len()
-        );
-        final_text = outcome.final_text;
-    }
 
     // Smart file references: resolve spoken file names against the active dev
     // project when dictating into a terminal or editor. Local-only, best-effort.
     if settings.smart_file_references_enabled {
+        let project = context
+            .as_ref()
+            .and_then(|context| context.project_root.clone());
         if let Some(resolved) = context
+            .as_ref()
             .and_then(|context| context.project_root.as_deref())
             .and_then(|root| crate::file_refs::resolve_references(root, &final_text))
         {
@@ -451,10 +461,46 @@ async fn process_transcription_output_with_context(
             );
             final_text = resolved;
         }
+        // Deterministic code-context enhancement (inline only): spoken
+        // symbol names -> exact identifiers from resolved files; error
+        // wording + captured terminal diagnostic -> one evidence line.
+        if let Some(root) = project {
+            let focused_buffer = context
+                .as_ref()
+                .and_then(|c| c.snapshot.focused_text.as_deref());
+            if let Some(enhanced) =
+                crate::code_context::maybe_enhance(&root, &final_text, focused_buffer)
+            {
+                debug!("code_context enhanced transcript inline");
+                final_text = enhanced;
+            }
+        }
     }
 
+    // User-defined shortcuts: expand spoken references ("my design prompt",
+    // "work email") into their stored content. Deterministic, local, and
+    // skipped entirely when the user has no shortcuts configured.
+    if !settings.shortcuts.is_empty() {
+        if let Some(expanded) = crate::shortcuts::expand_shortcuts(&settings.shortcuts, &final_text)
+        {
+            debug!("Shortcuts expanded in {} characters", final_text.len());
+            final_text = expanded;
+        }
+    }
+
+    // Terminal/Editor context awareness is intentionally minimal: only
+    // deterministic file-reference resolution (smart_file_references) is
+    // applied. LLM-based awareness is reserved for Gmail/Slack where it
+    // composes finished prose. This prevents Ghostty from pasting
+    // hallucinated engineering prompts when the user simply said
+    // "fix hero dot tsx".
     if settings.intelligence_awareness_enabled {
-        if let Some(context) = context.filter(|context| context.snapshot.is_aware_surface()) {
+        if let Some(context) = context.filter(|context| {
+            matches!(
+                context.snapshot.surface,
+                crate::context::types::Surface::Gmail | crate::context::types::Surface::Slack
+            )
+        }) {
             match crate::intelligence::compose_aware_reply(
                 &settings,
                 &context.snapshot,
@@ -519,7 +565,9 @@ async fn process_transcription_output_with_context(
                 }
             }
         }
-    } else if final_text != transcription {
+    }
+
+    if post_processed_text.is_none() && final_text != transcription {
         post_processed_text = Some(final_text.clone());
     }
 
@@ -542,6 +590,213 @@ fn is_implausibly_short_transcript(text: &str, sample_count: usize) -> bool {
     }
     let words = text.split_whitespace().count() as f64;
     words < minutes * 15.0
+}
+
+fn save_edit_recording(
+    history: &HistoryManager,
+    wav_saved: bool,
+    file_name: &str,
+    instruction: &str,
+    output: Option<String>,
+    sample_count: usize,
+) {
+    if !wav_saved {
+        return;
+    }
+    if let Err(error) = history.save_entry(
+        file_name.to_string(),
+        instruction.to_string(),
+        true,
+        output,
+        None,
+        sample_count as f64 / 16_000.0,
+    ) {
+        error!("Failed to save edit-mode history entry: {error}");
+    }
+}
+
+async fn run_edit_mode(
+    app: &AppHandle,
+    recording_manager: &Arc<AudioRecordingManager>,
+    history: &Arc<HistoryManager>,
+    selection: crate::context::capture::SelectionSnapshot,
+    raw_instruction: String,
+    file_name: String,
+    wav_saved: bool,
+    sample_count: usize,
+    cancel_generation: u64,
+) {
+    let settings = get_settings(app);
+    let Some(instruction) = complete_unless_cancelled(
+        apply_local_transcript_cleanup(app, &raw_instruction, &settings),
+        || recording_manager.was_cancelled_since(cancel_generation),
+    )
+    .await
+    else {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    };
+
+    if instruction.trim().is_empty() {
+        save_edit_recording(
+            history,
+            wav_saved,
+            &file_name,
+            &raw_instruction,
+            None,
+            sample_count,
+        );
+        crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
+        crate::overlay::show_ai_cleanup_notice(
+            app,
+            "Please say how you want the selected text edited.".to_string(),
+            "Edit instruction".to_string(),
+            "warning",
+        );
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+
+    if AI_CLEANUP_IN_FLIGHT.swap(true, Ordering::AcqRel) {
+        save_edit_recording(
+            history,
+            wav_saved,
+            &file_name,
+            &raw_instruction,
+            None,
+            sample_count,
+        );
+        crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
+        crate::overlay::show_ai_cleanup_notice(
+            app,
+            "Another Gemini edit is already running.".to_string(),
+            "Busy".to_string(),
+            "warning",
+        );
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+    let flight_guard = AiCleanupFlightGuard;
+
+    crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Trigger);
+    crate::overlay::show_editing_overlay(app);
+    let output_result = complete_unless_cancelled(
+        crate::ai_cleanup::edit(&selection.text, &instruction, &settings),
+        || recording_manager.was_cancelled_since(cancel_generation),
+    )
+    .await;
+    drop(flight_guard);
+
+    let Some(output_result) = output_result else {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    };
+
+    let output = match output_result {
+        Ok(output) => output,
+        Err(error) => {
+            save_edit_recording(
+                history,
+                wav_saved,
+                &file_name,
+                &raw_instruction,
+                None,
+                sample_count,
+            );
+            warn!("Edit mode Gemini request failed: {error}");
+            crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
+            let badge = if crate::ai_cleanup::is_missing_api_key_error(&error) {
+                "API key"
+            } else {
+                "Unavailable"
+            };
+            crate::overlay::show_ai_cleanup_notice(app, error, badge.to_string(), "error");
+            change_tray_icon(app, TrayIconState::Idle);
+            return;
+        }
+    };
+
+    save_edit_recording(
+        history,
+        wav_saved,
+        &file_name,
+        &raw_instruction,
+        Some(output.clone()),
+        sample_count,
+    );
+    if let Err(error) = history.save_ai_cleanup(
+        "edit",
+        &selection.text,
+        &output,
+        &settings.ai_cleanup_model,
+        crate::ai_cleanup::thinking_level_name(settings.ai_cleanup_thinking_level),
+    ) {
+        warn!("Failed to save edit-mode Gemini history: {error}");
+    }
+
+    if recording_manager.was_cancelled_since(cancel_generation) {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+    if crate::secure_input::is_enabled_now() {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+
+    let current =
+        tauri::async_runtime::spawn_blocking(|| crate::context::capture::capture_selected_text())
+            .await
+            .ok()
+            .flatten();
+    if !selection_is_unchanged(&selection, current.as_ref()) {
+        crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Complete);
+        crate::overlay::show_result_overlay(app, output);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+
+    let (paste_done, paste_finished) = tokio::sync::oneshot::channel();
+    let app_for_paste = app.clone();
+    let fallback = output.clone();
+    let schedule_fallback = output.clone();
+    let recording_manager = Arc::clone(recording_manager);
+    if let Err(error) = app.run_on_main_thread(move || {
+        if recording_manager.was_cancelled_since(cancel_generation)
+            || crate::secure_input::is_enabled_now()
+        {
+            crate::overlay::hide_recording_overlay(&app_for_paste);
+            change_tray_icon(&app_for_paste, TrayIconState::Idle);
+            let _ = paste_done.send(());
+            return;
+        }
+
+        match crate::clipboard::paste_exact(output, app_for_paste.clone()) {
+            Ok(()) => {
+                crate::audio_feedback::play_ai_cleanup_sound(
+                    &app_for_paste,
+                    AiCleanupSound::Complete,
+                );
+                crate::overlay::hide_recording_overlay(&app_for_paste);
+            }
+            Err(error) => {
+                warn!("Edit mode paste failed: {error}");
+                crate::audio_feedback::play_ai_cleanup_sound(&app_for_paste, AiCleanupSound::Error);
+                crate::overlay::show_result_overlay(&app_for_paste, fallback);
+            }
+        }
+        change_tray_icon(&app_for_paste, TrayIconState::Idle);
+        let _ = paste_done.send(());
+    }) {
+        error!("Failed to schedule edit-mode paste: {error}");
+        crate::overlay::show_result_overlay(app, schedule_fallback);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+    let _ = paste_finished.await;
 }
 
 impl ShortcutAction for TranscribeAction {
@@ -657,6 +912,11 @@ impl ShortcutAction for TranscribeAction {
 
         match rm.try_start_recording(&binding_id, vad_policy, Some(journal_path)) {
             Ok(readiness) => {
+                if binding_id == "transcribe" {
+                    rm.begin_edit_selection_capture();
+                } else {
+                    rm.clear_edit_selection_capture();
+                }
                 rm.begin_context_capture(
                     settings.smart_file_references_enabled
                         || settings.intelligence_awareness_enabled,
@@ -712,6 +972,7 @@ impl ShortcutAction for TranscribeAction {
             }
             Err(e) => {
                 debug!("Failed to start recording: {}", e);
+                rm.clear_edit_selection_capture();
                 recording_error = Some(e);
             }
         }
@@ -812,6 +1073,7 @@ impl ShortcutAction for TranscribeAction {
 
                 if rm.was_cancelled_since(cancel_generation) {
                     debug!("Transcription operation cancelled after recording stop");
+                    rm.clear_edit_selection_capture();
                     tm.cancel_stream();
                     utils::hide_recording_overlay(&ah);
                     change_tray_icon(&ah, TrayIconState::Idle);
@@ -820,6 +1082,7 @@ impl ShortcutAction for TranscribeAction {
 
                 if samples.is_empty() {
                     debug!("Recording produced no audio samples; skipping persistence");
+                    rm.clear_edit_selection_capture();
                     // Tear down any streaming worker so its channel doesn't leak
                     // and block the next start_stream.
                     tm.cancel_stream();
@@ -893,6 +1156,7 @@ impl ShortcutAction for TranscribeAction {
 
                     if rm.was_cancelled_since(cancel_generation) {
                         debug!("Transcription operation cancelled before output handling");
+                        rm.clear_edit_selection_capture();
                         // A finished dictation survives cancellation — stash it
                         // for the cancel toast's Undo instead of dropping it.
                         if let Ok(transcription) = &transcription_result {
@@ -914,6 +1178,7 @@ impl ShortcutAction for TranscribeAction {
                             );
 
                             if crate::secure_input::is_enabled_now() {
+                                rm.clear_edit_selection_capture();
                                 if wav_saved {
                                     if let Err(error) = std::fs::remove_file(&wav_path_for_verify) {
                                         warn!("Failed to remove secure-input recording: {error}");
@@ -924,6 +1189,27 @@ impl ShortcutAction for TranscribeAction {
                                 );
                                 utils::hide_recording_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
+                                return;
+                            }
+
+                            let edit_selection = rm.take_edit_selection();
+                            if should_enter_edit_mode(
+                                &binding_id,
+                                post_process,
+                                edit_selection.is_some(),
+                            ) {
+                                run_edit_mode(
+                                    &ah,
+                                    &rm,
+                                    &hm,
+                                    edit_selection.expect("edit selection checked above"),
+                                    transcription,
+                                    file_name,
+                                    wav_saved,
+                                    sample_count,
+                                    cancel_generation,
+                                )
+                                .await;
                                 return;
                             }
 
@@ -1045,7 +1331,6 @@ impl ShortcutAction for TranscribeAction {
                                     let pasteable = true;
 
                                     if !pasteable {
-                                        play_feedback_sound(&ah_clone, SoundType::Stop);
                                         utils::show_result_overlay(&ah_clone, final_text);
                                         change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         return;
@@ -1060,7 +1345,6 @@ impl ShortcutAction for TranscribeAction {
                                                 paste_time.elapsed()
                                             );
                                             utils::hide_recording_overlay(&ah_clone);
-                                            play_feedback_sound(&ah_clone, SoundType::Stop);
                                             change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         }
                                         Err(e) => {
@@ -1069,7 +1353,6 @@ impl ShortcutAction for TranscribeAction {
                                             // finished dictation is never lost.
                                             error!("Failed to paste transcription: {}", e);
                                             let _ = ah_clone.emit("paste-error", ());
-                                            play_feedback_sound(&ah_clone, SoundType::Stop);
                                             utils::show_result_overlay(&ah_clone, final_text);
                                             change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         }
@@ -1083,6 +1366,7 @@ impl ShortcutAction for TranscribeAction {
                             }
                         }
                         Err(err) => {
+                            rm.clear_edit_selection_capture();
                             if rm.was_cancelled_since(cancel_generation) {
                                 debug!(
                                     "Transcription operation cancelled after transcription error"
@@ -1118,6 +1402,7 @@ impl ShortcutAction for TranscribeAction {
                 }
             } else {
                 rm.clear_context_capture();
+                rm.clear_edit_selection_capture();
                 debug!("No samples retrieved from recording stop");
                 // Tear down any streaming worker so its channel doesn't leak.
                 tm.cancel_stream();
@@ -1315,9 +1600,10 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, should_use_streaming_overlay,
-        strip_think_block,
+        complete_unless_cancelled, is_blank_transcription, selection_is_unchanged,
+        should_enter_edit_mode, should_use_streaming_overlay, strip_think_block,
     };
+    use crate::context::capture::SelectionSnapshot;
     use crate::settings::OverlayStyle;
     use std::future;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -1398,5 +1684,40 @@ mod tests {
         assert!(!should_use_streaming_overlay(OverlayStyle::Live, false));
         assert!(!should_use_streaming_overlay(OverlayStyle::Minimal, true));
         assert!(!should_use_streaming_overlay(OverlayStyle::None, true));
+    }
+
+    #[test]
+    fn edit_mode_only_uses_the_standard_transcribe_binding_with_a_selection() {
+        assert!(should_enter_edit_mode("transcribe", false, true));
+        assert!(!should_enter_edit_mode("transcribe", false, false));
+        assert!(!should_enter_edit_mode(
+            "transcribe_with_post_process",
+            true,
+            true
+        ));
+        assert!(!should_enter_edit_mode(
+            "hands_free_transcribe",
+            false,
+            true
+        ));
+    }
+
+    #[test]
+    fn edit_replacement_requires_the_same_process_and_selected_text() {
+        let original = SelectionSnapshot {
+            pid: 42,
+            app_name: "Editor".to_string(),
+            text: "selected words".to_string(),
+        };
+        assert!(selection_is_unchanged(&original, Some(&original)));
+
+        let mut changed_text = original.clone();
+        changed_text.text = "different words".to_string();
+        assert!(!selection_is_unchanged(&original, Some(&changed_text)));
+
+        let mut changed_process = original.clone();
+        changed_process.pid = 43;
+        assert!(!selection_is_unchanged(&original, Some(&changed_process)));
+        assert!(!selection_is_unchanged(&original, None));
     }
 }

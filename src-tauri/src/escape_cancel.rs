@@ -13,9 +13,9 @@
 //! is invisible to it).
 //!
 //! The same tap finishes a latched hands-free transcription when Control is
-//! pressed after the Control used to start the chord has first been released.
+//! pressed after the starting chord is released, or when Return/Enter is pressed.
 //!
-//! One listen-only session-level CGEventTap lives for the whole app lifetime
+//! One session-level CGEventTap lives for the whole app lifetime
 //! (the app already requires Accessibility permission for paste injection);
 //! [`set_session_active`] merely gates what the callback does, so arming and
 //! disarming per session has zero setup cost and no start/stop races. When
@@ -33,6 +33,8 @@ mod imp {
 
     /// Escape keycode on macOS (kVK_Escape).
     const KVK_ESCAPE: i64 = 53;
+    const KVK_RETURN: i64 = 36;
+    const KVK_KEYPAD_ENTER: i64 = 76;
     /// Left and right Control keycodes on macOS.
     const KVK_CONTROL: i64 = 59;
     const KVK_RIGHT_CONTROL: i64 = 62;
@@ -147,6 +149,12 @@ mod imp {
         }
     }
 
+    fn should_complete_with_return(event_type: u32, keycode: i64, hands_free_state: u8) -> bool {
+        event_type == KEY_DOWN
+            && matches!(keycode, KVK_RETURN | KVK_KEYPAD_ENTER)
+            && hands_free_state != CONTROL_INACTIVE
+    }
+
     unsafe extern "C-unwind" fn escape_tap_callback(
         _proxy: *mut c_void,
         event_type: u32,
@@ -162,7 +170,7 @@ mod imp {
             if let Some(TapPort(port)) = TAP_PORT.get() {
                 CGEventTapEnable(port.as_ptr(), true);
             }
-            return std::ptr::null_mut();
+            return event;
         }
 
         let keycode = CGEventGetIntegerValueField(event, 9); // kCGKeyboardEventKeycode
@@ -193,10 +201,25 @@ mod imp {
                     }
                 }
             }
-            return std::ptr::null_mut();
+            return event;
         }
         if event_type != KEY_DOWN || !SESSION_ACTIVE.load(Ordering::Relaxed) {
-            return std::ptr::null_mut();
+            return event;
+        }
+
+        if should_complete_with_return(
+            event_type,
+            keycode,
+            HANDS_FREE_CONTROL_GATE.load(Ordering::SeqCst),
+        ) {
+            if let Some(app) = APP_HANDLE.get() {
+                info!("Return pressed during hands-free transcription — finishing");
+                if let Some(coordinator) = app.try_state::<crate::TranscriptionCoordinator>() {
+                    coordinator.complete_hands_free();
+                    return std::ptr::null_mut();
+                }
+            }
+            return event;
         }
 
         let is_fn_flagged = CGEventGetFlags(event) & FLAG_SECONDARY_FN != 0;
@@ -205,7 +228,7 @@ mod imp {
         }
 
         if keycode != KVK_ESCAPE {
-            return std::ptr::null_mut();
+            return event;
         }
 
         // Belt and braces: only cancel while the overlay is actually on
@@ -217,7 +240,7 @@ mod imp {
             .and_then(|window| window.is_visible().ok())
             .unwrap_or(false);
         if !overlay_visible {
-            return std::ptr::null_mut();
+            return event;
         }
 
         // Combo gate: Escape only cancels as the deliberate gesture — pressed
@@ -230,7 +253,7 @@ mod imp {
         } || is_fn_flagged;
         if !combo_gesture {
             info!("Bare Escape during session ignored — hold the transcription trigger and press Escape to cancel");
-            return std::ptr::null_mut();
+            return event;
         }
 
         if let Some(app) = APP_HANDLE.get() {
@@ -246,14 +269,15 @@ mod imp {
             return; // already installed
         }
 
-        // Session-level tap, head-insert, listen-only (never swallows keys).
+        // Session-level tap, head-insert. It passes through every event except
+        // deliberate session controls that must not also reach the focused app.
         // keyDown drives cancel; keyUp/flagsChanged maintain the held-key map
         // used to tell a bare Escape from the trigger+Escape combo.
         let port = unsafe {
             CGEventTapCreate(
                 1, // kCGSessionEventTap
                 0, // kCGHeadInsertEventTap
-                1, // kCGEventTapOptionListen — observe, do not block
+                0, // kCGEventTapOptionDefault — allows handled controls to be consumed
                 (1 << KEY_DOWN) | (1 << KEY_UP) | (1 << FLAGS_CHANGED),
                 escape_tap_callback,
                 std::ptr::null_mut(),
@@ -348,6 +372,31 @@ mod imp {
                 control_gate_transition(CONTROL_WAITING_FOR_RELEASE, true),
                 (CONTROL_WAITING_FOR_RELEASE, false)
             );
+        }
+
+        #[test]
+        fn return_and_keypad_enter_finish_only_active_hands_free_sessions() {
+            assert!(should_complete_with_return(
+                KEY_DOWN,
+                KVK_RETURN,
+                CONTROL_READY
+            ));
+            assert!(should_complete_with_return(
+                KEY_DOWN,
+                KVK_KEYPAD_ENTER,
+                CONTROL_WAITING_FOR_RELEASE
+            ));
+            assert!(!should_complete_with_return(
+                KEY_DOWN,
+                KVK_RETURN,
+                CONTROL_INACTIVE
+            ));
+            assert!(!should_complete_with_return(
+                KEY_UP,
+                KVK_RETURN,
+                CONTROL_READY
+            ));
+            assert!(!should_complete_with_return(KEY_DOWN, 0, CONTROL_READY));
         }
     }
 }

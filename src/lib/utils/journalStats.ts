@@ -12,6 +12,12 @@ export const countWords = (text: string): number => {
   return trimmed ? trimmed.split(/\s+/).length : 0;
 };
 
+/** User-visible output after every enabled transcript-processing stage. */
+export const getFinalTranscriptionText = (entry: HistoryEntry): string => {
+  const processed = entry.post_processed_text;
+  return processed?.trim() ? processed : entry.transcription_text;
+};
+
 /** Local calendar date key (YYYY-MM-DD) for a unix timestamp in seconds. */
 export const localDateKey = (timestampSec: number): string => {
   const date = new Date(timestampSec * 1000);
@@ -155,7 +161,7 @@ export const computeJournalStats = (
     const words =
       entry.word_count > 0
         ? entry.word_count
-        : countWords(entry.transcription_text);
+        : countWords(getFinalTranscriptionText(entry));
     totalWords += words;
 
     const duration = entry.audio_duration_secs ?? durations[entry.id];

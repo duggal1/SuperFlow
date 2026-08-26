@@ -44,7 +44,9 @@ import {
   formatDuration,
   formatTimeOfDay,
   groupEntriesByRecency,
+  getFinalTranscriptionText,
 } from "@/lib/utils/journalStats";
+import { Badge, type BadgeVariant } from "../ui/Badge";
 
 const PAGE_SIZE = 30;
 const VISIBLE_PAGE_SIZE = 30;
@@ -52,6 +54,40 @@ const DURATION_CONCURRENCY = 6;
 
 /** Only one transcript plays at a time across the whole page. */
 let activeAudio: HTMLAudioElement | null = null;
+
+const FILE_REFERENCE_PATTERN =
+  /(?:@\/|\.\.?\/|\/)?(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+|\b[A-Za-z0-9_-]+\.(?:rs|tsx?|jsx?|json|md|css|html|toml|yaml|yml)\b/g;
+
+const fileReferenceTone = (reference: string): BadgeVariant => {
+  const extension = reference.split(".").pop()?.toLowerCase();
+  if (extension === "rs") return "orange";
+  if (extension === "ts") return "sky";
+  if (extension === "tsx") return "blue";
+  return "neutral";
+};
+
+const TranscriptText: React.FC<{ text: string }> = ({ text }) => {
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+
+  for (const match of text.matchAll(FILE_REFERENCE_PATTERN)) {
+    const index = match.index;
+    if (index > cursor) nodes.push(text.slice(cursor, index));
+    nodes.push(
+      <Badge
+        key={`${index}-${match[0]}`}
+        variant={fileReferenceTone(match[0])}
+        className="mx-0.5 px-1.5 py-0.5 align-baseline font-mono text-[11px]"
+      >
+        {match[0]}
+      </Badge>,
+    );
+    cursor = index + match[0].length;
+  }
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+
+  return <>{nodes}</>;
+};
 
 /** Resolve a recording's playable URL (asset protocol; blob fallback on Linux). */
 const getAudioUrl = async (
@@ -148,7 +184,8 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // A failed transcription is one with no text — the audio is always recorded.
-  const hasText = entry.transcription_text.trim().length > 0;
+  const finalText = getFinalTranscriptionText(entry);
+  const hasText = finalText.trim().length > 0;
   // True while a transcription (manual retry or background restore) is running.
   const busy = retrying || restoring;
 
@@ -164,7 +201,7 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
 
   const handleCopy = () => {
     if (!hasText) return;
-    navigator.clipboard.writeText(entry.transcription_text).catch((error) => {
+    navigator.clipboard.writeText(finalText).catch((error) => {
       console.error("Failed to copy to clipboard:", error);
     });
     setCopied(true);
@@ -216,7 +253,7 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
     }
   };
 
-  const words = countWords(entry.transcription_text);
+  const words = countWords(finalText);
 
   return (
     <article className="px-4 py-4 [content-visibility:auto] [contain-intrinsic-size:auto_112px]">
@@ -298,9 +335,9 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
           {t("settings.history.transcribing")}
         </p>
       ) : hasText ? (
-        <p className="mt-2 select-text whitespace-pre-wrap break-words text-sm leading-6 text-stone-200">
-          {entry.transcription_text}
-        </p>
+        <div className="mt-2 select-text whitespace-pre-wrap break-words text-sm leading-6 text-stone-200">
+          <TranscriptText text={finalText} />
+        </div>
       ) : null}
     </article>
   );

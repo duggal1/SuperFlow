@@ -69,6 +69,7 @@ fn developer_rules(surface: &Surface) -> String {
     )
 }
 
+#[allow(dead_code)]
 pub(super) fn build_local_developer_prompt(
     snapshot: &ContextSnapshot,
     transcript: &str,

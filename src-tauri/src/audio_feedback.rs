@@ -56,8 +56,12 @@ pub fn play_feedback_sound(app: &AppHandle, sound_type: SoundType) {
     if !settings.audio_feedback {
         return;
     }
+    let gain = match sound_type {
+        SoundType::Start => 1.1,
+        SoundType::Stop => 1.0,
+    };
     if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_async(app, path, 1.0);
+        play_sound_async(app, path, gain);
     }
 }
 
@@ -66,21 +70,29 @@ pub fn play_feedback_sound_blocking(app: &AppHandle, sound_type: SoundType) {
     if !settings.audio_feedback {
         return;
     }
+    let gain = match sound_type {
+        SoundType::Start => 1.1,
+        SoundType::Stop => 1.0,
+    };
     if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_blocking(app, &path, 1.0);
+        play_sound_blocking(app, &path, gain);
     }
 }
 
 pub fn play_test_sound(app: &AppHandle, sound_type: SoundType) {
     let settings = settings::get_settings(app);
+    let gain = match sound_type {
+        SoundType::Start => 1.1,
+        SoundType::Stop => 1.0,
+    };
     if let Some(path) = resolve_sound_path(app, &settings, sound_type) {
-        play_sound_blocking(app, &path, 1.0);
+        play_sound_blocking(app, &path, gain);
     }
 }
 
-/// The cancel cue ships quieter than the theme sounds; ~130% gain sits it
+/// The cancel cue ships quieter than the theme sounds; ~110% gain sits it
 /// level with start/stop per spec.
-const CANCELED_SOUND_GAIN: f32 = 1.3;
+const CANCELED_SOUND_GAIN: f32 = 1.1;
 
 /// Plays the cancel cue (error.wav in resources).
 /// Respects the audio-feedback toggle and output device; played at the
@@ -113,7 +125,7 @@ pub fn play_ai_cleanup_sound(app: &AppHandle, sound: AiCleanupSound) {
                 warn!("AI cleanup trigger sound could not be resolved");
                 return;
             };
-            play_sound_async(app, path, 1.0);
+            play_sound_async(app, path, 1.1);
             return;
         }
         AiCleanupSound::Error => ("resources/ai-cleanup-error.wav", 1.10),
@@ -150,7 +162,7 @@ fn play_sound_at_path(
     gain: f32,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let settings = settings::get_settings(app);
-    let volume = settings.audio_feedback_volume * gain;
+    let volume = settings.audio_feedback_volume.clamp(0.0, 1.0) * gain;
     let selected_device = settings.selected_output_device.clone();
     play_audio_file(path, selected_device, volume)
 }

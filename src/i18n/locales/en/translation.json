@@ -121,19 +121,6 @@
         "checkFailed": "Failed to check permissions. Please try again.",
         "requestFailed": "Failed to request permission. Please try again."
       }
-    },
-    "cleanup": {
-      "subtitle": "One last step — clean-up engine",
-      "cardTitle": "Text Clean-up Model",
-      "activated": "Active",
-      "required": "Required",
-      "description": "Rewrites raw speech into clean written text — grammar, punctuation, filler removal. Runs entirely on this Mac.",
-      "runsOnMetal": "Apple GPU · Metal",
-      "install": "Install",
-      "downloading": "Downloading model… {{percentage}}%",
-      "startingEngine": "Starting engine…",
-      "error": "Install failed: {{error}}",
-      "alwaysActiveNote": "This model is always active and cannot be disabled or removed."
     }
   },
   "modelSelector": {
@@ -215,6 +202,23 @@
       "pushToTalk": {
         "label": "Push To Talk",
         "description": "Hold to record, release to stop"
+      },
+      "shortcuts": {
+        "title": "Dictation shortcuts",
+        "description": "Say a shortcut's name while dictating and its content is pasted in place. Works with markdown, links, emails, phone numbers.",
+        "name": "Name",
+        "namePlaceholder": "e.g. design prompt",
+        "content": "Content",
+        "contentPlaceholder": "Paste your prompt, email, link… (markdown supported)",
+        "add": "Add shortcut",
+        "save": "Save",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "delete": "Delete",
+        "empty": "No shortcuts yet. Add one, then say its name while dictating.",
+        "duplicateName": "A shortcut with this name already exists.",
+        "nameTooLong": "Name is too long (max 40 characters).",
+        "required": "Both name and content are required."
       }
     },
     "models": {
@@ -728,6 +732,7 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "processing": "Processing...",
+    "editing": "Editing",
     "transcript": "Transcript",
     "copy": "Copy",
     "copied": "Copied",

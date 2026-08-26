@@ -1,10 +1,11 @@
-//! Provider routing for awareness composition through the configured provider,
-//! with a guaranteed local developer-context fallback.
+//! Provider routing for awareness composition through the configured provider.
+//! Gmail/Slack compose via LLM; Ghostty/Terminal and Editor use deterministic
+//! file-reference resolution only and skip LLM entirely.
 
 use crate::llm_client;
 use crate::settings::AppSettings;
 
-use super::prompt::{build_context_prompts, build_local_developer_prompt};
+use super::prompt::build_context_prompts;
 use super::validation::accept_model_output;
 use crate::context::developer::DeveloperContext;
 use crate::context::types::ContextSnapshot;
@@ -27,24 +28,24 @@ pub async fn compose_aware_reply(
     developer_context: Option<&DeveloperContext>,
     transcript: &str,
 ) -> AwarenessOutcome {
+    // Developer surfaces (Ghostty/Terminal, VS Code/Editor) are intentionally
+    // excluded from LLM awareness. They use only deterministic local
+    // file-reference resolution (smart_file_references) which maps
+    // "hero dot tsx" -> "components/.../hero.tsx" without hallucinating.
+    // Gmail/Slack remain the only LLM-aware surfaces.
+    if matches!(
+        snapshot.surface,
+        crate::context::types::Surface::Terminal | crate::context::types::Surface::Editor
+    ) {
+        return AwarenessOutcome::Skipped("developer_surface_uses_file_refs_only");
+    }
+
     let Some((system, user)) = build_context_prompts(snapshot, transcript, developer_context)
     else {
         return AwarenessOutcome::Skipped("not_an_aware_context");
     };
 
-    let cloud = cloud_fallback(settings, &system, &user, transcript).await;
-    if matches!(
-        snapshot.surface,
-        crate::context::types::Surface::Terminal | crate::context::types::Surface::Editor
-    ) && !matches!(cloud, AwarenessOutcome::Composed(_))
-    {
-        if let Some(prompt) = build_local_developer_prompt(snapshot, transcript, developer_context)
-        {
-            log::info!("Using local developer-context fallback");
-            return AwarenessOutcome::Composed(prompt);
-        }
-    }
-    cloud
+    cloud_fallback(settings, &system, &user, transcript).await
 }
 
 async fn cloud_fallback(
@@ -96,6 +97,7 @@ async fn cloud_fallback(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::context::types::{ContextSnapshot, Surface};
 
     #[tokio::test]
     async fn other_surface_skips_without_touching_providers() {
@@ -104,6 +106,23 @@ mod tests {
         match compose_aware_reply(&settings, &snap, None, "hello").await {
             AwarenessOutcome::Skipped(reason) => assert_eq!(reason, "not_an_aware_context"),
             other => panic!("expected skip, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn developer_surfaces_skip_llm_and_use_file_refs_only() {
+        let settings = AppSettings::default();
+        for surface in [Surface::Terminal, Surface::Editor] {
+            let snap = ContextSnapshot {
+                surface,
+                ..ContextSnapshot::other("Ghostty")
+            };
+            match compose_aware_reply(&settings, &snap, None, "fix hero dot tsx").await {
+                AwarenessOutcome::Skipped(reason) => {
+                    assert_eq!(reason, "developer_surface_uses_file_refs_only")
+                }
+                other => panic!("expected developer skip, got {other:?}"),
+            }
         }
     }
 }

@@ -7,6 +7,7 @@ import {
   countWords,
   formatClock,
   formatDuration,
+  getFinalTranscriptionText,
   groupEntriesByRecency,
   localDateKey,
   timeSavedSeconds,
@@ -22,9 +23,12 @@ assert.equal(countWords("  one   two\tthree\nfour "), 4);
 assert.equal(localDateKey(0), `${new Date(0).getFullYear()}-01-01`);
 
 // --- computeDayStreak ---
-const now = new Date(2026, 7, 22, 15, 0, 0); // Aug 22 2026, local time
-const day = (offsetDays: number, hour = 12) =>
-  Math.floor(new Date(2026, 7, 22 - offsetDays, hour).getTime() / 1000);
+const now = new Date();
+const day = (offsetDays: number, hour = 12) => {
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour);
+  date.setDate(date.getDate() - offsetDays);
+  return Math.floor(date.getTime() / 1000);
+};
 
 // today only -> 1
 assert.equal(computeDayStreak([day(0)], now), 1);
@@ -108,6 +112,19 @@ const hist = [
   mkHistEntry(1, day(0), "one two three four"),
   mkHistEntry(2, day(1), "five six"),
 ];
+
+const processedEntry = {
+  ...mkHistEntry(3, day(0), "raw speech text"),
+  post_processed_text: "Final router.rs text.",
+};
+assert.equal(
+  getFinalTranscriptionText(processedEntry),
+  "Final router.rs text.",
+);
+assert.equal(
+  getFinalTranscriptionText({ ...processedEntry, post_processed_text: "  " }),
+  "raw speech text",
+);
 const noDurations = computeJournalStats(hist, {});
 assert.equal(noDurations.totalWords, 6);
 assert.equal(noDurations.avgWpm, null);

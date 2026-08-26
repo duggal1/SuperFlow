@@ -685,6 +685,9 @@ pub fn change_audio_feedback_setting(app: AppHandle, enabled: bool) -> Result<()
 #[tauri::command]
 #[specta::specta]
 pub fn change_audio_feedback_volume_setting(app: AppHandle, volume: f32) -> Result<(), String> {
+    if !volume.is_finite() || !(0.0..=1.0).contains(&volume) {
+        return Err("Audio feedback volume must be between 0 and 1".to_string());
+    }
     let mut settings = settings::get_settings(&app);
     settings.audio_feedback_volume = volume;
     settings::write_settings(&app, settings);
@@ -946,6 +949,18 @@ pub fn change_whats_new_last_seen_version_setting(
         }),
     );
 
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_shortcuts(
+    app: AppHandle,
+    shortcuts: Vec<crate::settings::Shortcut>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.shortcuts = shortcuts;
+    settings::write_settings(&app, settings);
     Ok(())
 }
 
@@ -1442,6 +1457,23 @@ pub fn change_tech_lexicon_enabled_setting(app: AppHandle, enabled: bool) -> Res
     let mut settings = settings::get_settings(&app);
     settings.tech_lexicon_enabled = enabled;
     settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// S1-mini cleanup model master switch (default off). Enabling persists the
+/// setting and immediately downloads/loads the model with live progress
+/// events; disabling unloads it so nothing downloads or runs until re-enabled.
+#[tauri::command]
+#[specta::specta]
+pub fn change_cleanup_model_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.cleanup_model_enabled = enabled;
+    settings::write_settings(&app, settings);
+    if enabled {
+        crate::local_cleanup::install(app);
+    } else {
+        crate::local_cleanup::deactivate(&app);
+    }
     Ok(())
 }
 

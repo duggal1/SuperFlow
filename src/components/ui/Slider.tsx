@@ -7,6 +7,7 @@ import { ResetButton } from "./ResetButton";
 interface SliderProps {
   value: number;
   onChange: (value: number) => void;
+  onCommit?: (value: number) => void;
   min: number;
   max: number;
   step?: number;
@@ -19,6 +20,7 @@ interface SliderProps {
   formatValue?: (value: number) => string;
   onReset?: () => void;
   isResetting?: boolean;
+  appearance?: "default" | "square";
 }
 
 /* Ultra-clean slider: base-ui drag physics, hairline stone track, blue-600
@@ -26,6 +28,7 @@ interface SliderProps {
 export const Slider: React.FC<SliderProps> = ({
   value,
   onChange,
+  onCommit,
   min,
   max,
   step = 0.01,
@@ -38,7 +41,11 @@ export const Slider: React.FC<SliderProps> = ({
   formatValue = (v) => v.toFixed(2),
   onReset,
   isResetting = false,
+  appearance = "default",
 }) => {
+  const readValue = (next: number | number[]) =>
+    Array.isArray(next) ? next[0] : next;
+
   return (
     <SettingContainer
       title={label}
@@ -57,16 +64,30 @@ export const Slider: React.FC<SliderProps> = ({
           disabled={disabled}
           thumbAlignment="edge"
           onValueChange={(next) => {
-            const nextValue = Array.isArray(next) ? next[0] : next;
+            const nextValue = readValue(next);
             if (typeof nextValue === "number") onChange(nextValue);
+          }}
+          onValueCommitted={(next) => {
+            const nextValue = readValue(next);
+            if (typeof nextValue === "number") onCommit?.(nextValue);
           }}
           className="data-[orientation=horizontal]:w-full"
         >
           <SliderPrimitive.Control className="group/slider flex h-6 w-full cursor-grab touch-none select-none items-center active:cursor-grabbing data-disabled:pointer-events-none data-disabled:opacity-50">
-            <SliderPrimitive.Track className="relative h-1 w-full grow select-none overflow-hidden rounded-full bg-stone-700">
-              <SliderPrimitive.Indicator className="h-full rounded-full bg-blue-600" />
+            <SliderPrimitive.Track
+              className={`relative w-full grow select-none overflow-hidden bg-stone-700 ${
+                appearance === "square"
+                  ? "h-1.5 rounded-[2px]"
+                  : "h-1 rounded-full"
+              }`}
+            >
+              <SliderPrimitive.Indicator
+                className={`h-full bg-blue-600 ${appearance === "square" ? "rounded-[2px]" : "rounded-full"}`}
+              />
             </SliderPrimitive.Track>
-            <SliderPrimitive.Thumb className="block size-4 shrink-0 select-none rounded-full border border-stone-500 bg-stone-50 outline-none transition-[scale,box-shadow] duration-150 ease-out has-focus-visible:ring-[3px] has-focus-visible:ring-blue-600/40 data-dragging:scale-110" />
+            <SliderPrimitive.Thumb
+              className={`block size-4 shrink-0 select-none border border-stone-500 bg-stone-50 outline-none transition-[scale,box-shadow] duration-150 ease-out has-focus-visible:ring-[3px] has-focus-visible:ring-blue-600/40 data-dragging:scale-110 ${appearance === "square" ? "rounded-[3px]" : "rounded-full"}`}
+            />
           </SliderPrimitive.Control>
         </SliderPrimitive.Root>
 

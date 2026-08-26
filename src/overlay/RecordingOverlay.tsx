@@ -25,6 +25,7 @@ type OverlayState =
   | "transcribing"
   | "processing"
   | "prompting"
+  | "editing"
   | "ai_notice";
 
 interface AiCleanupNotice {
@@ -811,13 +812,18 @@ const RecordingOverlay: React.FC = () => {
   // spinner + label (transcribing / processing). Never both. The pill animates its
   // width between them; the cancel button is in both rows so it stays put.
   const working =
-    state === "transcribing" || state === "processing" || state === "prompting";
+    state === "transcribing" ||
+    state === "processing" ||
+    state === "prompting" ||
+    state === "editing";
   const workLabel =
-    state === "prompting"
-      ? t("overlay.prompting", { defaultValue: "Prompting" })
-      : state === "processing"
-        ? t("overlay.processing")
-        : t("overlay.transcribing");
+    state === "editing"
+      ? t("overlay.editing", { defaultValue: "Editing" })
+      : state === "prompting"
+        ? t("overlay.prompting", { defaultValue: "Prompting" })
+        : state === "processing"
+          ? t("overlay.processing")
+          : t("overlay.transcribing");
 
   return (
     <div
@@ -825,7 +831,7 @@ const RecordingOverlay: React.FC = () => {
       className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
     >
       <div
-        className={`scard compact ${working && isVisible ? "cworking" : ""} ${state === "prompting" ? "ai-prompting" : ""}`}
+        className={`scard compact ${working && isVisible ? "cworking" : ""} ${state === "prompting" || state === "editing" ? "ai-prompting" : ""}`}
       >
         {working ? workingRow(workLabel, true) : listeningRow(false, true)}
       </div>

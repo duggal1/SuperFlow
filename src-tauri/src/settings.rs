@@ -448,6 +448,15 @@ impl std::ops::DerefMut for SecretMap {
     }
 }
 
+/// A user-defined dictation shortcut: a spoken name that expands to stored
+/// content (markdown prompt, email address, link, phone number — anything).
+#[derive(Serialize, Deserialize, Debug, Clone, Type, PartialEq)]
+pub struct Shortcut {
+    pub id: String,
+    pub name: String,
+    pub content: String,
+}
+
 /* still superflow for composing the initial JSON in the store ------------- */
 /// The container-level `serde(default)` (backed by the `Default` impl below)
 /// guarantees every field — including ones added in the future — falls back to
@@ -516,6 +525,9 @@ pub struct AppSettings {
     pub log_level: LogLevel,
     #[serde(default)]
     pub custom_words: Vec<String>,
+    /// Named dictation shortcuts expanded inline at paste time.
+    #[serde(default)]
+    pub shortcuts: Vec<Shortcut>,
     #[serde(default)]
     pub model_unload_timeout: ModelUnloadTimeout,
     #[serde(default = "default_word_correction_threshold")]
@@ -606,6 +618,11 @@ pub struct AppSettings {
     /// Local-only; complements user custom words on every model path.
     #[serde(default = "default_tech_lexicon_enabled")]
     pub tech_lexicon_enabled: bool,
+    /// S1-mini cleanup model master switch. Opt-in and disabled by default:
+    /// the model is never auto-downloaded, loaded, or run unless explicitly
+    /// enabled here.
+    #[serde(default)]
+    pub cleanup_model_enabled: bool,
     /// Resolve spoken file names ("hero dot tsx") against the active dev
     /// project when dictating into a terminal or editor. Local-only.
     #[serde(default = "default_smart_file_references_enabled")]
@@ -1184,6 +1201,7 @@ pub fn get_default_settings() -> AppSettings {
         debug_mode: false,
         log_level: default_log_level(),
         custom_words: Vec::new(),
+        shortcuts: Vec::new(),
         model_unload_timeout: ModelUnloadTimeout::default(),
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
@@ -1225,6 +1243,7 @@ pub fn get_default_settings() -> AppSettings {
         filler_word_removal_enabled: default_filler_word_removal_enabled(),
         custom_filler_words: None,
         tech_lexicon_enabled: default_tech_lexicon_enabled(),
+        cleanup_model_enabled: false,
         smart_file_references_enabled: default_smart_file_references_enabled(),
         live_punctuation_enabled: default_live_punctuation_enabled(),
         punctuation_style: PunctuationStyle::default(),

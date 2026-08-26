@@ -58,6 +58,33 @@ pub async fn clean(input: &str, settings: &AppSettings) -> Result<String, String
     .await
 }
 
+pub async fn edit(
+    selected_text: &str,
+    instruction: &str,
+    settings: &AppSettings,
+) -> Result<String, String> {
+    if selected_text.trim().is_empty() {
+        return Err("No text was selected".to_string());
+    }
+    if instruction.trim().is_empty() {
+        return Err("No edit instruction was provided".to_string());
+    }
+    validate_model_and_thinking(
+        &settings.ai_cleanup_model,
+        settings.ai_cleanup_thinking_level,
+    )?;
+    let api_key = credentials::load(settings)?;
+
+    client::generate(
+        &api_key,
+        &settings.ai_cleanup_model,
+        settings.ai_cleanup_thinking_level,
+        prompt::EDIT_SYSTEM_PROMPT,
+        &prompt::build_edit_user_content(selected_text, instruction.trim()),
+    )
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

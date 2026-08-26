@@ -9,9 +9,9 @@ export interface CleanupModelState {
 }
 
 /**
- * Shared state + actions for the mandatory S1-mini text clean-up model.
- * Used by both the onboarding install page and the Journal model card —
- * only one of them is ever mounted at a time, so one listener set is enough.
+ * Shared state + actions for the optional S1-mini text clean-up model
+ * (default off). Used by the model status card — progress events stream
+ * whenever an opt-in install is running.
  */
 export function useCleanupModel() {
   const [status, setStatus] = useState<CleanupModelStatus | null>(null);

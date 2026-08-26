@@ -6,6 +6,7 @@ mod autostart;
 mod catalog;
 pub mod cli;
 mod clipboard;
+mod code_context;
 mod commands;
 mod context;
 mod dev_icon;
@@ -25,6 +26,7 @@ pub mod portable;
 mod secure_input;
 mod settings;
 mod shortcut;
+mod shortcuts;
 mod signal_handle;
 mod transcription_coordinator;
 mod tray;
@@ -682,6 +684,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::delete_post_process_prompt,
             shortcut::set_post_process_selected_prompt,
             shortcut::update_custom_words,
+            shortcut::update_shortcuts,
             shortcut::suspend_all_bindings,
             shortcut::resume_all_bindings,
             shortcut::change_mute_while_recording_setting,
