@@ -826,6 +826,15 @@ impl ShortcutAction for TranscribeAction {
         let tm = app.state::<Arc<TranscriptionManager>>();
         let rm = app.state::<Arc<AudioRecordingManager>>();
 
+        // Edit Mode must snapshot the selection before model, overlay, and
+        // microphone setup. This matches the already-working Command+1 path
+        // and prevents browser focus/Secure Input changes from erasing it.
+        if binding_id == "transcribe" {
+            rm.begin_edit_selection_capture();
+        } else {
+            rm.clear_edit_selection_capture();
+        }
+
         // Load ASR model and VAD model in parallel
         let kickoff_started = Instant::now();
         tm.initiate_model_load();
@@ -912,11 +921,6 @@ impl ShortcutAction for TranscribeAction {
 
         match rm.try_start_recording(&binding_id, vad_policy, Some(journal_path)) {
             Ok(readiness) => {
-                if binding_id == "transcribe" {
-                    rm.begin_edit_selection_capture();
-                } else {
-                    rm.clear_edit_selection_capture();
-                }
                 rm.begin_context_capture(
                     settings.smart_file_references_enabled
                         || settings.intelligence_awareness_enabled,
@@ -1315,23 +1319,6 @@ impl ShortcutAction for TranscribeAction {
                                             "Secure Input active — discarding transcript quietly"
                                         );
                                         utils::hide_recording_overlay(&ah_clone);
-                                        change_tray_icon(&ah_clone, TrayIconState::Idle);
-                                        return;
-                                    }
-
-                                    // PasteMethod::None skips pasting by design — keep its
-                                    // silent hide and never show the card. For every other
-                                    // method, verify an editable target is focused before
-                                    // injecting keystrokes that could otherwise land nowhere.
-                                    #[cfg(target_os = "macos")]
-                                    let pasteable = get_settings(&ah_clone).paste_method
-                                        == crate::settings::PasteMethod::None
-                                        || utils::is_pasteable_target_focused();
-                                    #[cfg(not(target_os = "macos"))]
-                                    let pasteable = true;
-
-                                    if !pasteable {
-                                        utils::show_result_overlay(&ah_clone, final_text);
                                         change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         return;
                                     }
