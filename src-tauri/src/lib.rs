@@ -615,7 +615,7 @@ pub fn run(cli_args: CliArgs) {
     }
     if cli_args.selected_text_agent {
         #[cfg(target_os = "macos")]
-        context::capture::run_selected_text_agent();
+        context::capture::run_selected_text_agent(cli_args.selected_text_pid);
         return;
     }
 

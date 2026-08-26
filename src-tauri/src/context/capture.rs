@@ -146,12 +146,18 @@ pub fn capture_snapshot() -> ContextSnapshot {
 
 #[cfg(target_os = "macos")]
 pub fn capture_selected_text() -> Option<SelectionSnapshot> {
-    if cfg!(test) || breaker_open() || crate::secure_input::is_enabled_now() {
+    if cfg!(test) || crate::secure_input::is_enabled_now() {
         return None;
     }
+    // Pin the target before spawning the helper. Re-detecting the frontmost
+    // app inside the subprocess can resolve the invoking terminal or
+    // SuperFlow instead of the browser that owns the selection.
+    let target = super::detector::frontmost_app()?;
     let exe = std::env::current_exe().ok()?;
     let mut child = Command::new(exe)
         .arg("--selected-text-agent")
+        .arg("--selected-text-pid")
+        .arg(target.pid.to_string())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .stdin(Stdio::null())
@@ -166,14 +172,15 @@ pub fn capture_selected_text() -> Option<SelectionSnapshot> {
     if wait_with_timeout(&mut child, CAPTURE_TIMEOUT).is_err() {
         let _ = child.kill();
         let _ = child.wait();
-        record_failure();
         return None;
     }
     let output = reader.join().ok()?;
-    let snapshot: Option<SelectionSnapshot> =
-        serde_json::from_str(output.lines().last().unwrap_or("")).ok()?;
-    record_success();
-    snapshot
+    let text: Option<String> = serde_json::from_str(output.lines().last().unwrap_or("")).ok()?;
+    text.map(|text| SelectionSnapshot {
+        pid: target.pid,
+        app_name: target.name,
+        text,
+    })
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -258,17 +265,9 @@ pub fn run_context_agent() {
 }
 
 #[cfg(target_os = "macos")]
-pub fn run_selected_text_agent() {
-    use super::{detector, focused_text};
-
-    let snapshot = detector::frontmost_app().and_then(|app| {
-        focused_text::selected_text(app.pid).map(|text| SelectionSnapshot {
-            pid: app.pid,
-            app_name: app.name,
-            text,
-        })
-    });
-    if let Ok(json) = serde_json::to_string(&snapshot) {
+pub fn run_selected_text_agent(pid: Option<i32>) {
+    let text = pid.and_then(super::focused_text::selected_text);
+    if let Ok(json) = serde_json::to_string(&text) {
         println!("{json}");
     }
 }

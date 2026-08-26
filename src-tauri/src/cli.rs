@@ -72,4 +72,8 @@ pub struct CliArgs {
     /// Internal — do not use interactively.
     #[arg(long)]
     pub selected_text_agent: bool,
+
+    /// PID whose selected text the one-shot Accessibility agent must read.
+    #[arg(long, requires = "selected_text_agent")]
+    pub selected_text_pid: Option<i32>,
 }
