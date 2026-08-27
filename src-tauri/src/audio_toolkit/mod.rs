@@ -7,9 +7,11 @@ pub mod lang_id;
 pub mod normalization;
 pub mod programming_syntax;
 pub mod punctuation;
+pub mod slack_formatting;
 pub mod styling;
 pub mod tech_lexicon;
 pub mod text;
+pub mod transcript_cleanup;
 pub mod utils;
 pub mod vad;
 

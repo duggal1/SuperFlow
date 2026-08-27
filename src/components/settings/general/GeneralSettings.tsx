@@ -15,6 +15,7 @@ import { ModelSettingsCard } from "./ModelSettingsCard";
 import { AIModelsStatusCard } from "./AIModelsStatusCard";
 import { ShortcutsCard } from "./ShortcutsCard";
 import { VoiceHookCard } from "./VoiceHookCard";
+import SpecificationPanel from "./specifications/shared-tab";
 
 export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -36,6 +37,16 @@ export const GeneralSettings: React.FC = () => {
       <ShortcutsCard />
       <VoiceHookCard />
       <ModelSettingsCard />
+      <div>
+        <div className="px-4">
+          <h2 className="text-xs font-medium text-stone-500 uppercase tracking-wide">
+            {t("specifications.title")}
+          </h2>
+        </div>
+        <div className="mt-3 rounded-[10px] bg-surface px-4 py-4">
+          <SpecificationPanel />
+        </div>
+      </div>
       <SettingsGroup title={t("settings.sound.title")}>
         <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
         <ChannelSelector descriptionMode="tooltip" grouped={true} />

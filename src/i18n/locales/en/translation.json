@@ -832,5 +832,60 @@
     "downloading": "Downloading clean-up model…",
     "success": "Clean-up model ready",
     "speed": "{{speed}} MB/s"
+  },
+  "specifications": {
+    "title": "Specifications",
+    "description": "Give Super Flow your specification so it learns your voice and outputs higher-quality results with rich context.",
+    "useFor": "Use specifications for {{surface}}",
+    "useHint": "Give SuperFlow your specification. Get a polished, context-rich result.",
+    "toggleLabel": "Use specifications",
+    "toggleDescription": "Enable local specification for this surface.",
+    "identity": {
+      "title": "Identity",
+      "hint": "Your own identity. Never the recipient's.",
+      "preferredName": "Preferred name",
+      "fullName": "Full name",
+      "jobTitle": "Job title",
+      "company": "Company",
+      "timezone": "Timezone"
+    },
+    "email": {
+      "title": "Email",
+      "hint": "Drives greeting, sign-off and signature. Address is stored but never auto-appended.",
+      "signatureName": "Signature name",
+      "signoff": "Sign-off",
+      "tone": "Tone",
+      "toneFormal": "Formal",
+      "toneSemiFormal": "Semi-formal",
+      "toneCasual": "Casual",
+      "includeJobTitle": "Include job title in signature",
+      "includeCompany": "Include company in signature",
+      "phone": "Phone (optional)",
+      "website": "Website (optional)",
+      "address": "Address (optional, never auto-appended)"
+    },
+    "slack": {
+      "title": "Slack",
+      "hint": "Influences formatting and style, not an email signature.",
+      "displayName": "Display name",
+      "tone": "Tone",
+      "toneFormal": "Formal",
+      "toneCasualProfessional": "Casual-professional",
+      "toneCasual": "Casual",
+      "paragraphStyle": "Paragraph style",
+      "styleShort": "Short",
+      "styleCompact": "Compact",
+      "preferBullets": "Prefer bullets",
+      "useEmoji": "Use emoji"
+    },
+    "custom": {
+      "title": "Custom",
+      "hint": "Anything else. First-class keys above are not here.",
+      "empty": "No custom keys yet.",
+      "add": "Add custom key",
+      "remove": "Remove custom key",
+      "keyPlaceholder": "github",
+      "valuePlaceholder": "mrduggal"
+    }
   }
 }

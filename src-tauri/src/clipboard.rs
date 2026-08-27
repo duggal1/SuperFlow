@@ -762,6 +762,32 @@ fn should_send_auto_submit(auto_submit: bool, paste_method: PasteMethod) -> bool
     auto_submit && paste_method != PasteMethod::None
 }
 
+pub(crate) fn send_tab_key(enigo: &mut Enigo) -> Result<(), String> {
+    enigo
+        .key(Key::Tab, Direction::Press)
+        .map_err(|e| format!("Failed to press Tab key: {}", e))?;
+    enigo
+        .key(Key::Tab, Direction::Release)
+        .map_err(|e| format!("Failed to release Tab key: {}", e))?;
+    Ok(())
+}
+
+/// Dictated-email delivery: the subject lands in the focused Subject field,
+/// Tab advances focus into the message body (Gmail/Outlook compose order),
+/// then the body is pasted through the normal path so auto-submit and
+/// clipboard handling keep applying to the final action.
+pub fn paste_with_email_subject(
+    subject: String,
+    body: String,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    paste_exact(subject, app_handle.clone())?;
+    std::thread::sleep(Duration::from_millis(150));
+    with_enigo(&app_handle, send_tab_key)?;
+    std::thread::sleep(Duration::from_millis(150));
+    paste(body, app_handle)
+}
+
 pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     let settings = get_settings(&app_handle);
     let paste_method = settings.paste_method;

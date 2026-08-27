@@ -1,6 +1,6 @@
 use tauri::AppHandle;
 
-use crate::context::types::{ContextSnapshot, Surface};
+use crate::context::types::ContextSnapshot;
 use crate::settings::AppSettings;
 
 #[derive(Debug)]
@@ -68,6 +68,57 @@ pub(crate) fn run_agent() {
     bridge::run_agent();
 }
 
+/// Strip the configured spoken hook ("Hey SuperFlow …") from the start of a
+/// transcript. Returns `None` when the transcript does not begin with it.
+pub(crate) fn strip_voice_command_hook<'a>(transcript: &'a str, hook: &str) -> Option<&'a str> {
+    fn words(value: &str) -> Vec<(String, usize)> {
+        let mut words = Vec::new();
+        let mut start = None;
+
+        for (index, character) in value.char_indices() {
+            if character.is_alphanumeric() {
+                start.get_or_insert(index);
+            } else if let Some(start) = start.take() {
+                words.push((value[start..index].to_lowercase(), index));
+            }
+        }
+        if let Some(start) = start {
+            words.push((value[start..].to_lowercase(), value.len()));
+        }
+        words
+    }
+
+    let hook_words = words(hook);
+    if hook_words.is_empty() {
+        return None;
+    }
+    let transcript_words = words(transcript);
+    if transcript_words.len() < hook_words.len()
+        || transcript_words
+            .iter()
+            .zip(&hook_words)
+            .any(|(transcript_word, hook_word)| transcript_word.0 != hook_word.0)
+    {
+        return None;
+    }
+
+    let end = transcript_words[hook_words.len() - 1].1;
+    Some(transcript[end..].trim_start_matches(|character: char| {
+        character.is_whitespace()
+            || matches!(
+                character,
+                ',' | '.' | ':' | ';' | '!' | '?' | '-' | '–' | '—'
+            )
+    }))
+}
+
+/// Normalize an utterance for Gmail command parsing: the spoken hook is
+/// stripped when present so the hands-free, direct, and transcribe paths all
+/// reach `grammar::parse` with the same instruction text.
+pub fn normalize_gmail_instruction<'a>(transcription: &'a str, hook: &str) -> &'a str {
+    strip_voice_command_hook(transcription, hook).unwrap_or(transcription)
+}
+
 #[cfg(target_os = "macos")]
 pub async fn handle(
     transcription: &str,
@@ -75,10 +126,28 @@ pub async fn handle(
     settings: &AppSettings,
     app: &AppHandle,
 ) -> GmailHandleResult {
-    if !settings.experimental_gmail_voice_enabled || snapshot.surface != Surface::Gmail {
+    let instruction = normalize_gmail_instruction(transcription, &settings.voice_command_hook);
+    if !settings.experimental_gmail_voice_enabled {
         return GmailHandleResult::NotHandled;
     }
-    let Some(input) = grammar::parse(transcription) else {
+    if !snapshot.surface.is_gmail_like() {
+        // Only worth a warn when the utterance actually parses as a Gmail
+        // command — plain dictation outside Gmail is the common case.
+        if grammar::parse(instruction).is_some() {
+            log::warn!(
+                target: "gmail_voice",
+                "gmail voice command ignored: surface is {}",
+                snapshot.surface.as_str()
+            );
+        }
+        return GmailHandleResult::NotHandled;
+    }
+    let Some(input) = grammar::parse(instruction) else {
+        log::warn!(
+            target: "gmail_voice",
+            "gmail surface: no gmail command parsed from {} chars",
+            instruction.len()
+        );
         return GmailHandleResult::NotHandled;
     };
     match input {
@@ -157,11 +226,6 @@ async fn handle_start(
         Ok(captured) => captured,
         Err(error) => return GmailHandleResult::Failed(GmailVoiceError::ContextUnreliable(error)),
     };
-    if !captured.editor_body.trim().is_empty() {
-        return GmailHandleResult::Failed(GmailVoiceError::InsertFailed(
-            "Gmail editor must be empty before voice drafting".to_string(),
-        ));
-    }
 
     let mut session = GmailSession::new(command.intent, captured.identity.clone());
     populate_session_context(&mut session, &captured.context, &command);
@@ -195,14 +259,48 @@ async fn handle_start(
         return GmailHandleResult::Failed(GmailVoiceError::SessionChanged);
     }
 
+    // Deterministic editor handling: if the capture found pre-existing content
+    // (signature, leftover draft text), clear it through the Accessibility
+    // agent before inserting. Voice owns the body — but only after generation
+    // succeeded, so a failure never destroys user content, and a failed clear
+    // aborts the insert instead of pasting into existing text.
+    if !captured.editor_body.trim().is_empty() {
+        if matches!(settings.paste_method, crate::settings::PasteMethod::None) {
+            return GmailHandleResult::Failed(GmailVoiceError::InsertFailed(
+                "paste is disabled; refusing to replace a non-empty Gmail editor".to_string(),
+            ));
+        }
+        let session = match active_session(id) {
+            Some(session) => session,
+            None => return GmailHandleResult::Failed(GmailVoiceError::SessionChanged),
+        };
+        if let Err(error) = GmailActionController::clear_editor(&session) {
+            return GmailHandleResult::Failed(map_action_error(error));
+        }
+        log::warn!(
+            target: "gmail_voice",
+            "cleared {} pre-existing editor character(s) before inserting the generated body (editor_not_empty)",
+            captured.editor_body.trim().chars().count()
+        );
+    }
+
     if let GmailGeneratedContent::Compose { subject, .. } = &generated {
         let session = match active_session(id) {
             Some(session) => session,
             None => return GmailHandleResult::Failed(GmailVoiceError::SessionChanged),
         };
+        // Recipient strategy: a literal address is written verbatim; a spoken
+        // name hint ("Alex") is written into the To field and resolved by
+        // Gmail's own contact data — the read-back below upgrades
+        // session.recipient_email to the resolved address, or leaves it None
+        // (send refused) when Gmail could not resolve it.
+        let recipient_for_field = session
+            .recipient_email
+            .clone()
+            .or_else(|| command.recipient_hint.clone());
         let updated_identity = match GmailActionController::populate_compose(
             &session,
-            session.recipient_email.clone(),
+            recipient_for_field,
             subject.clone(),
         ) {
             Ok(identity) => identity,
@@ -410,6 +508,27 @@ mod tests {
     use crate::gmail_voice::grammar::GmailIntent;
 
     static TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[test]
+    fn normalize_strips_only_a_leading_hook() {
+        assert_eq!(
+            normalize_gmail_instruction(
+                "Hey SuperFlow, reply to this email. Tell Alex.",
+                "hey superflow"
+            ),
+            "reply to this email. Tell Alex."
+        );
+        // No hook present: the transcript is returned untouched so the direct
+        // and hands-free paths parse the same text as the transcribe path.
+        assert_eq!(
+            normalize_gmail_instruction("reply to this email. Tell Alex.", "hey superflow"),
+            "reply to this email. Tell Alex."
+        );
+        assert_eq!(
+            normalize_gmail_instruction("Hey SuperFlow. Draft an email to Alex.", "hey superflow"),
+            "Draft an email to Alex."
+        );
+    }
 
     #[test]
     fn transaction_only_invalidates_its_own_session() {

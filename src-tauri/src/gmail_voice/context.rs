@@ -95,3 +95,11 @@ pub fn send(
         _ => Err("Gmail Accessibility agent returned an unexpected response".to_string()),
     }
 }
+
+pub fn clear_editor(identity: GmailTargetIdentity) -> Result<GmailTargetIdentity, String> {
+    match bridge::request(GmailAgentRequest::ClearEditor { identity })? {
+        GmailAgentResponse::Verified(identity) => Ok(identity),
+        GmailAgentResponse::Rejected(reason) => Err(reason),
+        _ => Err("Gmail Accessibility agent returned an unexpected response".to_string()),
+    }
+}

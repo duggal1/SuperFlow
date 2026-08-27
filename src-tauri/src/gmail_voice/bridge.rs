@@ -10,7 +10,11 @@ use crate::gmail_voice::context::CapturedGmailContext;
 use crate::gmail_voice::grammar::GmailIntent;
 use crate::gmail_voice::session::GmailTargetIdentity;
 
-const AGENT_TIMEOUT: Duration = Duration::from_millis(1_500);
+// PopulateCompose performs up to three full window scans plus a bounded wait
+// for Gmail to resolve a recipient hint into an address chip; the previous
+// 1.5s budget killed legitimate work on large windows. The timeout only ever
+// bites when the agent is genuinely stuck — errors return immediately.
+const AGENT_TIMEOUT: Duration = Duration::from_millis(4_000);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum GmailAgentRequest {
@@ -33,6 +37,9 @@ pub enum GmailAgentRequest {
         identity: GmailTargetIdentity,
         expected_body: String,
         expected_recipient_email: String,
+    },
+    ClearEditor {
+        identity: GmailTargetIdentity,
     },
 }
 

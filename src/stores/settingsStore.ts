@@ -182,6 +182,8 @@ const settingUpdaters: {
     commands.changeSmartFileReferencesEnabledSetting(value as boolean),
   live_punctuation_enabled: (value) =>
     commands.changeLivePunctuationEnabledSetting(value as boolean),
+  show_live_streaming: (value) =>
+    commands.changeShowLiveStreamingSetting(value as boolean),
   punctuation_style: (value) =>
     commands.changePunctuationStyleSetting(value as PunctuationStyle),
   intelligence_awareness_enabled: (value) =>
@@ -216,6 +218,8 @@ const settingUpdaters: {
       }
     }
   },
+  user_specification: (value) =>
+    commands.changeUserSpecificationSetting(value as string),
 };
 
 export const useSettingsStore = create<SettingsStore>()(

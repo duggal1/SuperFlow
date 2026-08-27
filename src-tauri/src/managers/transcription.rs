@@ -2272,7 +2272,12 @@ fn post_process_transcription_text(
         // paragraphs, and lists so the two layers cannot fight each other.
         let normalized = normalize_transcription_output(&without_fillers);
         let normalized = crate::audio_toolkit::formatter::normalize_values(&normalized);
-        join_path_tokens(&normalized)
+        let joined = join_path_tokens(&normalized);
+        // Ultra-fast deterministic transcript cleanup (always enabled, no toggle):
+        // removes speech noise without changing meaning. Runs on the finalized
+        // transcript before downstream hooks/intelligence/paste. Deterministic,
+        // local-only, <10ms ideal.
+        crate::audio_toolkit::transcript_cleanup::normalize_transcript(&joined)
     })
 }
 

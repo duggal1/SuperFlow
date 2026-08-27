@@ -130,45 +130,7 @@ fn should_enter_edit_mode(binding_id: &str, post_process: bool, has_selection: b
 }
 
 fn strip_voice_command_hook<'a>(transcript: &'a str, hook: &str) -> Option<&'a str> {
-    fn words(value: &str) -> Vec<(String, usize)> {
-        let mut words = Vec::new();
-        let mut start = None;
-
-        for (index, character) in value.char_indices() {
-            if character.is_alphanumeric() {
-                start.get_or_insert(index);
-            } else if let Some(start) = start.take() {
-                words.push((value[start..index].to_lowercase(), index));
-            }
-        }
-        if let Some(start) = start {
-            words.push((value[start..].to_lowercase(), value.len()));
-        }
-        words
-    }
-
-    let hook_words = words(hook);
-    if hook_words.is_empty() {
-        return None;
-    }
-    let transcript_words = words(transcript);
-    if transcript_words.len() < hook_words.len()
-        || transcript_words
-            .iter()
-            .zip(&hook_words)
-            .any(|(transcript_word, hook_word)| transcript_word.0 != hook_word.0)
-    {
-        return None;
-    }
-
-    let end = transcript_words[hook_words.len() - 1].1;
-    Some(transcript[end..].trim_start_matches(|character: char| {
-        character.is_whitespace()
-            || matches!(
-                character,
-                ',' | '.' | ':' | ';' | '!' | '?' | '-' | '–' | '—'
-            )
-    }))
+    crate::gmail_voice::strip_voice_command_hook(transcript, hook)
 }
 
 fn gmail_voice_hook_context<'a>(
@@ -179,7 +141,7 @@ fn gmail_voice_hook_context<'a>(
     if !gmail_enabled || crate::gmail_voice::grammar::parse(instruction).is_none() {
         return None;
     }
-    context.filter(|context| context.snapshot.surface == crate::context::types::Surface::Gmail)
+    context.filter(|context| context.snapshot.surface.is_gmail_like())
 }
 
 fn selection_is_unchanged(
@@ -423,6 +385,9 @@ pub(crate) struct ProcessedTranscription {
     pub final_text: String,
     pub post_processed_text: Option<String>,
     pub post_process_prompt: Option<String>,
+    /// Dictated email subject, extracted on the Gmail surface. Delivered to
+    /// the mail client's Subject field at paste time, not rendered in body.
+    pub subject: Option<String>,
 }
 
 /// Resolve the persisted language *intent* into the language the currently-loaded
@@ -484,6 +449,55 @@ async fn apply_local_transcript_cleanup(
     }
 
     text
+}
+
+/// Hybrid local user specification, parsed from `AppSettings::user_specification`.
+/// Typed keys are first-class; `custom` is intentionally ignored by the formatter
+/// because it is arbitrary user-defined metadata with no deterministic meaning.
+#[derive(serde::Deserialize, Default)]
+struct UserSpecIdentity {
+    full_name: Option<String>,
+    job_title: Option<String>,
+    company: Option<String>,
+}
+
+#[derive(serde::Deserialize, Default)]
+struct UserSpecEmail {
+    signature_name: Option<String>,
+    /// Spoken-default closing ("Talk soon") used when the transcript has none.
+    signoff: Option<String>,
+    #[serde(default = "user_spec_default_true")]
+    include_job_title: bool,
+    #[serde(default = "user_spec_default_true")]
+    include_company: bool,
+}
+
+#[derive(serde::Deserialize, Default)]
+struct UserSpecSlack {
+    paragraph_style: Option<String>,
+    #[serde(default = "user_spec_default_true")]
+    prefer_bullets: bool,
+}
+
+fn user_spec_default_true() -> bool {
+    true
+}
+
+#[derive(serde::Deserialize, Default)]
+struct UserSpec {
+    #[serde(default = "user_spec_default_true")]
+    enabled: bool,
+    #[serde(default)]
+    identity: UserSpecIdentity,
+    #[serde(default)]
+    email: UserSpecEmail,
+    #[serde(default)]
+    slack: UserSpecSlack,
+}
+
+/// Parse the local user specification once; default to empty when missing/invalid.
+fn parse_user_spec(json: &str) -> UserSpec {
+    serde_json::from_str(json).unwrap_or_default()
 }
 
 async fn process_transcription_output_with_context(
@@ -555,6 +569,7 @@ async fn process_transcription_output_with_context(
                         final_text: String::new(),
                         post_processed_text: None,
                         post_process_prompt: None,
+                        subject: None,
                     };
                 }
                 crate::gmail_voice::GmailHandleResult::Failed(err) => {
@@ -563,6 +578,7 @@ async fn process_transcription_output_with_context(
                         final_text: String::new(),
                         post_processed_text: None,
                         post_process_prompt: None,
+                        subject: None,
                     };
                 }
             }
@@ -652,10 +668,115 @@ async fn process_transcription_output_with_context(
         post_processed_text = Some(final_text.clone());
     }
 
+    // Dictated subject (Gmail surface only) travels separately from the
+    // shaped body so the paste path can target the Subject field.
+    let mut email_subject_out: Option<String> = None;
     // Deterministic final layout across every exit point: paragraph gaps,
     // ordinal/bullet structure, and email envelopes. Applied once, here,
     // so paste, history, and retries stay byte-identical.
-    let shaped = crate::audio_toolkit::formatter::format_layout(&final_text);
+    // Slack and Gmail get their dedicated formatters — this makes
+    // `slack_formatting.rs` and the new `EmailFormatContext` 100% in use.
+    let shaped = {
+        let surface = context
+            .as_ref()
+            .map(|c| c.snapshot.surface.clone())
+            .unwrap_or(crate::context::types::Surface::Other);
+
+        // Local, deterministic user specification. Drives the email signature
+        // (author_name) and Slack formatting options. Never inferred; only
+        // what the user explicitly configured is used. Disabled -> ignored.
+        let spec = parse_user_spec(&settings.user_specification);
+
+        match surface {
+            crate::context::types::Surface::Slack => {
+                let mut slack_opts =
+                    crate::audio_toolkit::slack_formatting::SlackFormatOptions::default();
+                if spec.enabled {
+                    match spec.slack.paragraph_style.as_deref() {
+                        Some("compact") => {
+                            slack_opts.paragraph_target_words = 40;
+                            slack_opts.paragraph_max_words = 56;
+                        }
+                        _ => {
+                            // "short" (default): tighter paragraphs.
+                            slack_opts.paragraph_target_words = 18;
+                            slack_opts.paragraph_max_words = 28;
+                        }
+                    }
+                    slack_opts.format_natural_lists = spec.slack.prefer_bullets;
+                    slack_opts.format_numbered_lists = spec.slack.prefer_bullets;
+                }
+                crate::audio_toolkit::slack_formatting::format_for_slack_with_options(
+                    &final_text,
+                    slack_opts,
+                )
+            }
+            crate::context::types::Surface::Gmail => {
+                let author_name = if spec.enabled {
+                    spec.email
+                        .signature_name
+                        .clone()
+                        .or_else(|| spec.identity.full_name.clone())
+                } else {
+                    None
+                }
+                .map(|name| name.trim().to_string())
+                .filter(|name| !name.is_empty());
+                let author_title = if spec.enabled && spec.email.include_job_title {
+                    spec.identity
+                        .job_title
+                        .clone()
+                        .map(|t| t.trim().to_string())
+                        .filter(|t| !t.is_empty())
+                } else {
+                    None
+                };
+                let author_company = if spec.enabled && spec.email.include_company {
+                    spec.identity
+                        .company
+                        .clone()
+                        .map(|c| c.trim().to_string())
+                        .filter(|c| !c.is_empty())
+                } else {
+                    None
+                };
+                // Default ending only when the author is known — we never
+                // invent a sign-off for an unknown user. Falls back to the
+                // user's own informal US default when the field is empty.
+                let default_signoff = if author_name.is_some() {
+                    Some(
+                        spec.email
+                            .signoff
+                            .clone()
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty())
+                            .unwrap_or_else(|| "Talk soon".to_string()),
+                    )
+                } else {
+                    None
+                };
+                let email_ctx = crate::audio_toolkit::formatter::EmailFormatContext {
+                    is_email: true,
+                    // Recipient from Gmail header, author from the local spec.
+                    // None falls back to deterministic ASR text without fuzzy correction.
+                    recipient_name: None,
+                    author_name: author_name.as_deref(),
+                    author_title: author_title.as_deref(),
+                    author_company: author_company.as_deref(),
+                    include_title: spec.enabled && spec.email.include_job_title,
+                    include_company: spec.enabled && spec.email.include_company,
+                    default_signoff: default_signoff.as_deref(),
+                };
+                let formatted = crate::audio_toolkit::formatter::format_email_for_surface(
+                    &final_text,
+                    email_ctx,
+                );
+                email_subject_out = formatted.subject;
+                formatted.text
+            }
+            _ => crate::audio_toolkit::formatter::format_layout(&final_text),
+        }
+    };
     if post_processed_text.is_some() && shaped != final_text {
         post_processed_text = Some(shaped.clone());
     }
@@ -664,6 +785,7 @@ async fn process_transcription_output_with_context(
         final_text: shaped,
         post_processed_text,
         post_process_prompt,
+        subject: email_subject_out,
     }
 }
 
@@ -1146,12 +1268,16 @@ impl ShortcutAction for TranscribeAction {
         // Sizing the overlay follows the same advertised capability. A model that
         // doesn't stream (or whose capability is not known yet) gets the compact
         // pill instead of an oversized transparent live window.
+        // show_live_streaming only hides the frontend component — backend streaming
+        // still runs for speed (tm.start_stream() above).
         let overlay_started = Instant::now();
         match settings.overlay_style {
             OverlayStyle::Live | OverlayStyle::Minimal if is_hands_free => {
                 crate::overlay::show_hands_free_overlay(app)
             }
-            OverlayStyle::Live if model_supports_streaming => utils::show_streaming_overlay(app),
+            OverlayStyle::Live if model_supports_streaming && settings.show_live_streaming => {
+                utils::show_streaming_overlay(app)
+            }
             OverlayStyle::Live | OverlayStyle::Minimal => show_recording_overlay(app),
             OverlayStyle::None => {}
         }
@@ -1297,12 +1423,14 @@ impl ShortcutAction for TranscribeAction {
         // spinner while the stream finalizes. Non-streaming paths use the
         // compact transcribing pill (None no-ops in show_*).
         let style = get_settings(app).overlay_style;
+        let show_live = get_settings(app).show_live_streaming;
         // Capture this before finalizing the stream so every later working state
         // targets the same overlay that was shown for this transcription.
         let is_hands_free = binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID
             || shortcut_str == crate::transcription_coordinator::HANDS_FREE_BINDING_ID;
-        let use_streaming_overlay =
-            !is_hands_free && should_use_streaming_overlay(style, tm.is_streaming());
+        let use_streaming_overlay = !is_hands_free
+            && should_use_streaming_overlay(style, tm.is_streaming())
+            && show_live;
         if use_streaming_overlay {
             tm.emit_stream_working(StreamWorkKind::Transcribing);
         } else {
@@ -1673,6 +1801,7 @@ impl ShortcutAction for TranscribeAction {
                                 let ah_clone = ah.clone();
                                 let paste_time = Instant::now();
                                 let final_text = processed.final_text;
+                                let email_subject = processed.subject;
                                 let rm_for_paste = Arc::clone(&rm);
                                 ah.run_on_main_thread(move || {
                                     if rm_for_paste.was_cancelled_since(cancel_generation) {
@@ -1711,7 +1840,22 @@ impl ShortcutAction for TranscribeAction {
                                         return;
                                     }
 
-                                    match utils::paste(final_text.clone(), ah_clone.clone()) {
+                                    // Dictated subject present (Gmail): deliver
+                                    // subject → Subject field, Tab → body, then
+                                    // the body through the normal paste path.
+                                    let paste_result = match email_subject
+                                        .as_deref()
+                                        .map(str::trim)
+                                        .filter(|s| !s.is_empty())
+                                    {
+                                        Some(subject) => utils::paste_with_email_subject(
+                                            subject.to_string(),
+                                            final_text.clone(),
+                                            ah_clone.clone(),
+                                        ),
+                                        None => utils::paste(final_text.clone(), ah_clone.clone()),
+                                    };
+                                    match paste_result {
                                         Ok(()) => {
                                             // Paste landed: the transcript is where the user
                                             // wanted it. Clean up quietly — no result card.

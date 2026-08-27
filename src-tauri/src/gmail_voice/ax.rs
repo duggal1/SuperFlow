@@ -1,6 +1,7 @@
 #![cfg(target_os = "macos")]
 
 use std::ffi::c_void;
+use std::time::Duration;
 
 use crate::gmail_voice::bridge::{GmailAgentRequest, GmailAgentResponse};
 use crate::gmail_voice::context::{
@@ -174,26 +175,59 @@ fn execute_inner(request: GmailAgentRequest) -> Result<GmailAgentResponse, Strin
                 Err("Gmail Send button rejected AXPress".to_string())
             }
         }
+        GmailAgentRequest::ClearEditor { identity } => {
+            let live = recapture(&identity)?;
+            verify_identity(&identity, &live.identity)?;
+            let application =
+                CfRef::take(unsafe { AXUIElementCreateApplication(identity.pid) } as CFTypeRef)
+                    .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
+            let editor = copy_attribute(application.element(), ax_attr!("AXFocusedUIElement"))
+                .ok_or_else(|| "Gmail editor was not focused".to_string())?;
+            ensure_message_body_editor(editor.element())?;
+            set_string_value(editor.element(), "")?;
+            if !element_text(editor.element())
+                .unwrap_or_default()
+                .trim()
+                .is_empty()
+            {
+                return Err("Gmail editor did not accept the clear".to_string());
+            }
+            Ok(GmailAgentResponse::Verified(identity))
+        }
     }
 }
 
 fn capture_live_target(pid: i32, expected_bundle_id: &str) -> Result<LiveTarget, String> {
-    let app = crate::context::detector::frontmost_app()
-        .ok_or_else(|| "frontmost application could not be read".to_string())?;
-    if app.pid != pid || app.bundle_id.as_deref() != Some(expected_bundle_id) {
-        return Err("frontmost application changed".to_string());
+    // An overlay or notification can briefly steal focus between the recording
+    // stop and this agent run. The caller already gated on a verified Gmail
+    // snapshot, so proceed against the expected pid instead of failing the
+    // whole command on a transient focus change.
+    let frontmost = crate::context::detector::frontmost_app();
+    if !frontmost
+        .as_ref()
+        .is_some_and(|app| app.pid == pid && app.bundle_id.as_deref() == Some(expected_bundle_id))
+    {
+        log::warn!(
+            target: "gmail_voice",
+            "frontmost application changed during capture; proceeding against expected pid {pid}"
+        );
     }
 
-    let tab = crate::context::browser::frontmost_tab(app.bundle_id.as_deref(), pid);
+    // URL/title are a best-effort hint only — never a hard gate here.
+    let tab = crate::context::browser::frontmost_tab(Some(expected_bundle_id), pid);
     let url = tab.as_ref().and_then(|tab| tab.url.clone());
     let title = tab.as_ref().and_then(|tab| tab.title.clone());
-    if crate::context::classify::classify(
-        app.bundle_id.as_deref(),
+    if !crate::context::classify::classify(
+        Some(expected_bundle_id),
         url.as_deref(),
         title.as_deref(),
-    ) != crate::context::types::Surface::Gmail
+    )
+    .is_gmail_like()
     {
-        return Err("frontmost surface is not verified Gmail".to_string());
+        log::debug!(
+            target: "gmail_voice",
+            "live surface no longer classifies as Gmail; relying on the snapshot gate"
+        );
     }
 
     let application = CfRef::take(unsafe { AXUIElementCreateApplication(pid) } as CFTypeRef)
@@ -292,10 +326,20 @@ fn verify_expected(
     {
         return Err("generated Gmail body was not verified in the captured editor".to_string());
     }
-    if expected_recipient
-        .is_some_and(|expected| live.identity.recipient_email.as_deref() != Some(expected))
-    {
-        return Err("Gmail recipient changed or could not be verified".to_string());
+    if let Some(expected) = expected_recipient {
+        // A literal address must round-trip exactly. A spoken name hint only
+        // requires that Gmail resolved it to some concrete address — Gmail's
+        // contact data is authoritative and is never second-guessed.
+        let expected_is_literal =
+            crate::gmail_voice::grammar::literal_recipient_email(Some(expected)).is_some();
+        let matches = match live.identity.recipient_email.as_deref() {
+            Some(actual) if actual == expected => true,
+            Some(actual) if !expected_is_literal && !actual.is_empty() => true,
+            _ => false,
+        };
+        if !matches {
+            return Err("Gmail recipient changed or could not be verified".to_string());
+        }
     }
     Ok(())
 }
@@ -379,6 +423,9 @@ fn set_compose_subject(container: &CfRef, subject: &str) -> Result<(), String> {
     Ok(())
 }
 
+const RECIPIENT_RESOLVE_ATTEMPTS: usize = 8;
+const RECIPIENT_RESOLVE_DELAY_MS: u64 = 60;
+
 fn set_compose_recipient(container: &CfRef, recipient: &str) -> Result<(), String> {
     if compose_recipient(container).as_deref() == Some(recipient) {
         return Ok(());
@@ -386,10 +433,26 @@ fn set_compose_recipient(container: &CfRef, recipient: &str) -> Result<(), Strin
     let field = find_compose_field(container, "to")
         .ok_or_else(|| "Gmail To field was not found".to_string())?;
     set_string_value(field.element(), recipient)?;
-    if compose_recipient(container).as_deref() != Some(recipient) {
-        return Err("Gmail did not resolve the literal recipient address".to_string());
+    // Gmail turns a written value into a recipient chip asynchronously, so
+    // poll briefly for the read-back. A literal address must come back
+    // exactly; a spoken name hint ("Alex") is accepted once Gmail resolves it
+    // to any single concrete address. Nothing is invented here either way.
+    let expects_literal =
+        crate::gmail_voice::grammar::literal_recipient_email(Some(recipient)).is_some();
+    for _ in 0..RECIPIENT_RESOLVE_ATTEMPTS {
+        if let Some(resolved) = compose_recipient(container) {
+            if resolved == recipient || !expects_literal {
+                return Ok(());
+            }
+            return Err("Gmail did not resolve the literal recipient address".to_string());
+        }
+        std::thread::sleep(Duration::from_millis(RECIPIENT_RESOLVE_DELAY_MS));
     }
-    Ok(())
+    Err(if expects_literal {
+        "Gmail did not resolve the literal recipient address".to_string()
+    } else {
+        "Gmail did not resolve the recipient hint to an address".to_string()
+    })
 }
 
 fn find_compose_field(container: &CfRef, field: &str) -> Option<CfRef> {
@@ -421,15 +484,17 @@ fn extract_reply_context(pid: i32, compose_container: &CfRef) -> Result<ReplyCon
         .position(|node| unsafe { CFEqual(node.element.0, compose_container.0) })
         .ok_or_else(|| "Gmail compose container was not inside the active window".to_string())?;
     let thread_nodes = &nodes[..compose_index];
-    let subject = unique_subject(thread_nodes)?;
+    let subject = unique_subject(thread_nodes, window.element())
+        .ok_or_else(|| "Gmail subject was not available".to_string())?;
     let (sender_index, sender_name, sender_email) = latest_structured_sender(thread_nodes)?;
     let source_message = source_message_after_sender(thread_nodes, sender_index)?;
+    let thread_context = extract_thread_context(thread_nodes, &source_message);
     Ok(ReplyContext {
         sender_name,
         sender_email,
         subject,
         source_message,
-        thread_context: None,
+        thread_context,
     })
 }
 
@@ -452,8 +517,8 @@ fn semantic_nodes(root: AXUIElementRef, max_depth: usize, max_nodes: usize) -> V
         .collect()
 }
 
-fn unique_subject(nodes: &[SemanticNode]) -> Result<String, String> {
-    let mut subjects = nodes
+fn unique_subject(nodes: &[SemanticNode], window: AXUIElementRef) -> Option<String> {
+    let subjects = nodes
         .iter()
         .filter(|node| node.role == "AXHeading")
         .map(|node| {
@@ -468,12 +533,101 @@ fn unique_subject(nodes: &[SemanticNode]) -> Result<String, String> {
                 && !matches!(text.to_lowercase().as_str(), "gmail" | "inbox" | "search")
         })
         .collect::<Vec<_>>();
-    subjects.sort();
-    subjects.dedup();
-    match subjects.as_slice() {
-        [subject] => Ok(subject.clone()),
-        [] => Err("Gmail subject heading was not exposed semantically".to_string()),
-        _ => Err("Gmail subject heading was ambiguous".to_string()),
+    dedupe_subjects(subjects).or_else(|| window_title_subject(window))
+}
+
+/// Normalized form used to merge duplicate subject headings ("Re: X" and "X").
+fn subject_canonical(value: &str) -> &str {
+    let mut current = value.trim();
+    loop {
+        let lowered = current.to_lowercase();
+        let stripped = if lowered.starts_with("fwd:") {
+            current.get(4..)
+        } else if lowered.starts_with("re:") || lowered.starts_with("fw:") {
+            current.get(3..)
+        } else {
+            return current.trim();
+        };
+        let Some(stripped) = stripped else {
+            return current.trim();
+        };
+        current = stripped.trim();
+    }
+}
+
+/// Dedupe subject candidates case- and Re:-insensitively. With several
+/// distinct candidates, prefer the thread subject (Re:/Fwd:), else the
+/// longest — the shortest heading is usually page chrome.
+fn dedupe_subjects(subjects: Vec<String>) -> Option<String> {
+    let mut seen = std::collections::HashSet::new();
+    let mut unique = Vec::new();
+    for subject in subjects {
+        if seen.insert(subject_canonical(&subject).to_lowercase()) {
+            unique.push(subject);
+        }
+    }
+    match unique.len() {
+        0 => None,
+        1 => unique.into_iter().next(),
+        _ => unique.into_iter().max_by_key(|subject| {
+            let canonical = subject_canonical(subject).to_lowercase();
+            (
+                canonical.starts_with("re:")
+                    || canonical.starts_with("fw:")
+                    || canonical.starts_with("fwd:"),
+                subject.chars().count(),
+            )
+        }),
+    }
+}
+
+/// Last-resort subject source: the Gmail window/tab title
+/// ("(3) Re: Project status - Gmail").
+fn window_title_subject(window: AXUIElementRef) -> Option<String> {
+    window_title_subject_from(&string_attribute(window, "AXTitle").unwrap_or_default())
+}
+
+fn window_title_subject_from(title: &str) -> Option<String> {
+    let cleaned = title.trim();
+    if cleaned.is_empty() {
+        return None;
+    }
+    let without_suffix = cleaned
+        .strip_suffix(" – Gmail")
+        .or_else(|| cleaned.strip_suffix(" - Gmail"))
+        .unwrap_or(cleaned)
+        .trim();
+    // Leading unread badge: "(3) Re: Project status".
+    let without_badge = match without_suffix.strip_prefix('(') {
+        Some(rest) => rest
+            .find(')')
+            .map(|end| rest[end + 1..].trim_start())
+            .unwrap_or(without_suffix),
+        None => without_suffix,
+    };
+    // Trailing unread badge: "Inbox (12)".
+    let without_badge = match without_badge.rfind('(') {
+        Some(start) if without_badge.ends_with(')') => {
+            let digits = &without_badge[start + 1..without_badge.len() - 1];
+            if !digits.is_empty() && digits.chars().all(|c: char| c.is_ascii_digit()) {
+                without_badge[..start].trim()
+            } else {
+                without_badge
+            }
+        }
+        _ => without_badge,
+    };
+    let subject = without_badge.trim();
+    if subject.is_empty()
+        || matches!(
+            subject.to_lowercase().as_str(),
+            "gmail" | "inbox" | "search" | "starred" | "snoozed" | "sent" | "drafts" | "spam"
+                | "trash" | "important"
+        )
+    {
+        None
+    } else {
+        Some(subject.to_string())
     }
 }
 
@@ -486,7 +640,48 @@ fn latest_structured_sender(nodes: &[SemanticNode]) -> Result<(usize, String, St
             let evidence = format!("{} {}", node.label, node.text);
             structured_name_and_email(&evidence).map(|(name, email)| (index, name, email))
         })
-        .ok_or_else(|| "Gmail sender identity was not exposed as Name <email>".to_string())
+        .or_else(|| {
+            // Fallback: Gmail sometimes exposes only a bare email ("From:
+            // alex@company.com" or a lone address). Accept nodes exposing
+            // exactly one email and derive the display name from the text
+            // before it — the address itself is used when no name is present.
+            nodes.iter().enumerate().rev().find_map(|(index, node)| {
+                let evidence = format!("{} {}", node.label, node.text);
+                bare_email_sender(&evidence).map(|(name, email)| (index, name, email))
+            })
+        })
+        .ok_or_else(|| "Gmail sender identity was not exposed semantically".to_string())
+}
+
+const SENDER_HEADER_LABELS: &[&str] = &["from", "to", "cc", "bcc", "date", "reply"];
+
+fn bare_email_sender(evidence: &str) -> Option<(String, String)> {
+    let email = extract_single_email(evidence)?;
+    let email_start = evidence.find(&email)?;
+    let mut name = evidence[..email_start]
+        .trim()
+        .trim_matches(|character: char| {
+            matches!(
+                character,
+                '"' | '\'' | '(' | ')' | ':' | '-' | '–' | ',' | '.'
+            )
+        });
+    // Strip a leading "from" header word ("From: Alex" / "From Alex").
+    if let (Some(head), Some(tail)) = (name.get(..4), name.get(4..)) {
+        if head.eq_ignore_ascii_case("from")
+            && tail
+                .chars()
+                .next()
+                .is_none_or(|character| !character.is_alphanumeric())
+        {
+            name = tail.trim();
+        }
+    }
+    // A bare header label carries no name — fall back to the address itself.
+    if name.is_empty() || SENDER_HEADER_LABELS.contains(&name.to_lowercase().as_str()) {
+        return Some((email.clone(), email));
+    }
+    Some((name.to_string(), email))
 }
 
 fn source_message_after_sender(
@@ -513,6 +708,35 @@ fn source_message_after_sender(
         Err("Gmail source message body was not exposed semantically".to_string())
     } else {
         Ok(body)
+    }
+}
+
+fn extract_thread_context(nodes: &[SemanticNode], source_message: &str) -> Option<String> {
+    let mut blocks = Vec::new();
+    for node in nodes {
+        if matches!(node.role.as_str(), "AXStaticText" | "AXParagraph" | "AXHeading") {
+            let text = normalize_text(&node.text);
+            if text.len() >= 10 && !is_gmail_chrome_text(&text) && text != *source_message {
+                // Avoid duplicating the source message itself, but keep other thread messages
+                if !blocks.contains(&text) {
+                    blocks.push(text);
+                }
+            }
+        }
+    }
+    if blocks.is_empty() {
+        return None;
+    }
+    // Join with separator, keep most recent first, truncate to 8000 chars
+    let mut thread = blocks.join("\n\n---\n\n");
+    if thread.chars().count() > 8000 {
+        thread = thread.chars().take(8000).collect::<String>() + "\n…truncated";
+    }
+    // Only return if it adds value beyond source_message
+    if thread.trim() == source_message.trim() {
+        None
+    } else {
+        Some(thread)
     }
 }
 
@@ -717,5 +941,74 @@ mod tests {
             ),
             "inbox/FMfcgzExample"
         );
+    }
+
+    #[test]
+    fn window_title_subject_strips_badges_and_gmail_suffix() {
+        assert_eq!(
+            window_title_subject_from("Re: Project status - Gmail"),
+            Some("Re: Project status".to_string())
+        );
+        assert_eq!(
+            window_title_subject_from("(3) Re: Project status - Gmail"),
+            Some("Re: Project status".to_string())
+        );
+        assert_eq!(window_title_subject_from("Inbox (12) - Gmail"), None);
+        assert_eq!(window_title_subject_from("Inbox - Gmail"), None);
+        assert_eq!(window_title_subject_from(""), None);
+        assert_eq!(
+            window_title_subject_from("Meeting notes - Gmail"),
+            Some("Meeting notes".to_string())
+        );
+    }
+
+    #[test]
+    fn subject_candidates_dedupe_and_prefer_thread_subject() {
+        assert_eq!(
+            dedupe_subjects(vec![
+                "Project status".to_string(),
+                "Re: Project status".to_string()
+            ])
+            .as_deref(),
+            Some("Re: Project status")
+        );
+        assert_eq!(
+            dedupe_subjects(vec![
+                "Hello world".to_string(),
+                "Hello world again and again".to_string()
+            ])
+            .as_deref(),
+            Some("Hello world again and again")
+        );
+        assert_eq!(dedupe_subjects(vec![]), None);
+        assert_eq!(
+            dedupe_subjects(vec!["Fwd: invite".to_string(), "invite".to_string()])
+                .as_deref(),
+            Some("Fwd: invite")
+        );
+    }
+
+    #[test]
+    fn bare_email_sender_uses_context_before_the_address() {
+        assert_eq!(
+            bare_email_sender("From: alexander@company.com"),
+            Some((
+                "alexander@company.com".to_string(),
+                "alexander@company.com".to_string()
+            ))
+        );
+        assert_eq!(
+            bare_email_sender("Alexander Chen alexander@company.com"),
+            Some((
+                "Alexander Chen".to_string(),
+                "alexander@company.com".to_string()
+            ))
+        );
+        assert_eq!(
+            bare_email_sender("To me@company.com"),
+            Some(("me@company.com".to_string(), "me@company.com".to_string()))
+        );
+        // Two addresses in one node: never treat as a sender.
+        assert_eq!(bare_email_sender("alex@a.com beth@b.com"), None);
     }
 }

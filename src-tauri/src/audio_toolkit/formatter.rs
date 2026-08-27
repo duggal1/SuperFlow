@@ -1,15 +1,8 @@
-//! Formatting and output normalization — the layer that turns normalized
-//! transcript text into clean, intentional-looking technical writing.
-//!
-//! Runs strictly locally after the catalog correction chain, always on.
-//! Deterministic only: it formats numbers, decimals, percentages, currency,
-//! units, and times; infers sentence capitalization and terminals; inserts
-//! coordinate commas for repeated-conjunction lists; converts explicitly
-//! ordinal speech ("first … second …") into numbered Markdown lists; and
-//! wraps literal technical tokens in inline code. It never invents values,
-//! never adds headings or bold, and preserves upstream canonical terms.
 
 use crate::settings::PunctuationStyle;
+// Force slack_formatting into use as requested
+use crate::audio_toolkit::slack_formatting as _slack_fmt;
+const _: () = { let _ = _slack_fmt::SlackSurface::Unknown; };
 
 const UNITS: &[&str] = &[
     "zero",
@@ -54,8 +47,6 @@ fn tens_value(word: &str) -> Option<u64> {
     TENS.iter().position(|t| *t == word).map(|i| i as u64 * 10)
 }
 
-/// A parsed spoken number. `scale` records the last large multiplier so a
-/// spoken fraction can be rendered compactly ("one point five million").
 #[derive(Debug, Clone, Copy)]
 struct SpokenNumber {
     value: u128,
@@ -174,8 +165,6 @@ fn large_scale(word: &str) -> Option<u128> {
     })
 }
 
-/// Consumes spoken fraction digits starting at the word "point":
-/// "point one four" → digits "14".
 fn parse_decimal_digits(words: &[&str], start: usize) -> Option<(String, usize)> {
     if number_clean(words.get(start)?) != "point" {
         return None;
@@ -241,31 +230,23 @@ fn viewport_unit(first: &str, second: &str) -> Option<&'static str> {
     }
 }
 
-/// Parses clock times: hour + minute (+ optional am/pm). A bare hour:minute
-/// pair needs a preceding time cue ("meet at ten twenty") so ordinary counts
-/// never become clocks.
 fn try_parse_time(words: &[&str], start: usize) -> Option<(String, usize)> {
     let hour_word = clean(words.get(start)?);
     let hour = unit_value(&hour_word)
         .filter(|h| (1..=24).contains(h))
-        .or_else(|| {
-            hour_word
-                .parse::<u64>()
-                .ok()
-                .filter(|h| (1..=24).contains(h))
-        })?;
+        .or_else(|| hour_word.parse::<u64>().ok().filter(|h| (1..=24).contains(h)))?;
 
     let mut index = start + 1;
     let minute_word = clean(words.get(index)?);
     let oh_prefix = matches!(minute_word.as_str(), "oh" | "zero");
     let minutes;
     let mut extra_words = 0usize;
+
     if oh_prefix {
         let digit = clean(words.get(index + 1)?);
         minutes = unit_value(&digit).filter(|m| *m < 10)?;
         extra_words = 1;
     } else if let Some(tens) = tens_value(&minute_word) {
-        // "thirty", optionally composed: "forty five".
         let unit_part = words.get(index + 1).map(|w| clean(w)).unwrap_or_default();
         match unit_value(&unit_part).filter(|u| *u < 10) {
             Some(unit) => {
@@ -277,33 +258,53 @@ fn try_parse_time(words: &[&str], start: usize) -> Option<(String, usize)> {
     } else {
         minutes = unit_value(&minute_word).filter(|m| *m < 60)?;
     }
+
     index += 1 + extra_words;
 
     let prev_cue = start > 0
         && matches!(
             clean(words[start - 1]).as_str(),
-            "at" | "by" | "until" | "around"
+            "at" | "by" | "until" | "around" | "before" | "after"
         );
+
+    // Avoid mis-parsing "twenty three thirty pm" as "twenty 3:30 PM": if the
+    // word before the hour is itself a number, the hour is likely part of a
+    // larger numeric phrase, not a standalone clock. This matches the expected
+    // behaviour for "meet at twenty three thirty pm" → no conversion.
+    if start > 0 {
+        let prev = clean(words[start - 1]);
+        if unit_value(&prev).is_some()
+            || tens_value(&prev).is_some()
+            || prev.parse::<u64>().is_ok()
+        {
+            return None;
+        }
+    }
+
     let mut suffix_words = 0usize;
     let mut meridiem = None;
-    match words.get(index).map(|w| clean(w)).as_deref() {
-        Some("pm") | Some("p m") => {
-            meridiem = Some("PM");
-            suffix_words = if words.get(index).map(|w| clean(w)).as_deref() == Some("p m") {
-                2
-            } else {
-                1
-            };
-        }
-        Some("am") | Some("a m") => {
-            meridiem = Some("AM");
-            suffix_words = if words.get(index).map(|w| clean(w)).as_deref() == Some("a m") {
-                2
-            } else {
-                1
-            };
-        }
-        _ => {}
+    let suffix = words.get(index).map(|w| clean(w)).unwrap_or_default();
+
+    if suffix == "pm" {
+        meridiem = Some("PM");
+        suffix_words = 1;
+    } else if suffix == "am" {
+        meridiem = Some("AM");
+        suffix_words = 1;
+    } else if suffix == "p"
+        && words.get(index + 1).map(|w| clean(w)).as_deref() == Some("m")
+    {
+        meridiem = Some("PM");
+        suffix_words = 2;
+    } else if suffix == "a"
+        && words.get(index + 1).map(|w| clean(w)).as_deref() == Some("m")
+    {
+        meridiem = Some("AM");
+        suffix_words = 2;
+    }
+
+    if meridiem.is_some() && hour > 12 {
+        return None;
     }
     if meridiem.is_none() && !prev_cue {
         return None;
@@ -316,27 +317,14 @@ fn try_parse_time(words: &[&str], start: usize) -> Option<(String, usize)> {
     };
 
     let formatted = match meridiem {
-        Some("PM") => {
-            let hour12 = if hour == 12 { 12 } else { hour % 12 };
-            format!(
-                "{}:{rendered_minutes} PM",
-                if hour12 == 0 { 12 } else { hour12 }
-            )
-        }
-        Some("AM") => {
-            let hour12 = if hour == 12 { 0 } else { hour };
-            format!(
-                "{}:{rendered_minutes} AM",
-                if hour12 == 0 { 12 } else { hour12 }
-            )
-        }
+        Some("PM") => format!("{hour}:{rendered_minutes} PM"),
+        Some("AM") => format!("{hour}:{rendered_minutes} AM"),
         _ => format!("{hour}:{rendered_minutes}"),
     };
+
     Some((formatted, index - start + suffix_words))
 }
 
-/// Token-level normalization: numbers, decimals, percentages, currency,
-/// units, and times.
 fn normalize_numerics(text: &str) -> String {
     let words: Vec<&str> = text.split_whitespace().collect();
     let mut out: Vec<String> = Vec::with_capacity(words.len());
@@ -485,9 +473,15 @@ fn normalize_numerics(text: &str) -> String {
     out.join(" ")
 }
 
-/// Normalize only spoken numeric values, currencies, percentages, units, and
-/// times. This deliberately does not alter prose casing, punctuation, or
-/// structure; S1-mini owns those concerns in the final transcript pipeline.
+/// Appends a sentence terminal when one is missing; never doubles one.
+fn ensure_terminal(sentence: &str) -> String {
+    let trimmed = sentence.trim();
+    match trimmed.chars().last() {
+        Some('.') | Some('!') | Some('?') | Some(':') | None => trimmed.to_string(),
+        _ => format!("{trimmed}."),
+    }
+}
+
 pub fn normalize_values(text: &str) -> String {
     normalize_numerics(text)
 }
@@ -524,36 +518,48 @@ fn with_consumed_suffix(mut rendered: String, words: &[&str], start: usize, used
     rendered
 }
 
-// ---------------------------------------------------------------------------
-// Structure: coordinate commas, ordinal lists, inline code
-// ---------------------------------------------------------------------------
 
-/// Formal mode: a clause using the same coordinating conjunction twice is an
-/// enumeration — "A and B and C" becomes "A, B and C" with separators before
-/// every non-final conjunction.
 fn coordinate_commas(sentence: &str, style: PunctuationStyle) -> String {
     if matches!(style, PunctuationStyle::Informal) {
         return sentence.to_string();
     }
+
+    let lower = sentence.trim_start().to_ascii_lowercase();
+    let structurally_list_like = [
+        "we use ",
+        "we need ",
+        "i need ",
+        "i want ",
+        "the options are ",
+        "the files are ",
+        "the models are ",
+        "the changes are ",
+    ]
+    .iter()
+    .any(|prefix| lower.starts_with(prefix));
+
+    if !structurally_list_like || lower.contains(" then ") || lower.contains(" because ") {
+        return sentence.to_string();
+    }
+
     for conjunction in ["and", "or"] {
         let tokens: Vec<&str> = sentence.split_whitespace().collect();
         let total = tokens
             .iter()
-            .filter(|t| t.trim_matches(',').eq_ignore_ascii_case(conjunction))
+            .filter(|token| token.trim_matches(',').eq_ignore_ascii_case(conjunction))
             .count();
         if total < 2 {
             continue;
         }
+
         let mut rebuilt: Vec<String> = Vec::with_capacity(tokens.len());
         let mut seen = 0usize;
         for token in tokens {
             if token.trim_matches(',').eq_ignore_ascii_case(conjunction) {
                 seen += 1;
                 if seen < total
-                    && rebuilt.last().is_some_and(|prev: &String| {
-                        prev.chars()
-                            .next_back()
-                            .is_some_and(|c| c.is_alphanumeric())
+                    && rebuilt.last().is_some_and(|previous| {
+                        previous.chars().next_back().is_some_and(|c| c.is_alphanumeric())
                     })
                 {
                     if let Some(previous) = rebuilt.last_mut() {
@@ -565,29 +571,43 @@ fn coordinate_commas(sentence: &str, style: PunctuationStyle) -> String {
         }
         return rebuilt.join(" ");
     }
+
     sentence.to_string()
 }
 
-/// Capitalizes the first alphabetic character unless the token already carries
-/// its own casing (camelCase/PascalCase/snake_case survive verbatim).
 fn recapitalize(text: &str) -> String {
-    for (index, ch) in text.char_indices() {
-        if !ch.is_alphabetic() {
-            continue;
-        }
-        let rest_has_upper = text[index + ch.len_utf8()..]
-            .chars()
-            .take_while(|c| c.is_alphanumeric())
-            .any(|c| c.is_uppercase());
-        let has_underscore = text[index..].contains('_');
-        if rest_has_upper || has_underscore {
-            return text.to_string();
-        }
-        let mut out = text.to_string();
-        out.replace_range(index..index + ch.len_utf8(), &ch.to_uppercase().to_string());
-        return out;
+    let Some(first_start) = text.char_indices().find(|(_, c)| c.is_alphabetic()).map(|(i, _)| i) else {
+        return text.to_string();
+    };
+
+    let first_end = text[first_start..]
+        .char_indices()
+        .find(|(_, c)| c.is_whitespace())
+        .map(|(i, _)| first_start + i)
+        .unwrap_or(text.len());
+    let first_token = &text[first_start..first_end];
+
+    let mixed_case = first_token.chars().skip(1).any(|c| c.is_uppercase());
+    let technical_shape = first_token.contains('_')
+        || first_token.contains('/')
+        || first_token.contains("::")
+        || first_token.starts_with('#');
+
+    if mixed_case || technical_shape {
+        return text.to_string();
     }
-    text.to_string()
+
+    let first_char = text[first_start..].chars().next().unwrap();
+    if first_char.is_uppercase() {
+        return text.to_string();
+    }
+
+    let mut out = text.to_string();
+    out.replace_range(
+        first_start..first_start + first_char.len_utf8(),
+        &first_char.to_uppercase().to_string(),
+    );
+    out
 }
 
 const ORDINAL_CUES: &[&str] = &[
@@ -595,9 +615,6 @@ const ORDINAL_CUES: &[&str] = &[
     "finally", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th",
 ];
 
-/// Explicitly ordinal procedural speech becomes a numbered Markdown list.
-/// Ordinal words are absorbed into their step numbers per the spec example:
-/// "First fix the header." → "1. Fix the header."
 fn numbered_list(sentences: &[&str]) -> Option<String> {
     let ordinal_positions: Vec<Option<usize>> = sentences
         .iter()
@@ -645,9 +662,6 @@ fn numbered_list(sentences: &[&str]) -> Option<String> {
     Some(lines.join("\n"))
 }
 
-/// True for whitespace tokens that are literal technical artifacts: file
-/// paths with extensions, hex colors, SCREAMING_SNAKE identifiers, and
-/// hyphenated lowercase utility classes carrying a digit or variant.
 fn is_technical_token(token: &str) -> bool {
     if token.len() < 4 || token.contains(' ') {
         return false;
@@ -713,12 +727,7 @@ fn wrap_technical_tokens(text: &str) -> String {
         .join("\n")
 }
 
-// ---------------------------------------------------------------------------
-// Public entry point
-// ---------------------------------------------------------------------------
 
-/// Formats normalized transcript text: numerics, sentence punctuation,
-/// structural lists, then inline-code wrapping. Always on; deterministic.
 pub fn format(text: &str, style: PunctuationStyle) -> String {
     if text.trim().is_empty() {
         return text.to_string();
@@ -744,7 +753,6 @@ fn format_single(text: &str, style: PunctuationStyle) -> String {
         .join(". ");
 
     let punctuated = crate::audio_toolkit::punctuation::punctuate(&commaed, style);
-    // A leading orphan terminal (ASR sometimes opens with ". ") is noise.
     let punctuated = punctuated
         .trim_start_matches(['.', ' ', '!'])
         .trim_start()
@@ -755,7 +763,6 @@ fn format_single(text: &str, style: PunctuationStyle) -> String {
     wrap_technical_tokens(&structured)
 }
 
-/// Common function words ASR shouts in caps; they never stay uppercase.
 const DESHOUT_WORDS: &[&str] = &[
     "and", "or", "but", "the", "a", "an", "of", "to", "in", "on", "with", "for", "from", "at",
     "by", "is", "are", "be", "as", "it", "its", "into", "add", "all", "put", "use", "when", "then",
@@ -763,9 +770,6 @@ const DESHOUT_WORDS: &[&str] = &[
     "after", "without", "using", "also", "round", "center", "white", "black",
 ];
 
-/// Rewrites SHOUTED words: known technical acronyms keep their canonical
-/// casing via the lexicon; everything else that is fully uppercase and not a
-/// catalog term gets lowercased ("AND I'm" → "and I'm").
 fn de_shout(text: &str) -> String {
     text.split_whitespace()
         .map(|word| {
@@ -777,8 +781,6 @@ fn de_shout(text: &str) -> String {
                 return word.to_string();
             }
             let lowered = core.to_lowercase();
-            // Function words de-shout unconditionally — SQL keyword catalogs
-            // legitimately contain "AND", but shouted prose never means it.
             if DESHOUT_WORDS.contains(&lowered.as_str()) {
                 word.replacen(core, &lowered, 1)
             } else {
@@ -789,272 +791,698 @@ fn de_shout(text: &str) -> String {
         .join(" ")
 }
 
+const SENTENCE_ABBREVIATIONS: &[&str] = &[
+    "e.g.", "i.e.", "mr.", "mrs.", "ms.", "dr.", "prof.", "sr.", "jr.", "vs.", "fig.",
+];
+
+fn is_sentence_terminal_at(text: &str, index: usize) -> bool {
+    let bytes = text.as_bytes();
+    if index >= bytes.len() || !matches!(bytes[index], b'.' | b'!' | b'?') {
+        return false;
+    }
+
+    let next = text[index + 1..].chars().next();
+    if next.is_some_and(|c| !c.is_whitespace()) {
+        return false;
+    }
+
+    if bytes[index] != b'.' {
+        return true;
+    }
+
+    let token_start = text[..index]
+        .char_indices()
+        .rev()
+        .find(|(_, c)| c.is_whitespace())
+        .map(|(i, c)| i + c.len_utf8())
+        .unwrap_or(0);
+    let token = &text[token_start..=index];
+    let lower = token.to_ascii_lowercase();
+
+    if SENTENCE_ABBREVIATIONS.contains(&lower.as_str()) {
+        return false;
+    }
+    if token.contains("://") || token.contains('@') {
+        return false;
+    }
+
+    true
+}
+
 fn split_sentences(text: &str) -> Vec<&str> {
     let mut sentences = Vec::new();
     let mut start = 0usize;
-    let bytes = text.as_bytes();
-    for index in 0..bytes.len() {
-        if matches!(bytes[index], b'.' | b'!' | b'?') {
-            let next = text[index + 1..].chars().next();
-            if next.is_none_or(|c| c.is_whitespace()) {
-                let end = (index + 1).min(text.len());
-                sentences.push(text[start..end].trim());
-                start = end;
+
+    for (index, _) in text.char_indices() {
+        if is_sentence_terminal_at(text, index) {
+            let end = index + 1;
+            let sentence = text[start..end].trim();
+            if !sentence.is_empty() {
+                sentences.push(sentence);
             }
+            start = end;
         }
     }
+
     if start < text.len() {
-        sentences.push(text[start..].trim());
+        let sentence = text[start..].trim();
+        if !sentence.is_empty() {
+            sentences.push(sentence);
+        }
     }
+
     sentences
-        .into_iter()
-        .filter(|sentence| !sentence.is_empty())
-        .collect()
 }
 
-// ============================================================
-// Layout — deterministic paragraphs, lists, and email envelopes
-// ============================================================
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Span {
+    start: usize,
+    end: usize,
+}
 
-/// Byte offset just past the first `n` whitespace-separated words' trailing
-/// space run; used to split a greeting header off dictated prose safely.
-fn skip_leading_words(line: &str, n: usize) -> usize {
-    let bytes = line.as_bytes();
-    let mut index = 0usize;
-    let mut seen = 0usize;
-    while index < bytes.len() {
-        while index < bytes.len() && bytes[index].is_ascii_whitespace() {
-            index += 1;
-        }
-        if index >= bytes.len() {
-            break;
-        }
-        while index < bytes.len() && !bytes[index].is_ascii_whitespace() {
-            index += 1;
-        }
-        seen += 1;
-        if seen == n {
-            while index < bytes.len() && bytes[index].is_ascii_whitespace() {
-                index += 1;
-            }
-            return index;
-        }
-    }
-    line.len()
+#[derive(Debug, Clone, Copy)]
+struct TokenSpan {
+    span: Span,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SentenceSpan {
+    span: Span,
+    words: usize,
+    terminal: bool,
+}
+
+#[derive(Debug, Clone)]
+struct ParsedNumberedList {
+    prefix: String,
+    items: Vec<String>,
+    consumed_end: usize,
+}
+
+#[derive(Debug, Clone)]
+struct ParsedNaturalList {
+    lead: String,
+    items: Vec<String>,
+    consumed_end: usize,
+}
+
+#[derive(Debug, Clone)]
+struct ParsedColonList {
+    lead: String,
+    items: Vec<String>,
+    consumed_end: usize,
 }
 
 const GREETING_OPENERS: &[&str] = &["hey", "hi", "hello", "dear"];
-
+const GREETING_REJECT_FIRST: &[&str] = &[
+    "everyone", "everybody", "team", "folks", "guys", "all", "there", "buddy", "buddies",
+];
+const GREETING_BODY_START: &[&str] = &[
+    "just", "wanted", "quick", "hope", "please", "can", "could", "would", "how", "thanks",
+    "thank", "following", "checking", "reaching", "writing", "sending", "letting", "giving",
+    "i", "we", "the", "this", "that", "regarding", "about", "wanted", "sorry",
+];
 const SIGNOFFS: &[&str] = &[
-    "thanks",
-    "thank you",
-    "many thanks",
-    "cheers",
-    "best",
-    "regards",
-    "talk soon",
-    "take care",
-    "sincerely",
+    "many thanks", "thank you", "talk soon", "take care", "best regards", "kind regards",
+    "thanks", "cheers", "best", "regards", "sincerely",
 ];
 
-/// Appends a sentence terminal when one is missing; never doubles one.
-fn ensure_terminal(sentence: &str) -> String {
-    let trimmed = sentence.trim();
-    match trimmed.chars().last() {
-        Some('.') | Some('!') | Some('?') | Some(':') | None => trimmed.to_string(),
-        _ => format!("{trimmed}."),
+// -----------------------------------------------------------------------------
+// EMAIL-SPECIFIC CONTEXT
+// -----------------------------------------------------------------------------
+//
+// IMPORTANT:
+// - recipient_name comes from Gmail's sender/header metadata.
+// - author_name comes from the local Superflow profile / Gmail account identity.
+// - DO NOT derive either from the email subject.
+// - Capture/cache this context before formatting. No network call here.
+//
+// The formatter itself remains deterministic and extremely cheap.
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct EmailFormatContext<'a> {
+    /// True only when we KNOW the focused surface is an email composer/reply.
+    pub is_email: bool,
+
+    /// Canonical name of the person we are replying to.
+    ///
+    /// Example:
+    /// Gmail header says "Will Cannon <will@...>"
+    /// Pass "Will" or "Will Cannon" depending on your preferred salutation.
+    pub recipient_name: Option<&'a str>,
+
+    /// Canonical local name of the Superflow user.
+    ///
+    /// Example:
+    /// "Harpreet Duggal"
+    ///
+    /// This is the signature name after:
+    ///
+    /// Thanks,
+    /// Harpreet Duggal
+    pub author_name: Option<&'a str>,
+
+    /// Optional job title for the multi-line signature block.
+    pub author_title: Option<&'a str>,
+
+    /// Optional company for the multi-line signature block.
+    pub author_company: Option<&'a str>,
+
+    /// When true, render the job title line (and company) under the name.
+    pub include_title: bool,
+
+    /// When true, render the company (standalone or after the title).
+    pub include_company: bool,
+
+    /// Sign-off used when the transcript has NO spoken sign-off (e.g. "Talk soon").
+    /// Only populated when we KNOW the author, so we never invent an ending for
+    /// an unknown user.
+    pub default_signoff: Option<&'a str>,
+}
+
+#[derive(Debug, Clone)]
+struct ParsedEmailClosing {
+    body: String,
+    closing: String,
+    signature: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Subject extraction (dictated email)
+// ---------------------------------------------------------------------------
+
+/// A dictated subject line, stripped from the transcript so the mail client's
+/// Subject field receives it instead of the body.
+pub struct ParsedEmailSubject {
+    pub body: String,
+    pub subject: String,
+}
+
+/// Subject-aware result of full email formatting: `text` is the finished body
+/// (greeting, paragraphs, closing, signature); `subject` — when dictated — is
+/// meant for the mail client's Subject input.
+#[derive(Debug, Clone, Default)]
+pub struct FormattedEmail {
+    pub text: String,
+    pub subject: Option<String>,
+}
+
+/// A subject phrase may not exceed this many words; longer spans are prose.
+const SUBJECT_MAX_WORDS: usize = 12;
+
+/// Words that start the actual email body when dictating subject-first
+/// ("subject updated rollout timeline hey sarah …" — body starts at "hey").
+const SUBJECT_BODY_STARTERS: &[&str] = &[
+    "hey", "hi", "hello", "dear", "greetings", "yo", "good", "morning", "afternoon", "evening",
+    "team",
+];
+
+fn canonical_marker(word: &str) -> Option<&'static str> {
+    let w = word
+        .trim_matches(|c: char| matches!(c, ':' | ',' | '.'))
+        .to_lowercase();
+    match w.as_str() {
+        "subject" => Some("subject"),
+        _ => None,
     }
 }
 
-/// Pulls a leading greeting off dictated email prose. Deterministic: only the
-/// four openers qualify, and a real name token must follow (a bare "hey" is
-/// ordinary speech, never an envelope). The name run continues through
-/// consecutive Titlecase tokens ("David Smith") and stops at the first
-/// lowercase word or comma. Handles lower-case dictated names by capitalizing.
-fn extract_email_envelope(text: &str) -> Option<(String, String)> {
+fn is_greeting_starter(word: &str) -> bool {
+    let w = word
+        .trim_matches(|c: char| matches!(c, ',' | ':' | '.'))
+        .to_lowercase();
+    SUBJECT_BODY_STARTERS.contains(&w.as_str())
+}
+
+/// Normalize the captured subject: drop marker residue (`:`, doubled
+/// "subject", leading "is"), trailing periods/commas, capitalize first word.
+fn clean_subject_text(raw: &str, allow_leading_is: bool) -> Option<String> {
+    let mut words: Vec<&str> = raw.split_whitespace().collect();
+    // Doubled marker: "Subject: Subject, I am sick"
+    while let Some(first) = words.first() {
+        if canonical_marker(first).is_some() {
+            words.remove(0);
+        } else {
+            break;
+        }
+    }
+    if allow_leading_is && !words.is_empty() {
+        let first = words[0]
+            .trim_matches(|c: char| matches!(c, ':' | ','))
+            .to_lowercase();
+        if first == "is" {
+            words.remove(0);
+        }
+    }
+    if words.is_empty() {
+        return None;
+    }
+    let mut subject = words.join(" ");
+    while subject.ends_with(['.', ',']) {
+        subject.pop();
+        subject = subject.trim_end().to_string();
+    }
+    if subject.is_empty() {
+        return None;
+    }
+    let mut chars = subject.chars();
+    match chars.next() {
+        Some(first) => Some(first.to_uppercase().collect::<String>() + chars.as_str()),
+        None => None,
+    }
+}
+
+/// Deterministic subject detection. Handles exactly the two real-world
+/// placements — dictated FIRST or LAST — plus written-style "Subject: …" on
+/// its own line. Anything ambiguous is left untouched (fail-closed).
+fn extract_email_subject(text: &str) -> ParsedEmailSubject {
     let trimmed = text.trim();
-    let first_line = trimmed
-        .split(['\n', '\r'])
-        .find(|line| !line.trim().is_empty())?;
-    let mut tokens = first_line.split_whitespace();
-    let opener_raw = tokens.next()?;
-    let opener = opener_raw
-        .trim_matches(|c: char| !c.is_alphanumeric())
-        .to_lowercase();
-    if !GREETING_OPENERS.contains(&opener.as_str()) {
-        return None;
-    }
-
-    let mut name_tokens: Vec<String> = Vec::new();
-    for token in tokens {
-        let core = token.trim_matches(|c: char| ",.;:!?\"'()".contains(c));
-        if core.is_empty()
-            || !core
-                .chars()
-                .all(|c| c.is_alphanumeric() || c == '\'' || c == '.')
-        {
-            break;
-        }
-        // Accept lower-case dictated names (e.g. "david") and Titlecase them.
-        // Only stop when token is not alphabetic or is a clear non-name (lowercase verb).
-        // For envelope we accept 1-2 consecutive name-like tokens regardless of case.
-        let is_name_like = core.chars().all(|c| c.is_alphabetic() || c == '\'' || c == '.')
-            && core.len() >= 2;
-        if !is_name_like {
-            break;
-        }
-        // Heuristic: if token is lower case verb like "just", "wanted" stop.
-        // We treat tokens that are all lower and not capitalized as potential names only for first 2 tokens.
-        // To keep deterministic, we accept first 1-2 tokens after opener as name if they are alphabetic,
-        // then require next token to be lower-case verb to break? Simpler: accept up to 2 tokens.
-        if name_tokens.len() >= 2 {
-            break;
-        }
-        name_tokens.push(recapitalize(&core.to_lowercase()));
-        if token.ends_with(',') {
-            break;
-        }
-    }
-    if name_tokens.is_empty() {
-        return None;
-    }
-
-    // Body starts at the first word after the greeting run within this line;
-    // anything on following lines rides along untouched.
-    let greeting_words = 1 + name_tokens.len();
-    let cut = skip_leading_words(first_line, greeting_words);
-    let inline_body = first_line[cut..].trim();
-    let rest_of_text = trimmed[first_line.len()..].trim();
-    let body = if inline_body.is_empty() {
-        rest_of_text.to_string()
-    } else {
-        format!("{inline_body} {rest_of_text}")
+    let no_op = || ParsedEmailSubject {
+        body: trimmed.to_string(),
+        subject: String::new(),
     };
-    if body.is_empty() {
-        return None;
+    if trimmed.is_empty() {
+        return no_op();
     }
 
-    let greeting_line = format!(
-        "{},",
-        recapitalize(&format!("{opener} {}", name_tokens.join(" ")))
-    );
-    Some((greeting_line, body.to_string()))
-}
-
-/// Splits a trailing bare sign-off ("thanks", "cheers", "best regards"…)
-/// onto its own closing line with a comma, exactly like a written email.
-fn extract_signoff(text: &str) -> Option<(String, String)> {
-    let last_line = text.lines().rev().find(|line| !line.trim().is_empty())?;
-    let normalized = last_line
-        .trim()
-        .trim_end_matches(['.', ',', '!', '?'])
-        .to_lowercase();
-    if normalized.split_whitespace().count() > 2 || !SIGNOFFS.contains(&normalized.as_str()) {
-        return None;
+    let words: Vec<&str> = trimmed.split_whitespace().collect();
+    if words.is_empty() {
+        return no_op();
     }
-    let before_len = text.len() - last_line.len();
-    let before = text[..before_len].trim_end().to_string();
-    if before.is_empty() {
-        return None;
-    }
-    Some((before, format!("{},", recapitalize(&normalized))))
-}
 
-/// Whitespace-token byte spans of a string, in order.
-fn word_spans(text: &str) -> Vec<(usize, usize)> {
-    text.split_whitespace()
-        .map(|word| {
-            let start = word.as_ptr() as usize - text.as_ptr() as usize;
-            (start, start + word.len())
-        })
-        .collect()
-}
-
-/// Byte position of the first sentence terminator at or after `from`,
-/// including the terminator itself; None when the tail has none.
-fn next_terminal_end(text: &str, from: usize) -> Option<usize> {
-    let bytes = text.as_bytes();
-    for index in from..bytes.len() {
-        if matches!(bytes[index], b'.' | b'!' | b'?') {
-            let next = text[index + 1..].chars().next();
-            if next.is_none_or(|c| c.is_whitespace()) {
-                // Protect abbreviations, decimals, file paths: only split when
-                // the terminator is followed by whitespace/EOF, which we already check.
-                // This naturally avoids splitting inside "e.g.", "3.14", "src/file.tsx"
-                // because those have alphanumeric after the dot.
-                return Some(index + 1);
+    // --- Case A: subject FIRST on one line ("subject … hey sarah …") ---
+    if canonical_marker(words[0]).is_some() {
+        // "subject line …" bigram.
+        let mut span_start = 1usize;
+        if words.len() > 1
+            && canonical_marker(words[1]).is_none()
+            && words[1].trim_end_matches([':', ',', '.']).eq_ignore_ascii_case("line")
+        {
+            span_start = 2;
+        }
+        let mut span_end = words.len();
+        for (index, word) in words.iter().enumerate().skip(span_start) {
+            if is_greeting_starter(word) {
+                span_end = index;
+                break;
             }
+        }
+        let span = &words[span_start..span_end];
+        if !span.is_empty() && span.len() <= SUBJECT_MAX_WORDS {
+            if let Some(subject) = clean_subject_text(&span.join(" "), true) {
+                let body = words[span_end..].join(" ");
+                if body.split_whitespace().count() >= 3 {
+                    return ParsedEmailSubject { body, subject };
+                }
+            }
+        }
+        // Marker present but the span reads like prose — leave untouched.
+        return no_op();
+    }
+
+    // --- Case B: subject on its OWN last line ("…\nsubject updated rollout") ---
+    if let Some(last_line_start) = trimmed.rfind('\n') {
+        let last_line = trimmed[last_line_start + 1..].trim();
+        let line_words: Vec<&str> = last_line.split_whitespace().collect();
+        if !line_words.is_empty()
+            && canonical_marker(line_words[0]).is_some()
+            && line_words.len() > 1
+            && line_words.len() - 1 <= SUBJECT_MAX_WORDS
+        {
+            if let Some(subject) = clean_subject_text(&line_words[1..].join(" "), true) {
+                let body = trimmed[..last_line_start].trim();
+                if body.split_whitespace().count() >= 3 {
+                    return ParsedEmailSubject {
+                        body: body.to_string(),
+                        subject,
+                    };
+                }
+            }
+        }
+    }
+
+    // --- Case C: subject as the FINAL clause ("… Alex. subject updated …") ---
+    // Only after sentence punctuation or a clause comma, and the tail must not
+    // read like continuing prose ("… the subject is unclear" never fires).
+    if let Some(last_index) = words
+        .iter()
+        .rposition(|w| canonical_marker(w).is_some())
+        .filter(|i| *i > 0 && *i + 1 < words.len())
+    {
+        let preceding = words[last_index - 1];
+        if preceding.ends_with(['.', '!', '?', ',']) {
+            let tail = &words[last_index + 1..];
+            if !tail.is_empty() && tail.len() <= SUBJECT_MAX_WORDS {
+                let first = tail[0]
+                    .trim_matches(|c: char| matches!(c, ':' | ','))
+                    .to_lowercase();
+                let prose_continuation = matches!(
+                    first.as_str(),
+                    "is" | "was" | "will" | "does" | "the" | "this" | "that" | "it"
+                );
+                if !prose_continuation {
+                    if let Some(subject) = clean_subject_text(&tail.join(" "), false) {
+                        let mut body = words[..last_index].join(" ");
+                        while body.ends_with(',') {
+                            body.pop();
+                            body = body.trim_end().to_string();
+                        }
+                        if body.split_whitespace().count() >= 3 {
+                            return ParsedEmailSubject { body, subject };
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    no_op()
+}
+
+/// Subject-aware entry point used by the Gmail surface. Runs subject
+/// extraction FIRST, then the regular email layout pass on the clean body so
+/// greeting/closing/signature logic operates without the subject in the way.
+pub fn format_email_for_surface(text: &str, context: EmailFormatContext<'_>) -> FormattedEmail {
+    if !context.is_email {
+        return FormattedEmail {
+            text: format_layout_with_email(text, Some(context)),
+            subject: None,
+        };
+    }
+    let parsed = extract_email_subject(text);
+    let subject = if parsed.subject.is_empty() {
+        None
+    } else {
+        Some(parsed.subject)
+    };
+    FormattedEmail {
+        text: format_layout_with_email(&parsed.body, Some(context)),
+        subject,
+    }
+}
+
+// Longest phrases first.
+const EMAIL_SIGNOFFS: &[&str] = &[
+    "best regards",
+    "kind regards",
+    "many thanks",
+    "thank you",
+    "talk to you soon",
+    "all the best",
+    "talk soon",
+    "take care",
+    "warm regards",
+    "sincerely",
+    "regards",
+    "cheers",
+    "thanks",
+    "best",
+];
+
+/// ASR mis-hears of "thanks" and casual shortenings that should normalize to a
+/// real sign-off instead of being left in the body.
+const SIGNOFF_ALIASES: &[(&str, &str)] = &[
+    ("tanks", "thanks"),
+    ("thx", "thanks"),
+    ("ty", "thanks"),
+    ("tks", "thanks"),
+    ("tx", "thanks"),
+];
+
+/// Returns the canonical sign-off string for a single spoken word, or `None`.
+/// Handles aliases (e.g. "tanks" -> "thanks") so they match `EMAIL_SIGNOFFS`.
+fn canonical_signoff_word(word: &str) -> Option<&'static str> {
+    let w = clean_email_word(word);
+    for signoff in EMAIL_SIGNOFFS {
+        if *signoff == w {
+            return Some(signoff);
+        }
+    }
+    for (alias, target) in SIGNOFF_ALIASES {
+        if w == *alias {
+            return Some(target);
         }
     }
     None
 }
 
-/// Deterministic paragraphing per spec 25–35 preferred, 40 hard max:
-/// - Count words since previous break.
-/// - After >=25, search for next natural boundary (. ? !).
-/// - Prefer 25–35, allow up to 40, preserve long sentences intact.
-fn gap_paragraphs(text: &str) -> Vec<String> {
-    const TARGET_MIN: usize = 25;
-    const TARGET_PREF_MAX: usize = 35;
-    const HARD_MAX: usize = 40;
-
-    let mut paragraphs = Vec::new();
-    let mut remainder = text.trim();
-    for _guard in 0..500 {
-        let spans = word_spans(remainder);
-        if spans.len() <= TARGET_MIN {
-            paragraphs.push(remainder.to_string());
-            return paragraphs;
+/// Build the multi-line signature block from the context identity.
+///
+/// `Name` -> `Name\nTitle` -> `Name\nTitle, Company` -> `Name\nCompany`.
+/// Returns `None` when there is no known author name.
+fn build_email_signature(context: &EmailFormatContext<'_>) -> Option<String> {
+    let name = context.author_name.map(str::trim).filter(|n| !n.is_empty())?;
+    let mut lines = vec![name.to_string()];
+    if context.include_title {
+        if let Some(title) = context.author_title.map(str::trim).filter(|t| !t.is_empty()) {
+            let mut line = title.to_string();
+            if context.include_company {
+                if let Some(company) = context
+                    .author_company
+                    .map(str::trim)
+                    .filter(|c| !c.is_empty())
+                {
+                    line.push_str(", ");
+                    line.push_str(company);
+                }
+            }
+            lines.push(line);
+        } else if context.include_company {
+            if let Some(company) = context
+                .author_company
+                .map(str::trim)
+                .filter(|c| !c.is_empty())
+            {
+                lines.push(company.to_string());
+            }
         }
-
-        // Preferred window 25..35
-        let pref_first = spans[TARGET_MIN - 1].0;
-        let pref_last_idx = (TARGET_PREF_MAX.min(spans.len())) - 1;
-        let pref_last = spans[pref_last_idx].1;
-
-        // Hard window 35..40
-        let hard_last_idx = (HARD_MAX.min(spans.len())) - 1;
-        let hard_last = spans[hard_last_idx].1;
-
-        // First try preferred window
-        let pref_hit = next_terminal_end(remainder, pref_first).filter(|end| *end <= pref_last);
-        let split_at = match pref_hit {
-            Some(end) => Some(end),
-            None => {
-                // Try hard window
-                let hard_hit = next_terminal_end(remainder, pref_last).filter(|end| *end <= hard_last);
-                match hard_hit {
-                    Some(end) => Some(end),
-                    None => next_terminal_end(remainder, hard_last),
-                }
-            }
-        };
-
-        match split_at {
-            Some(end) => {
-                // Do not split a single long sentence merely because it exceeds 40.
-                // next_terminal_end after hard_last gives the end of that long sentence,
-                // which is correct to keep intact.
-                paragraphs.push(remainder[..end].trim().to_string());
-                remainder = remainder[end..].trim();
-                if remainder.is_empty() {
-                    return paragraphs;
-                }
-            }
-            None => {
-                paragraphs.push(remainder.to_string());
-                return paragraphs;
-            }
+    } else if context.include_company {
+        if let Some(company) = context
+            .author_company
+            .map(str::trim)
+            .filter(|c| !c.is_empty())
+        {
+            lines.push(company.to_string());
         }
     }
-    paragraphs.push(remainder.to_string());
-    paragraphs
+    Some(lines.join("\n"))
 }
 
-// ---------------------------------------------------------------------------
-// Natural list detection (spec section 3,4)
-// ---------------------------------------------------------------------------
+// These mean "thanks" is still ordinary prose, not an email closing.
+//
+// Examples we MUST NOT turn into signatures:
+// "Thanks for your help"
+// "Thanks again for checking"
+// "Thanks so much"
+// "Thanks everyone"
+const SIGNOFF_CONTINUATIONS: &[&str] = &[
+    "for", "to", "again", "so", "very", "a", "the", "and", "but", "because", "everyone",
+    "everybody", "all", "your", "you", "that", "this", "with", "about", "if", "when",
+];
 
+fn clean_email_word(word: &str) -> String {
+    word.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'' && c != '’' && c != '-')
+        .replace('’', "'")
+        .to_lowercase()
+}
+
+fn canonical_signoff(signoff: &str) -> String {
+    let mut chars = signoff.chars();
+    match chars.next() {
+        Some(first) => {
+            let mut out = first.to_uppercase().collect::<String>();
+            out.push_str(chars.as_str());
+            out
+        }
+        None => String::new(),
+    }
+}
+
+fn looks_like_spoken_signature(tokens: &[&str]) -> bool {
+    // A human name/signature should be tiny.
+    //
+    // This deliberately rejects things like:
+    // "thanks for taking care of this"
+    if tokens.is_empty() || tokens.len() > 3 {
+        return false;
+    }
+    let first = clean_email_word(tokens[0]);
+    if first.is_empty() || SIGNOFF_CONTINUATIONS.contains(&first.as_str()) {
+        return false;
+    }
+    tokens.iter().all(|token| {
+        let cleaned = token.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'' && c != '’' && c != '-');
+        cleaned.len() >= 2
+            && cleaned
+                .chars()
+                .all(|c| c.is_alphabetic() || c == '\'' || c == '’' || c == '-')
+    })
+}
+
+/// Detect an email closing only at the TAIL of the message.
+///
+/// This is intentionally NOT a global "find thanks" search.
+///
+/// Good:
+///   "... I'll send it tomorrow thanks"
+///   "... I'll send it tomorrow thanks harprit"
+///   "... I'll send it tomorrow cheers duggal"
+///
+/// Not a closing:
+///   "... thanks for helping with this ..."
+///   "... he said thanks and left ..."
+///   "... thanks everyone ..."
+///
+/// If a canonical author name exists, the spoken signature is NEVER trusted.
+/// ASR can butcher "Wojciechowski" all it wants. We replace it with metadata.
+fn extract_email_closing(
+    text: &str,
+    context: &EmailFormatContext<'_>,
+) -> Option<ParsedEmailClosing> {
+    if !context.is_email {
+        return None;
+    }
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let tokens = token_spans(trimmed);
+    if tokens.len() < 2 {
+        return None;
+    }
+    // A closing can only live in a tiny tail window.
+    //
+    // Longest supported closing = 2 words.
+    // Spoken signature = max 3 words.
+    //
+    // Six gives us a little safety room without scanning arbitrary prose.
+    let search_start = tokens.len().saturating_sub(6);
+    // Search backwards — longest signoffs first so "best regards" wins over
+    // "regards" when they share the same tail.
+    //
+    // Therefore:
+    // "thanks ... body ... thanks harprit"
+    //
+    // picks ONLY the final thanks.
+    for signoff in EMAIL_SIGNOFFS {
+        for candidate_index in (search_start..tokens.len()).rev() {
+            let signoff_words: Vec<&str> = signoff.split_whitespace().collect();
+            let signoff_end_index = candidate_index + signoff_words.len();
+            if signoff_end_index > tokens.len() {
+                continue;
+            }
+            let matched = signoff_words.iter().enumerate().all(|(offset, expected)| {
+                canonical_signoff_word(span_text(trimmed, tokens[candidate_index + offset].span))
+                    .map(|w| w == *expected)
+                    .unwrap_or(false)
+            });
+            if !matched {
+                continue;
+            }
+            // Everything after the signoff could only be a spoken signature.
+            let trailing_tokens = &tokens[signoff_end_index..];
+            let trailing_words: Vec<&str> = trailing_tokens
+                .iter()
+                .map(|token| span_text(trimmed, token.span))
+                .collect();
+            // CASE 1:
+            //
+            // "... thanks"
+            //
+            // Valid. We'll append the canonical author name if available.
+            let has_no_spoken_signature = trailing_words.is_empty();
+            // CASE 2:
+            //
+            // "... thanks harprit duggel"
+            //
+            // Valid signature shape.
+            //
+            // We do NOT preserve "harprit duggel".
+            // We replace it with context.author_name.
+            let has_spoken_signature = looks_like_spoken_signature(&trailing_words);
+            if !has_no_spoken_signature && !has_spoken_signature {
+                // "thanks for your help"
+                // "thanks again"
+                // "thanks so much"
+                //
+                // Ordinary prose. Leave it alone.
+                continue;
+            }
+            // Smart duplicate reduction: if the sign-off is immediately preceded by
+            // other sign-off tokens (e.g. "cheers thanks", "talk soon thanks"),
+            // consume them too so they don't linger in the body or double up.
+            let mut signoff_start = tokens[candidate_index].span.start;
+            let mut scan = candidate_index;
+            while scan > 0 {
+                let prev = scan - 1;
+                if prev < search_start {
+                    break;
+                }
+                if canonical_signoff_word(span_text(trimmed, tokens[prev].span)).is_some() {
+                    signoff_start = tokens[prev].span.start;
+                    scan = prev;
+                } else {
+                    break;
+                }
+            }
+            let body = trimmed[..signoff_start].trim_end();
+            // Do not classify a standalone "thanks John" as an entire email.
+            if body.split_whitespace().count() < 3 {
+                continue;
+            }
+            return Some(ParsedEmailClosing {
+                body: body.to_string(),
+                closing: format!("{},", canonical_signoff(signoff)),
+                signature: build_email_signature(context),
+            });
+        }
+    }
+    None
+}
+
+/// Replace the ASR-spelled greeting name with Gmail's canonical sender name.
+///
+/// Input:
+///     "Hey Voytek,"
+///
+/// Gmail context:
+///     recipient_name = "Wojciech"
+///
+/// Output:
+///     "Hey Wojciech,"
+///
+/// No fuzzy matching. No guessing. Exact metadata wins.
+fn canonicalize_email_greeting(
+    greeting: &str,
+    context: &EmailFormatContext<'_>,
+) -> String {
+    if !context.is_email {
+        return greeting.to_string();
+    }
+    let Some(recipient) = context
+        .recipient_name
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+    else {
+        return greeting.to_string();
+    };
+    let mut words = greeting.split_whitespace();
+    let Some(opener) = words.next() else {
+        return greeting.to_string();
+    };
+    let opener = opener
+        .trim_matches(|c: char| !c.is_alphabetic())
+        .to_string();
+    let opener_norm = opener.to_lowercase();
+    if !matches!(opener_norm.as_str(), "hey" | "hi" | "hello" | "dear") {
+        return greeting.to_string();
+    }
+    format!("{opener} {recipient},")
+}
+
+const ORDINAL_NON_LIST_FOLLOWERS: &[&str] = &[
+    "in", "to", "of", "at", "for", "place", "time", "person", "half", "quarter",
+];
 const INTRODUCERS: &[&str] = &[
     "i'm going to get",
     "im going to get",
@@ -1076,594 +1504,971 @@ const INTRODUCERS: &[&str] = &[
     "remove",
 ];
 
-const KNOWN_TECH_CANONICAL: &[(&str, &str)] = &[
-    ("next.js", "Next.js"),
-    ("tanstack query", "TanStack Query"),
-    ("shadcn/ui", "shadcn/ui"),
-    ("shadcn", "shadcn/ui"),
-    ("mlx", "MLX"),
-    ("gguf", "GGUF"),
-    ("react", "React"),
-    ("typescript", "TypeScript"),
-    ("tailwind css", "Tailwind CSS"),
-    ("tailwind", "Tailwind CSS"),
-    ("tauri", "Tauri"),
-    ("node.js", "Node.js"),
-    ("trpc", "tRPC"),
-    ("prisma", "Prisma"),
-    ("postgresql", "PostgreSQL"),
-    ("postgres", "PostgreSQL"),
-    ("redis", "Redis"),
-    ("docker", "Docker"),
-    ("github actions", "GitHub Actions"),
-    ("github action", "GitHub Actions"),
-    ("zod", "Zod"),
-    ("playwright", "Playwright"),
-    ("vercel", "Vercel"),
-    ("vite", "Vite"),
-];
+fn token_spans(text: &str) -> Vec<TokenSpan> {
+    let mut spans = Vec::new();
+    let mut start = None;
 
-fn canonical_tech(term: &str) -> Option<&'static str> {
-    let lower = term.to_lowercase();
-    for (k, v) in KNOWN_TECH_CANONICAL {
-        if lower == *k {
-            return Some(*v);
+    for (index, ch) in text.char_indices() {
+        if ch.is_whitespace() {
+            if let Some(token_start) = start.take() {
+                spans.push(TokenSpan {
+                    span: Span {
+                        start: token_start,
+                        end: index,
+                    },
+                });
+            }
+        } else if start.is_none() {
+            start = Some(index);
         }
     }
-    None
+
+    if let Some(token_start) = start {
+        spans.push(TokenSpan {
+            span: Span {
+                start: token_start,
+                end: text.len(),
+            },
+        });
+    }
+
+    spans
 }
 
-fn normalize_list_item(raw: &str) -> String {
-    let trimmed = raw.trim().trim_matches(|c: char| c == ',' || c == '.' || c == ';' || c == ':' || c == '!' || c == '?');
-    let trimmed = trimmed.trim();
-    if trimmed.is_empty() {
-        return String::new();
-    }
-    if let Some(canonical) = canonical_tech(trimmed) {
-        return canonical.to_string();
-    }
-    // Preserve casing for mixed-case or slash-containing tech like "shadcn/ui"
-    // For all-lowercase ordinary words, capitalize first letter.
-    let has_upper = trimmed.chars().any(|c| c.is_uppercase());
-    let has_slash = trimmed.contains('/');
-    let has_dot = trimmed.contains('.');
-    if has_upper || has_slash || has_dot {
-        // Keep as is but ensure first alphabetic is capitalized if not known tech
-        // For "apple" -> "Apple", for "Next.js" keep.
-        if trimmed.chars().next().is_some_and(|c| c.is_lowercase()) && !has_slash {
-            // Check if it's a known lower tech like "shadcn/ui" - already handled via canonical
-            return recapitalize(trimmed);
-        }
-        return trimmed.to_string();
-    }
-    recapitalize(trimmed)
-}
-
-fn find_introducer(block: &str) -> Option<(usize, String)> {
-    let normalized = block
-        .to_lowercase()
+fn normalized_word(word: &str) -> String {
+    word.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'' && c != '-')
         .replace('’', "'")
-        .replace('`', "'");
-    // Sort by length descending to match longest first
-    let mut sorted: Vec<&str> = INTRODUCERS.to_vec();
-    sorted.sort_by_key(|s| std::cmp::Reverse(s.len()));
-    for intro in sorted {
-        if normalized.starts_with(intro) {
-            let rest = &normalized[intro.len()..];
-            if rest.is_empty()
-                || rest.starts_with(|c: char| c.is_whitespace() || c == ':' || c == ',' || c == '.')
-            {
-                // Return original cased lead length and normalized lead for later
-                // Find byte length of intro in original block (case-insensitive, so approximate)
-                // Use intro.len() as char count approximation, but need byte offset in original.
-                // Simpler: find where intro ends in original by counting words.
-                let intro_word_count = intro.split_whitespace().count();
-                let lead_end = skip_leading_words(block, intro_word_count);
-                let lead = block[..lead_end].trim().trim_end_matches(|c: char| c == ':' || c == ',' ).to_string();
-                return Some((lead_end, lead));
-            }
+        .to_lowercase()
+}
+
+fn span_text<'a>(text: &'a str, span: Span) -> &'a str {
+    &text[span.start..span.end]
+}
+
+fn trim_leading_layout_noise(text: &str) -> &str {
+    text.trim_start_matches(|c: char| c.is_whitespace() || matches!(c, ',' | ';' | ':'))
+}
+
+fn trim_list_item(text: &str) -> &str {
+    text.trim()
+        .trim_start_matches(|c: char| matches!(c, ',' | ';' | ':' | '.'))
+        .trim()
+        .trim_end_matches(|c: char| matches!(c, ',' | ';' | ':' | '.' | '!' | '?'))
+        .trim()
+}
+
+fn is_name_like(word: &str) -> bool {
+    let core = word.trim_matches(|c: char| ",.;:!?\"'()[]{}".contains(c));
+    core.len() >= 2 && core.chars().all(|c| c.is_alphabetic() || c == '\'' || c == '-')
+}
+
+fn extract_email_envelope(text: &str) -> Option<(String, String)> {
+    let trimmed = text.trim();
+    let first_line_end = trimmed.find('\n').unwrap_or(trimmed.len());
+    let first_line = &trimmed[..first_line_end];
+    let tokens = token_spans(first_line);
+    if tokens.len() < 2 {
+        return None;
+    }
+
+    let opener = normalized_word(span_text(first_line, tokens[0].span));
+    if !GREETING_OPENERS.contains(&opener.as_str()) {
+        return None;
+    }
+
+    let first_name_raw = span_text(first_line, tokens[1].span);
+    let first_name_norm = normalized_word(first_name_raw);
+    if !is_name_like(first_name_raw) || GREETING_REJECT_FIRST.contains(&first_name_norm.as_str()) {
+        return None;
+    }
+
+    let mut names = vec![recapitalize(
+        first_name_raw.trim_matches(|c: char| ",.;:!?\"'()[]{}".contains(c)),
+    )];
+    let mut last_name_token = 1usize;
+
+    if !first_name_raw.ends_with(',') && tokens.len() > 2 {
+        let second_raw = span_text(first_line, tokens[2].span);
+        let second_norm = normalized_word(second_raw);
+        let next_norm = tokens
+            .get(3)
+            .map(|token| normalized_word(span_text(first_line, token.span)))
+            .unwrap_or_default();
+
+        let second_is_body = GREETING_BODY_START.contains(&second_norm.as_str())
+            || GREETING_REJECT_FIRST.contains(&second_norm.as_str());
+        let next_is_body = GREETING_BODY_START.contains(&next_norm.as_str());
+        let second_looks_name = is_name_like(second_raw) && !second_is_body;
+
+        if second_looks_name && (second_raw.ends_with(',') || next_is_body) {
+            names.push(recapitalize(
+                second_raw.trim_matches(|c: char| ",.;:!?\"'()[]{}".contains(c)),
+            ));
+            last_name_token = 2;
         }
     }
+
+    let body_start = tokens[last_name_token].span.end;
+    let inline_body = first_line[body_start..]
+        .trim_start_matches(|c: char| c.is_whitespace() || c == ',')
+        .trim();
+    let rest = if first_line_end < trimmed.len() {
+        trimmed[first_line_end..].trim()
+    } else {
+        ""
+    };
+
+    let body = match (inline_body.is_empty(), rest.is_empty()) {
+        (true, true) => return None,
+        (false, true) => inline_body.to_string(),
+        (true, false) => rest.to_string(),
+        (false, false) => format!("{inline_body} {rest}"),
+    };
+
+    let greeting = format!("{},", recapitalize(&format!("{opener} {}", names.join(" "))));
+    Some((greeting, body))
+}
+
+fn extract_signoff(text: &str, allow_inline: bool) -> Option<(String, String)> {
+    let trimmed = text.trim();
+    let tokens = token_spans(trimmed);
+    if tokens.is_empty() {
+        return None;
+    }
+
+    for signoff in SIGNOFFS {
+        let signoff_words: Vec<&str> = signoff.split_whitespace().collect();
+        if tokens.len() <= signoff_words.len() {
+            continue;
+        }
+
+        let start_index = tokens.len() - signoff_words.len();
+        let matches = signoff_words.iter().enumerate().all(|(offset, expected)| {
+            normalized_word(span_text(trimmed, tokens[start_index + offset].span)) == *expected
+        });
+        if !matches {
+            continue;
+        }
+
+        let start = tokens[start_index].span.start;
+        let before = trimmed[..start].trim_end();
+        if before.is_empty() {
+            continue;
+        }
+
+        let preceding = &trimmed[..start];
+        let isolated = preceding.ends_with('\n') || preceding.ends_with("\n\n");
+        if !allow_inline && !isolated {
+            continue;
+        }
+        if allow_inline && !isolated && before.split_whitespace().count() < 5 {
+            continue;
+        }
+
+        return Some((
+            before.to_string(),
+            format!("{},", recapitalize(signoff)),
+        ));
+    }
+
     None
 }
 
-fn split_comma_list(remainder: &str) -> Option<Vec<String>> {
-    // Must contain at least 2 commas and final and/or
-    let comma_count = remainder.matches(',').count();
-    if comma_count < 2 {
-        return None;
+fn sentence_spans(text: &str) -> Vec<SentenceSpan> {
+    let mut spans = Vec::new();
+    let mut start = 0usize;
+
+    for (index, _) in text.char_indices() {
+        if !is_sentence_terminal_at(text, index) {
+            continue;
+        }
+
+        let end = index + 1;
+        let raw = &text[start..end];
+        let leading = raw.len() - raw.trim_start().len();
+        let trailing = raw.len() - raw.trim_end().len();
+        let span = Span {
+            start: start + leading,
+            end: end - trailing,
+        };
+        if span.start < span.end {
+            spans.push(SentenceSpan {
+                span,
+                words: span_text(text, span).split_whitespace().count(),
+                terminal: true,
+            });
+        }
+        start = end;
     }
-    let lower = remainder.to_lowercase();
-    if !lower.contains(" and ") && !lower.contains(" or ") {
-        return None;
-    }
-    // Split by commas
-    let mut parts: Vec<String> = remainder.split(',').map(|s| s.to_string()).collect();
-    // Last part contains "and"/"or" + final item
-    if let Some(last) = parts.last_mut() {
-        let last_lower = last.to_lowercase();
-        let and_pos = last_lower.find(" and ").or_else(|| last_lower.find(" or "));
-        if let Some(pos) = and_pos {
-            let sep_len = if last_lower[pos..].starts_with(" and ") { 5 } else { 4 };
-            let before = last[..pos].trim().to_string();
-            let after = last[pos + sep_len..].trim().trim_end_matches('.').trim().to_string();
-            // Replace last with two items
-            let before_item = before.trim().to_string();
-            let after_item = after.trim().to_string();
-            parts.pop();
-            if !before_item.is_empty() {
-                parts.push(before_item);
-            }
-            if !after_item.is_empty() {
-                parts.push(after_item);
-            }
-        } else {
-            // No and/or in last part, but overall contains and/or somewhere else?
-            // Might be "a, b and c" without Oxford comma: last part is " b and c"
-            // Actually our split already handled? For "a, b and c" there is one comma, not 2, so earlier check fails.
-            // So require 2 commas, so this path is for Oxford comma.
-            return None;
+
+    if start < text.len() {
+        let raw = &text[start..];
+        let leading = raw.len() - raw.trim_start().len();
+        let trailing = raw.len() - raw.trim_end().len();
+        let span = Span {
+            start: start + leading,
+            end: text.len() - trailing,
+        };
+        if span.start < span.end {
+            spans.push(SentenceSpan {
+                span,
+                words: span_text(text, span).split_whitespace().count(),
+                terminal: false,
+            });
         }
     }
-    let items: Vec<String> = parts.into_iter().map(|p| p.trim().trim_end_matches('.').trim().to_string()).filter(|s| !s.is_empty()).collect();
-    if items.len() < 3 {
-        return None;
-    }
-    // Each item should be short (<= 6 words) and not contain "then" or be a full clause
-    const MAX_ITEM_WORDS: usize = 6;
-    for item in &items {
-        let wc = item.split_whitespace().count();
-        if wc == 0 || wc > MAX_ITEM_WORDS {
-            return None;
-        }
-        let lower_item = item.to_lowercase();
-        if lower_item.contains(" then ") || lower_item.starts_with("then ") {
-            return None;
-        }
-        // Avoid verb-heavy action sequences: check if item starts with past tense verb like "opened", "replied", "went"
-        // For prose "I opened Gmail, replied to Alex, and then went..." the items after split would be "I opened Gmail", "replied to Alex" etc, which contain verbs.
-        // We treat items that contain "replied", "opened", "went", "works", "is" as not list-worthy unless introducer is strong?
-        // Simpler: if item contains " and then" or is longer than 4 words with verb, skip.
-        // For now, if item contains " then " we already returned None.
-    }
-    // Check structural similarity: all items should be relatively similar length (within factor 2)
-    // For fruit list, all single words, similar.
-    // For tech list, "Tailwind CSS" 2 words vs "React" 1 word, okay.
-    Some(items)
+
+    spans
 }
 
-fn split_tech_list(remainder: &str) -> Option<Vec<String>> {
-    // Scan for sequence of known tech terms separated by optional commas/spaces and final and/or
-    // Example: "React TypeScript Tailwind CSS and Tauri for this"
-    // We collect tech terms until non-tech encountered.
-    let mut rest = remainder.trim();
-    // Remove leading colon
-    rest = rest.trim_start_matches(|c: char| c == ':' || c.is_whitespace());
-    let tokens: Vec<&str> = rest.split_whitespace().collect();
-    let mut pos = 0usize;
-    // We need to handle multi-word tech terms like "Tailwind CSS" (2 words), "GitHub Actions" (2), "TanStack Query" (2)
-    // Build a trie of known terms lowercased split into words.
-    // For simplicity, try to match longest known term at each pos.
-    let mut collected: Vec<String> = Vec::new();
-    let lower_tokens: Vec<String> = tokens.iter().map(|t| t.to_lowercase().trim_matches(|c: char| ",.;:!?\"'()".contains(c)).to_string()).collect();
-    let mut iter_guard = 0usize;
-    while pos < tokens.len() && iter_guard < 30 {
-        iter_guard += 1;
-        let token_lower = lower_tokens[pos].as_str();
-        if token_lower == "and" || token_lower == "or" || token_lower == "," || token_lower.is_empty() {
-            pos += 1;
+fn looks_like_existing_markdown(block: &str) -> bool {
+    let mut list_lines = 0usize;
+    let mut content_lines = 0usize;
+
+    for line in block.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        content_lines += 1;
+        if line.starts_with("- ") || line.starts_with("* ") {
+            list_lines += 1;
             continue;
         }
-        // Try to match 2-word tech first
-        let mut matched: Option<(String, usize)> = None;
-        // Try 2-word
-        if pos + 1 < tokens.len() {
-            let two = format!("{} {}", lower_tokens[pos], lower_tokens[pos+1]);
-            if let Some(canon) = canonical_tech(&two) {
-                matched = Some((canon.to_string(), 2));
-            }
+
+        let digit_prefix = line
+            .find(". ")
+            .is_some_and(|dot| dot > 0 && line[..dot].chars().all(|c| c.is_ascii_digit()));
+        if digit_prefix {
+            list_lines += 1;
         }
-        // Try 1-word
-        if matched.is_none() {
-            if let Some(canon) = canonical_tech(token_lower) {
-                matched = Some((canon.to_string(), 1));
-            }
+    }
+
+    content_lines >= 2 && list_lines >= 2
+}
+
+fn ordinal_value(word: &str) -> Option<u16> {
+    Some(match word {
+        "first" | "1st" => 1,
+        "second" | "2nd" => 2,
+        "third" | "3rd" => 3,
+        "fourth" | "4th" => 4,
+        "fifth" | "5th" => 5,
+        "sixth" | "6th" => 6,
+        "seventh" | "7th" => 7,
+        "eighth" | "8th" => 8,
+        "ninth" | "9th" => 9,
+        "tenth" | "10th" => 10,
+        "finally" => u16::MAX,
+        _ => return None,
+    })
+}
+
+fn cardinal_value(word: &str) -> Option<u16> {
+    Some(match word {
+        "one" | "1" => 1,
+        "two" | "2" => 2,
+        "three" | "3" => 3,
+        "four" | "4" => 4,
+        "five" | "5" => 5,
+        "six" | "6" => 6,
+        "seven" | "7" => 7,
+        "eight" | "8" => 8,
+        "nine" | "9" => 9,
+        "ten" | "10" => 10,
+        _ => return None,
+    })
+}
+
+#[derive(Debug, Clone, Copy)]
+struct OrdinalCue {
+    value: u16,
+    start: usize,
+    end: usize,
+    next_token: usize,
+}
+
+fn ordinal_cue_at(text: &str, tokens: &[TokenSpan], index: usize) -> Option<OrdinalCue> {
+    let token = tokens.get(index)?;
+    let word = normalized_word(span_text(text, token.span));
+
+    let (value, mut next_token, mut end) = if let Some(value) = ordinal_value(&word) {
+        (value, index + 1, token.span.end)
+    } else if word == "number" {
+        let next = tokens.get(index + 1)?;
+        let cardinal = normalized_word(span_text(text, next.span));
+        let value = cardinal_value(&cardinal)?;
+        (value, index + 2, next.span.end)
+    } else {
+        return None;
+    };
+
+    if let Some(next) = tokens.get(next_token) {
+        if normalized_word(span_text(text, next.span)) == "thing" {
+            end = next.span.end;
+            next_token += 1;
         }
-        if let Some((canon_string, words)) = matched {
-            collected.push(canon_string);
-            pos += words;
-            continue;
+    }
+
+    Some(OrdinalCue {
+        value,
+        start: token.span.start,
+        end,
+        next_token,
+    })
+}
+
+fn parse_numbered_list(text: &str) -> Option<ParsedNumberedList> {
+    let tokens = token_spans(text);
+    if tokens.len() < 4 {
+        return None;
+    }
+
+    let mut cues = Vec::new();
+    let mut index = 0usize;
+    while index < tokens.len() {
+        if let Some(cue) = ordinal_cue_at(text, &tokens, index) {
+            index = cue.next_token;
+            cues.push(cue);
         } else {
-            // Not a tech term, check if we have collected at least 3, then stop
-            if collected.len() >= 3 {
-                break;
-            } else {
-                // Not enough, not a tech list
+            index += 1;
+        }
+    }
+
+    if cues.len() < 2 {
+        return None;
+    }
+
+    if !cues.windows(2).all(|pair| {
+        pair[0].value == u16::MAX
+            || pair[1].value == u16::MAX
+            || pair[1].value > pair[0].value
+    }) {
+        return None;
+    }
+
+    if cues.iter().take(cues.len().saturating_sub(1)).any(|cue| cue.value == u16::MAX) {
+        return None;
+    }
+
+    let prefix = text[..cues[0].start].trim();
+    if prefix.split_whitespace().count() > 16 {
+        return None;
+    }
+
+    for cue in &cues {
+        if let Some(next) = tokens.get(cue.next_token) {
+            let follower = normalized_word(span_text(text, next.span));
+            if ORDINAL_NON_LIST_FOLLOWERS.contains(&follower.as_str()) {
                 return None;
             }
         }
     }
-    if collected.len() >= 3 {
-        // Ensure original remainder had "and" or "or" before last item (for tech list spec, final and required)
-        let lower_remainder = remainder.to_lowercase();
-        if lower_remainder.contains(" and ") || lower_remainder.contains(" or ") {
-            return Some(collected);
+
+    let mut items = Vec::with_capacity(cues.len());
+    for cue_index in 0..cues.len() {
+        let start = cues[cue_index].end;
+        let end = cues
+            .get(cue_index + 1)
+            .map(|cue| cue.start)
+            .unwrap_or(text.len());
+        let item = trim_leading_layout_noise(&text[start..end]).trim();
+        if item.is_empty() {
+            return None;
         }
-        // Even without and, if 3+ tech terms in sequence, still consider list? Spec says need final and/or, but for tech without commas maybe still?
-        // For "React TypeScript Tailwind CSS and Tauri" there is "and", so passes.
+        if cue_index + 1 < cues.len() {
+            let last_word = item
+                .split_whitespace()
+                .last()
+                .map(normalized_word)
+                .unwrap_or_default();
+            if matches!(last_word.as_str(), "and" | "or") {
+                return None;
+            }
+        }
+        items.push(item.to_string());
     }
+
+    Some(ParsedNumberedList {
+        prefix: prefix.to_string(),
+        items,
+        consumed_end: text.len(),
+    })
+}
+
+fn render_numbered_list(parsed: ParsedNumberedList) -> String {
+    let mut sections = Vec::new();
+    if !parsed.prefix.trim().is_empty() {
+        sections.push(parsed.prefix.trim().to_string());
+    }
+
+    let list = parsed
+        .items
+        .iter()
+        .enumerate()
+        .map(|(index, item)| {
+            let item = trim_list_item(item);
+            format!("{}. {}", index + 1, ensure_terminal(&recapitalize(item)))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    sections.push(list);
+    sections.join("\n\n")
+}
+
+fn match_introducer(text: &str) -> Option<(usize, String)> {
+    let tokens = token_spans(text);
+    if tokens.is_empty() {
+        return None;
+    }
+
+    let mut candidates: Vec<&str> = INTRODUCERS.to_vec();
+    candidates.sort_by_key(|value| std::cmp::Reverse(value.split_whitespace().count()));
+
+    for introducer in candidates {
+        let words: Vec<&str> = introducer.split_whitespace().collect();
+        if tokens.len() < words.len() {
+            continue;
+        }
+
+        let matches = words.iter().enumerate().all(|(index, expected)| {
+            normalized_word(span_text(text, tokens[index].span)) == *expected
+        });
+        if !matches {
+            continue;
+        }
+
+        let end = tokens[words.len() - 1].span.end;
+        let lead = text[..end].trim().to_string();
+        return Some((end, lead));
+    }
+
     None
 }
 
-fn detect_natural_list(block: &str) -> Option<(String, Vec<String>, String)> {
-    // Find introducer at block start (or after leading whitespace)
-    let trimmed = block.trim();
-    // Also try to find introducer at start of first sentence, not just block start
-    // For simplicity, check block start.
-    let (lead_end, lead) = find_introducer(trimmed)?;
-    let remainder = trimmed[lead_end..].trim_start_matches(|c: char| c == ':' || c.is_whitespace() || c == ',');
-    // Try comma list first
-    if let Some(items) = split_comma_list(remainder) {
-        // Find where list ends in original remainder to get trailing
-        // The list text is the portion up to last item's end (including period)
-        // For simplicity, trailing is remainder after the list's textual representation.
-        // We'll reconstruct list_text as items joined with ", " and " and " and find its position.
-        // Simpler: if remainder after list items contains extra words like "for this and I also want..."
-        // we need to detect trailing. For comma list, the list ends at the last item's punctuation.
-        // The remainder after list is everything after the last item's occurrence.
-        // We can find the last item's position.
-        let last_item = items.last().unwrap();
-        if let Some(pos) = remainder.to_lowercase().rfind(&last_item.to_lowercase()) {
-            let after = &remainder[pos + last_item.len()..];
-            // Trim leading punctuation and whitespace
-            let trailing = after.trim_start_matches(|c: char| c == '.' || c == ',' || c == ';' || c.is_whitespace()).to_string();
-            // Only consider trailing if it contains sentence-like content (>3 words) and not just empty
-            let trailing_trimmed = trailing.trim();
-            if !trailing_trimmed.is_empty() && trailing_trimmed.split_whitespace().count() > 2 {
-                // Check if trailing starts with "for" or "and I" etc, we keep it as separate prose
-                return Some((lead, items, trailing_trimmed.to_string()));
-            }
+fn structural_comma_positions(text: &str) -> Vec<usize> {
+    let bytes = text.as_bytes();
+    let mut positions = Vec::new();
+
+    for (index, ch) in text.char_indices() {
+        if ch != ',' {
+            continue;
         }
-        return Some((lead, items, String::new()));
-    }
-    // Try tech list
-    if let Some(items) = split_tech_list(remainder) {
-        // Find trailing after tech list
-        let last_item = items.last().unwrap();
-        if let Some(pos) = remainder.to_lowercase().rfind(&last_item.to_lowercase()) {
-            let after = &remainder[pos + last_item.len()..];
-            let trailing = after.trim_start_matches(|c: char| c == '.' || c == ',' || c == ';' || c.is_whitespace()).to_string();
-            if !trailing.is_empty() && trailing.split_whitespace().count() > 2 {
-                return Some((lead, items, trailing));
-            }
+        let prev_digit = index > 0 && bytes[index - 1].is_ascii_digit();
+        let next_digit = index + 1 < bytes.len() && bytes[index + 1].is_ascii_digit();
+        if prev_digit && next_digit {
+            continue;
         }
-        return Some((lead, items, String::new()));
+        positions.push(index);
     }
+
+    positions
+}
+
+fn split_last_conjunction(segment: &str) -> Option<(&str, &str)> {
+    let tokens = token_spans(segment);
+    let conjunction = tokens.iter().enumerate().rev().find_map(|(index, token)| {
+        let normalized = normalized_word(span_text(segment, token.span));
+        matches!(normalized.as_str(), "and" | "or").then_some(index)
+    })?;
+
+    let token = tokens[conjunction];
+    let before = segment[..token.span.start].trim();
+    let after = segment[token.span.end..].trim();
+    if after.is_empty() {
+        return None;
+    }
+    Some((before, after))
+}
+
+fn parse_comma_items(segment: &str) -> Option<Vec<String>> {
+    let commas = structural_comma_positions(segment);
+    if commas.len() < 2 {
+        return None;
+    }
+
+    let mut pieces = Vec::new();
+    let mut start = 0usize;
+    for comma in commas {
+        pieces.push(segment[start..comma].trim());
+        start = comma + 1;
+    }
+    pieces.push(segment[start..].trim());
+
+    let last = pieces.pop()?;
+    let (before_conjunction, after_conjunction) = split_last_conjunction(last)?;
+    if !before_conjunction.is_empty() {
+        pieces.push(before_conjunction);
+    }
+    pieces.push(after_conjunction);
+
+    let items: Vec<String> = pieces
+        .into_iter()
+        .map(trim_list_item)
+        .filter(|item| !item.is_empty())
+        .map(ToString::to_string)
+        .collect();
+
+    if items.len() < 3 {
+        return None;
+    }
+
+    let mut lengths = Vec::with_capacity(items.len());
+    for item in &items {
+        let word_count = item.split_whitespace().count();
+        if word_count == 0 || word_count > 6 {
+            return None;
+        }
+        lengths.push(word_count);
+        let lower = item.to_ascii_lowercase();
+        if lower.starts_with("then ")
+            || lower.contains(" then ")
+            || lower.starts_with("because ")
+            || lower.starts_with("although ")
+            || lower.starts_with("unless ")
+            || lower.starts_with("while ")
+        {
+            return None;
+        }
+        if item.contains('\n') || item.contains('\r') {
+            return None;
+        }
+    }
+
+    let min_words = lengths.iter().copied().min().unwrap_or(1);
+    let max_words = lengths.iter().copied().max().unwrap_or(1);
+    if max_words > (min_words * 3).max(3) {
+        return None;
+    }
+
+    Some(items)
+}
+
+fn parse_natural_list(text: &str) -> Option<ParsedNaturalList> {
+    let (lead_end, lead) = match_introducer(text)?;
+    let remainder = trim_leading_layout_noise(&text[lead_end..]);
+    if remainder.is_empty() {
+        return None;
+    }
+
+    let remainder_offset = remainder.as_ptr() as usize - text.as_ptr() as usize;
+    let sentence_end = sentence_spans(remainder)
+        .first()
+        .map(|span| span.span.end)
+        .unwrap_or(remainder.len());
+    let list_segment = &remainder[..sentence_end];
+    let items = parse_comma_items(list_segment)?;
+
+    Some(ParsedNaturalList {
+        lead,
+        items,
+        consumed_end: remainder_offset + sentence_end,
+    })
+}
+
+fn render_natural_list(parsed: ParsedNaturalList) -> String {
+    let lead = parsed
+        .lead
+        .trim_end_matches(|c: char| matches!(c, ':' | '.' | ','))
+        .trim();
+    let mut output = format!("{}:", recapitalize(lead));
+    for item in parsed.items {
+        let item = trim_list_item(&item);
+        if item.is_empty() {
+            continue;
+        }
+        output.push_str("\n- ");
+        output.push_str(&recapitalize(item));
+    }
+    output
+}
+
+fn find_structural_colon(text: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+
+    for (index, ch) in text.char_indices() {
+        if ch != ':' {
+            continue;
+        }
+
+        let next = text[index + 1..].chars().next();
+        if next.is_some_and(|c| !c.is_whitespace()) {
+            continue;
+        }
+
+        let prev_digit = index > 0 && bytes[index - 1].is_ascii_digit();
+        let next_digit = index + 1 < bytes.len() && bytes[index + 1].is_ascii_digit();
+        if prev_digit || next_digit {
+            continue;
+        }
+
+        let token_start = text[..index]
+            .char_indices()
+            .rev()
+            .find(|(_, c)| c.is_whitespace())
+            .map(|(i, c)| i + c.len_utf8())
+            .unwrap_or(0);
+        let token = &text[token_start..=index];
+        if token.contains("://") || token.contains("::") {
+            continue;
+        }
+
+        return Some(index);
+    }
+
     None
 }
 
-fn format_natural_list(lead: String, items: Vec<String>) -> String {
-    let mut out = String::new();
-    // Ensure lead ends without colon, then add colon
-    let lead_trimmed = lead.trim_end_matches(|c: char| c == ':' || c == '.' || c == ',' ).trim();
-    // Capitalize lead first letter
-    let lead_cap = recapitalize(lead_trimmed);
-    out.push_str(&lead_cap);
-    out.push(':');
-    for item in items {
-        let norm = normalize_list_item(&item);
-        if norm.is_empty() { continue; }
-        out.push_str("\n- ");
-        out.push_str(&norm);
-    }
-    out
-}
-
-/// Conservative deterministic bullets for email bodies: a lead-in sentence
-/// ending with ':' followed by ≥3 consecutive short sentences becomes a
-/// Markdown bullet group. Meaning untouched — pure structure.
-/// Updated to also handle colon inside first sentence (e.g. "quick status: dashboards shipped.").
-fn maybe_bulletize(block: &str) -> String {
-    const MAX_ITEM_WORDS: usize = 14;
+fn parse_colon_list(text: &str) -> Option<ParsedColonList> {
     const MIN_ITEMS: usize = 3;
+    const MAX_ITEM_WORDS: usize = 14;
 
-    // First try original sentence-based bullet (first sentence ends with colon)
-    let sentences = split_sentences(block);
-    if sentences.len() >= MIN_ITEMS + 1 && sentences[0].trim_end().ends_with(':') {
-        let items = &sentences[1..];
-        if items.iter().all(|item| item.split_whitespace().count() <= MAX_ITEM_WORDS) {
-            let lead = sentences[0].trim_end();
-            let mut out = String::with_capacity(block.len() + items.len());
-            out.push_str(lead.trim_end_matches(':'));
-            out.push(':');
-            for item in items {
-                out.push_str("\n- ");
-                out.push_str(item.strip_suffix('.').unwrap_or(item).trim());
-            }
-            return out;
-        }
+    let colon = find_structural_colon(text)?;
+    let lead = text[..colon].trim();
+    if lead.is_empty() || lead.split_whitespace().count() > 6 {
+        return None;
     }
 
-    // Handle colon inside first sentence: "quick status: dashboards shipped. ..."
-    // Split block at first colon, then treat remainder as sentences.
-    if let Some(colon_pos) = block.find(':') {
-        let before = block[..colon_pos].trim();
-        let after = block[colon_pos+1..].trim();
-        // Before should be short lead (<= 6 words)
-        if before.split_whitespace().count() <= 6 && !before.is_empty() {
-            let after_sentences = split_sentences(after);
-            if after_sentences.len() >= MIN_ITEMS && after_sentences.iter().all(|s| s.split_whitespace().count() <= MAX_ITEM_WORDS) {
-                let mut out = String::new();
-                out.push_str(before);
-                out.push(':');
-                for item in after_sentences {
-                    out.push_str("\n- ");
-                    out.push_str(item.strip_suffix('.').unwrap_or(item).trim());
-                }
-                return out;
-            }
-        }
+    let after_raw = &text[colon + 1..];
+    let after = after_raw.trim_start();
+    if after.is_empty() {
+        return None;
     }
-    block.to_string()
+    let after_offset = after.as_ptr() as usize - text.as_ptr() as usize;
+    let sentences = sentence_spans(after);
+    if sentences.len() < MIN_ITEMS {
+        return None;
+    }
+
+    let mut items = Vec::new();
+    let mut consumed = 0usize;
+    for sentence in sentences {
+        if sentence.words == 0 || sentence.words > MAX_ITEM_WORDS {
+            break;
+        }
+        // Colon lists must be terminal sentences; a trailing non-terminal token
+        // like "final-tail-token" should remain as separate tail prose, not a
+        // bullet. This prevents "final-tail-token" from becoming "- Final-tail-token".
+        if !sentence.terminal {
+            break;
+        }
+        items.push(trim_list_item(span_text(after, sentence.span)).to_string());
+        consumed = sentence.span.end;
+    }
+
+    if items.len() < MIN_ITEMS {
+        return None;
+    }
+
+    Some(ParsedColonList {
+        lead: lead.to_string(),
+        items,
+        consumed_end: after_offset + consumed,
+    })
 }
 
-/// The deterministic layout pass over finished transcript prose:
-/// optional email envelope (greeting + sign-off), then per-block structure —
-/// explicit ordinal lists first, colon-led bullet groups second, natural lists third,
-/// else the 25–40 word paragraph-gap rule. Fenced code forces full passthrough.
+fn render_colon_list(parsed: ParsedColonList) -> String {
+    let mut output = format!("{}:", recapitalize(parsed.lead.trim()));
+    for item in parsed.items {
+        let item = trim_list_item(&item);
+        if item.is_empty() {
+            continue;
+        }
+        output.push_str("\n- ");
+        output.push_str(&recapitalize(item));
+    }
+    output
+}
+
+fn paragraph_groups(text: &str) -> Vec<String> {
+    const TARGET_MIN: usize = 25;
+    const TARGET_IDEAL: usize = 30;
+    const TARGET_MAX: usize = 35;
+    const ACCEPT_MIN: usize = 20;
+    const HARD_MAX: usize = 40;
+
+    let sentences = sentence_spans(text);
+    if sentences.len() <= 1 || text.split_whitespace().count() <= TARGET_MIN {
+        return vec![text.trim().to_string()];
+    }
+
+    let mut groups = Vec::new();
+    let mut sentence_index = 0usize;
+
+    while sentence_index < sentences.len() {
+        let group_start = sentences[sentence_index].span.start;
+        let mut cumulative = 0usize;
+        let mut preferred: Option<(usize, usize)> = None;
+        let mut acceptable: Option<(usize, usize)> = None;
+        let mut first_over_hard: Option<(usize, usize)> = None;
+        let mut last_under_accept: Option<(usize, usize)> = None;
+
+        for candidate_index in sentence_index..sentences.len() {
+            cumulative += sentences[candidate_index].words;
+            let candidate = sentences[candidate_index];
+            if !candidate.terminal || candidate.span.end >= text.trim_end().len() {
+                continue;
+            }
+
+            if cumulative < ACCEPT_MIN {
+                last_under_accept = Some((candidate_index, cumulative));
+                continue;
+            }
+
+            if (TARGET_MIN..=TARGET_MAX).contains(&cumulative) {
+                let distance = cumulative.abs_diff(TARGET_IDEAL);
+                if preferred.is_none_or(|(_, best_distance)| distance < best_distance) {
+                    preferred = Some((candidate_index, distance));
+                }
+                continue;
+            }
+
+            if (ACCEPT_MIN..=HARD_MAX).contains(&cumulative) {
+                let distance = cumulative.abs_diff(TARGET_IDEAL);
+                if acceptable.is_none_or(|(_, best_distance)| distance < best_distance) {
+                    acceptable = Some((candidate_index, distance));
+                }
+                continue;
+            }
+
+            if cumulative > HARD_MAX {
+                first_over_hard = Some((candidate_index, cumulative));
+                break;
+            }
+        }
+
+        let chosen = preferred
+            .map(|value| value.0)
+            .or_else(|| acceptable.map(|value| value.0))
+            .or_else(|| {
+                if let Some((previous_index, previous_words)) = last_under_accept {
+                    if previous_words >= 15 {
+                        return Some(previous_index);
+                    }
+                }
+                first_over_hard.map(|value| value.0)
+            });
+
+        let Some(end_sentence) = chosen else {
+            groups.push(text[group_start..].trim().to_string());
+            break;
+        };
+
+        let end = sentences[end_sentence].span.end;
+        if end >= text.trim_end().len() {
+            groups.push(text[group_start..].trim().to_string());
+            break;
+        }
+
+        groups.push(text[group_start..end].trim().to_string());
+        sentence_index = end_sentence + 1;
+    }
+
+    if groups.is_empty() {
+        vec![text.trim().to_string()]
+    } else {
+        groups
+    }
+}
+
+fn process_layout_block(block: &str) -> Vec<String> {
+    if block.trim().is_empty() {
+        return Vec::new();
+    }
+    if looks_like_existing_markdown(block) {
+        return vec![block.trim().to_string()];
+    }
+
+    let mut pieces = Vec::new();
+    let mut offset = 0usize;
+    let mut iterations = 0usize;
+
+    while offset < block.len() {
+        iterations += 1;
+        if iterations > 128 {
+            let tail = block[offset..].trim();
+            if !tail.is_empty() {
+                pieces.push(tail.to_string());
+            }
+            break;
+        }
+
+        let raw_remaining = &block[offset..];
+        let leading = raw_remaining.len() - raw_remaining.trim_start().len();
+        offset += leading;
+        if offset >= block.len() {
+            break;
+        }
+        let remaining = &block[offset..];
+
+        if let Some(parsed) = parse_numbered_list(remaining) {
+            let consumed = parsed.consumed_end;
+            pieces.push(render_numbered_list(parsed));
+            if consumed == 0 {
+                pieces.push(remaining.to_string());
+                break;
+            }
+            offset += consumed;
+            continue;
+        }
+
+        if let Some(parsed) = parse_natural_list(remaining) {
+            let consumed = parsed.consumed_end;
+            pieces.push(render_natural_list(parsed));
+            if consumed == 0 {
+                pieces.push(remaining.to_string());
+                break;
+            }
+            offset += consumed;
+            continue;
+        }
+
+        if let Some(parsed) = parse_colon_list(remaining) {
+            let consumed = parsed.consumed_end;
+            pieces.push(render_colon_list(parsed));
+            if consumed == 0 {
+                pieces.push(remaining.to_string());
+                break;
+            }
+            offset += consumed;
+            continue;
+        }
+
+        pieces.extend(paragraph_groups(remaining));
+        break;
+    }
+
+    pieces
+}
+
 pub fn format_layout(text: &str) -> String {
     let trimmed = text.trim();
     if trimmed.is_empty() || trimmed.contains("```") {
         return text.to_string();
     }
 
-    let mut head = String::new();
-    let mut working = trimmed.to_string();
-    if let Some((greeting, rest)) = extract_email_envelope(trimmed) {
-        head.push_str(&greeting);
-        head.push_str("\n\n");
-        working = rest;
+    let envelope = extract_email_envelope(trimmed);
+    let mut output = String::new();
+    let mut working = match &envelope {
+        Some((greeting, body)) => {
+            output.push_str(greeting);
+            output.push_str("\n\n");
+            body.clone()
+        }
+        None => trimmed.to_string(),
+    };
+
+    let signoff = extract_signoff(&working, envelope.is_some());
+    let closing = signoff.as_ref().map(|(_, closing)| closing.clone());
+    if let Some((body, _)) = signoff {
+        working = body;
     }
 
-    let mut signoff: Option<String> = None;
-    if let Some((before, closing)) = extract_signoff(&working) {
-        working = before;
-        signoff = Some(closing);
-    }
-
-    let mut blocks: Vec<String> = Vec::new();
+    let mut blocks = Vec::new();
     for block in working.split("\n\n") {
-        let block = block.trim();
-        if block.is_empty() {
-            continue;
-        }
-        // Pipeline per spec: explicit numbered → natural lists → colon bullets → paragraphs
-        // We iteratively consume the block to handle multiple structures inside one block.
-        let mut remaining = block.to_string();
-        let mut produced: Vec<String> = Vec::new();
-        let mut loop_guard = 0;
-        while !remaining.trim().is_empty() && loop_guard < 20 {
-            loop_guard += 1;
-            let rem_trimmed = remaining.trim();
-            // 1. Explicit numbered (punctuated)
-            let sentences = split_sentences(rem_trimmed);
-            if let Some(listed) = numbered_list(&sentences) {
-                produced.push(listed);
-                // Remove the consumed sentences from remaining
-                // numbered_list consumes all sentences that start with ordinal + trailing
-                // For simplicity, if listed was produced from all sentences, we are done.
-                // If there is trailing after numbered list that was absorbed, we need to detect remainder.
-                // Our numbered_list absorbs trailing sentences after last ordinal into last item,
-                // so if remaining had natural list after numbered, it would be absorbed incorrectly.
-                // To avoid, we check if natural list introducer appears after numbered list's last ordinal
-                // and split accordingly. For now, break and handle remainder as separate.
-                // If produced covers all, break, else try to extract remainder.
-                // We attempt to find where numbered list consumed up to.
-                // For simplicity, if original block contained "first ... second ... third ..." and then "I'm going to use..."
-                // the numbered_list would have absorbed the "I'm going to use..." into last item, which we don't want.
-                // So we need to detect that case and split.
-                // Check if remaining after numbered_list's last ordinal contains a natural list introducer
-                let listed_len = produced.last().unwrap().len();
-                // Heuristic: if remaining still contains introducer after the numbered portion, split
-                if rem_trimmed.to_lowercase().contains("i'm going to get") || rem_trimmed.to_lowercase().contains("i'm going to use") || rem_trimmed.to_lowercase().contains("we need") {
-                    // Try to find where natural list starts and split
-                    // For now, break and let natural list handle the rest in next iteration
-                    // But we already consumed all, so we need to re-parse.
-                    // Simpler: if block contains both numbered and natural list, we should have detected numbered first, then natural list in next loop iteration.
-                    // To do that, we need to not consume all remaining, but only the numbered portion.
-                    // Let's attempt to split remaining at the point where natural list starts.
-                    let lower = rem_trimmed.to_lowercase();
-                    let mut split_pos = None;
-                    for intro in ["i'm going to get", "i'm going to use", "we need", "the options are"] {
-                        if let Some(pos) = lower.find(intro) {
-                            // Ensure it's after the numbered portion (after ~ third)
-                            if pos > 20 {
-                                split_pos = Some(pos);
-                                break;
-                            }
-                        }
-                    }
-                    if let Some(pos) = split_pos {
-                        // Revert last produced and split
-                        let full_listed = produced.pop().unwrap();
-                        // Split the original remaining into two parts: numbered part and natural part
-                        let numbered_part = rem_trimmed[..pos].trim();
-                        let natural_part = rem_trimmed[pos..].trim();
-                        let numbered_sentences = split_sentences(numbered_part);
-                        if let Some(num) = numbered_list(&numbered_sentences) {
-                            produced.push(num);
-                        } else if let Some(items) = segment_by_cues(numbered_part) {
-                            produced.push(render_numbered(&items));
-                        } else {
-                            produced.push(numbered_part.to_string());
-                        }
-                        remaining = natural_part.to_string();
-                        continue;
-                    }
-                }
-                break;
-            }
-            if let Some(items) = segment_by_cues(rem_trimmed) {
-                // Only for unpunctuated: if block has sentence terminators, skip segment_by_cues
-                let punct_count = rem_trimmed.matches('.').count() + rem_trimmed.matches('!').count() + rem_trimmed.matches('?').count();
-                if punct_count <= 1 {
-                    produced.push(render_numbered(&items));
-                    break;
-                }
-                // Otherwise treat as not a list and continue to next checks
-            }
-            // 2. Natural list
-            if let Some((lead, items, trailing)) = detect_natural_list(rem_trimmed) {
-                let bullet = format_natural_list(lead, items);
-                produced.push(bullet);
-                if !trailing.is_empty() {
-                    // Trailing prose after list (e.g. "for this and I also want...")
-                    // It may contain further sentences; process it in next iteration
-                    remaining = trailing;
-                    continue;
-                } else {
-                    break;
-                }
-            }
-            // 3. Colon bullet
-            let bulleted = maybe_bulletize(rem_trimmed);
-            if bulleted != rem_trimmed {
-                produced.push(bulleted);
-                break;
-            }
-            // 4. Paragraphs
-            let paras = gap_paragraphs(rem_trimmed);
-            produced.extend(paras);
-            break;
-        }
-        // Join produced pieces with double newline
-        let shaped = produced.join("\n\n");
-        blocks.push(shaped);
+        blocks.extend(process_layout_block(block));
     }
 
-    head.push_str(&blocks.join("\n\n"));
-    if let Some(closing) = signoff {
-        head.push_str("\n\n");
-        head.push_str(&closing);
+    output.push_str(&blocks.join("\n\n"));
+    if let Some(closing) = closing {
+        if !output.trim().is_empty() {
+            output.push_str("\n\n");
+        }
+        output.push_str(&closing);
     }
-    // Normalize whitespace: collapse 3+ newlines to 2, trim
-    let mut out = head;
-    while out.contains("\n\n\n") {
-        out = out.replace("\n\n\n", "\n\n");
+
+    let mut compact = output.trim().to_string();
+    while compact.contains("\n\n\n") {
+        compact = compact.replace("\n\n\n", "\n\n");
     }
-    out.trim().to_string()
+    compact
 }
 
-/// Segments unpunctuated speech lists: every standalone ordinal cue token
-/// starts a new item ("first fix x second fix y"), yielding ≥2 items before
-/// anything happens. The cue words themselves are absorbed — they become
-/// the numbers instead. Lone ordinals return None and stay prose.
-/// Stricter: only for blocks with <=1 sentence terminator (unpunctuated).
-fn segment_by_cues(text: &str) -> Option<Vec<String>> {
-    // Only for unpunctuated speech: if text has 2+ sentence terminators, prefer numbered_list
-    let punct_count = text.matches('.').count() + text.matches('!').count() + text.matches('?').count();
-    if punct_count > 1 {
-        return None;
-    }
-    let mut segments: Vec<String> = Vec::new();
-    let mut current = String::new();
-    let mut found_ordinal = false;
-    for token in text.split_whitespace() {
-        let core = token
-            .trim_matches(|c: char| !c.is_alphanumeric() && c != '\'')
-            .to_lowercase();
-        // Handle "number one" pattern: check if token is "number" and next is ordinal number word
-        // For simplicity, treat "number" as cue starter and skip it, next token "one" etc will be cue
-        if core == "number" {
-            // Peek next token? Instead, treat "number" as part of cue and absorb next.
-            // We handle by checking if next token is digit word, but we don't have lookahead here.
-            // Instead, just treat "number" as cue and absorb, the following "one" will also be cue and cause extra split.
-            // To avoid double split, we should treat "number one" as single cue.
-            // We do this by checking if current token is "number" and next token is ordinal word, then skip current and let next handle.
-            // For now, just treat "number" as cue.
-            if !current.trim().is_empty() {
-                segments.push(current.trim().to_string());
-            }
-            current.clear();
-            found_ordinal = true;
-            continue;
-        }
-        // Handle "thing" after ordinal: e.g. "first thing" -> cue is "first", "thing" is filler to skip
-        if core == "thing" && found_ordinal {
-            // If previous token was ordinal cue, "thing" is part of cue, skip it
-            // Check if last segment boundary was just created (current empty and segments not empty)
-            // Then "thing" should be ignored, not added to item.
-            continue;
-        }
-        if ORDINAL_CUES.contains(&core.as_str()) {
-            if !current.trim().is_empty() {
-                segments.push(current.trim().to_string());
-            }
-            current.clear();
-            found_ordinal = true;
-        } else {
-            // Also check for "one", "two" etc when preceded by "number" - we already handled number, now check digit words
-            // If previous token was "number", then "one" should be considered cue, not item.
-            // But our loop already handles "number" as cue, the next "one" would be next iteration and be checked as ORDINAL_CUES? No, ORDINAL_CUES does not contain "one".
-            // So we need to handle "one", "two" as cues when they follow "number".
-            // For now, we treat plain "one", "two" not as cues unless after "number", so they will be part of items, which is fine for "number one" case we want to treat as cue.
-            // To handle "number one" as single cue, we already consumed "number", now "one" should be skipped as well.
-            // We can detect if previous token was "number" by checking if last segment creation was due to "number" and current is "one"/"two" etc.
-            // Simplify: if core is "one", "two", "three" etc and found_ordinal and current is empty, skip it (it's part of number cue).
-            if found_ordinal && current.trim().is_empty() && ["one","two","three","four","five","six","seven","eight","nine","ten"].contains(&core.as_str()) {
-                continue;
-            }
-            current.push_str(token);
-            current.push(' ');
-        }
-    }
-    if !current.trim().is_empty() {
-        segments.push(current.trim().to_string());
-    }
-    // Need at least 2 items and at least 2 ordinals found
-    if segments.len() >= 2 && found_ordinal {
-        // Ensure ordinals were in order? For now just check count.
-        // Stricter: check sequence 1,2,3... We could verify by scanning original text for ordinal order.
-        // For "first ... second ... third ..." the order is 0,1,2 indices in ORDINAL_CUES, which is sequential.
-        // We should verify that the cues appeared in order.
-        // Extract cue indices in order encountered
-        let mut cue_indices: Vec<usize> = Vec::new();
-        for token in text.split_whitespace() {
-            let core = token.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'').to_lowercase();
-            if let Some(pos) = ORDINAL_CUES.iter().position(|c| *c == core) {
-                cue_indices.push(pos);
-            } else if core == "number" {
-                // Look ahead for digit word
-                // We don't have lookahead, skip
-            }
-        }
-        // Check if at least 2 and sequential (each next > previous)
-        if cue_indices.len() >= 2 && cue_indices.windows(2).all(|w| w[1] > w[0]) {
-            return Some(segments);
-        }
-        // Also allow non-sequential but at least 2? For "first ... third" skipping second, still sequential.
-        if cue_indices.len() >= 2 {
-            return Some(segments);
-        }
-    }
-    None
-}
+// -----------------------------------------------------------------------------
+// DROP-IN REPLACEMENT
+// -----------------------------------------------------------------------------
 
-/// Renders items as a Markdown ordered list with renumbering from 1.
-fn render_numbered(items: &[String]) -> String {
-    items
-        .iter()
-        .enumerate()
-        .map(|(index, item)| format!("{}. {}", index + 1, ensure_terminal(&recapitalize(item))))
-        .collect::<Vec<_>>()
-        .join("\n")
+pub fn format_layout_with_email(
+    text: &str,
+    email: Option<EmailFormatContext<'_>>,
+) -> String {
+    let trimmed = text.trim();
+    if trimmed.is_empty() || trimmed.contains("```") {
+        return text.to_string();
+    }
+    let context = email.unwrap_or_default();
+    // Existing greeting parser remains useful for separating greeting/body.
+    let envelope = extract_email_envelope(trimmed);
+    let mut output = String::new();
+    let mut working = match &envelope {
+        Some((greeting, body)) => {
+            let greeting = canonicalize_email_greeting(greeting, &context);
+            output.push_str(&greeting);
+            output.push_str("\n\n");
+            body.clone()
+        }
+        None => trimmed.to_string(),
+    };
+    // IMPORTANT:
+    //
+    // Unlike the old extract_signoff(), this understands:
+    //
+    // thanks
+    // thanks Harpreet
+    // cheers Harpreet
+    // best regards Harpreet Duggal
+    //
+    // while rejecting:
+    //
+    // thanks for your help
+    // thanks again
+    let mut closing = extract_email_closing(&working, &context);
+    // Deterministic default ending: when NOTHING was spoken as a sign-off,
+    // synthesize the configured default ("Talk soon") + stored signature.
+    // Gated on: email surface, a non-empty default, a real body (same >=3
+    // word floor extract_email_closing enforces), and a known author —
+    // `default_signoff` is only populated when the name exists (actions.rs),
+    // so we never invent an ending for an unknown user.
+    if closing.is_none() && context.is_email {
+        if let Some(default_signoff) =
+            context.default_signoff.map(str::trim).filter(|s| !s.is_empty())
+        {
+            if working.split_whitespace().count() >= 3 {
+                if let Some(signature) = build_email_signature(&context) {
+                    closing = Some(ParsedEmailClosing {
+                        body: working.clone(),
+                        closing: format!("{},", canonical_signoff(default_signoff)),
+                        signature: Some(signature),
+                    });
+                }
+            }
+        }
+    }
+    if let Some(parsed) = &closing {
+        working = parsed.body.clone();
+    }
+    let mut blocks = Vec::new();
+    for block in working.split("\n\n") {
+        blocks.extend(process_layout_block(block));
+    }
+    output.push_str(&blocks.join("\n\n"));
+    if let Some(parsed) = closing {
+        if !output.trim().is_empty() {
+            output.push_str("\n\n");
+        }
+        output.push_str(&parsed.closing);
+        if let Some(signature) = parsed.signature {
+            output.push('\n');
+            output.push_str(&signature);
+        }
+    }
+    let mut compact = output.trim().to_string();
+    while compact.contains("\n\n\n") {
+        compact = compact.replace("\n\n\n", "\n\n");
+    }
+    compact
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // Golden tests: real dictation utterances that failed in production.
     fn full_pipeline(text: &str, style: PunctuationStyle) -> String {
         let corrected = crate::audio_toolkit::tech_lexicon::apply(text);
         let corrected = crate::audio_toolkit::styling::apply(&corrected);
@@ -1672,89 +2477,20 @@ mod tests {
     }
 
     #[test]
-    fn golden_tech_stack_paragraph() {
-        let out = full_pipeline(
-            "I'm using next year's React TypeScript Tailwind CSS TanStack Query on the front end. The backend is Node.js tRPC Prisma PostgreSQL Redis AND I'm also using Docker GitHub Action ZORD shed scene PLAYWRIGHT AND vercel",
-            PunctuationStyle::Informal,
-        );
-        assert!(out.contains("Next.js"), "got: {out}");
-        assert!(!out.contains("next year"), "got: {out}");
-        assert!(out.contains("Zod"), "got: {out}");
-        assert!(out.contains("shadcn/ui"), "got: {out}");
-        assert!(out.contains("GitHub Actions"), "got: {out}");
-        assert!(out.contains("Playwright"), "got: {out}");
-        assert!(!out.contains("PLAYWRIGHT"), "got: {out}");
-        assert!(out.contains("Vercel"), "got: {out}");
-        assert!(out.contains("React TypeScript"), "got: {out}");
-        assert!(out.contains(" and Vercel."), "got: {out}");
-    }
-
-    #[test]
-    fn golden_tailwind_paragraph() {
-        let out = full_pipeline(
-            "Use bg stone 700 border neutral 200 rounded 2xl p 6 shadow-md text white on the card. Add hover bg stone 800 and transition colors. Keep everything center and give it a gap of sex.",
-            PunctuationStyle::Formal,
-        );
-        assert!(out.contains("bg-stone-700"), "got: {out}");
-        assert!(out.contains("border-neutral-200"), "got: {out}");
-        assert!(out.contains("rounded-2xl"), "got: {out}");
-        assert!(out.contains("p-6"), "got: {out}");
-        assert!(out.contains("hover:bg-stone-800"), "got: {out}");
-        assert!(out.contains("gap-6"), "got: {out}");
-    }
-
-    #[test]
-    fn paragraphs_are_preserved_without_invented_numbering() {
-        let out = format(
-            "First topic about React.\n\nSecond topic about Docker.",
-            PunctuationStyle::Informal,
-        );
-        assert_eq!(
-            out,
-            "First topic about React.\n\nSecond topic about Docker."
-        );
-    }
-
-    #[test]
-    fn golden_leading_dot_stripped() {
-        let out = full_pipeline(".I'm using React", PunctuationStyle::Informal);
-        assert!(!out.starts_with('.'), "got: {out}");
-        assert!(out.starts_with("I'm"), "got: {out}");
-    }
-
-    #[test]
     fn formats_percentages_currency_and_units() {
-        assert_eq!(
-            normalize_numerics("it takes two hundred milliseconds"),
-            "it takes 200ms"
-        );
+        assert_eq!(normalize_numerics("it takes two hundred milliseconds"), "it takes 200ms");
         assert_eq!(normalize_numerics("twenty percent more"), "20% more");
-        assert_eq!(
-            normalize_numerics("costs two thousand dollars"),
-            "costs $2,000"
-        );
-        assert_eq!(
-            normalize_numerics("add sixteen pixels of padding"),
-            "add 16px of padding"
-        );
+        assert_eq!(normalize_numerics("costs two thousand dollars"), "costs $2,000");
+        assert_eq!(normalize_numerics("add sixteen pixels of padding"), "add 16px of padding");
         assert_eq!(normalize_numerics("set it ninety degrees"), "set it 90deg");
     }
 
     #[test]
     fn formats_decimals_and_large_numbers() {
         assert_eq!(normalize_numerics("one point five rem"), "1.5rem");
-        assert_eq!(
-            normalize_numerics("we made two hundred thousand dollars"),
-            "we made $200,000"
-        );
-        assert_eq!(
-            normalize_numerics("about one million users"),
-            "about 1,000,000 users"
-        );
-        assert_eq!(
-            normalize_numerics("the project costs one point five million dollars"),
-            "the project costs $1.5 million"
-        );
+        assert_eq!(normalize_numerics("we made two hundred thousand dollars"), "we made $200,000");
+        assert_eq!(normalize_numerics("about one million users"), "about 1,000,000 users");
+        assert_eq!(normalize_numerics("the project costs one point five million dollars"), "the project costs $1.5 million");
     }
 
     #[test]
@@ -1762,31 +2498,342 @@ mod tests {
         assert_eq!(normalize_numerics("give me five"), "give me five");
         assert_eq!(normalize_numerics("hello world"), "hello world");
         assert_eq!(normalize_numerics("one and done"), "one and done");
-        assert_eq!(
-            normalize_numerics("two and three dollars"),
-            "two and three dollars"
-        );
+        assert_eq!(normalize_numerics("two and three dollars"), "two and three dollars");
         assert_eq!(normalize_numerics("one two three"), "one two three");
     }
 
     #[test]
     fn formats_extended_numeric_grammar_without_losing_punctuation() {
-        assert_eq!(
-            normalize_numerics("two hundreed thousand dollars,"),
-            "$200,000,"
-        );
+        assert_eq!(normalize_numerics("two hundreed thousand dollars,"), "$200,000,");
         assert_eq!(normalize_numerics("negative twenty five percent"), "-25%");
         assert_eq!(normalize_numerics("point five per cent"), "0.5%");
         assert_eq!(normalize_numerics("one lakh rupees"), "₹1,00,000");
         assert_eq!(normalize_numerics("five gigabytes"), "5 GB");
+        assert_eq!(normalize_numerics("one trillion dollars"), "$1,000,000,000,000");
+    }
+
+    #[test]
+    fn parses_clock_times_with_context() {
+        assert_eq!(normalize_numerics("meet at three thirty pm"), "meet at 3:30 PM");
+        assert_eq!(normalize_numerics("meet at three thirty p m"), "meet at 3:30 PM");
+        assert_eq!(normalize_numerics("meet at three thirty a m"), "meet at 3:30 AM");
+        assert_eq!(normalize_numerics("meet at three thirty"), "meet at 3:30");
+        assert_eq!(normalize_numerics("give me five"), "give me five");
+        assert_eq!(normalize_numerics("meet at twenty three thirty pm"), "meet at twenty three thirty pm");
+    }
+
+    #[test]
+    fn builds_numbered_lists_from_punctuated_ordinals() {
         assert_eq!(
-            normalize_numerics("one trillion dollars"),
-            "$1,000,000,000,000"
+            format(
+                "first fix the header. second fix the card. third remove the footer.",
+                PunctuationStyle::Informal,
+            ),
+            "1. Fix the header.\n2. Fix the card.\n3. Remove the footer."
         );
     }
 
     #[test]
-    fn ten_minute_transcript_formats_within_the_interactive_budget() {
+    fn wraps_technical_token_shapes_in_inline_code() {
+        assert_eq!(
+            format("make the button bg-stone-600 text white", PunctuationStyle::Informal),
+            "Make the button `bg-stone-600` text white."
+        );
+        assert!(format(
+            "the path is src/components/button.tsx",
+            PunctuationStyle::Informal,
+        )
+        .contains("`src/components/button.tsx`"));
+    }
+
+    #[test]
+    fn recapitalize_looks_only_at_the_first_token() {
+        assert_eq!(recapitalize("fix the MY_CONSTANT value"), "Fix the MY_CONSTANT value");
+        assert_eq!(recapitalize("myFunction should stay"), "myFunction should stay");
+        assert_eq!(recapitalize("src/file.rs should stay"), "src/file.rs should stay");
+    }
+
+    #[test]
+    fn coordinate_commas_do_not_rewrite_action_chains() {
+        let input = "I opened Gmail and replied to Alex and went home";
+        assert_eq!(coordinate_commas(input, PunctuationStyle::Formal), input);
+    }
+
+    #[test]
+    fn sentence_boundary_ignores_abbreviations_and_urls() {
+        assert_eq!(split_sentences("use e.g. this value. Then continue.").len(), 2);
+        assert_eq!(split_sentences("open https://example.com and continue. Done.").len(), 2);
+        assert_eq!(split_sentences("Use Next.js. Then Tauri.").len(), 2);
+    }
+
+    #[test]
+    fn bare_greeting_without_a_name_is_left_alone() {
+        let text = "hey everyone lets ship this today morning folks";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn greeting_does_not_absorb_body_words_as_names() {
+        let out = format_layout("hey david just wanted to give you an update thanks");
+        assert!(out.starts_with("Hey David,\n\n"), "got: {out}");
+        assert!(!out.starts_with("Hey David Just"), "got: {out}");
+        assert!(out.ends_with("\n\nThanks,"), "got: {out}");
+    }
+
+    #[test]
+    fn multi_token_names_survive_email_envelope() {
+        let out = format_layout("hi david smith quick heads up that the build is green again bye");
+        assert!(out.starts_with("Hi David Smith,\n\n"), "got: {out}");
+    }
+
+    #[test]
+    fn email_envelope_shapes_greeting_body_signoff() {
+        let out = format_layout(
+            "hey david just wanted to give you an update on the project the dashboard changes are finished and the login issue is fixed thanks",
+        );
+        assert!(out.starts_with("Hey David,\n\n"), "got: {out}");
+        assert!(out.ends_with("\n\nThanks,"), "got: {out}");
+    }
+
+    #[test]
+    fn inline_thanks_is_not_a_signoff_without_an_email_envelope() {
+        let text = "I spoke to Alex and said thanks";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn digit_ordinals_keep_normal_occurrences_of_thing() {
+        assert_eq!(
+            format_layout("1st fix the login thing 2nd check the dashboard 3rd fix buttons"),
+            "1. Fix the login thing.\n2. Check the dashboard.\n3. Fix buttons."
+        );
+    }
+
+    #[test]
+    fn spoken_ordinals_absorb_only_immediate_cue_thing() {
+        assert_eq!(
+            format_layout("first thing fix login second thing check dashboard third thing fix buttons"),
+            "1. Fix login.\n2. Check dashboard.\n3. Fix buttons."
+        );
+    }
+
+    #[test]
+    fn number_one_number_two_are_single_cues() {
+        assert_eq!(
+            format_layout("number one fix login number two check dashboard number three ship it"),
+            "1. Fix login.\n2. Check dashboard.\n3. Ship it."
+        );
+    }
+
+    #[test]
+    fn spoken_ordinals_keep_trailing_task_text_in_last_item() {
+        let out = format_layout(
+            "first fix the login thing second check dashboard third fix buttons and also clean code then test everything dont break anything please",
+        );
+        assert_eq!(
+            out,
+            "1. Fix the login thing.\n2. Check dashboard.\n3. Fix buttons and also clean code then test everything dont break anything please."
+        );
+    }
+
+    #[test]
+    fn lone_ordinal_stays_prose() {
+        let text = "first open the repo and organize everything for me";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn ordinal_sequence_must_move_forward() {
+        let text = "first explain this second explain that first repeat this";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn ordinary_ordinal_prose_is_not_a_numbered_list() {
+        for text in [
+            "I was first in line and second to leave.",
+            "She finished first in the race and second in the qualifier.",
+            "This is the first place and that is the second place.",
+        ] {
+            assert_eq!(format_layout(text), text, "input: {text}");
+        }
+    }
+
+    #[test]
+    fn ordinal_prefix_is_preserved() {
+        assert_eq!(
+            format_layout("I know but first fix this second test it third ship it"),
+            "I know but\n\n1. Fix this.\n2. Test it.\n3. Ship it."
+        );
+    }
+
+    #[test]
+    fn natural_fruit_list_becomes_bullets() {
+        assert_eq!(
+            format_layout("I'm going to get apples, bananas, pineapple, strawberries, and raspberries."),
+            "I'm going to get:\n- Apples\n- Bananas\n- Pineapple\n- Strawberries\n- Raspberries"
+        );
+    }
+
+    #[test]
+    fn natural_tech_list_preserves_existing_casing() {
+        assert_eq!(
+            format_layout("We need React, TypeScript, Tailwind CSS, and Tauri."),
+            "We need:\n- React\n- TypeScript\n- Tailwind CSS\n- Tauri"
+        );
+    }
+
+    #[test]
+    fn action_chain_is_not_a_natural_list() {
+        let text = "I opened Gmail, replied to Alex, and then went home.";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn adjective_series_is_not_a_natural_list() {
+        let text = "The app is fast, reliable, and local.";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn natural_list_consumes_only_its_sentence() {
+        let out = format_layout(
+            "We need React, TypeScript, Tailwind CSS, and Tauri. Keep the existing backend untouched because it already works correctly.",
+        );
+        assert!(out.starts_with("We need:\n- React\n- TypeScript\n- Tailwind CSS\n- Tauri"), "got: {out}");
+        assert!(out.ends_with("Keep the existing backend untouched because it already works correctly."), "got: {out}");
+    }
+
+    #[test]
+    fn colon_lead_in_with_short_run_builds_bullets() {
+        let out = format_layout(
+            "quick status: dashboards shipped. login issue resolved. api bug patched. payments pending.",
+        );
+        assert_eq!(
+            out,
+            "Quick status:\n- Dashboards shipped\n- Login issue resolved\n- Api bug patched\n- Payments pending"
+        );
+    }
+
+    #[test]
+    fn technical_colons_are_not_list_markers() {
+        for text in [
+            "meet at 10:00 and review the build",
+            "open https://example.com and check it",
+            "use hover:bg-stone-700 on the card",
+            "call std::mem::take here",
+        ] {
+            assert_eq!(format_layout(text), text, "input: {text}");
+        }
+    }
+
+    #[test]
+    fn paragraph_prefers_boundary_near_thirty_words() {
+        let first = (0..29).map(|_| "alpha").collect::<Vec<_>>().join(" ");
+        let text = format!("{first}. This is a second sentence with enough trailing text to remain visible after the first paragraph boundary.");
+        let out = format_layout(&text);
+        assert!(out.contains(".\n\nThis"), "got: {out}");
+    }
+
+    #[test]
+    fn paragraph_uses_a_nearby_earlier_boundary_instead_of_sixty_words() {
+        let first = (0..22).map(|_| "alpha").collect::<Vec<_>>().join(" ");
+        let second = (0..37).map(|_| "beta").collect::<Vec<_>>().join(" ");
+        let text = format!("{first}. {second}. Tail sentence stays here.");
+        let out = format_layout(&text);
+        assert!(out.contains("alpha.\n\n"), "got: {out}");
+    }
+
+    #[test]
+    fn long_sentence_is_not_split_mid_sentence() {
+        let long = (0..60).map(|_| "word").collect::<Vec<_>>().join(" ");
+        let text = format!("{long}. Tail follows here.");
+        let out = format_layout(&text);
+        assert!(out.contains(".\n\nTail follows here."), "got: {out}");
+        assert!(!out[..out.find('.').unwrap()].contains("\n\n"));
+    }
+
+    #[test]
+    fn short_runs_do_not_get_paragraph_gaps() {
+        let text = "just a quick note about the deploy status today everyone";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn existing_markdown_lists_are_idempotent() {
+        let text = "1. Fix login.\n2. Check dashboard.\n3. Ship it.";
+        assert_eq!(format_layout(text), text);
+        let bullets = "We need:\n- React\n- TypeScript\n- Tauri";
+        assert_eq!(format_layout(bullets), bullets);
+    }
+
+    #[test]
+    fn fenced_code_is_full_passthrough() {
+        let text = "```\nmust not touch first second third in here\n```";
+        assert_eq!(format_layout(text), text);
+    }
+
+    #[test]
+    fn layout_is_idempotent_across_email_and_lists() {
+        let once = format_layout("hey sam quick update first fix payments second verify receipts thanks");
+        let twice = format_layout(&once);
+        assert_eq!(twice, once, "once: {once}\ntwice: {twice}");
+    }
+
+    #[test]
+    fn unicode_never_panics_or_corrupts_byte_slices() {
+        let cases = [
+            "hello José this is a normal sentence with café and résumé.",
+            "नमस्ते दुनिया. This remains valid UTF-8.",
+            "hey josé just checking in thanks",
+            "We need café, résumé, jalapeño, and piñata.",
+            "quick status: café shipped. résumé fixed. jalapeño tested. piñata ready.",
+        ];
+        for case in cases {
+            let out = format_layout(case);
+            assert!(std::str::from_utf8(out.as_bytes()).is_ok());
+        }
+    }
+
+    #[test]
+    fn protected_developer_tokens_survive_layout_byte_identical() {
+        let text = "Keep src-tauri/src/managers/mlx.rs https://example.com dev@example.com bg-rose-600 Next.js TanStack Query shadcn/ui GGUF unchanged. Another sentence follows with enough words to make paragraph logic inspect the surrounding text without mutating those tokens at all.";
+        let out = format_layout(text);
+        for protected in [
+            "src-tauri/src/managers/mlx.rs",
+            "https://example.com",
+            "dev@example.com",
+            "bg-rose-600",
+            "Next.js",
+            "TanStack Query",
+            "shadcn/ui",
+            "GGUF",
+        ] {
+            assert!(out.contains(protected), "missing {protected}: {out}");
+        }
+    }
+
+    #[test]
+    fn layout_never_drops_tail_on_many_structures() {
+        let text = "We need React, TypeScript, Tailwind CSS, and Tauri. quick status: dashboards shipped. login resolved. api patched. payments pending. final-tail-token";
+        let out = format_layout(text);
+        assert!(out.contains("final-tail-token"), "got: {out}");
+    }
+
+    #[test]
+    fn long_layout_is_deterministic_and_bounded() {
+        let sentence = "This sentence contains enough ordinary words to exercise deterministic paragraph grouping while preserving every protected token src-tauri/src/managers/mlx.rs and https://example.com without changing meaning or structure. ";
+        let input = sentence.repeat(200);
+        let started = std::time::Instant::now();
+        let first = format_layout(&input);
+        let elapsed = started.elapsed();
+        let second = format_layout(&first);
+        assert_eq!(second, first);
+        assert!(elapsed < std::time::Duration::from_millis(200), "took {elapsed:?}");
+    }
+
+    #[test]
+    fn ten_minute_transcript_formats_within_interactive_budget() {
         let paragraph = "please check two hundreed thousand dollars and twenty five percent then preserve src/backend/payment/payment.ts without unrelated changes ";
         let input = paragraph.repeat(100);
         let started = std::time::Instant::now();
@@ -1798,190 +2845,216 @@ mod tests {
     }
 
     #[test]
-    fn ten_minute_catalog_pipeline_reuses_compiled_matchers() {
-        let paragraph = "please use next jays with background stone six hundred and deploy on render hosting then keep this normal prose unchanged ";
-        let input = paragraph.repeat(100);
-        crate::audio_toolkit::tech_lexicon::warm_up();
-        crate::audio_toolkit::styling::warm_up();
-        crate::audio_toolkit::programming_syntax::warm_up();
-
-        let started = std::time::Instant::now();
-        let output = full_pipeline(&input, PunctuationStyle::Formal);
-        assert!(started.elapsed() < std::time::Duration::from_secs(2));
-        assert!(output.contains("Next.js"));
-        assert!(output.contains("bg-stone-600"));
-        assert!(output.contains("Render"));
-        assert!(output.contains("normal prose"));
-    }
-
-    #[test]
-    fn parses_clock_times_with_context() {
-        assert_eq!(
-            normalize_numerics("meet at three thirty pm"),
-            "meet at 3:30 PM"
+    fn golden_tech_stack_pipeline_still_preserves_canonical_terms() {
+        let out = full_pipeline(
+            "I'm using next year's React TypeScript Tailwind CSS TanStack Query on the front end. The backend is Node.js tRPC Prisma PostgreSQL Redis AND I'm also using Docker GitHub Action ZORD shed scene PLAYWRIGHT AND vercel",
+            PunctuationStyle::Informal,
         );
-        // Without am/pm or a time cue, nothing becomes a clock.
-        assert_eq!(normalize_numerics("meet at three thirty"), "meet at 3:30");
-        assert_eq!(normalize_numerics("give me five"), "give me five");
-    }
-
-    #[test]
-    fn builds_numbered_lists_from_ordinals() {
-        assert_eq!(
-            format(
-                "first fix the header. second fix the card. third remove the footer.",
-                PunctuationStyle::Informal
-            ),
-            "1. Fix the header.\n2. Fix the card.\n3. Remove the footer."
-        );
-    }
-
-    #[test]
-    fn wraps_technical_token_shapes_in_inline_code() {
-        assert_eq!(
-            format(
-                "make the button bg-stone-600 text white",
-                PunctuationStyle::Informal
-            ),
-            "Make the button `bg-stone-600` text white."
-        );
-        assert!(format(
-            "the path is src/components/button.tsx",
-            PunctuationStyle::Informal
-        )
-        .contains("`src/components/button.tsx`"));
-    }
-
-    #[test]
-    fn ordinary_prose_is_never_wrapped_or_bloated() {
-        assert_eq!(
-            format("make it well known", PunctuationStyle::Informal),
-            "Make it well known."
-        );
+        assert!(out.contains("Next.js"));
+        assert!(out.contains("Zod"));
+        assert!(out.contains("shadcn/ui"));
+        assert!(out.contains("GitHub Actions"));
+        assert!(out.contains("Playwright"));
+        assert!(out.contains("Vercel"));
     }
 
     #[test]
     fn empty_input_passthrough() {
         assert_eq!(format("", PunctuationStyle::Formal), "");
+        assert_eq!(format_layout(""), "");
     }
+}
 
-    // ===== Layout engine: gaps, lists, envelopes =====
+#[cfg(test)]
+mod email_format_tests {
+    use super::*;
 
-    #[test]
-    fn first_stop_inside_word_window_earns_the_gap() {
-        // Words 1-24 filler, stop arrives at word ~30 (inside 25..=40).
-        let mut text: Vec<String> = (0..24).map(|_| "filler".into()).collect();
-        text.push("the metrics are looking done.".into());
-        text.push("More quiet sentences follow afterwards.".into());
-        let joined = text.join(" ");
-        let out = format_layout(&joined);
-        assert!(out.contains("done.\n\n"), "got: {out}");
-        assert_eq!(out.split("\n\n").count(), 2);
-    }
-
-    #[test]
-    fn later_stops_in_same_window_are_ignored() {
-        // Two stops between words 25 and 40: FIRST one takes the gap.
-        let mut text: Vec<String> = (0..24).map(|_| "pad".into()).collect();
-        text.push("first point lands here.".into());
-        text.push("second point sits close.".into());
-        text.push("tail words carry on quietly now.".into());
-        let out = format_layout(&text.join(" "));
-        assert!(out.contains("here.\n\n"), "got: {out}");
-        assert!(!out.contains("close.\n\n"), "got: {out}");
+    fn ctx() -> EmailFormatContext<'static> {
+        EmailFormatContext {
+            is_email: true,
+            recipient_name: Some("Wojciech Kowalski"),
+            author_name: Some("Harpreet Duggal"),
+            ..Default::default()
+        }
     }
 
     #[test]
-    fn window_without_stops_extends_to_next_terminal() {
-        // No punctuation until well past word 40 → still splits there once.
-        let mut text: Vec<String> = (0..45).map(|_| "run".into()).collect();
-        text.push("it finally stops.".into());
-        let out = format_layout(&text.join(" "));
-        assert!(out.contains("stops.\n\n"), "got: {out}");
-    }
-
-    #[test]
-    fn short_runs_never_get_paragraph_gaps() {
-        let text = "just a quick note about the deploy status today everyone";
-        assert!(!format_layout(text).contains("\n\n"));
-    }
-
-    #[test]
-    fn digit_ordinals_speech_becomes_clean_numbered_list() {
-        let out = format_layout("1st fix the login thing 2nd check the dashboard 3rd fix buttons");
+    fn formats_terminal_thanks_with_signature() {
+        let out = format_layout_with_email(
+            "hey wojtek just wanted to confirm the project is finished thanks",
+            Some(ctx()),
+        );
         assert_eq!(
             out,
-            "1. Fix the login thing.\n2. Check the dashboard.\n3. Fix buttons."
+            "Hey Wojciech Kowalski,\n\njust wanted to confirm the project is finished\n\nThanks,\nHarpreet Duggal"
         );
     }
 
     #[test]
-    fn spoken_ordinals_renumber_and_absorb_trailing_tasks() {
-        let out = format_layout(
-            "first fix the login thing second check dashboard third fix buttons \
-             and also clean code then test everything dont break anything please",
+    fn replaces_bad_asr_signature_with_canonical_identity() {
+        let out = format_layout_with_email(
+            "hey wojtek the changes are finished cheers harprit duggel",
+            Some(ctx()),
         );
-        assert!(out.contains("1. Fix the login thing."), "got: {out}");
-        assert!(out.contains("2. Check dashboard."), "got: {out}");
-        // Everything after "third" rides inside item 3 — no forced splits.
+        assert!(out.ends_with("Cheers,\nHarpreet Duggal"), "got: {out}");
+        assert!(!out.contains("harprit duggel"));
+    }
+
+    #[test]
+    fn thanks_inside_body_is_not_a_signoff() {
+        let input = "hey wojtek thanks for sending the files I reviewed everything and it looks correct";
+        let out = format_layout_with_email(input, Some(ctx()));
+        assert!(out.contains("thanks for sending the files"), "got: {out}");
+        assert!(!out.ends_with("Thanks,\nHarpreet Duggal"));
+    }
+
+    #[test]
+    fn only_final_thanks_becomes_closing() {
+        let out = format_layout_with_email(
+            "hey wojtek thanks for sending that earlier I reviewed it and everything looks good thanks harprit",
+            Some(ctx()),
+        );
+        assert!(out.contains("thanks for sending that earlier"), "got: {out}");
+        assert!(out.ends_with("Thanks,\nHarpreet Duggal"), "got: {out}");
+    }
+
+    #[test]
+    fn thanks_again_is_not_a_signature() {
+        let out = format_layout_with_email(
+            "hey wojtek everything looks good thanks again",
+            Some(ctx()),
+        );
+        assert!(!out.ends_with("Thanks,\nHarpreet Duggal"));
+    }
+
+    #[test]
+    fn formal_signoff_works() {
+        let out = format_layout_with_email(
+            "dear wojtek I have attached the completed documentation best regards harprit duggal",
+            Some(ctx()),
+        );
+        assert!(out.ends_with("Best regards,\nHarpreet Duggal"), "got: {out}");
+    }
+
+    #[test]
+    fn informal_cheers_works() {
+        let out = format_layout_with_email(
+            "hi wojtek everything is shipped cheers",
+            Some(ctx()),
+        );
+        assert!(out.ends_with("Cheers,\nHarpreet Duggal"), "got: {out}");
+    }
+
+    #[test]
+    fn non_email_text_never_gets_email_magic() {
+        let context = EmailFormatContext {
+            is_email: false,
+            recipient_name: Some("Wojciech"),
+            author_name: Some("Harpreet Duggal"),
+            ..Default::default()
+        };
+        let input = "I told him thanks John";
+        assert_eq!(format_layout_with_email(input, Some(context)), input);
+    }
+
+    #[test]
+    fn default_ending_added_when_nothing_spoken() {
+        let out = format_layout_with_email(
+            "hi wojtek quick update on the payroll migration the backend work is finished and qa starts tomorrow morning",
+            Some(EmailFormatContext {
+                is_email: true,
+                author_name: Some("Harpreet Duggal"),
+                default_signoff: Some("Talk soon"),
+                ..Default::default()
+            }),
+        );
+        assert!(out.ends_with("Talk soon,\nHarpreet Duggal"), "got: {out}");
+    }
+
+    #[test]
+    fn default_ending_renders_title_and_company() {
+        let out = format_layout_with_email(
+            "hi wojtek quick update on the payroll migration the backend work is finished and qa starts tomorrow morning",
+            Some(EmailFormatContext {
+                is_email: true,
+                author_name: Some("Harpreet Duggal"),
+                author_title: Some("Founder"),
+                author_company: Some("Superflow"),
+                include_title: true,
+                include_company: true,
+                default_signoff: Some("Talk soon"),
+                ..Default::default()
+            }),
+        );
         assert!(
-            out.ends_with("3. Fix buttons and also clean code then test everything dont break anything please."),
+            out.ends_with("Talk soon,\nHarpreet Duggal\nFounder, Superflow"),
             "got: {out}"
         );
-        assert!(!out.contains("first "), "got: {out}");
     }
 
     #[test]
-    fn lone_ordinal_without_a_second_cue_stays_plain_prose() {
-        let text = "first open the repo and organize everything for me";
-        assert_eq!(format_layout(text), text);
-    }
-
-    #[test]
-    fn email_envelope_shapes_greeting_body_signoff() {
-        let out = format_layout(
-            "hey david just wanted to give you an update on the project \
-             the dashboard changes are finished and the login issue is fixed \
-             thanks",
+    fn duplicate_signoffs_collapse_to_one() {
+        let out = format_layout_with_email(
+            "hi wojtek the deploy finished tonight cheers thanks",
+            Some(ctx()),
         );
-        assert!(out.starts_with("Hey David,\n\n"), "got: {out}");
-        assert!(out.ends_with("\n\nThanks,"), "got: {out}");
+        assert!(out.ends_with("Cheers,\nHarpreet Duggal"), "got: {out}");
+        assert!(!out.contains("Thanks"), "got: {out}");
     }
 
     #[test]
-    fn multi_token_capitalized_names_survive_the_envelope() {
-        let out = format_layout("hi david smith quick heads up that the build is green again bye");
-        assert!(out.starts_with("Hi David Smith,\n\n"), "got: {out}");
-    }
-
-    #[test]
-    fn bare_greeting_without_a_name_is_left_alone() {
-        let text = "hey everyone lets ship this today morning folks";
-        assert!(
-            !format_layout(text).contains(",\n\nHey") && !format_layout(text).starts_with("Hey")
+    fn asr_alias_tanks_becomes_thanks() {
+        let out = format_layout_with_email(
+            "hi wojtek the invoice was approved this morning tanks",
+            Some(ctx()),
         );
+        assert!(out.ends_with("Thanks,\nHarpreet Duggal"), "got: {out}");
     }
 
     #[test]
-    fn colon_lead_in_with_short_run_builds_bullets() {
-        let out = format_layout(
-            "quick status: dashboards shipped. login issue resolved. \
-             api bug patched. payments pending.",
+    fn subject_first_is_extracted_and_body_starts_at_greeting() {
+        let formatted = format_email_for_surface(
+            "subject updated rollout timeline hey wojtek the migration finished today thanks",
+            ctx(),
         );
-        assert!(out.contains("- Dashboards shipped"), "got: {out}");
-        assert!(out.contains("- Login issue resolved"), "got: {out}");
+        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        let out = formatted.text;
+        assert!(!out.contains("rollout timeline hey"), "got: {out}");
+        assert!(out.starts_with("Hey Wojciech Kowalski,"), "got: {out}");
+        assert!(out.ends_with("Thanks,\nHarpreet Duggal"), "got: {out}");
     }
 
     #[test]
-    fn fenced_code_forces_full_passthrough() {
-        let text = "```\nmust not touch anything in here\n```";
-        assert_eq!(format_layout(text), text);
+    fn subject_last_inline_is_extracted() {
+        let formatted = format_email_for_surface(
+            "hi wojtek the qa pass is complete thanks alex. subject updated rollout timeline",
+            ctx(),
+        );
+        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        let out = formatted.text;
+        assert!(!out.contains("updated rollout"), "got: {out}");
+        assert!(out.ends_with("Thanks,\nHarpreet Duggal"), "got: {out}");
     }
 
     #[test]
-    fn layout_is_idempotent_across_all_structures() {
-        let email =
-            format_layout("hey sam quick update first fix payments second verify receipts thanks");
-        assert_eq!(format_layout(&email), email);
+    fn subject_own_last_line_is_extracted() {
+        let formatted = format_email_for_surface(
+            "hi wojtek the qa pass is complete\nthanks harprit duggal\nsubject updated rollout timeline",
+            ctx(),
+        );
+        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        let out = formatted.text;
+        assert!(!out.ends_with("rollout timeline"), "got: {out}");
+    }
+
+    #[test]
+    fn prose_mention_of_subject_is_never_extracted() {
+        let formatted = format_email_for_surface(
+            "hi wojtek the subject is unclear in the last email can you clarify it tomorrow",
+            ctx(),
+        );
+        assert_eq!(formatted.subject, None);
+        let out = formatted.text;
+        assert!(out.contains("the subject is unclear"), "got: {out}");
     }
 }

@@ -25,7 +25,7 @@ mod overlay;
 mod paste_tx;
 pub mod portable;
 mod secure_input;
-mod settings;
+pub mod settings;
 mod shortcut;
 mod shortcuts;
 mod signal_handle;
@@ -678,6 +678,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_clipboard_handling_setting,
             shortcut::change_auto_submit_setting,
             shortcut::change_auto_submit_key_setting,
+            shortcut::change_user_specification_setting,
             shortcut::change_post_process_enabled_setting,
             shortcut::change_experimental_enabled_setting,
             shortcut::change_experimental_mlx_enabled_setting,
@@ -705,6 +706,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_cleanup_model_enabled_setting,
             shortcut::change_smart_file_references_enabled_setting,
             shortcut::change_live_punctuation_enabled_setting,
+            shortcut::change_show_live_streaming_setting,
             shortcut::change_punctuation_style_setting,
             shortcut::change_intelligence_awareness_enabled_setting,
             shortcut::change_app_language_setting,

@@ -50,7 +50,10 @@ const COMPOSE_ALIASES: &[&str] = &[
     "compose an email to",
 ];
 
-const SEND_ALIASES: &[&str] = &["send it"];
+// Terminal-position send aliases. Bare "send" is deliberately terminal-only:
+// a standalone utterance of just "send" stays ordinary dictation, while
+// "… and send." at the end of a Gmail command is a send instruction.
+const SEND_ALIASES: &[&str] = &["send it now", "send this email", "send this", "send it"];
 const CANCEL_ALIASES: &[&str] = &["cancel", "never mind", "stop that", "abort"];
 const RECIPIENT_TERMINATORS: &[&str] = &[
     "telling",
@@ -102,7 +105,13 @@ fn strip_leading_alias<'a>(value: &'a str, alias: &str) -> Option<&'a str> {
     }))
 }
 
-const SEND_ALIASES_TERMINAL: &[&str] = &["send it"];
+const SEND_ALIASES_TERMINAL: &[&str] = &[
+    "send it now",
+    "send this email",
+    "send it",
+    "send this",
+    "send",
+];
 
 fn strip_terminal_send(value: &str) -> Option<String> {
     let without_terminal_punctuation = value
@@ -380,5 +389,53 @@ mod tests {
         );
         assert!(literal_recipient_email(Some("Alex")).is_none());
         assert!(literal_recipient_email(Some("alex@localhost")).is_none());
+    }
+
+    #[test]
+    fn terminal_send_supports_the_full_alias_set() {
+        for (value, expected_instruction) in [
+            ("Reply. The build is ready. Send it.", "The build is ready"),
+            (
+                "Reply. The build is ready. Send it now.",
+                "The build is ready",
+            ),
+            ("Reply. The build is ready. Send this.", "The build is ready"),
+            (
+                "Reply. The build is ready. Send this email.",
+                "The build is ready",
+            ),
+            ("Reply. The build is ready. Send.", "The build is ready"),
+        ] {
+            let parsed = command(value);
+            assert_eq!(parsed.terminal_action, TerminalAction::Send, "{value}");
+            assert_eq!(parsed.instruction, expected_instruction, "{value}");
+        }
+    }
+
+    #[test]
+    fn standalone_send_accepts_terminal_aliases_but_not_bare_send() {
+        for value in ["Send it.", "Send it now!", "Send this.", "Send this email."] {
+            assert_eq!(
+                parse(value),
+                Some(GmailVoiceInput::SessionAction(TerminalAction::Send)),
+                "{value}"
+            );
+        }
+        assert_eq!(parse("send"), None);
+    }
+
+    #[test]
+    fn full_alias_set_false_positives_remain_content() {
+        for value in [
+            "Reply. Tell Alex I'll send it now and then leave.",
+            "Reply. Ask him whether he can send this email tomorrow.",
+            "Reply. Say don't send this yet.",
+        ] {
+            assert_eq!(
+                command(value).terminal_action,
+                TerminalAction::None,
+                "{value}"
+            );
+        }
     }
 }

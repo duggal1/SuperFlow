@@ -208,6 +208,14 @@ async changeAutoSubmitKeySetting(key: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async changeUserSpecificationSetting(spec: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_user_specification_setting", { spec }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changePostProcessEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_post_process_enabled_setting", { enabled }) };
@@ -431,6 +439,14 @@ async changeSmartFileReferencesEnabledSetting(enabled: boolean) : Promise<Result
 async changeLivePunctuationEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_live_punctuation_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeShowLiveStreamingSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_show_live_streaming_setting", { enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1168,7 +1184,13 @@ selected_channel?: number | null; clamshell_microphone?: string | null; selected
 /**
  * Named dictation shortcuts expanded inline at paste time.
  */
-shortcuts?: Shortcut[]; voice_command_hook?: string; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
+shortcuts?: Shortcut[]; voice_command_hook?: string; 
+/**
+ * Local, hybrid user specification (identity + per-surface + custom).
+ * Stored as JSON. Typed keys are first-class; `custom` holds arbitrary
+ * user-defined key/value pairs. Never auto-syncs or leaves the device.
+ */
+user_specification?: string; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
 /**
  * Format used by the journal's Export action. Markdown by default.
  */
@@ -1237,7 +1259,12 @@ transcribe_gpu_device?: string | null; extra_recording_buffer_ms?: number; vad_e
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; 
+/**
+ * Whether the Live streaming panel is rendered. Backend streaming still runs
+ * for speed; this only hides the frontend component.
+ */
+show_live_streaming?: boolean }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }

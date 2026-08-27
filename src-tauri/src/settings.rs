@@ -530,6 +530,11 @@ pub struct AppSettings {
     pub shortcuts: Vec<Shortcut>,
     #[serde(default = "default_voice_command_hook")]
     pub voice_command_hook: String,
+    /// Local, hybrid user specification (identity + per-surface + custom).
+    /// Stored as JSON. Typed keys are first-class; `custom` holds arbitrary
+    /// user-defined key/value pairs. Never auto-syncs or leaves the device.
+    #[serde(default = "default_user_specification")]
+    pub user_specification: String,
     #[serde(default)]
     pub model_unload_timeout: ModelUnloadTimeout,
     #[serde(default = "default_word_correction_threshold")]
@@ -671,6 +676,10 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    /// Whether the Live streaming panel is rendered. Backend streaming still runs
+    /// for speed; this only hides the frontend component.
+    #[serde(default = "default_show_live_streaming")]
+    pub show_live_streaming: bool,
 }
 
 fn default_model() -> String {
@@ -736,6 +745,10 @@ fn default_overlay_style() -> OverlayStyle {
     return OverlayStyle::None;
     #[cfg(not(target_os = "linux"))]
     return OverlayStyle::Live;
+}
+
+fn default_show_live_streaming() -> bool {
+    true
 }
 
 fn default_vad_enabled() -> bool {
@@ -821,6 +834,10 @@ fn default_ai_cleanup_model() -> String {
 
 fn default_voice_command_hook() -> String {
     "Hey SuperFlow".to_string()
+}
+
+fn default_user_specification() -> String {
+    "{}".to_string()
 }
 
 fn default_intelligence_awareness_enabled() -> bool {
@@ -1221,6 +1238,7 @@ pub fn get_default_settings() -> AppSettings {
         custom_words: Vec::new(),
         shortcuts: Vec::new(),
         voice_command_hook: default_voice_command_hook(),
+        user_specification: default_user_specification(),
         model_unload_timeout: ModelUnloadTimeout::default(),
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
@@ -1275,6 +1293,7 @@ pub fn get_default_settings() -> AppSettings {
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
         overlay_style: default_overlay_style(),
+        show_live_streaming: default_show_live_streaming(),
     }
 }
 

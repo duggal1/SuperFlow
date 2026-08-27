@@ -786,4 +786,271 @@ mod tests {
         );
         assert_eq!(result.stage, SimStage::Processing);
     }
+
+    // ---------------------------------------------------------------------
+    // Double-tap FN → hands-free (issue 1) — aggressive window tests
+    // ---------------------------------------------------------------------
+    #[test]
+    fn double_tap_window_constants_are_sane() {
+        assert!(DEBOUNCE < FN_DOUBLE_TAP_WINDOW);
+        assert_eq!(DEBOUNCE.as_millis(), 30);
+        assert_eq!(FN_DOUBLE_TAP_WINDOW.as_millis(), 350);
+        assert_eq!(RELEASE_GRACE.as_millis(), 50);
+    }
+
+    fn is_double_tap(prev_ms: u64, now_ms: u64) -> bool {
+        let since = now_ms.saturating_sub(prev_ms);
+        since >= DEBOUNCE.as_millis() as u64 && since < FN_DOUBLE_TAP_WINDOW.as_millis() as u64
+    }
+
+    #[test]
+    fn double_tap_window_boundaries() {
+        assert!(!is_double_tap(0, 10), "10ms < debounce (30) → not double");
+        assert!(!is_double_tap(0, 29), "29ms < debounce → not double");
+        assert!(is_double_tap(0, 30), "30ms == debounce → double");
+        assert!(is_double_tap(0, 31), "31ms → double");
+        assert!(is_double_tap(0, 200), "200ms → double");
+        assert!(is_double_tap(0, 349), "349ms → double");
+        assert!(!is_double_tap(0, 350), "350ms == window → not double");
+        assert!(!is_double_tap(0, 500), "500ms > window → not double");
+    }
+
+    #[test]
+    fn double_tap_must_not_confuse_autorepeat() {
+        // Auto-repeat burst uses 5ms gaps — must never be double
+        assert!(!is_double_tap(0, 5));
+        assert!(!is_double_tap(10, 15));
+        // Genuine double at 200ms must be double even after autorepeat
+        assert!(is_double_tap(0, 200));
+    }
+
+    /// Simulator that includes double-tap → hands-free promote/start
+    #[derive(Debug, PartialEq, Eq)]
+    enum HandsFreeSimStage {
+        Idle,
+        Recording { hands_free: bool },
+        Processing,
+    }
+
+    struct HandsFreeSimResult {
+        starts_standard: u32,
+        starts_hands_free: u32,
+        promotes: u32,
+        stops: u32,
+        stage: HandsFreeSimStage,
+    }
+
+    fn simulate_with_double(events: &[(u64, Ev)]) -> HandsFreeSimResult {
+        let mut stage = HandsFreeSimStage::Idle;
+        let mut pending: Option<String> = None;
+        let mut last_press_ms: Option<u64> = None;
+        let mut last_standard_press_ms: Option<u64> = None;
+        let mut starts_standard = 0;
+        let mut starts_hands_free = 0;
+        let mut promotes = 0;
+        let mut stops = 0;
+        let debounce_ms = DEBOUNCE.as_millis() as u64;
+        let window_ms = FN_DOUBLE_TAP_WINDOW.as_millis() as u64;
+
+        for (clock_ms, ev) in events {
+            match ev {
+                Ev::Grace => {
+                    if let Some(p) = pending.take() {
+                        if matches!(stage, HandsFreeSimStage::Recording { .. }) && p == BINDING {
+                            stage = HandsFreeSimStage::Processing;
+                            stops += 1;
+                        }
+                    }
+                }
+                Ev::Press | Ev::Release => {
+                    let is_pressed = matches!(ev, Ev::Press);
+                    let pending_binding = pending.as_deref();
+                    let recording_binding = match &stage {
+                        HandsFreeSimStage::Recording { .. } => Some(BINDING),
+                        _ => None,
+                    };
+                    let recording_is_hands_free = matches!(
+                        stage,
+                        HandsFreeSimStage::Recording { hands_free: true }
+                    );
+
+                    // Hands-free chord (not simulated here) would be Start/Promote
+                    // — we only test double-tap path.
+
+                    // PTT handling
+                    match classify_ptt_event(
+                        pending_binding,
+                        is_pressed,
+                        true,
+                        BINDING,
+                        recording_binding,
+                    ) {
+                        PttAction::CancelRelease => {
+                            // Double-tap check inside CancelRelease
+                            if is_pressed {
+                                if let Some(prev) = last_standard_press_ms {
+                                    let since = clock_ms.saturating_sub(prev);
+                                    if since >= debounce_ms && since < window_ms {
+                                        match &stage {
+                                            HandsFreeSimStage::Recording { hands_free: false } => {
+                                                pending = None;
+                                                if let HandsFreeSimStage::Recording { hands_free } =
+                                                    &mut stage
+                                                {
+                                                    *hands_free = true;
+                                                }
+                                                promotes += 1;
+                                                last_standard_press_ms = None;
+                                                continue;
+                                            }
+                                            HandsFreeSimStage::Idle => {
+                                                pending = None;
+                                                stage = HandsFreeSimStage::Recording {
+                                                    hands_free: true,
+                                                };
+                                                starts_hands_free += 1;
+                                                last_standard_press_ms = None;
+                                                continue;
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                            }
+                            pending = None;
+                            continue;
+                        }
+                        PttAction::DeferRelease => {
+                            pending = Some(BINDING.to_string());
+                            continue;
+                        }
+                        PttAction::Passthrough => {}
+                    }
+
+                    // Debounce
+                    if is_pressed {
+                        if last_press_ms.is_some_and(|t| clock_ms.saturating_sub(t) < debounce_ms) {
+                            continue;
+                        }
+                        last_press_ms = Some(*clock_ms);
+                    }
+
+                    // Double-tap after debounce (toggle mode double)
+                    let mut now_for_standard = None;
+                    if is_pressed {
+                        now_for_standard = Some(*clock_ms);
+                    }
+                    if let Some(now) = now_for_standard {
+                        if let Some(prev) = last_standard_press_ms {
+                            let since = now.saturating_sub(prev);
+                            if since >= debounce_ms && since < window_ms {
+                                match &stage {
+                                    HandsFreeSimStage::Recording { hands_free: false } => {
+                                        pending = None;
+                                        if let HandsFreeSimStage::Recording { hands_free } =
+                                            &mut stage
+                                        {
+                                            *hands_free = true;
+                                        }
+                                        promotes += 1;
+                                        last_standard_press_ms = None;
+                                        continue;
+                                    }
+                                    HandsFreeSimStage::Idle => {
+                                        pending = None;
+                                        stage = HandsFreeSimStage::Recording { hands_free: true };
+                                        starts_hands_free += 1;
+                                        last_standard_press_ms = None;
+                                        continue;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                        last_standard_press_ms = Some(now);
+                    }
+
+                    // Normal toggle/PTT start/stop (push_to_talk=true for this sim)
+                    if is_pressed && matches!(stage, HandsFreeSimStage::Idle) {
+                        stage = HandsFreeSimStage::Recording { hands_free: false };
+                        starts_standard += 1;
+                    } else if !is_pressed
+                        && matches!(
+                            &stage,
+                            HandsFreeSimStage::Recording { hands_free: false }
+                        )
+                    {
+                        // In real PTT, release would be deferred; for toggle sim we stop
+                        // directly if no pending
+                        if pending.is_none() {
+                            stage = HandsFreeSimStage::Processing;
+                            stops += 1;
+                        }
+                    }
+                    // Hands-free recording ignores standard release (classify_hands_free)
+                    if recording_is_hands_free && !is_pressed {
+                        // ignored
+                    }
+                }
+            }
+        }
+
+        HandsFreeSimResult {
+            starts_standard,
+            starts_hands_free,
+            promotes,
+            stops,
+            stage,
+        }
+    }
+
+    #[test]
+    fn double_tap_idle_starts_hands_free() {
+        // Two presses 200ms apart while idle: first starts standard, second promotes to hands-free
+        let events = vec![(0, Ev::Press), (200, Ev::Press)];
+        let r = simulate_with_double(&events);
+        assert_eq!(r.starts_standard, 1, "first press starts standard");
+        assert_eq!(r.promotes, 1, "second press within window should promote to hands-free");
+        assert_eq!(r.stage, HandsFreeSimStage::Recording { hands_free: true });
+    }
+
+    #[test]
+    fn double_tap_while_recording_promotes() {
+        // Simulate: press@0 → recording standard, release deferred, press@200 → promote
+        let events = vec![
+            (0, Ev::Press),
+            (10, Ev::Release),
+            (15, Ev::Press), // auto-repeat cancel (5ms) — not double
+            (20, Ev::Release),
+            (200, Ev::Press), // genuine second tap after 180ms from last standard press
+        ];
+        let r = simulate_with_double(&events);
+        // After first press, standard recording; after 200ms double, should promote
+        // Our sim's last_standard_press is at 0 and 15, so 200-15=185 <350 → promote
+        assert!(r.promotes >= 1 || r.starts_hands_free >= 1, "should promote or start hands-free");
+    }
+
+    #[test]
+    fn double_tap_outside_window_does_not_promote() {
+        let events = vec![(0, Ev::Press), (500, Ev::Press)];
+        let r = simulate_with_double(&events);
+        assert_eq!(r.promotes, 0, "500ms > window should not promote");
+        assert_eq!(r.starts_hands_free, 0, "outside window should not start hands-free");
+    }
+
+    #[test]
+    fn debounce_blocks_spurious_double() {
+        let events = vec![(0, Ev::Press), (10, Ev::Press)];
+        let r = simulate_with_double(&events);
+        assert_eq!(r.promotes, 0, "10ms < debounce should not promote");
+        assert_eq!(r.starts_hands_free, 0);
+    }
+
+    #[test]
+    fn hands_free_promote_preserves_recording() {
+        // Start standard, then double → hands_free, ensure stage stays Recording {hands_free:true}
+        let events = vec![(0, Ev::Press), (200, Ev::Press)];
+        let r = simulate_with_double(&events);
+        assert_eq!(r.stage, HandsFreeSimStage::Recording { hands_free: true });
+    }
 }

@@ -1020,7 +1020,7 @@ impl AudioRecordingManager {
 
     pub fn take_recording_context(&self) -> Option<RecordingContext> {
         let receiver = self.context_capture.lock().unwrap().take()?;
-        receiver.recv_timeout(Duration::from_millis(50)).ok()
+        receiver.recv_timeout(Duration::from_millis(500)).ok()
     }
 
     pub fn clear_context_capture(&self) {

@@ -43,6 +43,13 @@ impl Surface {
             Surface::Gmail | Surface::Slack | Surface::Terminal | Surface::Editor
         )
     }
+
+    /// Whether the surface should be treated as Gmail for voice-command
+    /// routing. A named predicate so Gmail-like hosts can be added here
+    /// without touching call sites.
+    pub fn is_gmail_like(&self) -> bool {
+        matches!(self, Surface::Gmail)
+    }
 }
 
 /// Immutable snapshot of "where the user is" captured the moment a recording

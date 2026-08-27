@@ -1119,6 +1119,15 @@ pub fn change_auto_submit_setting(app: AppHandle, enabled: bool) -> Result<(), S
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_user_specification_setting(app: AppHandle, spec: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.user_specification = spec;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_auto_submit_key_setting(app: AppHandle, key: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     let parsed = match key.as_str() {
@@ -1539,6 +1548,15 @@ pub fn change_live_punctuation_enabled_setting(
 ) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.live_punctuation_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_show_live_streaming_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.show_live_streaming = enabled;
     settings::write_settings(&app, settings);
     Ok(())
 }
