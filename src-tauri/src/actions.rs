@@ -388,6 +388,9 @@ pub(crate) struct ProcessedTranscription {
     /// Dictated email subject, extracted on the Gmail surface. Delivered to
     /// the mail client's Subject field at paste time, not rendered in body.
     pub subject: Option<String>,
+    /// When the transcript ended with a "send it" command, this is the key to
+    /// press after the cleaned text is pasted (the universal send hook).
+    pub send_after_paste: Option<crate::send_it::SendKey>,
 }
 
 /// Resolve the persisted language *intent* into the language the currently-loaded
@@ -507,7 +510,33 @@ async fn process_transcription_output_with_context(
     context: Option<&crate::context::RecordingContext>,
 ) -> ProcessedTranscription {
     let settings = get_settings(app);
-    let mut final_text = apply_local_transcript_cleanup(app, transcription, &settings).await;
+
+    // Universal "send it" hook (Aqua Voice style): strip the spoken wake phrase,
+    // then detect a *terminal* send command. When present, the command is
+    // removed from the text so no LLM ever sees it, and the cleaned message is
+    // what we process and paste. The matching send key is recorded for the
+    // paste step to fire after the text lands in the focused app.
+    let hook_stripped = crate::gmail_voice::strip_voice_command_hook(
+        transcription,
+        &settings.voice_command_hook,
+    )
+    .map(|s| s.to_string())
+    .unwrap_or_else(|| transcription.to_string());
+    let surface_str = context
+        .as_ref()
+        .map(|c| c.snapshot.surface.as_str())
+        .unwrap_or("");
+    let send_plan = if hook_stripped.trim().is_empty() {
+        None
+    } else {
+        crate::send_it::detect_send_it(&hook_stripped, surface_str)
+    };
+    let effective_input = send_plan
+        .as_ref()
+        .map(|plan| plan.cleaned.clone())
+        .unwrap_or_else(|| hook_stripped.clone());
+
+    let mut final_text = apply_local_transcript_cleanup(app, &effective_input, &settings).await;
     let mut post_processed_text: Option<String> = None;
     let mut post_process_prompt: Option<String> = None;
 
@@ -557,10 +586,12 @@ async fn process_transcription_output_with_context(
 
     // Experimental Gmail voice: reply / compose / send via AX + a dedicated LLM
     // prompt. A handled utterance suppresses normal dictation and paste entirely
-    // (fail closed on error — nothing is pasted or sent).
-    if settings.experimental_gmail_voice_enabled {
+    // (fail closed on error — nothing is pasted or sent). The universal "send it"
+    // hook above owns send detection, so we skip this path whenever a send
+    // command was detected — that keeps the simple paste+send path authoritative.
+    if settings.experimental_gmail_voice_enabled && send_plan.is_none() {
         if let Some(ctx) = context {
-            match crate::gmail_voice::handle(transcription, &ctx.snapshot, &settings, app).await {
+            match crate::gmail_voice::handle(&effective_input, &ctx.snapshot, &settings, app).await {
                 crate::gmail_voice::GmailHandleResult::NotHandled => {}
                 crate::gmail_voice::GmailHandleResult::Drafted
                 | crate::gmail_voice::GmailHandleResult::Sent
@@ -570,6 +601,7 @@ async fn process_transcription_output_with_context(
                         post_processed_text: None,
                         post_process_prompt: None,
                         subject: None,
+                        send_after_paste: None,
                     };
                 }
                 crate::gmail_voice::GmailHandleResult::Failed(err) => {
@@ -579,6 +611,7 @@ async fn process_transcription_output_with_context(
                         post_processed_text: None,
                         post_process_prompt: None,
                         subject: None,
+                        send_after_paste: None,
                     };
                 }
             }
@@ -786,6 +819,7 @@ async fn process_transcription_output_with_context(
         post_processed_text,
         post_process_prompt,
         subject: email_subject_out,
+        send_after_paste: send_plan.map(|plan| plan.key),
     }
 }
 
@@ -1606,7 +1640,26 @@ impl ShortcutAction for TranscribeAction {
                             }
 
                             let settings = get_settings(&ah);
-                            if binding_id == "transcribe" && !post_process {
+
+                            // Universal "send it" hook: a terminal send command
+                            // wins over Gemini voice-command and Gmail routing. We
+                            // detect it here (hook already stripped) so the normal
+                            // paste path below does the pasting + key injection.
+                            let surface_str = recording_context
+                                .as_ref()
+                                .map(|c| c.snapshot.surface.as_str())
+                                .unwrap_or("");
+                            let hook_stripped = crate::gmail_voice::strip_voice_command_hook(
+                                &transcription,
+                                &settings.voice_command_hook,
+                            )
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| transcription.clone());
+                            let has_send_it = !hook_stripped.trim().is_empty()
+                                && crate::send_it::detect_send_it(&hook_stripped, surface_str)
+                                    .is_some();
+
+                            if !has_send_it && binding_id == "transcribe" && !post_process {
                                 if let Some(instruction) = strip_voice_command_hook(
                                     &transcription,
                                     &settings.voice_command_hook,
@@ -1802,6 +1855,7 @@ impl ShortcutAction for TranscribeAction {
                                 let paste_time = Instant::now();
                                 let final_text = processed.final_text;
                                 let email_subject = processed.subject;
+                                let send_after_paste = processed.send_after_paste;
                                 let rm_for_paste = Arc::clone(&rm);
                                 ah.run_on_main_thread(move || {
                                     if rm_for_paste.was_cancelled_since(cancel_generation) {
@@ -1863,6 +1917,11 @@ impl ShortcutAction for TranscribeAction {
                                                 "Text pasted successfully in {:?}",
                                                 paste_time.elapsed()
                                             );
+                                            // Universal "send it" hook: submit the message
+                                            // by injecting the app-appropriate send keystroke.
+                                            if let Some(key) = send_after_paste {
+                                                crate::send_it::inject_send_key(key);
+                                            }
                                             utils::hide_recording_overlay(&ah_clone);
                                             change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         }

@@ -52,8 +52,7 @@ __pycache__/
 # Local model binaries
 *.gguf
 
-# Local working clone of the Terminal-kit reference repo (not part of the build)
-/Terminal-kit/
+
 
 # Local AI agent instructions, configuration, and planning artifacts
 /.kilo/
@@ -64,9 +63,7 @@ __pycache__/
 /.roo/
 /.windsurf/
 /.aider*
-/AGENTS.md
 /CLAUDE.md
 /CRUSH.md
 /GEMINI.md
-/skills/
-/docs/plans/
+

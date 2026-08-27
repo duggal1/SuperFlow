@@ -25,6 +25,7 @@ mod overlay;
 mod paste_tx;
 pub mod portable;
 mod secure_input;
+mod send_it;
 pub mod settings;
 mod shortcut;
 mod shortcuts;

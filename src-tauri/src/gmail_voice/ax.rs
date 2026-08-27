@@ -557,13 +557,29 @@ fn subject_canonical(value: &str) -> &str {
 
 /// Dedupe subject candidates case- and Re:-insensitively. With several
 /// distinct candidates, prefer the thread subject (Re:/Fwd:), else the
-/// longest — the shortest heading is usually page chrome.
+/// longest — the shortest heading is usually page chrome. When two candidates
+/// share the same base subject, keep the one carrying a Re:/Fwd: prefix, since
+/// that is the genuine thread subject (the bare heading is just page chrome).
 fn dedupe_subjects(subjects: Vec<String>) -> Option<String> {
-    let mut seen = std::collections::HashSet::new();
+    use std::collections::HashMap;
+    let mut canonical_to_index = HashMap::new();
     let mut unique = Vec::new();
     for subject in subjects {
-        if seen.insert(subject_canonical(&subject).to_lowercase()) {
-            unique.push(subject);
+        let canonical = subject_canonical(&subject).to_lowercase();
+        match canonical_to_index.get(&canonical) {
+            None => {
+                canonical_to_index.insert(canonical, unique.len());
+                unique.push(subject);
+            }
+            Some(&index) => {
+                // The canonical form strips the Re:/Fwd: prefix, so the reply
+                // marker must be read from the raw candidate.
+                let has_reply_prefix = subject_carries_reply_prefix(&subject);
+                let existing_has_prefix = subject_carries_reply_prefix(&unique[index]);
+                if has_reply_prefix && !existing_has_prefix {
+                    unique[index] = subject;
+                }
+            }
         }
     }
     match unique.len() {
@@ -579,6 +595,13 @@ fn dedupe_subjects(subjects: Vec<String>) -> Option<String> {
             )
         }),
     }
+}
+
+/// True when the raw subject carries a reply/forward marker. The canonical
+/// form (used for dedupe keys) strips these, so they are checked separately.
+fn subject_carries_reply_prefix(subject: &str) -> bool {
+    let trimmed = subject.trim().to_lowercase();
+    trimmed.starts_with("re:") || trimmed.starts_with("fw:") || trimmed.starts_with("fwd:")
 }
 
 /// Last-resort subject source: the Gmail window/tab title
