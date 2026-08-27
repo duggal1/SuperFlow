@@ -10,6 +10,7 @@ const MAX_CUSTOM_INSTRUCTION_CHARS: usize = 4_000;
 const MAX_STYLE_TONE_CHARS: usize = 2_000;
 const MAX_CONTEXTS: usize = 12;
 const MAX_CONTEXT_CHARS: usize = 12_000;
+const MAX_VOICE_COMMAND_HOOK_CHARS: usize = 80;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct AiCleanupConfiguration {
@@ -101,4 +102,21 @@ pub fn is_gemini_api_configured(app: AppHandle) -> Result<bool, String> {
     Ok(ai_cleanup::credentials::is_configured(
         &settings::get_settings(&app),
     ))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn set_voice_command_hook(app: AppHandle, hook: String) -> Result<String, String> {
+    let hook = hook.split_whitespace().collect::<Vec<_>>().join(" ");
+    if hook.is_empty() {
+        return Err("Voice command hook cannot be empty".to_string());
+    }
+    if hook.chars().count() > MAX_VOICE_COMMAND_HOOK_CHARS {
+        return Err("Voice command hook is too long".to_string());
+    }
+
+    let mut current = settings::get_settings(&app);
+    current.voice_command_hook = hook.clone();
+    settings::write_settings(&app, current);
+    Ok(hook)
 }

@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { ask } from "@tauri-apps/plugin-dialog";
 import {
   CaretDown,
@@ -11,7 +12,9 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Search01Icon as MagnifyingGlassIcon } from "@hugeicons/core-free-icons";
 import type { ModelCardStatus } from "@/components/onboarding";
-import { ModelCard } from "@/components/onboarding";
+import { ModelCard, isMlxModel } from "@/components/onboarding";
+import { commands } from "@/bindings";
+import { useSettings } from "@/hooks/useSettings";
 import { useModelStore } from "@/stores/modelStore";
 import {
   Dropdown,
@@ -55,11 +58,49 @@ const SORT_OPTIONS: { value: SortMode; labelKey: string }[] = [
 
 export const ModelsSettings: React.FC = () => {
   const { t } = useTranslation();
+  const { getSetting } = useSettings();
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStreaming, setFilterStreaming] = useState(false);
   const [languageFilter, setLanguageFilter] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("accurate");
+  // Experimental MLX gate + one-shot runtime diagnostics for the section note.
+  const mlxEnabled = getSetting("experimental_mlx_enabled") || false;
+  const [mlxRuntimeStatus, setMlxRuntimeStatus] = useState<{
+    ready: boolean;
+    detail: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!mlxEnabled) {
+      setMlxRuntimeStatus(null);
+      return;
+    }
+    let cancelled = false;
+    commands
+      .getMlxRuntimeInfo()
+      .then((result) => {
+        if (cancelled) return;
+        if (result.status === "ok") {
+          setMlxRuntimeStatus({
+            ready: result.data.available,
+            detail: result.data.status,
+          });
+          return;
+        }
+        setMlxRuntimeStatus({ ready: false, detail: result.error });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMlxRuntimeStatus({
+            ready: false,
+            detail: error instanceof Error ? error.message : String(error),
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mlxEnabled]);
   const {
     models,
     currentModel,
@@ -124,6 +165,14 @@ export const ModelsSettings: React.FC = () => {
   };
 
   const handleModelSelect = async (modelId: string) => {
+    const model = models.find((m: ModelInfo) => m.id === modelId);
+    if (model && isMlxModel(model) && !getSetting("experimental_mlx_enabled")) {
+      // Hard UX gate: running an MLX model requires the experimental opt-in.
+      toast.error(t("errors.mlxDisabledTitle"), {
+        description: t("errors.mlxDisabledDescription"),
+      });
+      return;
+    }
     setSwitchingModelId(modelId);
     try {
       await selectModel(modelId);
@@ -198,12 +247,20 @@ export const ModelsSettings: React.FC = () => {
     return sorted;
   }, [models, languageFilter, filterStreaming, searchQuery, sortMode]);
 
-  // Split filtered models into downloaded (including custom) and available sections
-  const { downloadedModels, availableModels } = useMemo(() => {
+  // Split filtered models into downloaded (including custom), available, and
+  // experimental-MLX sections
+  const { downloadedModels, availableModels, mlxModels } = useMemo(() => {
     const downloaded: ModelInfo[] = [];
     const available: ModelInfo[] = [];
+    const mlx: ModelInfo[] = [];
 
     for (const model of filteredModels) {
+      if (isMlxModel(model)) {
+        // Experimental MLX lives in its own gated section below; never mixed
+        // into the shipped catalog lists.
+        mlx.push(model);
+        continue;
+      }
       if (
         model.is_custom ||
         model.is_downloaded ||
@@ -227,6 +284,7 @@ export const ModelsSettings: React.FC = () => {
     return {
       downloadedModels: downloaded,
       availableModels: available,
+      mlxModels: mlx,
     };
   }, [filteredModels, downloadingModels, extractingModels, currentModel]);
 
@@ -375,6 +433,43 @@ export const ModelsSettings: React.FC = () => {
             />
           ))}
         </div>
+
+        {/* Experimental Apple MLX Section — only while the opt-in is on */}
+        {/* {mlxEnabled && mlxModels.length > 0 && (
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-sm font-medium text-text/60">
+                {t("settings.models.mlxSectionTitle")}
+              </h2>
+              <p
+                className={`mt-0.5 text-xs ${
+                  mlxRuntimeStatus === null
+                    ? "text-text/50"
+                    : mlxRuntimeStatus.ready
+                      ? "text-green-500"
+                      : "text-orange-400"
+                }`}
+              >
+                {mlxRuntimeStatus?.detail ??
+                  t("settings.models.mlxRuntimeChecking")}
+              </p>
+            </div>
+            {mlxModels.map((model: ModelInfo) => (
+              <ModelCard
+                key={model.id}
+                model={model}
+                status={getModelStatus(model.id)}
+                onSelect={handleModelSelect}
+                onDownload={handleModelDownload}
+                onDelete={handleModelDelete}
+                onCancel={handleModelCancel}
+                downloadProgress={getDownloadProgress(model.id)}
+                downloadSpeed={getDownloadSpeed(model.id)}
+                showRecommended={false}
+              />
+            ))}
+          </div>
+        )} */}
 
         {/* Available Models Section */}
         {availableModels.length > 0 && (

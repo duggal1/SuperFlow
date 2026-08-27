@@ -234,6 +234,9 @@
 .scard.compact.cworking {
   width: var(--ov-work-w);
 }
+.scard.compact.hands-free {
+  width: 184px;
+}
 .scard.compact.ai-prompting {
   background: var(--color-background);
 }
@@ -362,6 +365,15 @@
 }
 .scard.open .stimer {
   opacity: 1;
+}
+.hands-free .stimer {
+  opacity: 1;
+}
+.scard.compact .sbase.shandsfree {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding-inline: 9px;
 }
 
 /* Shared canvas waveform. Both standard and hands-free overlays feed it the

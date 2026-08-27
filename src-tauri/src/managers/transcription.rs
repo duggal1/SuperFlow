@@ -8,7 +8,7 @@ use crate::settings::{
     get_settings, AppSettings, ModelUnloadTimeout, OrtAcceleratorSetting,
     TranscribeAcceleratorSetting,
 };
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -203,6 +203,9 @@ enum LoadedEngine {
     GigaAM(GigaAMModel),
     Canary(CanaryModel),
     Cohere(CohereModel),
+    /// Experimental MLX models run out-of-process; we only carry the resolved
+    /// alias here. See [`crate::managers::mlx`].
+    Mlx(crate::managers::model::MlxVariant),
 }
 
 /// RAII guard that clears the `is_loading` flag and notifies waiters on drop.
@@ -724,6 +727,37 @@ impl TranscriptionManager {
                 })?;
                 LoadedEngine::Cohere(engine)
             }
+            EngineType::Mlx(variant) => {
+                // MLX is opt-in experimental. Re-check the gate at load time so
+                // a stale selection from before the toggle was disabled cannot
+                // spawn subprocesses behind the user's back.
+                if !get_settings(&self.app_handle).experimental_mlx_enabled {
+                    let error_msg = "MLX engine is disabled (Advanced → Experimental MLX)";
+                    emit_loading_failed(error_msg);
+                    anyhow::bail!(error_msg);
+                }
+                if !crate::managers::mlx::runtime_available() {
+                    let error_msg = "MLX runtime missing — run: bash src-tauri/src/mlx/shell.sh";
+                    emit_loading_failed(error_msg);
+                    anyhow::bail!(error_msg);
+                }
+                if !crate::managers::mlx::weights_downloaded(variant) {
+                    let error_msg = format!(
+                        "MLX weights for {} not in HF cache — run:\n    {} -c \"from huggingface_hub import snapshot_download; snapshot_download('{}')\"",
+                        variant.cli_alias(),
+                        "$HOME/mlx-voice/.venv/bin/python",
+                        variant.hf_repo_id(),
+                    );
+                    emit_loading_failed(&error_msg);
+                    anyhow::bail!(error_msg);
+                }
+                info!(
+                    "MLX model ready (out-of-process): alias={} repo={}",
+                    variant.cli_alias(),
+                    variant.hf_repo_id()
+                );
+                LoadedEngine::Mlx(variant)
+            }
         };
 
         // Update the current engine and model ID
@@ -944,6 +978,170 @@ impl TranscriptionManager {
                 return;
             }
         };
+
+        // Streaming capability: transcribe-cpp uses live GGUF capabilities,
+        // MLX uses variant-declared streaming (mirrors mlx_voice.py STREAM_TYPE).
+        // ONNX batch engines fall back to batch transcription.
+        let mlx_variant = match &engine {
+            LoadedEngine::Mlx(v) => Some(*v),
+            _ => None,
+        };
+
+        if let Some(variant) = mlx_variant {
+            let supports_streaming = variant.supports_streaming();
+            let languages = variant.supported_languages();
+            info!(
+                "Live preview: model '{}' mlx variant '{}' supports_streaming={} languages={:?}",
+                model_id,
+                variant.cli_alias(),
+                supports_streaming,
+                languages,
+            );
+            if !supports_streaming {
+                info!(
+                    "Live preview: MLX model '{}' does not support streaming, falling back to batch",
+                    model_id
+                );
+                self.return_engine(engine, &model_id);
+                self.router.clear();
+                drain_until_finalize(rx);
+                return;
+            }
+
+            // MLX live path — out-of-process Python JSONL bridge (re-decodes
+            // buffered audio every ~400ms and emits committed text). Mirrors
+            // transcribe-cpp Stream committed/tentative contract for the overlay.
+            let settings = get_settings(&self.app_handle);
+            let effective_language =
+                effective_language_for_model(&settings, self.model_manager.as_ref(), &model_id);
+            let language_opt = if effective_language != "auto" {
+                Some(effective_language.clone())
+            } else {
+                None
+            };
+            let output_language = resolve_output_language_evidence(
+                &settings,
+                language_opt.as_deref(),
+                &languages,
+                false,
+            );
+
+            let mut live_session = match crate::managers::mlx::MlxLiveSession::spawn(
+                variant.cli_alias(),
+                language_opt.as_deref(),
+            ) {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed to start MLX live session: {e:#}; falling back to batch");
+                    self.return_engine(engine, &model_id);
+                    self.router.clear();
+                    drain_until_finalize(rx);
+                    return;
+                }
+            };
+
+            self.stream_active.store(true, Ordering::Release);
+            self.touch_activity();
+            info!(
+                "MLX live streaming started (model '{}', variant '{}', language {:?})",
+                model_id,
+                variant.cli_alias(),
+                language_opt
+            );
+
+            let mut perf = StreamPerf::new();
+            let mut finalize_reply: Option<mpsc::Sender<Option<FinalizedStreamText>>> = None;
+            let mut finalize_result: Option<Option<FinalizedStreamText>> = None;
+            let mut cancelled = false;
+
+            // Main feed loop: forward PCM to Python, poll for hypothesis events,
+            // and emit them as StreamTextEvent. Python throttles to ~2.5 Hz.
+            loop {
+                // Drain any hypothesis already available (non-blocking)
+                while let Some(ev) = live_session.try_recv_event() {
+                    if ev.is_final {
+                        continue;
+                    }
+                    perf.record_emit();
+                    self.emit_stream_text(&ev.committed, &ev.tentative);
+                    // Keep local_cleanup in sync with committed prefix (revision 0 for MLX)
+                    crate::local_cleanup::submit_committed(0, &ev.committed);
+                    perf.maybe_log();
+                }
+
+                match rx.recv_timeout(Duration::from_millis(50)) {
+                    Ok(StreamCmd::Feed(pcm)) => {
+                        self.touch_activity();
+                        perf.record_feed(pcm.len());
+                        let feed_start = Instant::now();
+                        if let Err(e) = live_session.feed(&pcm) {
+                            warn!("MLX live feed failed: {e}");
+                        }
+                        perf.record_compute(feed_start.elapsed());
+                        perf.maybe_log();
+                    }
+                    Ok(StreamCmd::Finalize(reply)) => {
+                        let finalize_start = Instant::now();
+                        // Consume the session and wait for final committed text
+                        let final_opt = match live_session.finalize(STREAM_FINALIZE_REPLY_TIMEOUT) {
+                            Ok(o) => o,
+                            Err(e) => {
+                                error!("MLX live finalize failed: {e:#}");
+                                None
+                            }
+                        };
+                        perf.record_compute(finalize_start.elapsed());
+                        // Drain any trailing intermediate events that arrived before final
+                        // (finalize consumes the child, so no more events after)
+                        let result = final_opt.map(|text| FinalizedStreamText {
+                            text,
+                            output_language: output_language.clone(),
+                            supported_languages: languages.clone(),
+                            truncated: false,
+                        });
+                        let chars = result.as_ref().map(|r| r.text.len()).unwrap_or(0);
+                        perf.log_finalized(chars);
+                        finalize_reply = Some(reply);
+                        finalize_result = Some(result);
+                        break;
+                    }
+                    Ok(StreamCmd::Cancel) => {
+                        live_session.cancel();
+                        cancelled = true;
+                        break;
+                    }
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        continue;
+                    }
+                    Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        live_session.cancel();
+                        break;
+                    }
+                }
+            }
+
+            // Edge: if we broke without finalize (cancel/disconnect), ensure child is gone.
+            // `live_session` was consumed on finalize/cancel; if we exited via Disconnect
+            // without consuming, it drops here and kills the child.
+
+            self.return_engine(engine, &model_id);
+            match (finalize_reply, finalize_result, cancelled) {
+                (Some(reply), Some(Some(result)), _) => {
+                    let _ = reply.send(Some(result));
+                }
+                (Some(reply), Some(None), _) => {
+                    let _ = reply.send(None);
+                }
+                (Some(reply), None, false) => {
+                    // Finalize without result -> signal None so caller falls back to batch
+                    let _ = reply.send(None);
+                }
+                _ => {
+                    // cancelled or no reply needed
+                }
+            }
+            return;
+        }
 
         // Only transcribe-cpp models expose streaming; ONNX engines fall back to
         // batch. The loaded session (not the ModelManager copy) is the source of
@@ -1560,6 +1758,23 @@ impl TranscriptionManager {
                             .map(|r| r.text)
                             .map_err(|e| anyhow::anyhow!("Cohere transcription failed: {}", e))
                     }
+                    LoadedEngine::Mlx(variant) => {
+                        // MLX consumes files, not sample buffers: encode the
+                        // float samples to a temp 16 kHz mono WAV and let the
+                        // subprocess handle everything else.
+                        let wav = write_mlx_temp_wav(&audio)
+                            .map_err(|e| anyhow::anyhow!("MLX WAV staging failed: {e}"))?;
+                        let language = (validated_language != "auto").then_some(validated_language);
+                        let result = crate::managers::mlx::transcribe_wav(
+                            &wav,
+                            variant.cli_alias(),
+                            language.as_deref(),
+                            settings.experimental_mlx_cleanup_enabled,
+                        );
+                        // Best-effort cleanup; ignore unlink errors.
+                        let _ = std::fs::remove_file(&wav);
+                        result.map_err(|e| anyhow::anyhow!("MLX transcription failed: {e:#}"))
+                    }
                 }
             }));
 
@@ -1896,6 +2111,36 @@ fn resolve_output_language_evidence(
     OutputLanguageEvidence::Unknown
 }
 
+/// Encode float samples (16 kHz mono, [-1.0, 1.0]) as a temp WAV file for the
+/// MLX subprocess. Unique name per call; caller removes it after use.
+fn write_mlx_temp_wav(samples: &[f32]) -> Result<std::path::PathBuf> {
+    let path = std::env::temp_dir().join(format!(
+        "superflow-mlx-{}.wav",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or_default()
+    ));
+
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate: 16_000,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+    let mut writer = hound::WavWriter::create(&path, spec)
+        .with_context(|| format!("creating {}", path.display()))?;
+    for &sample in samples {
+        let clamped = sample.clamp(-1.0, 1.0);
+        let value = (clamped * i16::MAX as f32) as i16;
+        writer
+            .write_sample(value)
+            .with_context(|| format!("writing sample to {}", path.display()))?;
+    }
+    writer.finalize().context("finalizing MLX temp WAV")?;
+    Ok(path)
+}
+
 /// Upgrade [`OutputLanguageEvidence::Unknown`] with the language the model
 /// itself detected during the run (audio-based LID, e.g. Whisper in auto
 /// mode). Stronger evidence resolved before the run is never overridden.
@@ -1987,9 +2232,11 @@ fn post_process_transcription_text(
             let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
             // Styling catalogs (both Tailwind datasets) and the programming
             // syntax catalog ride the same gate — all pre-built technical
-            // vocabulary, all local.
+            // vocabulary, all local. Emoji pairing rides along too: spoken
+            // counts become real repeated emojis ("three rocket emojis").
             let corrected = crate::audio_toolkit::styling::apply(&corrected);
-            crate::audio_toolkit::programming_syntax::apply(&corrected)
+            let corrected = crate::audio_toolkit::programming_syntax::apply(&corrected);
+            crate::audio_toolkit::emoji::apply(&corrected)
         } else {
             corrected
         };

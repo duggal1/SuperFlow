@@ -1,0 +1,434 @@
+[
+  {
+    "emoji": "😀",
+    "aliases": ["happy emoji", "smiley face emoji", "smiley emoji", "happy face emoji"]
+  },
+  {
+    "emoji": "😃",
+    "aliases": ["big smile emoji", "grinning face emoji", "very happy emoji"]
+  },
+  {
+    "emoji": "😁",
+    "aliases": ["big grin emoji", "grinning teeth emoji", "cheesy smile emoji"]
+  },
+  {
+    "emoji": "😂",
+    "aliases": ["laughing emoji", "crying laughing emoji", "tears of joy emoji"]
+  },
+  {
+    "emoji": "🤣",
+    "aliases": ["rolling laughing emoji", "rofl emoji", "dying laughing emoji"]
+  },
+  {
+    "emoji": "😊",
+    "aliases": ["cute smile emoji", "blushing smile emoji", "warm smile emoji"]
+  },
+  {
+    "emoji": "🙂",
+    "aliases": ["slight smile emoji", "normal smile emoji", "small smile emoji"]
+  },
+  {
+    "emoji": "🙃",
+    "aliases": ["upside down emoji", "sarcastic smile emoji", "upside down face emoji"]
+  },
+  {
+    "emoji": "😉",
+    "aliases": ["wink emoji", "winking face emoji", "wink face emoji"]
+  },
+  {
+    "emoji": "😍",
+    "aliases": ["love eyes emoji", "heart eyes emoji", "in love emoji"]
+  },
+  {
+    "emoji": "🥰",
+    "aliases": ["love face emoji", "hearts around face emoji", "feeling loved emoji"]
+  },
+  {
+    "emoji": "😘",
+    "aliases": ["kiss emoji", "blowing kiss emoji", "kiss face emoji"]
+  },
+  {
+    "emoji": "😋",
+    "aliases": ["yummy emoji", "licking lips emoji", "delicious face emoji"]
+  },
+  {
+    "emoji": "😎",
+    "aliases": ["cool emoji", "sunglasses face emoji", "cool face emoji"]
+  },
+  {
+    "emoji": "🤓",
+    "aliases": ["nerd emoji", "nerdy face emoji", "glasses nerd emoji"]
+  },
+  {
+    "emoji": "🤔",
+    "aliases": ["thinking emoji", "thinking face emoji", "hmm emoji"]
+  },
+  {
+    "emoji": "🫡",
+    "aliases": ["salute emoji", "saluting face emoji", "yes sir emoji"]
+  },
+  {
+    "emoji": "🤨",
+    "aliases": ["suspicious emoji", "raised eyebrow emoji", "really emoji"]
+  },
+  {
+    "emoji": "😐",
+    "aliases": ["neutral emoji", "blank face emoji", "straight face emoji"]
+  },
+  {
+    "emoji": "😑",
+    "aliases": ["annoyed blank face emoji", "expressionless emoji", "done with this emoji"]
+  },
+  {
+    "emoji": "😒",
+    "aliases": ["annoyed emoji", "unamused face emoji", "not impressed emoji"]
+  },
+  {
+    "emoji": "🙄",
+    "aliases": ["eye roll emoji", "rolling eyes emoji", "eyeroll face emoji"]
+  },
+  {
+    "emoji": "😏",
+    "aliases": ["smirk emoji", "smirking face emoji", "sly face emoji"]
+  },
+  {
+    "emoji": "😔",
+    "aliases": ["sad emoji", "sad face emoji", "feeling down emoji"]
+  },
+  {
+    "emoji": "😢",
+    "aliases": ["crying emoji", "crying face emoji", "sad tear emoji"]
+  },
+  {
+    "emoji": "😭",
+    "aliases": ["crying hard emoji", "sobbing emoji", "loud crying emoji"]
+  },
+  {
+    "emoji": "😞",
+    "aliases": ["disappointed emoji", "disappointed face emoji", "sad disappointed emoji"]
+  },
+  {
+    "emoji": "😩",
+    "aliases": ["tired frustrated emoji", "weary face emoji", "fed up emoji"]
+  },
+  {
+    "emoji": "😫",
+    "aliases": ["exhausted emoji", "tired face emoji", "really tired emoji"]
+  },
+  {
+    "emoji": "😤",
+    "aliases": ["angry breathing emoji", "frustrated face emoji", "steam nose emoji"]
+  },
+  {
+    "emoji": "😡",
+    "aliases": ["angry emoji", "mad face emoji", "angry face emoji"]
+  },
+  {
+    "emoji": "🤬",
+    "aliases": ["swearing emoji", "cursing face emoji", "angry swear emoji"]
+  },
+  {
+    "emoji": "😱",
+    "aliases": ["shocked emoji", "screaming face emoji", "scared shocked emoji"]
+  },
+  {
+    "emoji": "😨",
+    "aliases": ["scared emoji", "fearful face emoji", "afraid emoji"]
+  },
+  {
+    "emoji": "😳",
+    "aliases": ["embarrassed emoji", "blushing shocked emoji", "wide eyes face emoji"]
+  },
+  {
+    "emoji": "🥺",
+    "aliases": ["puppy eyes emoji", "pleading face emoji", "please emoji"]
+  },
+  {
+    "emoji": "😬",
+    "aliases": ["awkward emoji", "grimace face emoji", "cringe emoji"]
+  },
+  {
+    "emoji": "🤯",
+    "aliases": ["mind blown emoji", "exploding head emoji", "mind blown face emoji"]
+  },
+  {
+    "emoji": "🥳",
+    "aliases": ["party emoji", "celebration face emoji", "party face emoji"]
+  },
+  {
+    "emoji": "🤩",
+    "aliases": ["star eyes emoji", "amazed face emoji", "starstruck emoji"]
+  },
+  {
+    "emoji": "😴",
+    "aliases": ["sleeping emoji", "sleepy face emoji", "asleep emoji"]
+  },
+  {
+    "emoji": "🤢",
+    "aliases": ["sick emoji", "nauseous face emoji", "feeling sick emoji"]
+  },
+  {
+    "emoji": "🤮",
+    "aliases": ["vomit emoji", "throwing up emoji", "puking face emoji"]
+  },
+  {
+    "emoji": "🤡",
+    "aliases": ["clown emoji", "clown face emoji", "you clown emoji"]
+  },
+  {
+    "emoji": "💀",
+    "aliases": ["skull emoji", "dead emoji", "im dead emoji"]
+  },
+  {
+    "emoji": "☠️",
+    "aliases": ["skull crossbones emoji", "death emoji", "danger skull emoji"]
+  },
+  {
+    "emoji": "👻",
+    "aliases": ["ghost emoji", "ghost face emoji", "spooky ghost emoji"]
+  },
+  {
+    "emoji": "👽",
+    "aliases": ["alien emoji", "alien face emoji", "space alien emoji"]
+  },
+  {
+    "emoji": "🤖",
+    "aliases": ["robot emoji", "robot face emoji", "bot emoji"]
+  },
+  {
+    "emoji": "❤️",
+    "aliases": ["heart emoji", "red heart emoji", "love heart emoji"]
+  },
+  {
+    "emoji": "🩷",
+    "aliases": ["pink heart emoji", "pink heart face emoji", "cute heart emoji"]
+  },
+  {
+    "emoji": "🧡",
+    "aliases": ["orange heart emoji", "orange love emoji", "orange heart love emoji"]
+  },
+  {
+    "emoji": "💛",
+    "aliases": ["yellow heart emoji", "yellow love emoji", "yellow heart love emoji"]
+  },
+  {
+    "emoji": "💚",
+    "aliases": ["green heart emoji", "green love emoji", "green heart love emoji"]
+  },
+  {
+    "emoji": "💙",
+    "aliases": ["blue heart emoji", "blue love emoji", "blue heart love emoji"]
+  },
+  {
+    "emoji": "💜",
+    "aliases": ["purple heart emoji", "purple love emoji", "purple heart love emoji"]
+  },
+  {
+    "emoji": "🖤",
+    "aliases": ["black heart emoji", "dark heart emoji", "black love emoji"]
+  },
+  {
+    "emoji": "🤍",
+    "aliases": ["white heart emoji", "white love emoji", "white heart love emoji"]
+  },
+  {
+    "emoji": "💔",
+    "aliases": ["broken heart emoji", "heartbreak emoji", "heart broken emoji"]
+  },
+  {
+    "emoji": "💕",
+    "aliases": ["two hearts emoji", "love hearts emoji", "double heart emoji"]
+  },
+  {
+    "emoji": "💖",
+    "aliases": ["sparkling heart emoji", "sparkle heart emoji", "shiny heart emoji"]
+  },
+  {
+    "emoji": "🔥",
+    "aliases": ["fire emoji", "lit emoji", "thats fire emoji"]
+  },
+  {
+    "emoji": "✨",
+    "aliases": ["sparkles emoji", "sparkle emoji", "shiny sparkles emoji"]
+  },
+  {
+    "emoji": "⭐",
+    "aliases": ["star emoji", "gold star emoji", "yellow star emoji"]
+  },
+  {
+    "emoji": "💯",
+    "aliases": ["hundred emoji", "one hundred emoji", "keep it hundred emoji"]
+  },
+  {
+    "emoji": "💥",
+    "aliases": ["boom emoji", "explosion emoji", "impact emoji"]
+  },
+  {
+    "emoji": "🎉",
+    "aliases": ["celebration emoji", "party popper emoji", "congrats emoji"]
+  },
+  {
+    "emoji": "🎊",
+    "aliases": ["confetti emoji", "celebration confetti emoji", "party confetti emoji"]
+  },
+  {
+    "emoji": "👍",
+    "aliases": ["thumbs up emoji", "like emoji", "good emoji"]
+  },
+  {
+    "emoji": "👎",
+    "aliases": ["thumbs down emoji", "dislike emoji", "bad emoji"]
+  },
+  {
+    "emoji": "👌",
+    "aliases": ["okay hand emoji", "ok emoji", "perfect emoji"]
+  },
+  {
+    "emoji": "✌️",
+    "aliases": ["peace emoji", "peace sign emoji", "victory hand emoji"]
+  },
+  {
+    "emoji": "🤞",
+    "aliases": ["fingers crossed emoji", "good luck emoji", "crossed fingers emoji"]
+  },
+  {
+    "emoji": "🙏",
+    "aliases": ["prayer emoji", "please emoji", "thank you emoji"]
+  },
+  {
+    "emoji": "👏",
+    "aliases": ["clap emoji", "clapping hands emoji", "applause emoji"]
+  },
+  {
+    "emoji": "🙌",
+    "aliases": ["raised hands emoji", "celebration hands emoji", "praise emoji"]
+  },
+  {
+    "emoji": "🤝",
+    "aliases": ["handshake emoji", "deal emoji", "shake hands emoji"]
+  },
+  {
+    "emoji": "💪",
+    "aliases": ["strong emoji", "muscle emoji", "flex emoji"]
+  },
+  {
+    "emoji": "👀",
+    "aliases": ["eyes emoji", "looking emoji", "watching emoji"]
+  },
+  {
+    "emoji": "🫶",
+    "aliases": ["heart hands emoji", "love hands emoji", "heart hand emoji"]
+  },
+  {
+    "emoji": "👉",
+    "aliases": ["point right emoji", "right pointing finger emoji", "pointing right emoji"]
+  },
+  {
+    "emoji": "👈",
+    "aliases": ["point left emoji", "left pointing finger emoji", "pointing left emoji"]
+  },
+  {
+    "emoji": "☝️",
+    "aliases": ["point up emoji", "one finger up emoji", "pointing up emoji"]
+  },
+  {
+    "emoji": "👇",
+    "aliases": ["point down emoji", "down pointing finger emoji", "pointing below emoji"]
+  },
+  {
+    "emoji": "✅",
+    "aliases": ["check emoji", "done emoji", "green check emoji"]
+  },
+  {
+    "emoji": "❌",
+    "aliases": ["cross emoji", "wrong emoji", "red x emoji"]
+  },
+  {
+    "emoji": "⚠️",
+    "aliases": ["warning emoji", "warning sign emoji", "caution emoji"]
+  },
+  {
+    "emoji": "❗",
+    "aliases": ["exclamation emoji", "important emoji", "red exclamation emoji"]
+  },
+  {
+    "emoji": "❓",
+    "aliases": ["question emoji", "question mark emoji", "red question mark emoji"]
+  },
+  {
+    "emoji": "🚀",
+    "aliases": ["rocket emoji", "launch emoji", "ship it emoji"]
+  },
+  {
+    "emoji": "💡",
+    "aliases": ["idea emoji", "light bulb emoji", "lightbulb emoji"]
+  },
+  {
+    "emoji": "📌",
+    "aliases": ["pin emoji", "pushpin emoji", "pin this emoji"]
+  },
+  {
+    "emoji": "📍",
+    "aliases": ["location emoji", "location pin emoji", "map pin emoji"]
+  },
+  {
+    "emoji": "📝",
+    "aliases": ["notes emoji", "write emoji", "memo emoji"]
+  },
+  {
+    "emoji": "📅",
+    "aliases": ["calendar emoji", "date emoji", "calendar date emoji"]
+  },
+  {
+    "emoji": "⏰",
+    "aliases": ["alarm emoji", "alarm clock emoji", "reminder emoji"]
+  },
+  {
+    "emoji": "⌛",
+    "aliases": ["hourglass emoji", "waiting emoji", "time running emoji"]
+  },
+  {
+    "emoji": "🔒",
+    "aliases": ["lock emoji", "locked emoji", "private emoji"]
+  },
+  {
+    "emoji": "🔓",
+    "aliases": ["unlock emoji", "unlocked emoji", "open lock emoji"]
+  },
+  {
+    "emoji": "🔗",
+    "aliases": ["link emoji", "chain link emoji", "url emoji"]
+  },
+  {
+    "emoji": "📎",
+    "aliases": ["attachment emoji", "paperclip emoji", "attach emoji"]
+  },
+  {
+    "emoji": "💻",
+    "aliases": ["laptop emoji", "computer emoji", "coding laptop emoji"]
+  },
+  {
+    "emoji": "📱",
+    "aliases": ["phone emoji", "mobile emoji", "smartphone emoji"]
+  },
+  {
+    "emoji": "⚙️",
+    "aliases": ["settings emoji", "gear emoji", "config emoji"]
+  },
+  {
+    "emoji": "🔧",
+    "aliases": ["wrench emoji", "fix emoji", "tools emoji"]
+  },
+  {
+    "emoji": "🐛",
+    "aliases": ["bug emoji", "software bug emoji", "debug emoji"]
+  },
+  {
+    "emoji": "🧪",
+    "aliases": ["test emoji", "experiment emoji", "testing emoji"]
+  },
+  {
+    "emoji": "📦",
+    "aliases": ["package emoji", "box emoji", "package box emoji"]
+  }
+]

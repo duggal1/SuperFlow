@@ -224,6 +224,30 @@ async changeExperimentalEnabledSetting(enabled: boolean) : Promise<Result<null, 
     else return { status: "error", error: e  as any };
 }
 },
+async changeExperimentalMlxEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_experimental_mlx_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeExperimentalMlxCleanupEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_experimental_mlx_cleanup_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeExperimentalGmailVoiceEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_experimental_gmail_voice_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changePostProcessBaseUrlSetting(providerId: string, baseUrl: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_post_process_base_url_setting", { providerId, baseUrl }) };
@@ -692,6 +716,26 @@ async getAvailableModels() : Promise<Result<ModelInfo[], string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getMlxRuntimeInfo() : Promise<Result<MlxRuntimeInfo, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_mlx_runtime_info") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Zero-cold-start pre-warm fired when the user enables the MLX toggle.
+ * Imports the MLX/Metal dylibs into memory and runs one small Metal op.
+ */
+async warmMlxRuntime() : Promise<Result<WarmReport, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("warm_mlx_runtime") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getModelInfo(modelId: string) : Promise<Result<ModelInfo | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_model_info", { modelId }) };
@@ -895,6 +939,14 @@ async updateAiCleanupConfiguration(configuration: AiCleanupConfiguration) : Prom
 async setGeminiApiKey(apiKey: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("set_gemini_api_key", { apiKey }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setVoiceCommandHook(hook: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_voice_command_hook", { hook }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1116,7 +1168,7 @@ selected_channel?: number | null; clamshell_microphone?: string | null; selected
 /**
  * Named dictation shortcuts expanded inline at paste time.
  */
-shortcuts?: Shortcut[]; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
+shortcuts?: Shortcut[]; voice_command_hook?: string; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
 /**
  * Format used by the journal's Export action. Markdown by default.
  */
@@ -1125,7 +1177,22 @@ export_format?: ExportFormat; recording_retention_period?: RecordingRetentionPer
  * Intelligence Awareness: compose finished text or developer prompts from
  * bounded context captured from Gmail, Slack, terminals, and editors.
  */
-intelligence_awareness_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; ai_cleanup_enabled?: boolean; auto_ai_cleanup_enabled?: boolean; ai_cleanup_model?: string; ai_cleanup_thinking_level?: AiCleanupThinkingLevel; ai_cleanup_custom_instruction?: string; ai_cleanup_style?: AiCleanupStyle; ai_cleanup_style_tone?: string; ai_cleanup_contexts?: string[]; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
+intelligence_awareness_enabled?: boolean; post_process_provider_id?: string; post_process_providers?: PostProcessProvider[]; post_process_api_keys?: SecretMap; post_process_models?: Partial<{ [key in string]: string }>; post_process_prompts?: LLMPrompt[]; post_process_selected_prompt_id?: string | null; ai_cleanup_enabled?: boolean; auto_ai_cleanup_enabled?: boolean; ai_cleanup_model?: string; ai_cleanup_thinking_level?: AiCleanupThinkingLevel; ai_cleanup_custom_instruction?: string; ai_cleanup_style?: AiCleanupStyle; ai_cleanup_style_tone?: string; ai_cleanup_contexts?: string[]; mute_while_recording?: boolean; append_trailing_space?: boolean; app_language?: string; theme?: Theme; experimental_enabled?: boolean; 
+/**
+ * Gates the optional native Apple-Silicon MLX engine (mlx-audio / uv venv).
+ * Purely additive: disabled (default) leaves the shipped engines untouched.
+ */
+experimental_mlx_enabled?: boolean; 
+/**
+ * When true, MLX transcripts are polished by a local mlx-lm cleanup LLM.
+ */
+experimental_mlx_cleanup_enabled?: boolean; 
+/**
+ * Experimental Gmail voice drafting/send. Gated separately from
+ * `intelligence_awareness_enabled` so existing awareness users aren't
+ * surprised and the feature can be tested independently.
+ */
+experimental_gmail_voice_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a
@@ -1253,7 +1320,14 @@ export type EngineType =
  * Voxtral, Qwen3-ASR, Nemotron, …). The architecture is auto-detected from
  * the file, so this one variant covers the whole transcribe-cpp family.
  */
-"TranscribeCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere"
+"TranscribeCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere" | 
+/**
+ * Native Apple-Silicon MLX models executed through an external uv-managed
+ * Python environment (src-tauri/src/mlx/mlx_voice.py). Weights live in the
+ * Hugging Face cache; inference runs via Metal outside this process.
+ * Gated behind `settings.experimental_mlx_enabled`.
+ */
+{ Mlx: MlxVariant }
 /**
  * File format used when exporting all transcripts from the journal.
  */
@@ -1297,6 +1371,36 @@ key_down: number; key_up: number; flags_changed: number; mouse: number; duration
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
+export type MlxRuntimeInfo = { available: boolean; status: string; python_path: string | null; script_path: string | null; python_candidates: string[]; script_candidates: string[]; instructions: string; probe: PyProbe | null }
+/**
+ * Which MLX family a descriptor seeds. Drives id naming and the subprocess
+ * `--model` argument handed to mlx_voice.py.
+ */
+export type MlxVariant = 
+/**
+ * mlx-community/Qwen3-ASR-1.7B-8bit — high-accuracy multilingual ASR.
+ */
+"Qwen17B8Bit" | 
+/**
+ * mlx-community/Qwen3-ASR-0.6B-8bit — small, fast, multilingual ASR.
+ */
+"Qwen06B8Bit" | 
+/**
+ * animaslabs/parakeet-tdt-0.6b-v3-mlx-8bit — Parakeet TDT v3 MLX.
+ */
+"ParakeetUnified" | 
+/**
+ * mlx-community/nemotron-3.5-asr-streaming-0.6b-8bit — streaming ASR.
+ */
+"Nemotron" | 
+/**
+ * littoralai/cohere-transcribe-mlx-8bit — Cohere transcription.
+ */
+"Cohere" | 
+/**
+ * leope/ark-asr-0.6B-mlx — native MLX ARK port (offline only).
+ */
+"Ark06B"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 /**
@@ -1350,6 +1454,7 @@ export type PunctuationStyle =
  * Also restores commas and applies stricter casing.
  */
 "formal"
+export type PyProbe = { python_version: string; mlx_version: string; mlx_audio_version: string }
 export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "weeks_2" | "months_3"
 export type SecretMap = Partial<{ [key in string]: string }>
 export type SecureInputStatus = { 
@@ -1430,6 +1535,19 @@ export type StreamWorkKind = "transcribing" | "polishing" | "finalizing"
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
+/**
+ * Report returned by the toggle-driven environment pre-warm. Surfaced on the
+ * Advanced MLX card so enabling feels instant and verifiable.
+ */
+export type WarmReport = { ok: boolean; 
+/**
+ * Wall-clock milliseconds the cold import + first Metal op took.
+ */
+duration_ms: number; 
+/**
+ * Human-readable detail (versions on success, fix-up hint on failure).
+ */
+detail: string }
 export type WindowsMicrophonePermissionStatus = { supported: boolean; overall_access: PermissionAccess; device_access: PermissionAccess; app_access: PermissionAccess; desktop_app_access: PermissionAccess }
 
 /** tauri-specta globals **/

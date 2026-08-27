@@ -129,6 +129,59 @@ fn should_enter_edit_mode(binding_id: &str, post_process: bool, has_selection: b
     binding_id == "transcribe" && !post_process && has_selection
 }
 
+fn strip_voice_command_hook<'a>(transcript: &'a str, hook: &str) -> Option<&'a str> {
+    fn words(value: &str) -> Vec<(String, usize)> {
+        let mut words = Vec::new();
+        let mut start = None;
+
+        for (index, character) in value.char_indices() {
+            if character.is_alphanumeric() {
+                start.get_or_insert(index);
+            } else if let Some(start) = start.take() {
+                words.push((value[start..index].to_lowercase(), index));
+            }
+        }
+        if let Some(start) = start {
+            words.push((value[start..].to_lowercase(), value.len()));
+        }
+        words
+    }
+
+    let hook_words = words(hook);
+    if hook_words.is_empty() {
+        return None;
+    }
+    let transcript_words = words(transcript);
+    if transcript_words.len() < hook_words.len()
+        || transcript_words
+            .iter()
+            .zip(&hook_words)
+            .any(|(transcript_word, hook_word)| transcript_word.0 != hook_word.0)
+    {
+        return None;
+    }
+
+    let end = transcript_words[hook_words.len() - 1].1;
+    Some(transcript[end..].trim_start_matches(|character: char| {
+        character.is_whitespace()
+            || matches!(
+                character,
+                ',' | '.' | ':' | ';' | '!' | '?' | '-' | '–' | '—'
+            )
+    }))
+}
+
+fn gmail_voice_hook_context<'a>(
+    instruction: &str,
+    gmail_enabled: bool,
+    context: Option<&'a crate::context::RecordingContext>,
+) -> Option<&'a crate::context::RecordingContext> {
+    if !gmail_enabled || crate::gmail_voice::grammar::parse(instruction).is_none() {
+        return None;
+    }
+    context.filter(|context| context.snapshot.surface == crate::context::types::Surface::Gmail)
+}
+
 fn selection_is_unchanged(
     original: &crate::context::capture::SelectionSnapshot,
     current: Option<&crate::context::capture::SelectionSnapshot>,
@@ -488,6 +541,34 @@ async fn process_transcription_output_with_context(
         }
     }
 
+    // Experimental Gmail voice: reply / compose / send via AX + a dedicated LLM
+    // prompt. A handled utterance suppresses normal dictation and paste entirely
+    // (fail closed on error — nothing is pasted or sent).
+    if settings.experimental_gmail_voice_enabled {
+        if let Some(ctx) = context {
+            match crate::gmail_voice::handle(transcription, &ctx.snapshot, &settings, app).await {
+                crate::gmail_voice::GmailHandleResult::NotHandled => {}
+                crate::gmail_voice::GmailHandleResult::Drafted
+                | crate::gmail_voice::GmailHandleResult::Sent
+                | crate::gmail_voice::GmailHandleResult::Cancelled => {
+                    return ProcessedTranscription {
+                        final_text: String::new(),
+                        post_processed_text: None,
+                        post_process_prompt: None,
+                    };
+                }
+                crate::gmail_voice::GmailHandleResult::Failed(err) => {
+                    error!(target: "gmail_voice", "Gmail voice command failed: {}", err);
+                    return ProcessedTranscription {
+                        final_text: String::new(),
+                        post_processed_text: None,
+                        post_process_prompt: None,
+                    };
+                }
+            }
+        }
+    }
+
     // Terminal/Editor context awareness is intentionally minimal: only
     // deterministic file-reference resolution (smart_file_references) is
     // applied. LLM-based awareness is reserved for Gmail/Slack where it
@@ -571,8 +652,16 @@ async fn process_transcription_output_with_context(
         post_processed_text = Some(final_text.clone());
     }
 
+    // Deterministic final layout across every exit point: paragraph gaps,
+    // ordinal/bullet structure, and email envelopes. Applied once, here,
+    // so paste, history, and retries stay byte-identical.
+    let shaped = crate::audio_toolkit::formatter::format_layout(&final_text);
+    if post_processed_text.is_some() && shaped != final_text {
+        post_processed_text = Some(shaped.clone());
+    }
+
     ProcessedTranscription {
-        final_text,
+        final_text: shaped,
         post_processed_text,
         post_process_prompt,
     }
@@ -797,6 +886,177 @@ async fn run_edit_mode(
         return;
     }
     let _ = paste_finished.await;
+}
+
+async fn run_voice_command(
+    app: &AppHandle,
+    recording_manager: &Arc<AudioRecordingManager>,
+    history: &Arc<HistoryManager>,
+    raw_transcription: String,
+    raw_instruction: String,
+    file_name: String,
+    wav_saved: bool,
+    sample_count: usize,
+    cancel_generation: u64,
+) {
+    let settings = get_settings(app);
+    let Some(instruction) = complete_unless_cancelled(
+        apply_local_transcript_cleanup(app, &raw_instruction, &settings),
+        || recording_manager.was_cancelled_since(cancel_generation),
+    )
+    .await
+    else {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    };
+
+    if instruction.trim().is_empty() {
+        if wav_saved {
+            if let Err(error) = history.save_entry(
+                file_name,
+                raw_transcription,
+                true,
+                None,
+                None,
+                sample_count as f64 / 16_000.0,
+            ) {
+                error!("Failed to save voice-command history entry: {error}");
+            }
+        }
+        crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
+        crate::overlay::show_ai_cleanup_notice(
+            app,
+            "Say what you want SuperFlow to create after the hook.".to_string(),
+            "Voice command".to_string(),
+            "warning",
+        );
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+
+    if AI_CLEANUP_IN_FLIGHT.swap(true, Ordering::AcqRel) {
+        crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
+        crate::overlay::show_ai_cleanup_notice(
+            app,
+            "Another Gemini request is already running.".to_string(),
+            "Busy".to_string(),
+            "warning",
+        );
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+    let flight_guard = AiCleanupFlightGuard;
+
+    crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Trigger);
+    crate::overlay::show_editing_overlay(app);
+    let output_result =
+        complete_unless_cancelled(crate::ai_cleanup::execute(&instruction, &settings), || {
+            recording_manager.was_cancelled_since(cancel_generation)
+        })
+        .await;
+    drop(flight_guard);
+
+    let Some(output_result) = output_result else {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    };
+
+    let output = match output_result {
+        Ok(output) => output,
+        Err(error) => {
+            if wav_saved {
+                if let Err(save_error) = history.save_entry(
+                    file_name,
+                    raw_transcription,
+                    true,
+                    None,
+                    None,
+                    sample_count as f64 / 16_000.0,
+                ) {
+                    log::error!("Failed to save voice-command history entry: {save_error}");
+                }
+            }
+            warn!("Voice command Gemini request failed: {error}");
+            crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
+            let badge = if crate::ai_cleanup::is_missing_api_key_error(&error) {
+                "API key"
+            } else {
+                "Unavailable"
+            };
+            crate::overlay::show_ai_cleanup_notice(app, error, badge.to_string(), "error");
+            change_tray_icon(app, TrayIconState::Idle);
+            return;
+        }
+    };
+
+    if wav_saved {
+        if let Err(error) = history.save_entry(
+            file_name,
+            raw_transcription,
+            true,
+            Some(output.clone()),
+            None,
+            sample_count as f64 / 16_000.0,
+        ) {
+            log::error!("Failed to save voice-command history entry: {error}");
+        }
+    }
+    if let Err(error) = history.save_ai_cleanup(
+        "voice_hook",
+        &instruction,
+        &output,
+        &settings.ai_cleanup_model,
+        crate::ai_cleanup::thinking_level_name(settings.ai_cleanup_thinking_level),
+    ) {
+        warn!("Failed to save voice-command Gemini history: {error}");
+    }
+
+    if recording_manager.was_cancelled_since(cancel_generation) {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+    if crate::secure_input::is_enabled_now() {
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+
+    let app_for_paste = app.clone();
+    let fallback = output.clone();
+    let fallback_for_closure = fallback.clone();
+    let recording_manager = Arc::clone(recording_manager);
+    if let Err(error) = app.run_on_main_thread(move || {
+        if recording_manager.was_cancelled_since(cancel_generation)
+            || crate::secure_input::is_enabled_now()
+        {
+            crate::overlay::hide_recording_overlay(&app_for_paste);
+            change_tray_icon(&app_for_paste, TrayIconState::Idle);
+            return;
+        }
+
+        match utils::paste(output, app_for_paste.clone()) {
+            Ok(()) => {
+                crate::audio_feedback::play_ai_cleanup_sound(
+                    &app_for_paste,
+                    AiCleanupSound::Complete,
+                );
+                crate::overlay::hide_recording_overlay(&app_for_paste);
+            }
+            Err(error) => {
+                warn!("Voice command paste failed: {error}");
+                crate::audio_feedback::play_ai_cleanup_sound(&app_for_paste, AiCleanupSound::Error);
+                crate::overlay::show_result_overlay(&app_for_paste, fallback_for_closure);
+            }
+        }
+        change_tray_icon(&app_for_paste, TrayIconState::Idle);
+    }) {
+        error!("Failed to schedule voice-command paste: {error}");
+        crate::overlay::show_result_overlay(app, fallback);
+        change_tray_icon(app, TrayIconState::Idle);
+    }
 }
 
 impl ShortcutAction for TranscribeAction {
@@ -1217,6 +1477,117 @@ impl ShortcutAction for TranscribeAction {
                                 return;
                             }
 
+                            let settings = get_settings(&ah);
+                            if binding_id == "transcribe" && !post_process {
+                                if let Some(instruction) = strip_voice_command_hook(
+                                    &transcription,
+                                    &settings.voice_command_hook,
+                                ) {
+                                    let instruction_owned = instruction.to_string();
+                                    if let Some(gmail_context) = gmail_voice_hook_context(
+                                        &instruction_owned,
+                                        settings.experimental_gmail_voice_enabled,
+                                        recording_context.as_ref(),
+                                    ) {
+                                        debug!(
+                                            "Voice command hook matched a Gmail capability; routing {} instruction characters to Gmail",
+                                            instruction_owned.len()
+                                        );
+                                        let gmail_result = complete_unless_cancelled(
+                                            crate::gmail_voice::handle(
+                                                &instruction_owned,
+                                                &gmail_context.snapshot,
+                                                &settings,
+                                                &ah,
+                                            ),
+                                            || rm.was_cancelled_since(cancel_generation),
+                                        )
+                                        .await;
+
+                                        let Some(gmail_result) = gmail_result else {
+                                            utils::hide_recording_overlay(&ah);
+                                            change_tray_icon(&ah, TrayIconState::Idle);
+                                            return;
+                                        };
+                                        match gmail_result {
+                                            crate::gmail_voice::GmailHandleResult::NotHandled => {}
+                                            crate::gmail_voice::GmailHandleResult::Drafted
+                                            | crate::gmail_voice::GmailHandleResult::Sent
+                                            | crate::gmail_voice::GmailHandleResult::Cancelled => {
+                                                if wav_saved {
+                                                    if let Err(error) = hm.save_entry(
+                                                        file_name,
+                                                        transcription,
+                                                        false,
+                                                        None,
+                                                        None,
+                                                        sample_count as f64 / 16_000.0,
+                                                    ) {
+                                                        error!(
+                                                            "Failed to save Gmail voice-command history entry: {error}"
+                                                        );
+                                                    }
+                                                }
+                                                utils::hide_recording_overlay(&ah);
+                                                change_tray_icon(&ah, TrayIconState::Idle);
+                                                return;
+                                            }
+                                            crate::gmail_voice::GmailHandleResult::Failed(
+                                                error,
+                                            ) => {
+                                                if wav_saved {
+                                                    if let Err(save_error) = hm.save_entry(
+                                                        file_name,
+                                                        transcription,
+                                                        false,
+                                                        None,
+                                                        None,
+                                                        sample_count as f64 / 16_000.0,
+                                                    ) {
+                                                        error!(
+                                                            "Failed to save failed Gmail voice-command history entry: {save_error}"
+                                                        );
+                                                    }
+                                                }
+                                                error!(
+                                                    target: "gmail_voice",
+                                                    "Hooked Gmail voice command failed: {error}"
+                                                );
+                                                crate::audio_feedback::play_ai_cleanup_sound(
+                                                    &ah,
+                                                    AiCleanupSound::Error,
+                                                );
+                                                crate::overlay::show_ai_cleanup_notice(
+                                                    &ah,
+                                                    error.to_string(),
+                                                    "Gmail".to_string(),
+                                                    "error",
+                                                );
+                                                change_tray_icon(&ah, TrayIconState::Idle);
+                                                return;
+                                            }
+                                        }
+                                    }
+                                    debug!(
+                                        "Voice command hook matched; routing {} instruction characters to Gemini",
+                                        instruction_owned.len()
+                                    );
+                                    run_voice_command(
+                                        &ah,
+                                        &rm,
+                                        &hm,
+                                        transcription,
+                                        instruction_owned,
+                                        file_name,
+                                        wav_saved,
+                                        sample_count,
+                                        cancel_generation,
+                                    )
+                                    .await;
+                                    return;
+                                }
+                            }
+
                             // A spoken terminal command ("please open four
                             // claude code ...") consumes the utterance: it
                             // launches a local agent team instead of pasting.
@@ -1227,7 +1598,7 @@ impl ShortcutAction for TranscribeAction {
                                 return;
                             }
 
-                            let auto_ai_cleanup = get_settings(&ah).auto_ai_cleanup_enabled;
+                            let auto_ai_cleanup = settings.auto_ai_cleanup_enabled;
                             if use_streaming_overlay {
                                 tm.emit_stream_working(StreamWorkKind::Finalizing);
                             }
@@ -1319,6 +1690,23 @@ impl ShortcutAction for TranscribeAction {
                                             "Secure Input active — discarding transcript quietly"
                                         );
                                         utils::hide_recording_overlay(&ah_clone);
+                                        change_tray_icon(&ah_clone, TrayIconState::Idle);
+                                        return;
+                                    }
+
+                                    // PasteMethod::None skips pasting by design — keep its
+                                    // silent hide and never show the card. For every other
+                                    // method, verify an editable target is focused before
+                                    // injecting keystrokes that could otherwise land nowhere.
+                                    #[cfg(target_os = "macos")]
+                                    let pasteable = get_settings(&ah_clone).paste_method
+                                        == crate::settings::PasteMethod::None
+                                        || utils::is_pasteable_target_focused();
+                                    #[cfg(not(target_os = "macos"))]
+                                    let pasteable = true;
+
+                                    if !pasteable {
+                                        utils::show_result_overlay(&ah_clone, final_text);
                                         change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         return;
                                     }
@@ -1587,10 +1975,12 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 #[cfg(test)]
 mod tests {
     use super::{
-        complete_unless_cancelled, is_blank_transcription, selection_is_unchanged,
-        should_enter_edit_mode, should_use_streaming_overlay, strip_think_block,
+        complete_unless_cancelled, gmail_voice_hook_context, is_blank_transcription,
+        selection_is_unchanged, should_enter_edit_mode, should_use_streaming_overlay,
+        strip_think_block, strip_voice_command_hook,
     };
     use crate::context::capture::SelectionSnapshot;
+    use crate::context::types::{ContextSnapshot, Surface};
     use crate::settings::OverlayStyle;
     use std::future;
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -1706,5 +2096,48 @@ mod tests {
         changed_process.pid = 43;
         assert!(!selection_is_unchanged(&original, Some(&changed_process)));
         assert!(!selection_is_unchanged(&original, None));
+    }
+
+    #[test]
+    fn existing_voice_hook_routes_only_gmail_capabilities_on_gmail() {
+        let mut gmail_snapshot = ContextSnapshot::other("Google Chrome");
+        gmail_snapshot.surface = Surface::Gmail;
+        let gmail_context = crate::context::RecordingContext {
+            snapshot: gmail_snapshot,
+            developer: None,
+            project_root: None,
+        };
+
+        for (transcript, expected_instruction) in [
+            (
+                "Hey SuperFlow, please reply to this email. Tell Alex I'll join at 10 AM.",
+                "please reply to this email. Tell Alex I'll join at 10 AM.",
+            ),
+            (
+                "hey superflow, reply to this email. Tell Alex I'll join at 10 AM.",
+                "reply to this email. Tell Alex I'll join at 10 AM.",
+            ),
+        ] {
+            let instruction = strip_voice_command_hook(transcript, "Hey SuperFlow")
+                .expect("existing voice hook should match");
+            assert_eq!(instruction, expected_instruction);
+            assert!(gmail_voice_hook_context(instruction, true, Some(&gmail_context)).is_some());
+        }
+
+        assert!(
+            gmail_voice_hook_context("create a project update", true, Some(&gmail_context))
+                .is_none()
+        );
+        let gmail_instruction = "reply to this email. Tell Alex I'll join at 10 AM.";
+        assert!(gmail_voice_hook_context(gmail_instruction, false, Some(&gmail_context)).is_none());
+
+        let non_gmail_context = crate::context::RecordingContext {
+            snapshot: ContextSnapshot::other("Notes"),
+            developer: None,
+            project_root: None,
+        };
+        assert!(
+            gmail_voice_hook_context(gmail_instruction, true, Some(&non_gmail_context)).is_none()
+        );
     }
 }

@@ -68,6 +68,12 @@ pub struct CliArgs {
     #[arg(long)]
     pub context_agent: bool,
 
+    /// One-shot Gmail Accessibility agent. Requests are read from stdin and
+    /// responses are emitted as JSON so AX faults cannot terminate the app.
+    /// Internal — do not use interactively.
+    #[arg(long)]
+    pub gmail_agent: bool,
+
     /// One-shot selected-text Accessibility agent used by AI clean up.
     /// Internal — do not use interactively.
     #[arg(long)]

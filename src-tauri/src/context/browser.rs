@@ -16,7 +16,9 @@
 
 use std::ffi::c_void;
 
-use super::classify::{is_known_browser, CHROMIUM_BUNDLE_PREFIXES, SAFARI_BUNDLE_ID};
+use super::classify::{
+    is_known_browser, CHROMIUM_BUNDLE_PREFIXES, SAFARI_BUNDLE_ID, SAFARI_WEB_APP_BUNDLE_PREFIX,
+};
 
 type AxError = i32;
 const AX_SUCCESS: AxError = 0;
@@ -200,8 +202,8 @@ pub struct TabInfo {
 fn window_url_safari(window: AXUIElementRef) -> Option<String> {
     let url = copy_attribute(window, ax_attr!("AXURL"))?;
     let absolute = CfRef::take(unsafe { CFURLCopyAbsoluteURL(url.0 as CFURLRef) })?;
-    let string = CfRef::take(unsafe { CFURLGetString(absolute.0 as CFStringRef) })?;
-    string.as_string()
+    let string = unsafe { CFURLGetString(absolute.0 as CFURLRef) };
+    cf_string_to_string(string)
 }
 
 fn window_url_chromium(window: AXUIElementRef) -> Option<String> {
@@ -243,7 +245,9 @@ pub fn frontmost_tab(bundle_id: Option<&str>, pid: i32) -> Option<TabInfo> {
 
     let title = copy_attribute(window, ax_attr!("AXTitle")).and_then(|t| t.as_string());
 
-    let is_safari = bundle_id == Some(SAFARI_BUNDLE_ID);
+    let is_safari = bundle_id.is_some_and(|bundle| {
+        bundle == SAFARI_BUNDLE_ID || bundle.starts_with(SAFARI_WEB_APP_BUNDLE_PREFIX)
+    });
     let is_chromium = CHROMIUM_BUNDLE_PREFIXES
         .iter()
         .any(|prefix| bundle_id.is_some_and(|b| b.starts_with(prefix)));

@@ -12,6 +12,9 @@ interface ToggleSwitchProps {
   descriptionMode?: "inline" | "tooltip";
   grouped?: boolean;
   tooltipPosition?: "top" | "bottom";
+  /** Render only the switch control — for cards that own their own layout
+   * (label/description chrome handled by the caller). */
+  bare?: boolean;
 }
 
 /* Custom motion toggle — spring thumb, blue-600 when on, stone when off. */
@@ -25,7 +28,38 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   descriptionMode = "tooltip",
   grouped = false,
   tooltipPosition = "top",
+  bare = false,
 }) => {
+  const control = (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled || isUpdating}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
+        checked ? "bg-blue-600" : "bg-stone-700"
+      } ${disabled || isUpdating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+    >
+      <motion.span
+        initial={false}
+        animate={{ x: checked ? 22 : 2 }}
+        transition={{
+          type: "spring",
+          stiffness: 500,
+          damping: 32,
+          mass: 0.6,
+        }}
+        className="pointer-events-none absolute left-0 top-1/2 -mt-2.5 block size-5 rounded-full bg-stone-50"
+      />
+    </button>
+  );
+
+  if (bare) {
+    return control;
+  }
+
   return (
     <SettingContainer
       title={label}
@@ -35,29 +69,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       disabled={disabled}
       tooltipPosition={tooltipPosition}
     >
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        disabled={disabled || isUpdating}
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
-          checked ? "bg-blue-600" : "bg-stone-700"
-        } ${disabled || isUpdating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-      >
-        <motion.span
-          initial={false}
-          animate={{ x: checked ? 22 : 2 }}
-          transition={{
-            type: "spring",
-            stiffness: 500,
-            damping: 32,
-            mass: 0.6,
-          }}
-          className="pointer-events-none absolute left-0 top-1/2 -mt-2.5 block size-5 rounded-full bg-stone-50"
-        />
-      </button>
+      {control}
     </SettingContainer>
   );
 };

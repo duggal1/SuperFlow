@@ -10,9 +10,9 @@ use std::path::PathBuf;
 use developer::DeveloperContext;
 use types::ContextSnapshot;
 
-mod browser;
+pub(crate) mod browser;
 #[cfg(target_os = "macos")]
-mod detector;
+pub(crate) mod detector;
 pub(crate) mod developer;
 #[cfg(target_os = "macos")]
 mod focused_text;

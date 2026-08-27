@@ -166,6 +166,16 @@ const RecordingOverlay: React.FC = () => {
   );
   const cancelToastVisibleRef = useRef(false);
   const aiNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Refs mirroring live state so the once-registered show-overlay listener can
+  // detect a promote (recording/streaming → hands_free) without a stale closure.
+  const stateRef = useRef<OverlayState>("recording");
+  const captureReadyRef = useRef(false);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  useEffect(() => {
+    captureReadyRef.current = captureReady;
+  }, [captureReady]);
 
   const clearResultTimer = () => {
     if (resultTimerRef.current !== null) {
@@ -263,6 +273,30 @@ const RecordingOverlay: React.FC = () => {
         // result card itself is driven solely by "show-transcript-result".
         const overlayState = event.payload as OverlayState | "result";
         if (overlayState === "result") return;
+        // Promote (recording/streaming → hands_free) keeps the live timer and
+        // capture state so the pill continues from e.g. 00:31 instead of
+        // resetting to 00:00. All other show-overlay paths are fresh dictations.
+        const isHandsFreePromote =
+          overlayState === "hands_free" &&
+          (stateRef.current === "recording" ||
+            stateRef.current === "streaming") &&
+          captureReadyRef.current;
+        if (isHandsFreePromote) {
+          await syncLanguageFromSettings();
+          try {
+            const settings = await commands.getAppSettings();
+            if (settings.status === "ok") {
+              setPosition(
+                settings.data.overlay_position === "top" ? "top" : "bottom",
+              );
+            }
+          } catch {
+            // Keep the previous/default placement if settings can't be read.
+          }
+          setState(overlayState);
+          setIsVisible(true);
+          return;
+        }
         // Reset synchronously before settings I/O. A fast microphone can emit
         // recording-ready while the awaits below are in flight; resetting after
         // them would overwrite that event and leave the overlay stuck arming.
@@ -423,7 +457,12 @@ const RecordingOverlay: React.FC = () => {
 
   // Elapsed capture timer starts only once microphone samples are flowing.
   useEffect(() => {
-    if (state !== "streaming" || !isVisible || !captureReady) return;
+    if (
+      (state !== "streaming" && state !== "hands_free") ||
+      !isVisible ||
+      !captureReady
+    )
+      return;
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(id);
   }, [state, isVisible, captureReady]);
@@ -736,10 +775,11 @@ const RecordingOverlay: React.FC = () => {
   );
 
   const handsFreeRow = (
-    <div className="sbase">
-      <div className="sbase-l">{cancelBtn}</div>
+    <div className="sbase shandsfree">
+      {cancelBtn}
       {waveform}
-      <div className="sbase-r">{completeBtn}</div>
+      <span className="stimer">{fmtTime(elapsed)}</span>
+      {completeBtn}
     </div>
   );
 
@@ -749,7 +789,7 @@ const RecordingOverlay: React.FC = () => {
         dir={direction}
         className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
       >
-        <div className="scard compact">{handsFreeRow}</div>
+        <div className="scard compact hands-free">{handsFreeRow}</div>
       </div>
     );
   }

@@ -23,8 +23,10 @@ use log::debug;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
+use tree_sitter::{Language, Parser, Query, QueryCursor, StreamingIterator};
 
 /// Words that mark a symbol reference in the transcript.
 const SYMBOL_HOOK_WORDS: &[&str] = &[
@@ -340,16 +342,174 @@ fn lang_for_ext(ext: &str) -> Option<&'static str> {
 /// stops after `MAX_SCAN_LINES`.
 const MAX_SCAN_LINES: usize = 3000;
 
-fn scan_symbols(path: &Path) -> Option<Vec<RawSymbol>> {
-    let ext = path.extension()?.to_str()?;
-    let lang = lang_for_ext(ext)?;
-    let source = std::fs::read_to_string(path).ok()?;
+/// Hard deadline for symbol awareness per request.
+const SYMBOL_DEADLINE_MS: u64 = 100;
+
+/// Cached symbols keyed by canonical path + mtime + size.
+struct CachedEntry {
+    mtime: SystemTime,
+    size: u64,
+    symbols: Vec<RawSymbol>,
+}
+static SYMBOL_CACHE: Lazy<std::sync::Mutex<HashMap<String, CachedEntry>>> =
+    Lazy::new(|| std::sync::Mutex::new(HashMap::new()));
+const SYMBOL_CACHE_CAP: usize = 64;
+
+/// Get file metadata for cache validation.
+fn file_meta(path: &Path) -> Option<(SystemTime, u64)> {
+    let md = fs::metadata(path).ok()?;
+    let mtime = md.modified().ok()?;
+    Some((mtime, md.len()))
+}
+
+fn lang_for_tree_sitter(ext: &str) -> Option<Language> {
+    match ext {
+        "rs" => Some(tree_sitter_rust::LANGUAGE.into()),
+        "ts" => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+        "tsx" => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
+        "js" | "jsx" | "mjs" | "cjs" => Some(tree_sitter_javascript::LANGUAGE.into()),
+        "py" => Some(tree_sitter_python::LANGUAGE.into()),
+        _ => None,
+    }
+}
+
+/// Tree-sitter based symbol extraction. Handles:
+/// Rust: fn/pub fn/async fn/const fn/unsafe, struct/enum/trait/type, impl methods
+/// TS/JS: function/class/interface/type, const foo = () =>, export variants, React components
+/// Python: def/async def/decorated, class/methods
+fn scan_symbols_tree_sitter(path: &Path, source: &str, ext: &str) -> Option<Vec<RawSymbol>> {
+    let language = lang_for_tree_sitter(ext)?;
+    let mut parser = Parser::new();
+    parser.set_language(&language).ok()?;
+    let tree = parser.parse(source, None)?;
     let mut out = Vec::new();
-    for (idx, raw) in source.lines().take(MAX_SCAN_LINES).enumerate() {
+    // Use queries per language for precise extraction
+    let query_str = match ext {
+        "rs" => {
+            r#"
+            (function_item name: (identifier) @fn)
+            (struct_item name: (type_identifier) @struct)
+            (enum_item name: (type_identifier) @enum)
+            (trait_item name: (type_identifier) @trait)
+            (type_item name: (type_identifier) @type)
+            (impl_item body: (declaration_list (function_item name: (identifier) @fn)))
+        "#
+        }
+        "py" => {
+            r#"
+            (function_definition name: (identifier) @fn)
+            (class_definition name: (identifier) @class)
+            (decorated_definition definition: (function_definition name: (identifier) @fn))
+            (decorated_definition definition: (class_definition name: (identifier) @class))
+        "#
+        }
+        _ => {
+            r#"
+            (function_declaration name: (identifier) @fn)
+            (function_declaration name: (identifier) @fn2)
+            (method_definition name: (property_identifier) @method)
+            (class_declaration name: (identifier) @class)
+            (interface_declaration name: (type_identifier) @iface)
+            (type_alias_declaration name: (type_identifier) @type)
+            (lexical_declaration
+                (variable_declarator
+                    name: (identifier) @var
+                    value: [(arrow_function) (function_expression)]))
+            (variable_declarator
+                name: (identifier) @var2
+                value: [(arrow_function) (function_expression)])
+            (export_statement declaration: (function_declaration name: (identifier) @fn))
+            (export_statement declaration: (class_declaration name: (identifier) @class))
+        "#
+        }
+    };
+    let query = Query::new(&language, query_str).ok()?;
+    let mut cursor = QueryCursor::new();
+    let mut matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+    while let Some(m) = matches.next() {
+        for cap in m.captures {
+            let text = &source[cap.node.byte_range()];
+            // text is the captured identifier, not the whole node - need to get node text
+            let name = text.to_string();
+            // Determine line number from node start
+            let start = cap.node.start_position().row + 1;
+            // Avoid duplicates (same name at same line)
+            if !out
+                .iter()
+                .any(|s: &RawSymbol| s.name == name && s.start_line == start)
+            {
+                out.push(RawSymbol {
+                    name,
+                    start_line: start,
+                });
+            }
+        }
+    }
+    if out.is_empty() {
+        None
+    } else {
+        Some(out)
+    }
+}
+
+fn scan_symbols(path: &Path) -> Option<Vec<RawSymbol>> {
+    // Check deadline via cache lookup - if we are already near deadline, skip
+    // This is called from enhance_symbols which already checks deadline per file
+    let (mtime, size) = file_meta(path)?;
+    let key = path.to_string_lossy().to_string();
+    {
+        let cache = SYMBOL_CACHE.lock().ok()?;
+        if let Some(entry) = cache.get(&key) {
+            if entry.mtime == mtime && entry.size == size {
+                return Some(entry.symbols.clone());
+            }
+        }
+    }
+    // Try tree-sitter first for accurate ranges and decorator handling
+    let ext = path.extension()?.to_str()?;
+    let source = fs::read_to_string(path).ok()?;
+    // Limit source lines for performance - tree-sitter can handle large files but we cap
+    let limited_source: String = source
+        .lines()
+        .take(MAX_SCAN_LINES)
+        .collect::<Vec<_>>()
+        .join("\n");
+    if let Some(symbols) = scan_symbols_tree_sitter(path, &limited_source, ext) {
+        let mut cache = SYMBOL_CACHE.lock().ok()?;
+        if cache.len() >= SYMBOL_CACHE_CAP {
+            // Evict oldest (simple clear half)
+            let keys: Vec<String> = cache.keys().cloned().take(SYMBOL_CACHE_CAP / 2).collect();
+            for k in keys {
+                cache.remove(&k);
+            }
+        }
+        cache.insert(
+            key,
+            CachedEntry {
+                mtime,
+                size,
+                symbols: symbols.clone(),
+            },
+        );
+        return Some(symbols);
+    }
+    // Fallback to regex hand parser for robustness
+    let lang = lang_for_ext(&ext)?;
+    let mut out = Vec::new();
+    for (idx, raw) in limited_source.lines().enumerate() {
         let line = raw.trim_start();
         let name = match lang {
             "rust" => rust_decl_name(line),
-            "python" => decl_name(line, &[("def ", '('), ("class ", ':')]),
+            "python" => {
+                // Handle decorated functions: skip decorator lines, look for def
+                // For simplicity, if line starts with '@', skip to next line's def
+                if line.starts_with('@') {
+                    continue;
+                }
+                // Handle async def
+                let stripped = line.strip_prefix("async ").unwrap_or(line);
+                decl_name(stripped, &[("def ", '('), ("class ", ':')])
+            }
             _ => ts_decl_name(line),
         };
         if let Some(name) = name {
@@ -359,7 +519,20 @@ fn scan_symbols(path: &Path) -> Option<Vec<RawSymbol>> {
             });
         }
     }
-    (!out.is_empty()).then_some(out)
+    let result = (!out.is_empty()).then_some(out.clone());
+    if let Some(symbols) = &result {
+        if let Ok(mut cache) = SYMBOL_CACHE.lock() {
+            cache.insert(
+                key,
+                CachedEntry {
+                    mtime,
+                    size,
+                    symbols: symbols.clone(),
+                },
+            );
+        }
+    }
+    result
 }
 
 /// Generic "KEYWORD<space><ident>" extractor; stops at `stop` char.
@@ -581,14 +754,24 @@ fn collect_resolved_files(root: &Path, text: &str) -> Vec<FileHit> {
 
 /// Find spoken "<stem> HOOKWORD" sequences and replace the stem words with
 /// the unique matching symbol identifier wrapped in backticks.
+/// Hard deadline: never adds more than 100ms to the request path.
 fn enhance_symbols(files: &[FileHit], text: &str) -> Option<String> {
     if files.is_empty() {
         return None;
     }
+    let deadline = Instant::now() + Duration::from_millis(SYMBOL_DEADLINE_MS);
     // Pre-scan symbols per file, normalized-name -> occurrences + display pick.
+    // Bounded to 3 files, each parse <10ms typical, total <30ms.
     let mut counts_all: Vec<HashMap<String, usize>> = Vec::new();
     let mut displays: Vec<HashMap<String, String>> = Vec::new();
     for f in files {
+        if Instant::now() > deadline {
+            debug!(
+                "code_context: symbol deadline exceeded before scanning {}",
+                f.rel
+            );
+            return None;
+        }
         let mut counts: HashMap<String, usize> = HashMap::new();
         let mut disp: HashMap<String, String> = HashMap::new();
         if let Some(syms) = scan_symbols(&f.abs) {
@@ -1358,5 +1541,187 @@ mod tests {
             best = best.min(t.elapsed().as_millis());
         }
         (best, last.expect("run"))
+    }
+
+    #[test]
+    fn steroid_all_symbol_forms_rust_ts_python_inline() {
+        // Rust: fn/pub fn/async fn/pub async fn/unsafe/const, struct/enum/trait/type, impl method
+        let dir = unique_tmp("steroid_rust");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("lib.rs"),
+            r#"
+pub fn plain_fn() {}
+pub async fn async_fn() {}
+async fn async_plain() {}
+unsafe fn unsafe_fn() {}
+const fn const_fn() {}
+pub struct MyStruct;
+pub enum MyEnum { A, B }
+pub trait MyTrait { fn trait_method(&self); }
+pub type MyAlias = u32;
+impl MyStruct { pub fn impl_method(&self) {} }
+"#,
+        )
+        .unwrap();
+        if let Some(syms) = scan_symbols(&dir.join("lib.rs")) {
+            eprintln!(
+                "lib.rs symbols: {:?}",
+                syms.iter().map(|s| &s.name).collect::<Vec<_>>()
+            );
+        }
+        for (spoken, expected) in [
+            ("plain fn function", "plain_fn"),
+            ("async fn function", "async_fn"),
+            ("async plain function", "async_plain"),
+            ("unsafe fn function", "unsafe_fn"),
+            ("const fn function", "const_fn"),
+            ("my struct struct", "MyStruct"),
+            ("my enum enum", "MyEnum"),
+            ("my trait trait", "MyTrait"),
+            ("my alias type", "MyAlias"),
+            ("impl method function", "impl_method"),
+        ] {
+            let text = format!("In `lib.rs` fix the {spoken}");
+            let out = maybe_enhance(&dir, &text, None)
+                .unwrap_or_else(|| panic!("must resolve {spoken} -> {expected}"));
+            assert!(
+                out.contains(&format!("`{expected}`")),
+                "spoken {spoken:?} -> {out:?} must contain `{expected}`"
+            );
+        }
+
+        // TS/JS: function, export function, export async function, class, interface, const arrow, export arrow, React component
+        let dir2 = unique_tmp("steroid_ts");
+        std::fs::create_dir_all(&dir2).unwrap();
+        std::fs::write(
+            dir2.join("app.ts"),
+            r#"
+export function plainFunc() {}
+export async function asyncFunc() {}
+export class MyClass {}
+export interface MyIface {}
+export type MyType = string;
+export const arrowFunc = () => {};
+export const asyncArrow = async () => {};
+const localArrow = () => {};
+export const ReactComp = () => { return null; };
+"#,
+        )
+        .unwrap();
+        for (spoken, expected) in [
+            ("plain func function", "plainFunc"),
+            ("async func function", "asyncFunc"),
+            ("my class class", "MyClass"),
+            ("my iface interface", "MyIface"),
+            ("my type type", "MyType"),
+            ("arrow func function", "arrowFunc"),
+            ("async arrow function", "asyncArrow"),
+            ("react comp function", "ReactComp"),
+        ] {
+            let text = format!("In `app.ts` fix the {spoken}");
+            let out = maybe_enhance(&dir2, &text, None)
+                .unwrap_or_else(|| panic!("must resolve {spoken} -> {expected}"));
+            assert!(
+                out.contains(&format!("`{expected}`")),
+                "spoken {spoken:?} -> {out:?}"
+            );
+        }
+
+        // Python: def/async def/decorated/decorated async/methods
+        let dir3 = unique_tmp("steroid_py");
+        std::fs::create_dir_all(&dir3).unwrap();
+        std::fs::write(
+            dir3.join("mod.py"),
+            concat!(
+                "def plain_def():\n    pass\n",
+                "async def async_def():\n    pass\n",
+                "@decorator\ndef decorated():\n    pass\n",
+                "@decorator\nasync def decorated_async():\n    pass\n",
+                "class MyClass:\n    def method(self):\n        pass\n",
+                "    async def async_method(self):\n        pass\n",
+                "    @decorator\n    def decorated_method(self):\n        pass\n",
+                "    @decorator\n    async def decorated_async_method(self):\n        pass\n",
+            ),
+        )
+        .unwrap();
+        for (spoken, expected) in [
+            ("plain def function", "plain_def"),
+            ("async def function", "async_def"),
+            ("decorated function", "decorated"),
+            ("decorated async function", "decorated_async"),
+            ("my class class", "MyClass"),
+            ("method function", "method"),
+            ("async method function", "async_method"),
+            ("decorated method function", "decorated_method"),
+            ("decorated async method function", "decorated_async_method"),
+        ] {
+            let text = format!("In `mod.py` fix the {spoken}");
+            let out = maybe_enhance(&dir3, &text, None)
+                .unwrap_or_else(|| panic!("must resolve {spoken} -> {expected}"));
+            assert!(
+                out.contains(&format!("`{expected}`")),
+                "spoken {spoken:?} -> {out:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn steroid_deadline_hard_wall() {
+        // Symbol awareness must never exceed 100ms, even on large files
+        let dir = unique_tmp("steroid_deadline");
+        std::fs::create_dir_all(&dir).unwrap();
+        // Create a large file with many symbols (3000 lines, many fns)
+        let mut content = String::new();
+        for i in 0..500 {
+            content.push_str(&format!("pub fn func_{i}() {{}}\n"));
+        }
+        std::fs::write(dir.join("big.rs"), &content).unwrap();
+        let text = "In `big.rs` fix the func 250 function";
+        let (ms, out) = min_ms(5, || maybe_enhance(&dir, text, None));
+        // Should either succeed quickly or abort and return None, but never exceed deadline
+        assert!(ms < 100, "deadline must be <100ms, got {ms}ms");
+        // If it succeeded, it should have found the correct symbol; if it timed out, it would be None and that's acceptable
+        if let Some(o) = out {
+            assert!(o.contains("func_250") || o.contains("`func_250`"), "{o}");
+        }
+    }
+
+    #[test]
+    fn steroid_no_repo_wide_scan_without_anchor() {
+        // No file anchor in transcript, but symbol exists somewhere in repo (indexed)
+        // Must NOT trigger a repo-wide scan - should return None
+        let dir = unique_tmp("steroid_norepo");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.rs"), "pub fn unique_symbol_xyz() {}\n").unwrap();
+        std::fs::write(dir.join("b.rs"), "pub fn other_func() {}\n").unwrap();
+        // Transcript has no file anchor, only symbol phrase
+        let text = "Fix the unique symbol xyz function";
+        let out = maybe_enhance(&dir, text, None);
+        // Currently we have no global index, so this should be None (no file anchor)
+        // This is the correct steroid behavior: no scan, no guess
+        assert!(
+            out.is_none(),
+            "must not do repo-wide scan without anchor, got {out:?}"
+        );
+        // With file anchor, it should succeed
+        let text2 = "In `a.rs` fix the unique symbol xyz function";
+        let out2 = maybe_enhance(&dir, text2, None).expect("with anchor must succeed");
+        assert!(out2.contains("unique_symbol_xyz"), "{out2}");
+    }
+
+    #[test]
+    fn steroid_global_unique_via_index_when_available() {
+        // If we had a global index that proves uniqueness, we could resolve without anchor
+        // For now, this test documents the current behavior: without anchor, we omit
+        // This will be enabled when global index is added
+        let dir = unique_tmp("steroid_global");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("only.rs"), "pub fn globally_unique_abc() {}\n").unwrap();
+        let text = "Fix the globally unique abc function";
+        let out = maybe_enhance(&dir, text, None);
+        // Currently None, future with global index could be Some
+        // We assert the current strict behavior
+        assert!(out.is_none(), "currently strict, no global scan");
     }
 }

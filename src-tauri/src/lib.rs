@@ -13,6 +13,7 @@ mod dev_icon;
 mod escape_cancel;
 mod export;
 mod file_refs;
+mod gmail_voice;
 mod helpers;
 mod input;
 mod intelligence;
@@ -613,6 +614,11 @@ pub fn run(cli_args: CliArgs) {
         context::capture::run_context_agent();
         return;
     }
+    if cli_args.gmail_agent {
+        #[cfg(target_os = "macos")]
+        gmail_voice::run_agent();
+        return;
+    }
     if cli_args.selected_text_agent {
         #[cfg(target_os = "macos")]
         context::capture::run_selected_text_agent(cli_args.selected_text_pid);
@@ -674,6 +680,9 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_auto_submit_key_setting,
             shortcut::change_post_process_enabled_setting,
             shortcut::change_experimental_enabled_setting,
+            shortcut::change_experimental_mlx_enabled_setting,
+            shortcut::change_experimental_mlx_cleanup_enabled_setting,
+            shortcut::change_experimental_gmail_voice_enabled_setting,
             shortcut::change_post_process_base_url_setting,
             shortcut::change_post_process_api_key_setting,
             shortcut::change_post_process_model_setting,
@@ -731,6 +740,8 @@ pub fn run(cli_args: CliArgs) {
             commands::initialize_enigo,
             commands::initialize_shortcuts,
             commands::models::get_available_models,
+            commands::models::get_mlx_runtime_info,
+            commands::models::warm_mlx_runtime,
             commands::models::get_model_info,
             commands::models::download_model,
             commands::models::delete_model,
@@ -759,6 +770,7 @@ pub fn run(cli_args: CliArgs) {
             commands::audio::set_selected_channel,
             commands::ai_cleanup::update_ai_cleanup_configuration,
             commands::ai_cleanup::set_gemini_api_key,
+            commands::ai_cleanup::set_voice_command_hook,
             commands::ai_cleanup::get_ai_cleanup_history,
             commands::ai_cleanup::is_gemini_api_configured,
             commands::local_cleanup::get_cleanup_model_status,

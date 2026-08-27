@@ -9,6 +9,7 @@ use tauri::{AppHandle, Manager};
 
 const DEBOUNCE: Duration = Duration::from_millis(30);
 const RELEASE_GRACE: Duration = Duration::from_millis(50);
+const FN_DOUBLE_TAP_WINDOW: Duration = Duration::from_millis(350);
 pub const HANDS_FREE_BINDING_ID: &str = "hands_free_transcribe";
 const STANDARD_BINDING_ID: &str = "transcribe";
 
@@ -125,6 +126,7 @@ impl TranscriptionCoordinator {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let mut stage = Stage::Idle;
                 let mut last_press: Option<Instant> = None;
+                let mut last_standard_press: Option<Instant> = None;
                 let mut pending_release: Option<PendingRelease> = None;
 
                 loop {
@@ -217,6 +219,65 @@ impl TranscriptionCoordinator {
                                 recording_binding,
                             ) {
                                 PttAction::CancelRelease => {
+                                    // If this cancel is actually a double-tap of the standard
+                                    // shortcut, latch to hands-free instead of just cancelling
+                                    // the deferred release (covers push-to-talk mode).
+                                    if binding_id == STANDARD_BINDING_ID && is_pressed {
+                                        if let Some(prev) = last_standard_press {
+                                            let now = Instant::now();
+                                            let since = now.duration_since(prev);
+                                            if since < FN_DOUBLE_TAP_WINDOW
+                                                && since >= DEBOUNCE
+                                            {
+                                                match &stage {
+                                                    Stage::Recording {
+                                                        hands_free: false,
+                                                        ..
+                                                    } => {
+                                                        pending_release = None;
+                                                        if let Stage::Recording {
+                                                            hands_free,
+                                                            ..
+                                                        } = &mut stage
+                                                        {
+                                                            *hands_free = true;
+                                                        }
+                                                        crate::escape_cancel::set_hands_free_active(
+                                                            true,
+                                                        );
+                                                        crate::overlay::show_hands_free_overlay(
+                                                            &app,
+                                                        );
+                                                        last_standard_press = None;
+                                                        continue;
+                                                    }
+                                                    Stage::Idle => {
+                                                        pending_release = None;
+                                                        start(
+                                                            &app,
+                                                            &mut stage,
+                                                            HANDS_FREE_BINDING_ID,
+                                                            HANDS_FREE_BINDING_ID,
+                                                        );
+                                                        if matches!(
+                                                            stage,
+                                                            Stage::Recording {
+                                                                hands_free: true,
+                                                                ..
+                                                            }
+                                                        ) {
+                                                            crate::escape_cancel::set_hands_free_active(
+                                                                true,
+                                                            );
+                                                        }
+                                                        last_standard_press = None;
+                                                        continue;
+                                                    }
+                                                    _ => {}
+                                                }
+                                            }
+                                        }
+                                    }
                                     pending_release = None;
                                     continue;
                                 }
@@ -233,6 +294,7 @@ impl TranscriptionCoordinator {
 
                             // Debounce rapid-fire press events (key repeat / double-tap).
                             // Push-to-talk releases may be deferred above to absorb X11 auto-repeat.
+                            let mut now_for_standard: Option<Instant> = None;
                             if is_pressed {
                                 let now = Instant::now();
                                 if last_press.is_some_and(|t| now.duration_since(t) < DEBOUNCE) {
@@ -240,6 +302,60 @@ impl TranscriptionCoordinator {
                                     continue;
                                 }
                                 last_press = Some(now);
+                                if binding_id == STANDARD_BINDING_ID {
+                                    now_for_standard = Some(now);
+                                }
+                            }
+
+                            // Simple double-tap of the standard shortcut → hands-free (double-click FN).
+                            // Keeps the existing fn+ctrl chord untouched; just adds the double-tap trigger.
+                            if let Some(now) = now_for_standard {
+                                if let Some(prev) = last_standard_press {
+                                    let since = now.duration_since(prev);
+                                    if since < FN_DOUBLE_TAP_WINDOW && since >= DEBOUNCE {
+                                        match &stage {
+                                            Stage::Recording {
+                                                hands_free: false,
+                                                ..
+                                            } => {
+                                                pending_release = None;
+                                                if let Stage::Recording { hands_free, .. } =
+                                                    &mut stage
+                                                {
+                                                    *hands_free = true;
+                                                }
+                                                crate::escape_cancel::set_hands_free_active(true);
+                                                crate::overlay::show_hands_free_overlay(&app);
+                                                last_standard_press = None;
+                                                continue;
+                                            }
+                                            Stage::Idle => {
+                                                pending_release = None;
+                                                start(
+                                                    &app,
+                                                    &mut stage,
+                                                    HANDS_FREE_BINDING_ID,
+                                                    HANDS_FREE_BINDING_ID,
+                                                );
+                                                if matches!(
+                                                    stage,
+                                                    Stage::Recording {
+                                                        hands_free: true,
+                                                        ..
+                                                    }
+                                                ) {
+                                                    crate::escape_cancel::set_hands_free_active(
+                                                        true,
+                                                    );
+                                                }
+                                                last_standard_press = None;
+                                                continue;
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+                                last_standard_press = Some(now);
                             }
 
                             if push_to_talk {

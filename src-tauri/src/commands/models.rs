@@ -63,6 +63,25 @@ pub async fn download_model(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn get_mlx_runtime_info() -> Result<crate::managers::mlx::MlxRuntimeInfo, String> {
+    // Probing spawns a short-lived python process; keep it off the UI thread.
+    tokio::task::spawn_blocking(crate::managers::mlx::runtime_info_blocking)
+        .await
+        .map_err(|e| format!("MLX probe failed: {e}"))
+}
+
+/// Zero-cold-start pre-warm fired when the user enables the MLX toggle.
+/// Imports the MLX/Metal dylibs into memory and runs one small Metal op.
+#[tauri::command]
+#[specta::specta]
+pub async fn warm_mlx_runtime() -> Result<crate::managers::mlx::WarmReport, String> {
+    tokio::task::spawn_blocking(crate::managers::mlx::warm_runtime_blocking)
+        .await
+        .map_err(|e| format!("MLX warmup failed to start: {e}"))
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn delete_model(
     app_handle: AppHandle,
     model_manager: State<'_, Arc<ModelManager>>,

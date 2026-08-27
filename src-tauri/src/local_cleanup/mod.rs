@@ -213,7 +213,8 @@ impl CleanupPreparation {
         let corrected = if self.tech_lexicon_enabled {
             let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
             let corrected = crate::audio_toolkit::styling::apply(&corrected);
-            crate::audio_toolkit::programming_syntax::apply(&corrected)
+            let corrected = crate::audio_toolkit::programming_syntax::apply(&corrected);
+            crate::audio_toolkit::emoji::apply(&corrected)
         } else {
             corrected
         };

@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod catalog;
 pub mod constants;
+pub mod emoji;
 pub mod formatter;
 pub mod lang_id;
 pub mod normalization;

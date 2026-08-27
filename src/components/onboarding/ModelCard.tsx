@@ -79,6 +79,10 @@ interface ModelCardProps {
   recommended?: boolean;
 }
 
+/** Stable id-prefix check for seeded experimental MLX descriptors. */
+export const isMlxModel = (model: ModelInfo): boolean =>
+  model.id.startsWith("superflow-mlx/");
+
 const ModelCard: React.FC<ModelCardProps> = ({
   model,
   variant = "default",
@@ -173,6 +177,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
             {showRecommended && (recommended ?? model.is_recommended) && (
               <Badge variant="fuchsia">{t("onboarding.recommended")}</Badge>
             )}
+            {isMlxModel(model) && (
+              <Badge variant="fuchsia">{t("settings.models.mlxBadge")}</Badge>
+            )}
             {status === "active" && (
               <Badge variant="blue">{t("modelSelector.active")}</Badge>
             )}
@@ -196,35 +203,41 @@ const ModelCard: React.FC<ModelCardProps> = ({
               <Badge variant="neutral">{t("modelSelector.switching")}</Badge>
             )}
           </div>
-          <p className="text-text/60 text-sm leading-relaxed">
-            {displayDescription}
-          </p>
+          {!isMlxModel(model) && (
+            <p className="text-text/60 text-sm leading-relaxed">
+              {displayDescription}
+            </p>
+          )}
         </div>
         {(model.accuracy_score > 0 || model.speed_score > 0) && (
           <div className="hidden sm:flex items-center ms-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-text/60 w-24 text-end">
-                  {t("onboarding.modelCard.accuracy")}
-                </p>
-                <div className="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-600 rounded-full"
-                    style={{ width: `${model.accuracy_score * 100}%` }}
-                  />
+              {model.accuracy_score > 0 && (
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-text/60 w-24 text-end">
+                    {t("onboarding.modelCard.accuracy")}
+                  </p>
+                  <div className="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 rounded-full"
+                      style={{ width: `${model.accuracy_score * 100}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-text/60 w-24 text-end">
-                  {t("onboarding.modelCard.speed")}
-                </p>
-                <div className="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-600 rounded-full"
-                    style={{ width: `${model.speed_score * 100}%` }}
-                  />
+              )}
+              {model.speed_score > 0 && (
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-text/60 w-24 text-end">
+                    {t("onboarding.modelCard.speed")}
+                  </p>
+                  <div className="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 rounded-full"
+                      style={{ width: `${model.speed_score * 100}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}

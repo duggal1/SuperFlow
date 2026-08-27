@@ -162,6 +162,12 @@ const settingUpdaters: {
   theme: (value) => commands.changeThemeSetting(value as string),
   experimental_enabled: (value) =>
     commands.changeExperimentalEnabledSetting(value as boolean),
+  experimental_mlx_enabled: (value) =>
+    commands.changeExperimentalMlxEnabledSetting(value as boolean),
+  experimental_mlx_cleanup_enabled: (value) =>
+    commands.changeExperimentalMlxCleanupEnabledSetting(value as boolean),
+  experimental_gmail_voice_enabled: (value) =>
+    commands.changeExperimentalGmailVoiceEnabledSetting(value as boolean),
   lazy_stream_close: (value) =>
     commands.changeLazyStreamCloseSetting(value as boolean),
   overlay_style: (value) => commands.changeOverlayStyleSetting(value as string),
@@ -192,6 +198,24 @@ const settingUpdaters: {
     commands.changeTranscribeGpuDevice(value as string | null),
   extra_recording_buffer_ms: (value) =>
     commands.changeExtraRecordingBufferSetting(value as number),
+  voice_command_hook: async (value) => {
+    const result = await commands.setVoiceCommandHook(value as string);
+    if (result.status === "error") {
+      throw new Error(result.error);
+    }
+    // Backend normalizes whitespace; keep store in sync with returned hook.
+    const normalized = result.data;
+    if (normalized !== (value as string)) {
+      // Optimistic value was not normalized — patch store to canonical form.
+      // Direct set avoids recursive updater call.
+      const { settings } = useSettingsStore.getState();
+      if (settings) {
+        useSettingsStore
+          .getState()
+          .setSettings({ ...settings, voice_command_hook: normalized });
+      }
+    }
+  },
 };
 
 export const useSettingsStore = create<SettingsStore>()(

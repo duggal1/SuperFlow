@@ -62,12 +62,14 @@ pub const CHROMIUM_BUNDLE_PREFIXES: &[&str] = &[
 ];
 
 pub const SAFARI_BUNDLE_ID: &str = "com.apple.Safari";
+pub const SAFARI_WEB_APP_BUNDLE_PREFIX: &str = "com.apple.Safari.WebApp";
 
 pub fn is_known_browser(bundle_id: Option<&str>) -> bool {
     let Some(bundle) = bundle_id else {
         return false;
     };
     bundle == SAFARI_BUNDLE_ID
+        || bundle.starts_with(SAFARI_WEB_APP_BUNDLE_PREFIX)
         || CHROMIUM_BUNDLE_PREFIXES
             .iter()
             .any(|prefix| bundle.starts_with(prefix))
@@ -113,13 +115,15 @@ pub fn classify(bundle_id: Option<&str>, url: Option<&str>, title: Option<&str>)
 
     // Conservative title markers for cases where the URL was unreadable but
     // the browser/webview still exposes a recognizable page title.
-    if let Some(title) = title {
-        let trimmed = title.trim_end();
-        if trimmed.ends_with("- Gmail") || trimmed.ends_with("– Gmail") {
-            return Surface::Gmail;
-        }
-        if trimmed.ends_with(" | Slack") || trimmed.ends_with(" - Slack") {
-            return Surface::Slack;
+    if is_known_browser(bundle_id) {
+        if let Some(title) = title {
+            let trimmed = title.trim_end();
+            if trimmed.ends_with("- Gmail") || trimmed.ends_with("– Gmail") {
+                return Surface::Gmail;
+            }
+            if trimmed.ends_with(" | Slack") || trimmed.ends_with(" - Slack") {
+                return Surface::Slack;
+            }
         }
     }
 
@@ -205,6 +209,7 @@ mod tests {
         assert!(is_known_browser(Some("com.google.Chrome.canary")));
         assert!(is_known_browser(Some("company.thebrowser.Browser")));
         assert!(is_known_browser(Some(SAFARI_BUNDLE_ID)));
+        assert!(is_known_browser(Some("com.apple.Safari.WebApp.A1B2C3")));
         assert!(!is_known_browser(Some(SLACK_BUNDLE_ID)));
         assert!(!is_known_browser(None));
     }

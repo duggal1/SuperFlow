@@ -75,9 +75,10 @@ fn consonant_skeleton(key: &str) -> String {
 
 /// Phonetic fallback fires only on substantial words; short candidates are
 /// left to the strict orthographic path so prose stays untouched.
+/// Tuned a touch less strict — a bit less high quality by design.
 const SKELETON_MIN_CHARS: usize = 5;
 /// Max normalized skeleton edit distance for a phonetic match.
-const SKELETON_THRESHOLD: f64 = 0.25;
+const SKELETON_THRESHOLD: f64 = 0.28;
 
 fn build_custom_word_match_keys(word: &str, word_index: usize) -> Vec<CustomWordMatchKey> {
     let primary_key = build_match_key(word);
@@ -200,13 +201,12 @@ fn find_best_match<'a, 'key>(
             }
         }
         // Skip if lengths are too different (optimization + prevents over-matching)
-        // Use percentage-based check: max 25% length difference (prevents n-grams from
-        // matching significantly shorter custom words, e.g., "openaigpt" vs "openai")
+        // Use percentage-based check: a touch less strict than 25% (bit less high quality)
         let candidate_len = candidate.chars().count();
         let custom_word_len = custom_word_key.key.chars().count();
         let len_diff = candidate_len.abs_diff(custom_word_len) as f64;
         let max_len = candidate_len.max(custom_word_len) as f64;
-        let max_allowed_diff = (max_len * 0.25).max(2.0); // At least 2 chars difference allowed
+        let max_allowed_diff = (max_len * 0.28).max(2.0); // At least 2 chars difference allowed
         if len_diff > max_allowed_diff {
             continue;
         }
@@ -231,14 +231,14 @@ fn find_best_match<'a, 'key>(
                 let diff = (candidate.chars().count() as i64
                     - custom_word_key.key.chars().count() as i64)
                     .abs();
-                diff as f64 <= (max_len * 0.2).max(2.0)
+                diff as f64 <= (max_len * 0.22).max(2.0)
             };
             let anchored = candidate_skeleton.starts_with(&custom_word_key.skeleton);
             if raw_len_ok
                 && anchored
                 && candidate_skeleton.chars().count() >= 3
                 && candidate.len() >= SKELETON_MIN_CHARS
-                && levenshtein_score <= 0.5
+                && levenshtein_score <= 0.55
             {
                 let skel_dist = levenshtein(&candidate_skeleton, &custom_word_key.skeleton);
                 let skel_max = (candidate_skeleton.chars().count())

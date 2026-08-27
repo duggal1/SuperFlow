@@ -528,6 +528,8 @@ pub struct AppSettings {
     /// Named dictation shortcuts expanded inline at paste time.
     #[serde(default)]
     pub shortcuts: Vec<Shortcut>,
+    #[serde(default = "default_voice_command_hook")]
+    pub voice_command_hook: String,
     #[serde(default)]
     pub model_unload_timeout: ModelUnloadTimeout,
     #[serde(default = "default_word_correction_threshold")]
@@ -591,6 +593,18 @@ pub struct AppSettings {
     pub theme: Theme,
     #[serde(default)]
     pub experimental_enabled: bool,
+    /// Gates the optional native Apple-Silicon MLX engine (mlx-audio / uv venv).
+    /// Purely additive: disabled (default) leaves the shipped engines untouched.
+    #[serde(default)]
+    pub experimental_mlx_enabled: bool,
+    /// When true, MLX transcripts are polished by a local mlx-lm cleanup LLM.
+    #[serde(default)]
+    pub experimental_mlx_cleanup_enabled: bool,
+    /// Experimental Gmail voice drafting/send. Gated separately from
+    /// `intelligence_awareness_enabled` so existing awareness users aren't
+    /// surprised and the feature can be tested independently.
+    #[serde(default)]
+    pub experimental_gmail_voice_enabled: bool,
     #[serde(default)]
     pub lazy_stream_close: bool,
     #[serde(default)]
@@ -803,6 +817,10 @@ fn default_ai_cleanup_enabled() -> bool {
 
 fn default_ai_cleanup_model() -> String {
     "gemini-3.5-flash-lite".to_string()
+}
+
+fn default_voice_command_hook() -> String {
+    "Hey SuperFlow".to_string()
 }
 
 fn default_intelligence_awareness_enabled() -> bool {
@@ -1202,6 +1220,7 @@ pub fn get_default_settings() -> AppSettings {
         log_level: default_log_level(),
         custom_words: Vec::new(),
         shortcuts: Vec::new(),
+        voice_command_hook: default_voice_command_hook(),
         model_unload_timeout: ModelUnloadTimeout::default(),
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
@@ -1233,6 +1252,9 @@ pub fn get_default_settings() -> AppSettings {
         theme: default_theme(),
         experimental_enabled: false,
         lazy_stream_close: false,
+        experimental_mlx_enabled: false,
+        experimental_mlx_cleanup_enabled: false,
+        experimental_gmail_voice_enabled: false,
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),
         paste_delay_ms: default_paste_delay_ms(),

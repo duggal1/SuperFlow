@@ -232,7 +232,7 @@
         {"filename": "parakeet-tdt-0.6b-v3-F16.gguf", "quant": "F16", "size_bytes": 1255869856, "sha256": "d9ec7e2c39da7b4fec3e01e71e82c7f7bbe97741e08c0c054091bf3d520a41d3"},
         {"filename": "parakeet-tdt-0.6b-v3-F32.gguf", "quant": "F32", "size_bytes": 2508435616, "sha256": "bbd36acd8c6fbb817e658e3acc9f75002cb6a74932c687e74fefccfcc7b9f47e"}
       ],
-      "default_quant": "Q8_0",
+      "default_quant": "F16",
       "recommended": false,
       "recommended_rank": 7
     },

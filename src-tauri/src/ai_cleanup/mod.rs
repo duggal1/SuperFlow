@@ -85,6 +85,47 @@ pub async fn edit(
     .await
 }
 
+pub async fn execute(instruction: &str, settings: &AppSettings) -> Result<String, String> {
+    let instruction = instruction.trim();
+    if instruction.is_empty() {
+        return Err("No voice instruction was provided".to_string());
+    }
+    validate_model_and_thinking(
+        &settings.ai_cleanup_model,
+        settings.ai_cleanup_thinking_level,
+    )?;
+    let api_key = credentials::load(settings)?;
+
+    client::generate(
+        &api_key,
+        &settings.ai_cleanup_model,
+        settings.ai_cleanup_thinking_level,
+        prompt::EDIT_SYSTEM_PROMPT,
+        &prompt::build_edit_user_content("", instruction),
+    )
+    .await
+}
+
+pub(crate) async fn generate_with_system_prompt(
+    system_prompt: &str,
+    user_content: &str,
+    settings: &AppSettings,
+) -> Result<String, String> {
+    validate_model_and_thinking(
+        &settings.ai_cleanup_model,
+        settings.ai_cleanup_thinking_level,
+    )?;
+    let api_key = credentials::load(settings)?;
+    client::generate(
+        &api_key,
+        &settings.ai_cleanup_model,
+        settings.ai_cleanup_thinking_level,
+        system_prompt,
+        user_content,
+    )
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,6 +140,14 @@ mod tests {
         assert!(
             validate_model_and_thinking("gemini-3.1-pro-preview", AiCleanupThinkingLevel::Low)
                 .is_ok()
+        );
+    }
+
+    #[test]
+    fn voice_instruction_uses_the_edit_prompt_input_shape_without_source_text() {
+        assert_eq!(
+            prompt::build_edit_user_content("", "Draft an email to Emma."),
+            "<selected-text>\n\n</selected-text>\n\n<edit-instruction>\nDraft an email to Emma.\n</edit-instruction>"
         );
     }
 }

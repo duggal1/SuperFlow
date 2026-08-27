@@ -36,6 +36,121 @@ pub enum EngineType {
     GigaAM,
     Canary,
     Cohere,
+    /// Native Apple-Silicon MLX models executed through an external uv-managed
+    /// Python environment (src-tauri/src/mlx/mlx_voice.py). Weights live in the
+    /// Hugging Face cache; inference runs via Metal outside this process.
+    /// Gated behind `settings.experimental_mlx_enabled`.
+    Mlx(MlxVariant),
+}
+
+/// Which MLX family a descriptor seeds. Drives id naming and the subprocess
+/// `--model` argument handed to mlx_voice.py.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+pub enum MlxVariant {
+    /// mlx-community/Qwen3-ASR-1.7B-8bit — high-accuracy multilingual ASR.
+    Qwen17B8Bit,
+    /// mlx-community/Qwen3-ASR-0.6B-8bit — small, fast, multilingual ASR.
+    Qwen06B8Bit,
+    /// animaslabs/parakeet-tdt-0.6b-v3-mlx-8bit — Parakeet TDT v3 MLX.
+    ParakeetUnified,
+    /// mlx-community/nemotron-3.5-asr-streaming-0.6b-8bit — streaming ASR.
+    Nemotron,
+    /// littoralai/cohere-transcribe-mlx-8bit — Cohere transcription.
+    Cohere,
+    /// leope/ark-asr-0.6B-mlx — native MLX ARK port (offline only).
+    Ark06B,
+}
+
+impl MlxVariant {
+    /// Alias understood by `mlx_voice.py`.
+    pub fn cli_alias(self) -> &'static str {
+        match self {
+            MlxVariant::Qwen17B8Bit => "qwen-1.7b-8bit",
+            MlxVariant::Qwen06B8Bit => "qwen-0.6b-8bit",
+            MlxVariant::ParakeetUnified => "parakeet-unified",
+            MlxVariant::Nemotron => "nemotron",
+            MlxVariant::Cohere => "cohere",
+            MlxVariant::Ark06B => "ark-0.6b",
+        }
+    }
+
+    /// Hugging Face repo holding the converted MLX weights.
+    pub fn hf_repo_id(self) -> &'static str {
+        match self {
+            MlxVariant::Qwen17B8Bit => "mlx-community/Qwen3-ASR-1.7B-8bit",
+            MlxVariant::Qwen06B8Bit => "mlx-community/Qwen3-ASR-0.6B-8bit",
+            MlxVariant::ParakeetUnified => "animaslabs/parakeet-tdt-0.6b-v3-mlx-8bit",
+            MlxVariant::Nemotron => "mlx-community/nemotron-3.5-asr-streaming-0.6b-8bit",
+            MlxVariant::Cohere => "littoralai/cohere-transcribe-mlx-8bit",
+            MlxVariant::Ark06B => "leope/ark-asr-0.6B-mlx",
+        }
+    }
+
+    /// Stable prefix distinguishing seeded MLX descriptors from every other
+    /// producer (catalog, legacy table, HF-cache scans, custom files).
+    pub const ID_PREFIX: &'static str = "superflow-mlx/";
+
+    pub fn id(self) -> String {
+        format!("{}{}", Self::ID_PREFIX, self.cli_alias())
+    }
+
+    pub const ALL: [MlxVariant; 6] = [
+        MlxVariant::Qwen17B8Bit,
+        MlxVariant::Qwen06B8Bit,
+        MlxVariant::ParakeetUnified,
+        MlxVariant::Nemotron,
+        MlxVariant::Cohere,
+        MlxVariant::Ark06B,
+    ];
+
+    /// Approximate converted-weight footprint (MB) as advertised on HF.
+    pub fn approximate_size_mb(self) -> u64 {
+        match self {
+            MlxVariant::Qwen17B8Bit => 2349,
+            MlxVariant::Qwen06B8Bit => 960,
+            MlxVariant::ParakeetUnified => 866,
+            MlxVariant::Nemotron => 721,
+            MlxVariant::Cohere => 2308,
+            MlxVariant::Ark06B => 2195,
+        }
+    }
+
+    /// Real per-model streaming capability, mirrored from `mlx_voice.py`.
+    /// Drives the model-card streaming badge — never a placeholder.
+    pub fn supports_streaming(self) -> bool {
+        match self {
+            MlxVariant::Qwen17B8Bit => true,
+            MlxVariant::Qwen06B8Bit => true,
+            MlxVariant::ParakeetUnified => false,
+            MlxVariant::Nemotron => true,
+            MlxVariant::Cohere => false,
+            MlxVariant::Ark06B => false,
+        }
+    }
+
+    /// Languages the model can actually transcribe (real capability).
+    pub fn supported_languages(self) -> Vec<String> {
+        const MULTILINGUAL: &[&str] = &[
+            "en", "zh", "de", "fr", "es", "ja", "ko", "ru", "pt", "it", "ar", "hi",
+        ];
+        match self {
+            // Parakeet TDT v3 is an English-only checkpoint.
+            MlxVariant::ParakeetUnified => vec!["en".to_string()],
+            _ => MULTILINGUAL.iter().map(|s| s.to_string()).collect(),
+        }
+    }
+
+    /// Display footgun notices surfaced in the model-page description.
+    pub fn blurb(self) -> &'static str {
+        match self {
+            MlxVariant::Qwen17B8Bit => "High-accuracy multilingual Qwen3-ASR (8-bit)",
+            MlxVariant::Qwen06B8Bit => "Small, fast multilingual Qwen3-ASR (8-bit)",
+            MlxVariant::ParakeetUnified => "Parakeet TDT v3 MLX 8-bit",
+            MlxVariant::Nemotron => "Streaming Nemotron 3.5 ASR (8-bit)",
+            MlxVariant::Cohere => "Cohere Transcribe 03-2026 (8-bit)",
+            MlxVariant::Ark06B => "Native MLX ARK port — offline, short clips",
+        }
+    }
 }
 
 /// Where a model comes from and how SuperFlow obtains it — the routing discriminant
@@ -1111,6 +1226,12 @@ impl ModelManager {
         // find. Additive — see `seed_catalog_models`.
         Self::seed_catalog_models(&mut available_models);
 
+        // Seed the optional experimental MLX descriptors — only when the user
+        // opted in via Advanced settings. Purely additive to the catalog.
+        if get_settings(app_handle).experimental_mlx_enabled {
+            Self::seed_mlx_models(&mut available_models);
+        }
+
         // Auto-discover custom transcribe-cpp models (.bin / .gguf) in the models directory
         if let Err(e) = Self::discover_custom_transcribe_models(&models_dir, &mut available_models)
         {
@@ -1122,7 +1243,10 @@ impl ModelManager {
 
         // Keep shippable models only: streaming-capable entries plus the
         // curated batch-only catalog set. See `retain_shipped_models`.
-        Self::retain_shipped_models(&mut available_models);
+        Self::retain_shipped_models(
+            &mut available_models,
+            get_settings(app_handle).experimental_mlx_enabled,
+        );
 
         let manager = Self {
             app_handle: app_handle.clone(),
@@ -1146,6 +1270,22 @@ impl ModelManager {
         manager.auto_select_model_if_needed()?;
 
         Ok(manager)
+    }
+
+    /// Live re-seed/clear of MLX descriptors when the user flips the
+    /// experimental toggle. No rescan or restart required.
+    pub fn set_mlx_enabled(&self, enabled: bool) {
+        let mut models = self.available_models.lock().unwrap();
+        if enabled {
+            for variant in MlxVariant::ALL {
+                let info = crate::managers::mlx::make_model_info(variant);
+                models.entry(info.id.clone()).or_insert(info);
+            }
+            info!("MLX descriptors seeded (toggle on)");
+        } else {
+            models.retain(|id, _| !id.starts_with(MlxVariant::ID_PREFIX));
+            info!("MLX descriptors removed (toggle off)");
+        }
     }
 
     pub fn get_available_models(&self) -> Vec<ModelInfo> {
@@ -1188,15 +1328,34 @@ impl ModelManager {
         info!("Seeded {} catalog model(s) into the registry", added);
     }
 
+    /// Seed the experimental MLX ASR descriptors (weights live in the shared HF
+    /// cache, inference runs through the external uv Python env). Callers gate
+    /// this behind `settings.experimental_mlx_enabled`.
+    fn seed_mlx_models(available_models: &mut HashMap<String, ModelInfo>) {
+        use std::collections::hash_map::Entry;
+        let mut added = 0usize;
+        for variant in MlxVariant::ALL {
+            let info = crate::managers::mlx::make_model_info(variant);
+            if let Entry::Vacant(slot) = available_models.entry(info.id.clone()) {
+                slot.insert(info);
+                added += 1;
+            }
+        }
+        info!("Seeded {} MLX model descriptor(s)", added);
+    }
+
     /// Keep shippable entries only: streaming-capable models plus the curated
     /// batch-only catalog set (transcribed offline after recording). Everything
     /// else — legacy table leftovers, non-streaming catalog/cache finds — is
     /// removed from the registry so it never shows up, downloads, or gets
-    /// auto-selected. Runs after every seeding/discovery pass.
-    fn retain_shipped_models(available_models: &mut HashMap<String, ModelInfo>) {
+    /// auto-selected. MLX descriptors survive while the experiment stays on.
+    /// Runs after every seeding/discovery pass.
+    fn retain_shipped_models(available_models: &mut HashMap<String, ModelInfo>, keep_mlx: bool) {
         let before = available_models.len();
         available_models.retain(|id, info| {
-            info.supports_streaming || crate::catalog::is_curated_batch_model(id)
+            info.supports_streaming
+                || crate::catalog::is_curated_batch_model(id)
+                || (keep_mlx && id.starts_with(MlxVariant::ID_PREFIX))
         });
         let removed = before - available_models.len();
         if removed > 0 {
@@ -1250,7 +1409,10 @@ impl ModelManager {
         }
         Self::discover_hf_cache_models(&mut snapshot);
         // Same shippable filter as startup: streaming plus curated batch.
-        Self::retain_shipped_models(&mut snapshot);
+        Self::retain_shipped_models(
+            &mut snapshot,
+            get_settings(&self.app_handle).experimental_mlx_enabled,
+        );
 
         // Merge only the genuinely-new ids back into the live registry. `or_insert`
         // leaves every existing entry exactly as it was.
@@ -1948,10 +2110,11 @@ impl ModelManager {
 
             // Fresh client per attempt so a wedged connection from the previous
             // try can't poison the retry.
+            let token = std::env::var("HF_TOKEN")
+                .ok()
+                .or_else(|| std::env::var("HUGGING_FACE_TOKEN").ok());
             let api = ApiBuilder::from_env()
-                // Ignore cached and environment-provided credentials. A stale token
-                // can make otherwise-public downloads fail authentication.
-                .with_token(None)
+                .with_token(token)
                 .with_progress(false)
                 .with_max_files(stream_count)
                 .build()

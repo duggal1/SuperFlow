@@ -218,7 +218,22 @@
         "empty": "No shortcuts yet. Add one, then say its name while dictating.",
         "duplicateName": "A shortcut with this name already exists.",
         "nameTooLong": "Name is too long (max 40 characters).",
-        "required": "Both name and content are required."
+        "required": "Both name and content are required.",
+        "titleField": "Title",
+        "replacementField": "Replacement"
+      },
+      "superWhisper": {
+        "title": "Super Whisper",
+        "description": "Start your dictation with the hook — Gemini creates instead of transcribing. Hold the key, say the hook then what you want, release. Same model and tone as Prompt Engineering.",
+        "hookLabel": "Voice hook",
+        "hookDescription": "Say the hook, then your request, then release.",
+        "emptyBadge": "Set a hook",
+        "emptyError": "Voice hook cannot be empty",
+        "tooLongError": "Voice hook is too long (max 80 characters)",
+        "helper": "Hold your Transcribe key, say the hook, then your request, then release.",
+        "exampleLabel": "Try saying",
+        "exampleText": "Draft a concise follow-up email to the design team recapping today's review and listing the three revisions we agreed on.",
+        "usesModelHint": "Uses your Prompt Engineering Gemini model and tone. Set your API key and style there."
       }
     },
     "models": {
@@ -244,7 +259,11 @@
         "label": "Rescan",
         "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside SuperFlow"
       },
-      "noModelsMatch": "No models match this filter."
+      "noModelsMatch": "No models match this filter.",
+      "mlxBadge": "MLX",
+      "mlxSectionTitle": "Apple MLX (Experimental)",
+      "mlxSectionDescription": "On-device Metal inference via mlx-audio. Runs out-of-process; weights are pulled from Hugging Face on first use.",
+      "mlxRuntimeChecking": "Checking MLX runtime…"
     },
     "sound": {
       "title": "Sound",
@@ -286,6 +305,25 @@
       "experimentalToggle": {
         "label": "Experimental Features",
         "description": "Enable experimental features that are still in development."
+      },
+      "mlxToggle": {
+        "label": "Apple MLX Engine (Experimental)",
+        "description": "Opt in to native Apple-Silicon MLX models run out-of-process via mlx-audio on Metal."
+      },
+      "mlxCard": {
+        "title": "Apple MLX Engine",
+        "warmIdle": "Environment idle — toggling on pre-warms Python + Metal for zero cold start.",
+        "warming": "Pre-warming Python + Metal environment…",
+        "warmToastOk": "MLX environment ready — zero cold start",
+        "warmToastFail": "MLX environment warm-up failed"
+      },
+      "mlxCleanupToggle": {
+        "label": "MLX Local Cleanup LLM",
+        "description": "After an MLX transcription, polish the raw text with a small local mlx-lm model on this Mac. Falls back to raw output if the local LLM fails."
+      },
+      "gmailVoice": {
+        "label": "Gmail Voice Drafting",
+        "description": "Draft Gmail replies and new messages from spoken instructions. Automatic Send works only after the same Gmail draft, recipient, and generated body are verified."
       },
       "lazyStreamClose": {
         "label": "Keep Mic Open Between Transcriptions",
@@ -666,6 +704,18 @@
     }
   },
   "footer": {
+    "downloadManager": {
+      "title": "Downloads",
+      "active": "{{count}} downloading · {{progress}}%",
+      "backgroundActive": "{{count}} active in background",
+      "backgroundIdle": "No background transfers",
+      "stopAll": "Stop all",
+      "empty": "No downloads in this session",
+      "progress": "{{progress}}% downloaded",
+      "downloaded": "Downloaded",
+      "stopped": "Stopped",
+      "download": "Download {{modelName}}"
+    },
     "checkingUpdates": "Checking for updates...",
     "updateAvailableShort": "Update available",
     "upToDate": "Up to date",

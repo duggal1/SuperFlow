@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { CaretDown } from "@phosphor-icons/react";
 import type { ModelInfo } from "@/bindings";
 import type { ModelCardStatus } from "./ModelCard";
-import ModelCard, { isLegacySource } from "./ModelCard";
+import ModelCard, { isLegacySource, isMlxModel } from "./ModelCard";
 import SuperFlowTextLogo from "../icons/SuperFlowTextLogo";
 import {
   getHardwareProfile,
@@ -59,7 +59,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   // "Recommended" badge reflect what will actually run best for this user.
   const { downloadable, topPicks, rest } = useMemo(() => {
     const downloadable = models.filter(
-      (m: ModelInfo) => !m.is_downloaded && !isLegacySource(m),
+      (m: ModelInfo) =>
+        !m.is_downloaded && !isLegacySource(m) && !isMlxModel(m),
     );
     const ranked = [...downloadable].sort(
       (a, b) =>
@@ -73,7 +74,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   }, [models, hardware]);
 
   const recommendedModel = useMemo(
-    () => pickRecommendedModel(models, hardware),
+    () => pickRecommendedModel(models.filter((m: ModelInfo) => !isMlxModel(m)), hardware),
     [models, hardware],
   );
 

@@ -905,6 +905,147 @@ pub fn paste_exact(text: String, app_handle: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// --- Pasteable-target detection (macOS) ------------------------------------
+//
+// Self-contained AX FFI mirroring context/focused_text.rs — that module's doc
+// pins the two lanes to sharing nothing but the pattern, so this declares its
+// own symbols instead of importing. Everything is best-effort: any AX failure
+// or unrecognized role reports "not pasteable", letting the caller surface the
+// result card instead of injecting keystrokes into nothing.
+
+#[cfg(target_os = "macos")]
+mod pasteable_target {
+    use std::ffi::c_void;
+
+    type AxError = i32;
+    const AX_SUCCESS: AxError = 0;
+
+    // kCFStringEncodingUTF8
+    const K_CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
+
+    extern "C" {
+        fn AXUIElementCreateSystemWide() -> AXUIElementRef;
+        fn AXUIElementCopyAttributeValue(
+            element: AXUIElementRef,
+            attribute: CFStringRef,
+            value: *mut CFTypeRef,
+        ) -> AxError;
+        fn CFRelease(cf: CFTypeRef);
+        fn CFStringGetCString(
+            string: CFStringRef,
+            buffer: *mut u8,
+            buffer_size: isize,
+            encoding: u32,
+        ) -> bool;
+    }
+
+    type AXUIElementRef = *mut c_void;
+    type CFTypeRef = *const c_void;
+    type CFStringRef = *const c_void;
+
+    /// Wrapper making a leaked CFString pointer usable inside a `OnceLock`
+    /// static (raw pointers are not `Send`/`Sync` by default).
+    #[derive(Clone, Copy)]
+    struct AxAttrName(CFStringRef);
+
+    // SAFETY: a leaked, never-mutated CFString is immutable and thread-safe.
+    unsafe impl Send for AxAttrName {}
+    unsafe impl Sync for AxAttrName {}
+
+    /// Owns a +1 CoreFoundation reference; releases on drop.
+    struct CfRef(CFTypeRef);
+
+    impl CfRef {
+        fn take(raw: CFTypeRef) -> Option<Self> {
+            (!raw.is_null()).then(|| Self(raw))
+        }
+    }
+
+    impl Drop for CfRef {
+        fn drop(&mut self) {
+            if !self.0.is_null() {
+                unsafe { CFRelease(self.0) };
+            }
+        }
+    }
+
+    /// Attribute-name constants. Created once from bridged `NSString`s and
+    /// leaked deliberately — they live for the process lifetime. The leaked
+    /// immutable string is inherently safe to share across threads.
+    macro_rules! ax_attr {
+        ($name:literal) => {{
+            static ATTR: std::sync::OnceLock<AxAttrName> = std::sync::OnceLock::new();
+            ATTR.get_or_init(|| {
+                let ns = objc2_foundation::NSString::from_str($name);
+                // Leak the string: +1 reference, intentionally never released.
+                AxAttrName(objc2::rc::Retained::into_raw(ns) as CFStringRef)
+            })
+            .0
+        }};
+    }
+
+    fn copy_attribute(element: AXUIElementRef, attribute: CFStringRef) -> Option<CfRef> {
+        let mut out: CFTypeRef = std::ptr::null();
+        let status = unsafe { AXUIElementCopyAttributeValue(element, attribute, &mut out) };
+        if status != AX_SUCCESS || out.is_null() {
+            return None;
+        }
+        CfRef::take(out)
+    }
+
+    /// Roles are short fixed strings; a small fixed buffer is plenty.
+    fn element_role(element: AXUIElementRef) -> Option<String> {
+        let role = copy_attribute(element, ax_attr!("AXRole"))?;
+        let mut buffer = [0u8; 128];
+        let ok = unsafe {
+            CFStringGetCString(
+                role.0 as CFStringRef,
+                buffer.as_mut_ptr(),
+                buffer.len() as isize,
+                K_CF_STRING_ENCODING_UTF8,
+            )
+        };
+        if !ok {
+            return None;
+        }
+        let end = buffer.iter().position(|&b| b == 0)?;
+        String::from_utf8_lossy(&buffer[..end]).into_owned().into()
+    }
+
+    /// True only when the system-wide focused UI element is an editable text
+    /// target. Deliberately excludes containers (`AXWebArea`, `AXScrollArea`):
+    /// with no input focused Chrome/Safari report `AXWebArea`, and non-editable
+    /// panes report `AXScrollArea` — treating either as pasteable would send
+    /// keystrokes nowhere again. Real inputs, terminals, and editors report one
+    /// of these roles regardless of toolkit. MUST run on the main thread (AX is
+    /// main-thread bound — see context/capture.rs).
+    pub fn is_pasteable_target_focused() -> bool {
+        let system_wide = unsafe { AXUIElementCreateSystemWide() };
+        if system_wide.is_null() {
+            return false;
+        }
+        let _guard = CfRef(system_wide as CFTypeRef);
+
+        let Some(focused) = copy_attribute(system_wide, ax_attr!("AXFocusedUIElement")) else {
+            return false;
+        };
+        match element_role(focused.0 as AXUIElementRef) {
+            Some(role) => role_is_pasteable(&role),
+            None => false,
+        }
+    }
+
+    pub fn role_is_pasteable(role: &str) -> bool {
+        matches!(
+            role,
+            "AXTextField" | "AXTextArea" | "AXComboBox" | "AXSearchField"
+        )
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub use pasteable_target::is_pasteable_target_focused;
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -129,8 +129,7 @@ const CURATED_BATCH_REPOS: &[&str] = &[
     "handy-computer/granite-speech-4.1-2b-nar-gguf",
     "handy-computer/granite-speech-4.1-2b-gguf",
     "handy-computer/granite-4.0-1b-speech-gguf",
-    "handy-computer/parakeet-tdt-1.1b-gguf",
-    "handy-computer/parakeet-rnnt-1.1b-gguf",
+    "handy-computer/parakeet-tdt-0.6b-v3-gguf",
     "handy-computer/canary-1b-flash-gguf",
     "handy-computer/canary-1b-gguf",
     "handy-computer/canary-qwen-2.5b-gguf",
@@ -267,7 +266,7 @@ mod tests {
             );
         }
         let curated: Vec<&str> = CURATED_BATCH_REPOS.to_vec();
-        assert_eq!(curated.len(), 9, "curated batch set drifted");
+        assert_eq!(curated.len(), 8, "curated batch set drifted");
         for repo in curated {
             assert!(
                 ROOT.models.iter().any(|m| &m.id == repo),

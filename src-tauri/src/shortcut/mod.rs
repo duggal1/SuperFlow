@@ -1199,6 +1199,48 @@ pub fn change_experimental_enabled_setting(app: AppHandle, enabled: bool) -> Res
 
 #[tauri::command]
 #[specta::specta]
+pub fn change_experimental_mlx_enabled_setting(
+    app: AppHandle,
+    manager: tauri::State<'_, std::sync::Arc<crate::managers::model::ModelManager>>,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.experimental_mlx_enabled = enabled;
+    if !enabled {
+        settings.experimental_mlx_cleanup_enabled = false;
+    }
+    settings::write_settings(&app, settings);
+    // Immediately reflect the toggle on the model page — no restart/rescan.
+    manager.set_mlx_enabled(enabled);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_experimental_mlx_cleanup_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.experimental_mlx_cleanup_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_experimental_gmail_voice_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.experimental_gmail_voice_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub fn change_post_process_base_url_setting(
     app: AppHandle,
     provider_id: String,
