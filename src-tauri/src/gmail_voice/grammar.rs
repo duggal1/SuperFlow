@@ -50,7 +50,7 @@ const COMPOSE_ALIASES: &[&str] = &[
     "compose an email to",
 ];
 
-const SEND_ALIASES: &[&str] = &["send it now", "send this email", "send it", "send this"];
+const SEND_ALIASES: &[&str] = &["send it"];
 const CANCEL_ALIASES: &[&str] = &["cancel", "never mind", "stop that", "abort"];
 const RECIPIENT_TERMINATORS: &[&str] = &[
     "telling",
@@ -102,36 +102,60 @@ fn strip_leading_alias<'a>(value: &'a str, alias: &str) -> Option<&'a str> {
     }))
 }
 
-fn strip_terminal_send(value: &str) -> Option<String> {
-    let without_terminal_punctuation = value.trim_end_matches(|character: char| {
-        character.is_whitespace() || matches!(character, '.' | '!' | '?')
-    });
+const SEND_ALIASES_TERMINAL: &[&str] = &["send it"];
 
-    for alias in SEND_ALIASES {
-        if without_terminal_punctuation.len() < alias.len() {
+fn strip_terminal_send(value: &str) -> Option<String> {
+    let without_terminal_punctuation = value
+        .trim_end_matches(|character: char| {
+            character.is_whitespace() || matches!(character, '.' | '!' | '?' | ',' | ';')
+        })
+        .trim_end_matches(|c: char| c.is_whitespace() || c == ',')
+        .trim_end_matches(" please")
+        .trim();
+    let lower = without_terminal_punctuation.to_lowercase();
+
+    for alias in SEND_ALIASES_TERMINAL {
+        let alias_lower = alias.to_lowercase();
+        if lower.len() < alias_lower.len() {
             continue;
         }
-        let alias_start = without_terminal_punctuation.len() - alias.len();
-        let Some(suffix) = without_terminal_punctuation.get(alias_start..) else {
-            continue;
-        };
-        if !suffix.eq_ignore_ascii_case(alias) {
+        if !lower.ends_with(&alias_lower) {
             continue;
         }
-        let Some(before) = without_terminal_punctuation.get(..alias_start) else {
+        let before_len = lower.len() - alias_lower.len();
+        let before = without_terminal_punctuation.get(..before_len).unwrap_or("").trim_end();
+        // Handle " please" suffix already trimmed above, but also handle bare alias
+        if before.is_empty() {
+            return Some(String::new());
+        }
+        let before_lower = before.to_lowercase();
+        // False-positive guard: embedded "send it tomorrow" etc. must stay content
+        if before_lower.contains("send it tomorrow")
+            || before_lower.contains("send this tomorrow")
+            || before_lower.ends_with("will send")
+            || before_lower.ends_with("to send")
+        {
             continue;
-        };
-        if matches!(
-            before.trim_end().chars().last(),
-            Some('.' | '!' | '?' | ';')
-        ) {
-            return Some(
-                before
-                    .trim_end_matches(|character: char| {
-                        character.is_whitespace() || matches!(character, '.' | '!' | '?' | ';')
-                    })
-                    .to_string(),
-            );
+        }
+        // Accept sentence boundary OR conjunction "and"/"or" before alias
+        let last_char = before.chars().last();
+        let ends_with_boundary = matches!(last_char, Some('.' | '!' | '?' | ';' | ','));
+        let ends_with_and_or = before_lower.ends_with(" and") || before_lower.ends_with(" or");
+        if ends_with_boundary || ends_with_and_or || before.is_empty() {
+            let mut instruction = before
+                .trim_end_matches(|character: char| {
+                    character.is_whitespace()
+                        || matches!(character, '.' | '!' | '?' | ';' | ',' | ':')
+                })
+                .trim_end_matches(" and")
+                .trim_end_matches(" or")
+                .trim()
+                .to_string();
+            // Remove trailing "and" left after alias strip (e.g. "Tell him X and" -> "Tell him X")
+            if instruction.to_lowercase().ends_with(" and") {
+                instruction = instruction[..instruction.len() - 4].trim().to_string();
+            }
+            return Some(instruction);
         }
     }
     None
@@ -277,11 +301,17 @@ mod tests {
         assert!(ambiguous.instruction.ends_with("send it"));
 
         let compose = command(
-            "Draft an email to alex@company.com thanking him for the update. Send this email.",
+            "Draft an email to alex@company.com thanking him for the update. Send it.",
         );
         assert_eq!(compose.intent, GmailIntent::Compose);
         assert_eq!(compose.terminal_action, TerminalAction::Send);
         assert_eq!(compose.recipient_hint.as_deref(), Some("alex@company.com"));
+
+        // Case-insensitive variants of "send it" must all trigger
+        for variant in ["SEND IT", "Send It", "sEnD iT", "send it"] {
+            let cmd = command(&format!("Reply. Hello. {}", variant));
+            assert_eq!(cmd.terminal_action, TerminalAction::Send, "{variant}");
+        }
     }
 
     #[test]
@@ -302,7 +332,7 @@ mod tests {
 
     #[test]
     fn standalone_actions_accept_terminal_punctuation() {
-        for value in ["Send it.", "send it now!", "Send this?", "send this email."] {
+        for value in ["Send it.", "SEND IT", "Send It!", "send it?", "send it."] {
             assert_eq!(
                 parse(value),
                 Some(GmailVoiceInput::SessionAction(TerminalAction::Send)),
