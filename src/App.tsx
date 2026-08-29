@@ -3,6 +3,7 @@ import { toast, Toaster } from "sonner";
 import { CheckCircle, Warning, XCircle } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { platform } from "@tauri-apps/plugin-os";
 import {
   checkAccessibilityPermission,
@@ -43,6 +44,7 @@ function App() {
   const [isReturningUser, setIsReturningUser] = useState(false);
   const [currentSection, setCurrentSection] = useState<SidebarSection>("home");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [windowFullPage, setWindowFullPage] = useState(false);
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
@@ -61,6 +63,39 @@ function App() {
   useEffect(() => {
     initializeRTL(i18n.language);
   }, [i18n.language]);
+
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    let active = true;
+    let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const syncWindowState = async () => {
+      const [maximized, fullscreen] = await Promise.all([
+        appWindow.isMaximized(),
+        appWindow.isFullscreen(),
+      ]);
+      if (active) setWindowFullPage(maximized || fullscreen);
+    };
+
+    const unlisten = appWindow.onResized(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        syncWindowState().catch((error) => {
+          console.warn("Failed to read window state:", error);
+        });
+      }, 80);
+    });
+
+    syncWindowState().catch((error) => {
+      console.warn("Failed to read window state:", error);
+    });
+
+    return () => {
+      active = false;
+      clearTimeout(resizeTimer);
+      unlisten.then((stopListening) => stopListening());
+    };
+  }, []);
 
   // Initialize Enigo, shortcuts, and refresh audio devices when main app loads
   useEffect(() => {
@@ -345,6 +380,7 @@ function App() {
             onSectionChange={setCurrentSection}
             open={sidebarOpen}
             onToggle={() => setSidebarOpen((open) => !open)}
+            opaque={windowFullPage}
           />
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
             <div

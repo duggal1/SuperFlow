@@ -27,7 +27,7 @@ import {
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
 
-const SIDEBAR_WIDTH = 180;
+const SIDEBAR_WIDTH = 176;
 
 interface SectionConfig {
   labelKey: string;
@@ -92,6 +92,7 @@ interface SidebarProps {
   onSectionChange: (section: SidebarSection) => void;
   open: boolean;
   onToggle: () => void;
+  opaque: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -99,6 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSectionChange,
   open,
   onToggle,
+  opaque,
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
@@ -119,7 +121,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }
       className="relative h-full shrink-0 overflow-hidden"
     >
-      <nav className="sidebar-material flex h-full w-[180px] flex-col border-r border-white/[0.045] px-2 pb-2 pt-3">
+      <nav
+        className={`flex h-full w-[176px] flex-col px-2 pb-2 pt-3 ${
+          opaque
+            ? "bg-stone-950"
+            : "sidebar-material border-r border-white/[0.045]"
+        }`}
+      >
         <div
           data-tauri-drag-region
           className="flex h-8 shrink-0 items-center justify-end pr-0.5"
