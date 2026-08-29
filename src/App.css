@@ -80,6 +80,7 @@ html:not([data-platform="macos"]) {
 }
 
 html[data-platform="macos"] .sidebar-material {
+  background: rgba(20, 20, 21, 0.18);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }

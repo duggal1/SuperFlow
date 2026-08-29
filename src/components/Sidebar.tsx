@@ -119,7 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }
       className="relative h-full shrink-0 overflow-hidden"
     >
-      <nav className="sidebar-material flex h-full w-44 flex-col border-r border-white/[0.055] px-2 pb-2 pt-3">
+      <nav className="sidebar-material flex h-full w-[176px] flex-col border-r border-white/[0.045] px-2 pb-2 pt-3">
         <div
           data-tauri-drag-region
           className="flex h-8 shrink-0 items-center justify-end pr-0.5"
