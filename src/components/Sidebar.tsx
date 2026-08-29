@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   AiBeautifyIcon,
@@ -26,6 +26,8 @@ import {
 } from "./settings";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
+
+const SIDEBAR_WIDTH = 176;
 
 interface SectionConfig {
   labelKey: string;
@@ -100,65 +102,73 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
+  const reduceMotion = useReducedMotion();
 
   const availableSections = Object.entries(SECTIONS_CONFIG)
     .filter(([_, config]) => config.enabled(settings))
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <motion.nav
+    <motion.div
       initial={false}
-      animate={{ width: open ? 176 : 0 }}
-      transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+      animate={{ width: open ? SIDEBAR_WIDTH : 0 }}
+      transition={
+        reduceMotion
+          ? { duration: 0 }
+          : { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+      }
       className="relative h-full shrink-0 overflow-hidden"
     >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 border border-transparent bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.08)_100%)] backdrop-blur-[16px] [-webkit-backdrop-filter:blur(16px)] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12),inset_0_-1px_2px_rgba(0,0,0,0.10),inset_0_1px_1px_rgba(255,255,255,0.24)] opacity-100 transition-opacity duration-[60ms] ease-in-out"
-      />
-      <div className="flex h-full w-44 flex-col px-2 pb-2 pt-3">
-        {/* Brand + collapse control */}
-        <div className="mb-3 flex items-center justify-between pl-1.5 pr-0.5">
-          <SuperFlowLogo className="text-stone-100" />
+      <nav className="sidebar-material flex h-full w-44 flex-col border-r border-white/[0.055] px-2 pb-2 pt-3">
+        <div
+          data-tauri-drag-region
+          className="flex h-8 shrink-0 items-center justify-end pr-0.5"
+        >
           <button
             type="button"
             onClick={onToggle}
-            aria-label="Toggle sidebar"
-            title="Toggle sidebar (Ctrl+B)"
-            className="flex size-7 shrink-0 items-center justify-center rounded-lg text-stone-500 transition-colors duration-150 hover:bg-stone-900 hover:text-stone-300"
+            aria-label="Close sidebar"
+            title="Close sidebar (Ctrl+B)"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-stone-100"
           >
             <SidebarToggleIcon expanded={open} />
           </button>
         </div>
 
-        {/* Sections */}
-        <nav className="flex w-full flex-col gap-0.5 border-t border-divider pt-2">
-          {availableSections.map((section) => {
-            const isActive = activeSection === section.id;
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* Sidebar content starts below the native titlebar controls. */}
+          <div className="mb-3 flex h-8 shrink-0 items-center pl-1.5 pr-0.5">
+            <SuperFlowLogo className="text-stone-100" />
+          </div>
 
-            return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => onSectionChange(section.id)}
-                title={t(section.labelKey)}
-                className={`flex w-full items-center gap-2.5 rounded-lg p-2 text-start text-sm font-normal tracking-tight transition-colors duration-150 ${
-                  isActive
-                    ? "bg-stone-800 text-stone-50"
-                    : "text-stone-400 hover:bg-stone-850 hover:text-stone-200"
-                }`}
-              >
-                <HugeiconsIcon
-                  icon={section.icon}
-                  size={17}
-                  className="shrink-0 opacity-80"
-                />
-                <span className="truncate">{t(section.labelKey)}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-    </motion.nav>
+          <div className="flex w-full flex-col gap-0.5">
+            {availableSections.map((section) => {
+              const isActive = activeSection === section.id;
+
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => onSectionChange(section.id)}
+                  title={t(section.labelKey)}
+                  className={`flex w-full items-center gap-2.5 rounded-lg p-2 text-start text-sm font-normal tracking-tight transition-colors duration-150 ${
+                    isActive
+                      ? "bg-white/[0.075] text-stone-50"
+                      : "text-stone-300/75 hover:bg-white/[0.045] hover:text-stone-100"
+                  }`}
+                >
+                  <HugeiconsIcon
+                    icon={section.icon}
+                    size={16}
+                    className="shrink-0 opacity-75"
+                  />
+                  <span className="truncate">{t(section.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+    </motion.div>
   );
 };

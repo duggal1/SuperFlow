@@ -53,6 +53,11 @@ pub use transcription_coordinator::TranscriptionCoordinator;
 
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Listener, Manager};
+#[cfg(target_os = "macos")]
+use tauri::{
+    window::{Effect, EffectState, EffectsBuilder},
+    TitleBarStyle,
+};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_log::{Builder as LogBuilder, RotationStrategy, Target, TargetKind};
 
@@ -969,6 +974,20 @@ pub fn run(cli_args: CliArgs) {
 
             if let Some(data_dir) = portable::data_dir() {
                 win_builder = win_builder.data_directory(data_dir.join("webview"));
+            }
+
+            #[cfg(target_os = "macos")]
+            {
+                win_builder = win_builder
+                    .transparent(true)
+                    .title_bar_style(TitleBarStyle::Overlay)
+                    .hidden_title(true)
+                    .effects(
+                        EffectsBuilder::new()
+                            .effect(Effect::Sidebar)
+                            .state(EffectState::Active)
+                            .build(),
+                    );
             }
 
             win_builder.build()?;
