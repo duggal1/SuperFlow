@@ -110,8 +110,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       initial={false}
       animate={{ width: open ? 176 : 0 }}
       transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-      className="h-full shrink-0 overflow-hidden bg-sidebar"
+      className="relative h-full shrink-0 overflow-hidden"
     >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 border border-transparent bg-[linear-gradient(180deg,rgba(255,255,255,0.16)_0%,rgba(255,255,255,0.08)_100%)] backdrop-blur-[16px] [-webkit-backdrop-filter:blur(16px)] shadow-[inset_0_-1px_0_rgba(0,0,0,0.12),inset_0_-1px_2px_rgba(0,0,0,0.10),inset_0_1px_1px_rgba(255,255,255,0.24)] opacity-100 transition-opacity duration-[60ms] ease-in-out"
+      />
       <div className="flex h-full w-44 flex-col px-2 pb-2 pt-3">
         {/* Brand + collapse control */}
         <div className="mb-3 flex items-center justify-between pl-1.5 pr-0.5">
