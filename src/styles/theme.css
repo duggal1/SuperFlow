@@ -9,12 +9,7 @@
   --color-background: #1c1917; /* stone-900 — app background */
   --color-surface: #292524; /* stone-800 — cards */
   --color-surface-hover: #34302c; /* stone-850 (custom) — card hover */
-  --color-sidebar: rgba(
-    28,
-    25,
-    23,
-    0.62
-  ); /* smoky stone-900 glass tint — sidebar */
+  --color-sidebar: #171412; /* stone-910 (custom) — sidebar, just under the app bg */
   --color-divider: #44403c; /* stone-700 — bottom dividers only */
 
   /* Brand accent */

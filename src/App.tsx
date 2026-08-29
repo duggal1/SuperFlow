@@ -346,25 +346,19 @@ function App() {
             open={sidebarOpen}
             onToggle={() => setSidebarOpen((open) => !open)}
           />
-          {/* Opaque main workspace — the material contrast with the
-              translucent sidebar is what makes the sidebar read as glass */}
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
-            {/* Reserved titlebar row — the open control gets its own layout
-                space and can never overlap content below it */}
-            <div className="flex h-10 shrink-0 items-center px-2">
-              {!sidebarOpen && (
-                <button
-                  type="button"
-                  onClick={() => setSidebarOpen(true)}
-                  aria-label="Open sidebar"
-                  title="Open sidebar (Ctrl+B)"
-                  className="flex size-8 items-center justify-center rounded-lg text-stone-500 transition-colors duration-150 hover:bg-white/5 hover:text-stone-200"
-                >
-                  <SidebarToggleIcon expanded={false} />
-                </button>
-              )}
-            </div>
-            {/* Scrollable content area */}
+          {/* Scrollable content area */}
+          <div className="relative flex-1 flex flex-col overflow-hidden">
+            {!sidebarOpen && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Open sidebar"
+                title="Open sidebar (Ctrl+B)"
+                className="absolute left-2 top-2 z-10 flex size-8 items-center justify-center rounded-lg text-stone-500 transition-colors duration-150 hover:bg-surface hover:text-stone-200"
+              >
+                <SidebarToggleIcon expanded={false} />
+              </button>
+            )}
             <div className="flex-1 overflow-y-auto">
               <div className="flex flex-col items-center p-4 gap-4">
                 <AccessibilityPermissions />
@@ -372,9 +366,10 @@ function App() {
                 {renderSettingsContent(currentSection)}
               </div>
             </div>
-            <Footer />
           </div>
         </div>
+        {/* Fixed footer at bottom */}
+        <Footer />
       </div>
     );
   }
