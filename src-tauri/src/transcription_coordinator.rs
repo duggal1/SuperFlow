@@ -115,7 +115,10 @@ pub struct TranscriptionCoordinator {
 }
 
 pub fn is_transcribe_binding(id: &str) -> bool {
-    id == STANDARD_BINDING_ID || id == "transcribe_with_post_process" || id == HANDS_FREE_BINDING_ID
+    id == STANDARD_BINDING_ID
+        || id == "transcribe_with_post_process"
+        || id == "transcribe_with_ai"
+        || id == HANDS_FREE_BINDING_ID
 }
 
 impl TranscriptionCoordinator {
@@ -226,18 +229,14 @@ impl TranscriptionCoordinator {
                                         if let Some(prev) = last_standard_press {
                                             let now = Instant::now();
                                             let since = now.duration_since(prev);
-                                            if since < FN_DOUBLE_TAP_WINDOW
-                                                && since >= DEBOUNCE
-                                            {
+                                            if since < FN_DOUBLE_TAP_WINDOW && since >= DEBOUNCE {
                                                 match &stage {
                                                     Stage::Recording {
-                                                        hands_free: false,
-                                                        ..
+                                                        hands_free: false, ..
                                                     } => {
                                                         pending_release = None;
                                                         if let Stage::Recording {
-                                                            hands_free,
-                                                            ..
+                                                            hands_free, ..
                                                         } = &mut stage
                                                         {
                                                             *hands_free = true;
@@ -315,8 +314,7 @@ impl TranscriptionCoordinator {
                                     if since < FN_DOUBLE_TAP_WINDOW && since >= DEBOUNCE {
                                         match &stage {
                                             Stage::Recording {
-                                                hands_free: false,
-                                                ..
+                                                hands_free: false, ..
                                             } => {
                                                 pending_release = None;
                                                 if let Stage::Recording { hands_free, .. } =
@@ -510,6 +508,19 @@ fn stop(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &st
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_voice_recording_binding_uses_the_serialized_lifecycle() {
+        for binding in [
+            "transcribe",
+            "transcribe_with_post_process",
+            "transcribe_with_ai",
+            HANDS_FREE_BINDING_ID,
+        ] {
+            assert!(is_transcribe_binding(binding), "missing binding: {binding}");
+        }
+        assert!(!is_transcribe_binding("cancel"));
+    }
 
     #[test]
     fn hands_free_chord_promotes_the_standard_recording() {
@@ -869,10 +880,8 @@ mod tests {
                         HandsFreeSimStage::Recording { .. } => Some(BINDING),
                         _ => None,
                     };
-                    let recording_is_hands_free = matches!(
-                        stage,
-                        HandsFreeSimStage::Recording { hands_free: true }
-                    );
+                    let recording_is_hands_free =
+                        matches!(stage, HandsFreeSimStage::Recording { hands_free: true });
 
                     // Hands-free chord (not simulated here) would be Start/Promote
                     // — we only test double-tap path.
@@ -975,10 +984,7 @@ mod tests {
                         stage = HandsFreeSimStage::Recording { hands_free: false };
                         starts_standard += 1;
                     } else if !is_pressed
-                        && matches!(
-                            &stage,
-                            HandsFreeSimStage::Recording { hands_free: false }
-                        )
+                        && matches!(&stage, HandsFreeSimStage::Recording { hands_free: false })
                     {
                         // In real PTT, release would be deferred; for toggle sim we stop
                         // directly if no pending
@@ -1010,7 +1016,10 @@ mod tests {
         let events = vec![(0, Ev::Press), (200, Ev::Press)];
         let r = simulate_with_double(&events);
         assert_eq!(r.starts_standard, 1, "first press starts standard");
-        assert_eq!(r.promotes, 1, "second press within window should promote to hands-free");
+        assert_eq!(
+            r.promotes, 1,
+            "second press within window should promote to hands-free"
+        );
         assert_eq!(r.stage, HandsFreeSimStage::Recording { hands_free: true });
     }
 
@@ -1027,7 +1036,10 @@ mod tests {
         let r = simulate_with_double(&events);
         // After first press, standard recording; after 200ms double, should promote
         // Our sim's last_standard_press is at 0 and 15, so 200-15=185 <350 → promote
-        assert!(r.promotes >= 1 || r.starts_hands_free >= 1, "should promote or start hands-free");
+        assert!(
+            r.promotes >= 1 || r.starts_hands_free >= 1,
+            "should promote or start hands-free"
+        );
     }
 
     #[test]
@@ -1035,7 +1047,10 @@ mod tests {
         let events = vec![(0, Ev::Press), (500, Ev::Press)];
         let r = simulate_with_double(&events);
         assert_eq!(r.promotes, 0, "500ms > window should not promote");
-        assert_eq!(r.starts_hands_free, 0, "outside window should not start hands-free");
+        assert_eq!(
+            r.starts_hands_free, 0,
+            "outside window should not start hands-free"
+        );
     }
 
     #[test]

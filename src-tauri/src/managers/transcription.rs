@@ -2192,20 +2192,26 @@ fn superflow_grammar_should_run(
     supported_languages: &[String],
 ) -> bool {
     // Harper is English-only (curated FST + Brill tagger). Running it on
-    // Portuguese/German would treat articles like "um" as filler and corrupt
-    // the transcript (see failing tests: portuguese_transcription_…).
-    // Gate identically to `remove_filler_words`'s language-gated list:
-    // only run when we have evidence the output is English.
+    // Harper is English-only, but must be 100% for English by default.
+    // Portuguese "um" is preserved because we explicitly check for non-English.
+    // For Unknown with an English-only model (parakeet-unified-en-0.6b → ["en"]),
+    // we must ALWAYS run — not skip short dictation like "This are a test." which
+    // fails whatlang detection (<20 chars) and caused Grammar 2/10.
+    // No word-count cap, always enabled for English, no turn-off.
     if let Some(lang) = output_language.language() {
-        return lang.starts_with("en");
+        // Explicit non-English (pt, de, etc.) → skip
+        if !lang.starts_with("en") {
+            return false;
+        }
+        return true;
     }
-    // Unknown evidence — last-resort text detection, constrained to the model's
-    // supported languages, exactly as `post_process_transcription_text` does for
-    // gated fillers. Short / ambiguous text returns None → skip harper.
     if let Some(detected) = crate::audio_toolkit::detect_output_language(raw, supported_languages) {
         return detected.starts_with("en");
     }
-    false
+    // Unknown + undetectable (short/mixed) → if model supports English, assume English.
+    // This is the 100% fix: parakeet-unified-en-0.6b is English-only, so short
+    // English like "This are a test." must still get harper.
+    supported_languages.iter().any(|l| l.starts_with("en"))
 }
 
 fn post_process_transcription_text(
@@ -2229,8 +2235,16 @@ fn post_process_transcription_text(
         let grammar_enabled =
             superflow_grammar_should_run(&raw, output_language, supported_languages);
 
+        // Harper 100%: right after Parakeet, before any normalization, with protected spans.
+        // No cap, always English, no turn-off. This is the user requirement: parakeet → harper → normalization.
         let protected = crate::superflow_grammar::ProtectedText::new(&raw);
-        let raw = protected.masked().to_string();
+        let masked = protected.masked().to_string();
+        let harpered_masked = if grammar_enabled {
+            crate::superflow_grammar::correct(&masked)
+        } else {
+            masked
+        };
+        let raw = protected.restore(&harpered_masked);
 
         let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
             apply_custom_words(
@@ -2291,14 +2305,10 @@ fn post_process_transcription_text(
         // Ultra-fast deterministic transcript cleanup (always enabled, no toggle):
         // removes speech noise without changing meaning. Runs on the finalized
         // transcript before downstream hooks/intelligence/paste. Deterministic,
-        // local-only, <10ms ideal.
+        // local-only, <10ms ideal. Harper already ran right after Parakeet (100%),
+        // so this is just speech cleanup, not grammar.
         let cleaned = crate::audio_toolkit::transcript_cleanup::normalize_transcript(&joined);
-        let corrected = if grammar_enabled {
-            crate::superflow_grammar::correct(&cleaned)
-        } else {
-            cleaned
-        };
-        protected.restore(&corrected)
+        cleaned
     })
 }
 

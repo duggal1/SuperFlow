@@ -17,6 +17,7 @@ use log::{debug, error, info, warn};
 use serde::Serialize;
 use specta::Type;
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::settings::{
@@ -24,6 +25,36 @@ use crate::settings::{
     OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding, SoundTheme, Theme, TypingTool,
 };
 use crate::tray;
+
+static INJECTED_KEY_GUARDS: AtomicUsize = AtomicUsize::new(0);
+static IGNORE_INJECTED_KEYS_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
+
+/// Prevent synthetic paste/submit modifier events from re-triggering a
+/// modifier-only global voice shortcut.
+pub(crate) struct InjectedKeyGuard;
+
+impl InjectedKeyGuard {
+    pub(crate) fn acquire() -> Self {
+        INJECTED_KEY_GUARDS.fetch_add(1, Ordering::AcqRel);
+        Self
+    }
+}
+
+impl Drop for InjectedKeyGuard {
+    fn drop(&mut self) {
+        INJECTED_KEY_GUARDS.fetch_sub(1, Ordering::AcqRel);
+        IGNORE_INJECTED_KEYS_UNTIL_MS.store(
+            crate::context::types::now_millis() + 250,
+            Ordering::Release,
+        );
+    }
+}
+
+pub(crate) fn injected_keys_in_flight() -> bool {
+    INJECTED_KEY_GUARDS.load(Ordering::Acquire) != 0
+        || crate::context::types::now_millis()
+            < IGNORE_INJECTED_KEYS_UNTIL_MS.load(Ordering::Acquire)
+}
 
 // Note: Commands are accessed via shortcut::handy_keys:: in lib.rs
 

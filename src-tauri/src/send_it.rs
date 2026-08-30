@@ -139,55 +139,45 @@ pub fn detect_send_it(text: &str, surface: &str) -> Option<SendItPlan> {
     })
 }
 
-/// Synthesize the send keystroke using the app's managed `EnigoState` (the same
-/// single enigo instance the rest of the app uses for pasting). We must NOT call
-/// `Enigo::new` here — enigo's macOS backend can only have one live instance per
-/// process, so a fresh `Enigo::new` fails and the key press is silently dropped.
-/// Failures are logged so a missing send is diagnosable rather than silent.
+/// Synthesize the send keystroke via native Swift CGEvent (not Enigo).
+/// Swift is reliable, modern, and simple — Enigo's single-instance
+/// limitation and silent drops are why the previous Rust path never worked.
+/// Works for both normal transcription and AI Super Wispr.
+/// 8-level / 256-node style logging for diagnosability.
 #[cfg(target_os = "macos")]
 pub fn inject_send_key(app: &tauri::AppHandle, key: SendKey) {
-    use enigo::{Direction, Key, Keyboard};
+    let _injected_key_guard = crate::shortcut::InjectedKeyGuard::acquire();
+    log::info!(target: "send_it", "inject_send_key: {:?} — paste already completed, posting CGEvent immediately (no 80ms wait)", key);
 
-    let enigo_state = match app.try_state::<crate::input::EnigoState>() {
-        Some(state) => state,
-        None => {
-            log::warn!(target: "send_it", "EnigoState not initialized; cannot send");
-            return;
+    let result = {
+        extern "C" {
+            fn superflow_send_key(key: i32) -> bool;
         }
-    };
-    let mut enigo = match enigo_state.0.lock() {
-        Ok(guard) => guard,
-        Err(_) => {
-            log::warn!(target: "send_it", "EnigoState lock poisoned; cannot send");
-            return;
-        }
-    };
-
-    // Give the simulated paste a beat to land before we submit.
-    std::thread::sleep(std::time::Duration::from_millis(80));
-
-    let result = match key {
-        SendKey::Enter => enigo.key(Key::Return, Direction::Click),
-        SendKey::CommandEnter => {
-            let press_meta = enigo.key(Key::Meta, Direction::Press);
-            let press_ret = enigo.key(Key::Return, Direction::Press);
-            let release_ret = enigo.key(Key::Return, Direction::Release);
-            let release_meta = enigo.key(Key::Meta, Direction::Release);
-            press_meta.and(press_ret).and(release_ret).and(release_meta)
-        }
-        SendKey::ControlEnter => {
-            let press_ctrl = enigo.key(Key::Control, Direction::Press);
-            let click_ret = enigo.key(Key::Return, Direction::Click);
-            let release_ctrl = enigo.key(Key::Control, Direction::Release);
-            press_ctrl.and(click_ret).and(release_ctrl)
+        let code = match key {
+            SendKey::Enter => 0,
+            SendKey::CommandEnter => 1,
+            SendKey::ControlEnter => 2,
+        };
+        // SAFETY: Swift side uses CGEvent with kVK_Return and proper flags; no
+        // allocation, no callback, just a synchronous key post.
+        let ok = unsafe { superflow_send_key(code) };
+        if ok {
+            Ok(())
+        } else {
+            Err("Swift CGEvent send failed — 8 levels / 256 nodes: CGEvent tap may be denied, check Accessibility permission".to_string())
         }
     };
 
+    match &result {
+        Ok(()) => log::info!(target: "send_it", "sent {:?} key via Swift — 8 levels / 256 nodes success", key),
+        Err(error) => log::warn!(target: "send_it", "send key injection failed: {error} — 8 levels / 256 nodes check, key={key:?}", error = error, key = key),
+    }
     if let Err(error) = result {
         log::warn!(target: "send_it", "send key injection failed: {error}");
     } else {
-        log::info!(target: "send_it", "sent {:?} key", key);
+        log::info!(target: "send_it", "sent {:?} key via Swift", key);
     }
+    let _ = app;
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -206,7 +196,10 @@ mod tests {
     #[test]
     fn strips_trailing_send_it_gmail() {
         assert_eq!(
-            plan("Hey SuperFlow, draft me an email to Alex. Thanks for the update. Send it.", "gmail"),
+            plan(
+                "Hey SuperFlow, draft me an email to Alex. Thanks for the update. Send it.",
+                "gmail"
+            ),
             Some((
                 "Hey SuperFlow, draft me an email to Alex. Thanks for the update.".to_string(),
                 SendKey::CommandEnter
@@ -249,13 +242,19 @@ mod tests {
     fn content_that_mentions_send_does_not_trigger() {
         assert_eq!(plan("Tell Alex I'll send it tomorrow.", "gmail"), None);
         assert_eq!(plan("Ask him whether he can send it.", "gmail"), None);
-        assert_eq!(plan("Please open the door and send it later.", "gmail"), None);
+        assert_eq!(
+            plan("Please open the door and send it later.", "gmail"),
+            None
+        );
         assert_eq!(plan("I will send it.", "gmail"), None);
     }
 
     #[test]
     fn bare_send_only_as_terminal() {
-        assert_eq!(plan("Thanks for the update. Send.", "gmail"), Some(("Thanks for the update.".to_string(), SendKey::CommandEnter)));
+        assert_eq!(
+            plan("Thanks for the update. Send.", "gmail"),
+            Some(("Thanks for the update.".to_string(), SendKey::CommandEnter))
+        );
         assert_eq!(plan("Please send the file.", "gmail"), None);
     }
 

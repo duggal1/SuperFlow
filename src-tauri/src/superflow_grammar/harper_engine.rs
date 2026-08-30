@@ -90,26 +90,28 @@ static LINT_GROUP: Lazy<Mutex<LintGroup>> = Lazy::new(|| {
     Mutex::new(group)
 });
 
-/// Safe auto-fix policy — `AutoFixPolicy::Never` until measured.
-/// Harper's `Spelling`/`Style`/`Enhancement` are `SuggestOnly` — we drop them.
-/// AMBIGUOUS CORRECTION: `suggestions.len() != 1` → do nothing (e.g. `rolling out but afternoon` stays broken).
+/// Safe auto-fix policy — EXPLICIT ALLOW-LIST, not permissive.
+/// Only high-confidence, single-suggestion, non-ambiguous rules are auto-fixed.
+/// Custom ExprLinters must be added here explicitly after 20–50 positives + 20–100 negatives.
+/// AMBIGUOUS: `suggestions.len() != 1` → preserve (e.g. `rolling out but afternoon` stays broken).
 fn is_safe_to_auto_fix(lint: &harper_core::linting::Lint, rule_name: &str) -> bool {
     if lint.suggestions.len() != 1 {
         return false;
     }
-    match lint.lint_kind {
-        harper_core::linting::LintKind::Spelling => return false,
-        harper_core::linting::LintKind::Style => return false,
-        harper_core::linting::LintKind::Enhancement => return false,
-        harper_core::linting::LintKind::Regionalism => return false,
-        harper_core::linting::LintKind::Redundancy => return false,
-        harper_core::linting::LintKind::Readability => return false,
-        _ => {}
-    }
+    // Explicit allow-list: only these rule names are CERTAIN/HIGH. Everything else is SuggestOnly.
+    // This fixes the bug where any future custom rule with 1 suggestion would be auto-fixed even if low-confidence.
+    const ALLOW_RULES: &[&str] = &[
+        "RepeatedWords",          // the the → the (CERTAIN)
+        "AnA",                    // an test → a test (CERTAIN)
+        "ThereIsAgreement",       // There is many → are (HIGH, single noun)
+        "PronounVerbAgreement",   // he have → has (HIGH, guarded)
+        "SentenceCapitalization", // Minimal, but we deny it for code — keep denied, not here
+    ];
+    // Deny these even if they somehow appear in allow-list (defense in depth)
     const DENY_RULES: &[&str] = &[
         "Spaces",
         "NoFrenchSpaces",
-        "SentenceCapitalization", // harper #1107: disable for code — protected spans are primary
+        "SentenceCapitalization",
         "SpellCheck",
         "SplitWords",
         "CompoundNouns",
@@ -121,11 +123,27 @@ fn is_safe_to_auto_fix(lint: &harper_core::linting::Lint, rule_name: &str) -> bo
         "BoringWords",
         "Hedging",
         "FillerWords",
+        "Spelling",
+        "Style",
+        "Enhancement",
+        "Regionalism",
+        "Redundancy",
+        "Readability",
     ];
     if DENY_RULES.contains(&rule_name) {
         return false;
     }
-    true
+    // Check lint_kind as well — even allowed names must be Grammar/Agreement/Punctuation, not Spelling etc.
+    match lint.lint_kind {
+        harper_core::linting::LintKind::Spelling
+        | harper_core::linting::LintKind::Style
+        | harper_core::linting::LintKind::Enhancement
+        | harper_core::linting::LintKind::Regionalism
+        | harper_core::linting::LintKind::Redundancy
+        | harper_core::linting::LintKind::Readability => return false,
+        _ => {}
+    }
+    ALLOW_RULES.contains(&rule_name)
 }
 
 /// Minimal pre-pass before harper — NOT a formatter.

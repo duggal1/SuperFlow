@@ -16,6 +16,8 @@ pub(crate) mod detector;
 pub(crate) mod developer;
 #[cfg(target_os = "macos")]
 mod focused_text;
+#[cfg(target_os = "macos")]
+mod native_page;
 
 pub mod types;
 

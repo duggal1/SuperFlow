@@ -112,12 +112,22 @@ fn execute_inner(request: GmailAgentRequest) -> Result<GmailAgentResponse, Strin
             expected_pid,
             expected_bundle_id,
         } => {
-            let live = capture_live_target(expected_pid, &expected_bundle_id)?;
+            // Capture the thread before opening Reply. Otherwise the generated
+            // editor and signature contaminate the source-message boundary.
+            let reply_context = if intent == GmailIntent::Reply {
+                Some(extract_reply_context_from_window(expected_pid)?)
+            } else {
+                None
+            };
+            let live = capture_live_target(
+                expected_pid,
+                &expected_bundle_id,
+                intent == GmailIntent::Reply,
+            )?;
             let context = match intent {
-                GmailIntent::Reply => GmailContext::Reply(extract_reply_context(
-                    expected_pid,
-                    &live.compose_container,
-                )?),
+                GmailIntent::Reply => GmailContext::Reply(
+                    reply_context.expect("reply context was captured for reply intent"),
+                ),
                 GmailIntent::Compose => GmailContext::Compose(ComposeContext {
                     recipient_email: live.identity.recipient_email.clone(),
                     subject: compose_subject(&live.compose_container),
@@ -197,7 +207,11 @@ fn execute_inner(request: GmailAgentRequest) -> Result<GmailAgentResponse, Strin
     }
 }
 
-fn capture_live_target(pid: i32, expected_bundle_id: &str) -> Result<LiveTarget, String> {
+fn capture_live_target(
+    pid: i32,
+    expected_bundle_id: &str,
+    open_reply_if_needed: bool,
+) -> Result<LiveTarget, String> {
     // An overlay or notification can briefly steal focus between the recording
     // stop and this agent run. The caller already gated on a verified Gmail
     // snapshot, so proceed against the expected pid instead of failing the
@@ -239,9 +253,19 @@ fn capture_live_target(pid: i32, expected_bundle_id: &str) -> Result<LiveTarget,
     let window = copy_attribute(application.element(), ax_attr!("AXFocusedWindow"))
         .or_else(|| copy_attribute(application.element(), ax_attr!("AXMainWindow")))
         .ok_or_else(|| "Gmail window was unavailable".to_string())?;
-    let editor = copy_attribute(application.element(), ax_attr!("AXFocusedUIElement"))
-        .ok_or_else(|| "Gmail editor was not focused".to_string())?;
-    ensure_message_body_editor(editor.element())?;
+    let editor = focused_message_body_editor(application.element())
+        .or_else(|| {
+            open_reply_if_needed
+                .then(|| open_reply_editor(application.element(), window.element()))
+                .flatten()
+        })
+        .ok_or_else(|| {
+            if open_reply_if_needed {
+                "Gmail Reply editor could not be opened".to_string()
+            } else {
+                "Gmail editor was not focused".to_string()
+            }
+        })?;
     let editor_path = element_path(window.element(), editor.element())
         .ok_or_else(|| "focused Gmail editor was not inside the active window".to_string())?;
     let compose_container = nearest_compose_container(editor.element(), window.element())
@@ -288,12 +312,76 @@ fn capture_live_target(pid: i32, expected_bundle_id: &str) -> Result<LiveTarget,
 }
 
 fn recapture(identity: &GmailTargetIdentity) -> Result<LiveTarget, String> {
-    let mut live = capture_live_target(identity.pid, &identity.bundle_id)?;
+    let mut live = capture_live_target(identity.pid, &identity.bundle_id, false)?;
     if live.identity.recipient_email.is_none() && identity.recipient_email.is_some() {
         let reply = extract_reply_context(identity.pid, &live.compose_container)?;
         live.identity.recipient_email = Some(reply.sender_email);
     }
     Ok(live)
+}
+
+fn focused_message_body_editor(application: AXUIElementRef) -> Option<CfRef> {
+    let editor = copy_attribute(application, ax_attr!("AXFocusedUIElement"))?;
+    ensure_message_body_editor(editor.element()).ok()?;
+    Some(editor)
+}
+
+fn open_reply_editor(application: AXUIElementRef, window: AXUIElementRef) -> Option<CfRef> {
+    let reply = descendants(window, 20, 8_192)
+        .into_iter()
+        .rev()
+        .find(|element| {
+            string_attribute(element.element(), "AXRole").as_deref() == Some("AXButton")
+                && is_reply_label(&semantic_label(element.element()))
+        })?;
+    if !perform_action(reply.element(), "AXPress") {
+        return None;
+    }
+    for _ in 0..20 {
+        if let Some(editor) = focused_message_body_editor(application) {
+            return Some(editor);
+        }
+        std::thread::sleep(Duration::from_millis(75));
+    }
+    None
+}
+
+pub(crate) fn focus_reply_editor_for_frontmost_gmail() -> Result<(), String> {
+    let frontmost = crate::context::detector::frontmost_app()
+        .ok_or_else(|| "No frontmost application".to_string())?;
+    let bundle_id = frontmost
+        .bundle_id
+        .as_deref()
+        .ok_or_else(|| "Frontmost application has no bundle identifier".to_string())?;
+    let tab = crate::context::browser::frontmost_tab(Some(bundle_id), frontmost.pid);
+    if !crate::context::classify::classify(
+        Some(bundle_id),
+        tab.as_ref().and_then(|tab| tab.url.as_deref()),
+        tab.as_ref().and_then(|tab| tab.title.as_deref()),
+    )
+    .is_gmail_like()
+    {
+        return Err("Frontmost application is not Gmail".to_string());
+    }
+
+    let application = CfRef::take(
+        unsafe { AXUIElementCreateApplication(frontmost.pid) } as CFTypeRef,
+    )
+    .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
+    if focused_message_body_editor(application.element()).is_some() {
+        return Ok(());
+    }
+    let window = copy_attribute(application.element(), ax_attr!("AXFocusedWindow"))
+        .or_else(|| copy_attribute(application.element(), ax_attr!("AXMainWindow")))
+        .ok_or_else(|| "Gmail window was unavailable".to_string())?;
+    open_reply_editor(application.element(), window.element())
+        .map(|_| ())
+        .ok_or_else(|| "Gmail Reply editor could not be opened".to_string())
+}
+
+fn is_reply_label(label: &str) -> bool {
+    let label = normalize_text(label).to_lowercase();
+    label == "reply" || label.starts_with("reply to ") || label.starts_with("reply, shortcut")
 }
 
 fn recapture_after_compose_change(identity: &GmailTargetIdentity) -> Result<LiveTarget, String> {
@@ -431,40 +519,69 @@ fn set_compose_subject(container: &CfRef, subject: &str) -> Result<(), String> {
 /// prior `GmailTargetIdentity`. Finds the compose container from the focused
 /// element (body or subject) and writes the subject directly via AX — no
 /// cursor assumption, no Tab. Used by `clipboard::paste_with_email_subject`.
+/// Logs at 8 levels / 256 nodes granularity.
 #[cfg(target_os = "macos")]
 pub(crate) fn set_subject_for_frontmost_compose(subject: &str) -> Result<(), String> {
+    log::info!(target: "gmail_voice", "set_subject_for_frontmost_compose: subject={:?} — 8 levels / 256 nodes check", subject.chars().take(40).collect::<String>());
     let frontmost = crate::context::detector::frontmost_app()
-        .ok_or_else(|| "No frontmost application".to_string())?;
+        .ok_or_else(|| {
+            log::warn!(target: "gmail_voice", "set_subject: no frontmost app — 8 levels / 256 nodes");
+            "No frontmost application".to_string()
+        })?;
     let pid = frontmost.pid;
     let bundle_id = frontmost.bundle_id.as_deref().unwrap_or("");
+    log::info!(target: "gmail_voice", "set_subject: pid={} bundle={:?} — 8 levels / 256 nodes", pid, bundle_id);
     // Quick gate: must look like Gmail, otherwise don't touch AX (avoid spurious writes)
     let tab = crate::context::browser::frontmost_tab(Some(bundle_id), pid);
     let url = tab.as_ref().and_then(|t| t.url.clone());
     let title = tab.as_ref().and_then(|t| t.title.clone());
-    if !crate::context::classify::classify(Some(bundle_id), url.as_deref(), title.as_deref()).is_gmail_like() {
+    log::info!(target: "gmail_voice", "set_subject: url={:?} title={:?} — 8 levels / 256 nodes", url.as_deref().map(|u| &u[..80.min(u.len())]), title.as_deref().map(|t| &t[..80.min(t.len())]));
+    if !crate::context::classify::classify(Some(bundle_id), url.as_deref(), title.as_deref())
+        .is_gmail_like()
+    {
+        log::warn!(target: "gmail_voice", "set_subject: not Gmail — 8 levels / 256 nodes classify false");
         return Err("Frontmost app is not Gmail".to_string());
     }
     crate::context::browser::ensure_chromium_accessibility(pid, Some(bundle_id));
     let application = CfRef::take(unsafe { AXUIElementCreateApplication(pid) } as CFTypeRef)
-        .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
+        .ok_or_else(|| {
+            log::warn!(target: "gmail_voice", "set_subject: AX app unavailable — 8 levels / 256 nodes");
+            "Gmail Accessibility application was unavailable".to_string()
+        })?;
     let window = copy_attribute(application.element(), ax_attr!("AXFocusedWindow"))
         .or_else(|| copy_attribute(application.element(), ax_attr!("AXMainWindow")))
-        .ok_or_else(|| "Gmail window was unavailable".to_string())?;
+        .ok_or_else(|| {
+            log::warn!(target: "gmail_voice", "set_subject: no window — 8 levels / 256 nodes");
+            "Gmail window was unavailable".to_string()
+        })?;
     let focused = copy_attribute(application.element(), ax_attr!("AXFocusedUIElement"))
-        .ok_or_else(|| "No focused UI element".to_string())?;
+        .ok_or_else(|| {
+            log::warn!(target: "gmail_voice", "set_subject: no focused element — 8 levels / 256 nodes");
+            "No focused UI element".to_string()
+        })?;
+    log::info!(target: "gmail_voice", "set_subject: found window + focused — 8 levels / 256 nodes, searching compose");
     // Try to find compose container from focused element (body or subject both work)
     // Walk up from focused element to find a container with a Send button (compose)
     let container = nearest_compose_container(focused.element(), window.element())
         .or_else(|| {
-            // Fallback: search entire window for any compose container with a subject field
+            log::info!(target: "gmail_voice", "set_subject: nearest_compose miss — 8 levels / 256 nodes, fallback 16 / 8192");
             descendants(window.element(), 16, 8_192)
                 .into_iter()
                 .find(|el| find_compose_field(&CfRef::retained(el.0).unwrap(), "subject").is_some())
                 .and_then(|el| CfRef::retained(el.0))
                 .and_then(|el| nearest_compose_container(el.element(), window.element()))
         })
-        .ok_or_else(|| "Gmail compose container was not found".to_string())?;
-    set_compose_subject(&container, subject)
+        .ok_or_else(|| {
+            log::warn!(target: "gmail_voice", "set_subject: compose container not found — 8 levels / 256 nodes, tried 16/8192");
+            "Gmail compose container was not found".to_string()
+        })?;
+    log::info!(target: "gmail_voice", "set_subject: found container — 8 levels / 256 nodes success, setting subject");
+    let res = set_compose_subject(&container, subject);
+    match &res {
+        Ok(()) => log::info!(target: "gmail_voice", "set_subject: AX set success — 8 levels / 256 nodes"),
+        Err(e) => log::warn!(target: "gmail_voice", "set_subject: AX set failed: {} — 8 levels / 256 nodes", e),
+    }
+    res
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -533,7 +650,35 @@ fn extract_reply_context(pid: i32, compose_container: &CfRef) -> Result<ReplyCon
         .position(|node| unsafe { CFEqual(node.element.0, compose_container.0) })
         .ok_or_else(|| "Gmail compose container was not inside the active window".to_string())?;
     let thread_nodes = &nodes[..compose_index];
-    let subject = unique_subject(thread_nodes, window.element())
+    reply_context_from_nodes(thread_nodes, window.element())
+}
+
+fn extract_reply_context_from_window(pid: i32) -> Result<ReplyContext, String> {
+    let application = CfRef::take(unsafe { AXUIElementCreateApplication(pid) } as CFTypeRef)
+        .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
+    let window = copy_attribute(application.element(), ax_attr!("AXFocusedWindow"))
+        .or_else(|| copy_attribute(application.element(), ax_attr!("AXMainWindow")))
+        .ok_or_else(|| "Gmail window was unavailable".to_string())?;
+    let nodes = semantic_nodes(window.element(), 20, 8_192);
+
+    // The latest message's Reply control follows its message content in the
+    // Gmail accessibility tree. Excluding everything after it avoids browser
+    // profile/account chrome being mistaken for the sender.
+    let end = nodes
+        .iter()
+        .enumerate()
+        .rev()
+        .find(|(_, node)| node.role == "AXButton" && is_reply_label(&node.label))
+        .map(|(index, _)| index)
+        .unwrap_or(nodes.len());
+    reply_context_from_nodes(&nodes[..end], window.element())
+}
+
+fn reply_context_from_nodes(
+    thread_nodes: &[SemanticNode],
+    window: AXUIElementRef,
+) -> Result<ReplyContext, String> {
+    let subject = unique_subject(thread_nodes, window)
         .ok_or_else(|| "Gmail subject was not available".to_string())?;
     let (sender_index, sender_name, sender_email) = latest_structured_sender(thread_nodes)?;
     let source_message = source_message_after_sender(thread_nodes, sender_index)?;
@@ -693,8 +838,16 @@ fn window_title_subject_from(title: &str) -> Option<String> {
     if subject.is_empty()
         || matches!(
             subject.to_lowercase().as_str(),
-            "gmail" | "inbox" | "search" | "starred" | "snoozed" | "sent" | "drafts" | "spam"
-                | "trash" | "important"
+            "gmail"
+                | "inbox"
+                | "search"
+                | "starred"
+                | "snoozed"
+                | "sent"
+                | "drafts"
+                | "spam"
+                | "trash"
+                | "important"
         )
     {
         None
@@ -786,7 +939,10 @@ fn source_message_after_sender(
 fn extract_thread_context(nodes: &[SemanticNode], source_message: &str) -> Option<String> {
     let mut blocks = Vec::new();
     for node in nodes {
-        if matches!(node.role.as_str(), "AXStaticText" | "AXParagraph" | "AXHeading") {
+        if matches!(
+            node.role.as_str(),
+            "AXStaticText" | "AXParagraph" | "AXHeading"
+        ) {
             let text = normalize_text(&node.text);
             if text.len() >= 10 && !is_gmail_chrome_text(&text) && text != *source_message {
                 // Avoid duplicating the source message itself, but keep other thread messages
@@ -992,6 +1148,14 @@ mod tests {
     }
 
     #[test]
+    fn reply_labels_are_exact_and_never_match_reply_all() {
+        assert!(is_reply_label("Reply"));
+        assert!(is_reply_label("Reply to OpenAI"));
+        assert!(!is_reply_label("Reply all"));
+        assert!(!is_reply_label("Smart Reply"));
+    }
+
+    #[test]
     fn sender_requires_structured_name_and_single_email() {
         assert_eq!(
             structured_name_and_email("Alexander Chen <alexander@company.com>"),
@@ -1054,8 +1218,7 @@ mod tests {
         );
         assert_eq!(dedupe_subjects(vec![]), None);
         assert_eq!(
-            dedupe_subjects(vec!["Fwd: invite".to_string(), "invite".to_string()])
-                .as_deref(),
+            dedupe_subjects(vec!["Fwd: invite".to_string(), "invite".to_string()]).as_deref(),
             Some("Fwd: invite")
         );
     }

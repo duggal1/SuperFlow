@@ -10,7 +10,7 @@ const PROTECTED_WORDS: &[&str] = &[
 
 const RESTART_BRIDGES: &[&str] = &[
     "okay", "ok", "right", "sorry", "actually", "well", "so", "like", "that", "basically",
-    "anyway", "anyways",
+    "anyway", "anyways", "mean", "means", "no", "i",
 ];
 
 const MAX_REPEAT_NGRAM: usize = 8;
@@ -509,7 +509,45 @@ fn cleanup_final_tokens(tokens: Vec<Token>) -> Vec<Token> {
     let tokens = collapse_repeated_phrases_with_limit(tokens, MAX_REPEAT_NGRAM);
     let tokens = remove_restarts(tokens);
     let tokens = collapse_duplicate_tokens(tokens);
-    collapse_repeated_phrases_with_limit(tokens, MAX_REPEAT_NGRAM)
+    let tokens = collapse_repeated_phrases_with_limit(tokens, MAX_REPEAT_NGRAM);
+    collapse_modifier_stacking(tokens)
+}
+
+fn collapse_modifier_stacking(tokens: Vec<Token>) -> Vec<Token> {
+    const INTENSIFIERS: &[&str] = &[
+        "really", "extremely", "very", "quite", "rather", "fairly", "highly", "super", "ultra",
+        "absolutely", "completely", "totally", "utterly",
+    ];
+    if tokens.len() < 3 {
+        return tokens;
+    }
+    let mut out: Vec<Token> = Vec::with_capacity(tokens.len());
+    let mut i = 0;
+    while i < tokens.len() {
+        if i + 2 < tokens.len()
+            && INTENSIFIERS.contains(&tokens[i].normalized.as_str())
+            && INTENSIFIERS.contains(&tokens[i + 1].normalized.as_str())
+            && INTENSIFIERS.contains(&tokens[i + 2].normalized.as_str())
+        {
+            // Collapse 3+ consecutive intensifiers to single last one (keep most recent)
+            // e.g., "really extremely very extremely important" → "extremely important"
+            // But preserve intentional "very, very" (has comma boundary)
+            let mut j = i + 2;
+            while j + 1 < tokens.len()
+                && INTENSIFIERS.contains(&tokens[j + 1].normalized.as_str())
+                && !tokens[j].comma_boundary
+                && !tokens[j].clause_boundary
+            {
+                j += 1;
+            }
+            out.push(tokens[j].clone());
+            i = j + 1;
+        } else {
+            out.push(tokens[i].clone());
+            i += 1;
+        }
+    }
+    out
 }
 
 fn cleanup_streaming_tokens(tokens: Vec<Token>) -> Vec<Token> {

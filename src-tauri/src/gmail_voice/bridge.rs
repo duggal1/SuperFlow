@@ -14,7 +14,7 @@ use crate::gmail_voice::session::GmailTargetIdentity;
 // for Gmail to resolve a recipient hint into an address chip; the previous
 // 1.5s budget killed legitimate work on large windows. The timeout only ever
 // bites when the agent is genuinely stuck — errors return immediately.
-const AGENT_TIMEOUT: Duration = Duration::from_millis(4_000);
+const AGENT_TIMEOUT: Duration = Duration::from_millis(7_000);
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum GmailAgentRequest {

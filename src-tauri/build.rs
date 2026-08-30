@@ -1,6 +1,8 @@
 fn main() {
     generate_tray_translations();
 
+    build_native_page_context();
+
     // Linux ships transcribe-cpp as a shared libtranscribe + loadable ggml
     // backend modules (the `dynamic-backends` posture in Cargo.toml). Bake an
     // $ORIGIN-relative rpath into the `superflow` binary so it finds libtranscribe
@@ -32,6 +34,76 @@ fn main() {
     stage_vc_runtime_dlls();
 
     tauri_build::build()
+}
+
+fn build_native_page_context() {
+    use std::path::PathBuf;
+    use std::process::Command;
+
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
+        return;
+    }
+
+    let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    let sources = [
+        manifest.join("native/PageContext.swift"),
+        manifest.join("native/SendKey.swift"),
+    ];
+    let output_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    let archive = output_dir.join("libsuperflow_page_context.a");
+    let arch = match std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() {
+        Ok("aarch64") => "arm64",
+        Ok("x86_64") => "x86_64",
+        Ok(other) => panic!("unsupported macOS architecture for Swift AX bridge: {other}"),
+        Err(error) => panic!("missing target architecture for Swift AX bridge: {error}"),
+    };
+    let target = format!("{arch}-apple-macosx10.15");
+    let sdk = Command::new("xcrun")
+        .args(["--sdk", "macosx", "--show-sdk-path"])
+        .output()
+        .expect("locate macOS SDK for Swift AX bridge");
+    assert!(sdk.status.success(), "xcrun could not locate the macOS SDK");
+    let sdk = String::from_utf8(sdk.stdout).expect("macOS SDK path was not UTF-8");
+    let swiftc = Command::new("xcrun")
+        .args(["--find", "swiftc"])
+        .output()
+        .expect("locate Swift compiler");
+    assert!(swiftc.status.success(), "xcrun could not locate swiftc");
+    let swiftc = PathBuf::from(
+        String::from_utf8(swiftc.stdout)
+            .expect("Swift compiler path was not UTF-8")
+            .trim(),
+    );
+    let swift_runtime = swiftc
+        .parent()
+        .and_then(|bin| bin.parent())
+        .expect("Swift compiler has no toolchain root")
+        .join("lib/swift/macosx");
+
+    let mut cmd = Command::new("xcrun");
+    cmd.args(["swiftc", "-parse-as-library", "-O", "-emit-library", "-static"])
+        .arg("-sdk")
+        .arg(sdk.trim())
+        .arg("-target")
+        .arg(target)
+        .arg("-module-name")
+        .arg("SuperflowPageContext");
+    for src in &sources {
+        cmd.arg(src);
+    }
+    cmd.arg("-o").arg(&archive);
+    let status = cmd.status().expect("compile native Swift page-context bridge");
+    assert!(status.success(), "native Swift page-context bridge failed to compile");
+
+    for src in &sources {
+        println!("cargo:rerun-if-changed={}", src.display());
+    }
+    println!("cargo:rustc-link-search=native={}", output_dir.display());
+    println!("cargo:rustc-link-search=native={}", swift_runtime.display());
+    println!("cargo:rustc-link-search=native=/usr/lib/swift");
+    println!("cargo:rustc-link-lib=static=superflow_page_context");
+    println!("cargo:rustc-link-lib=framework=ApplicationServices");
+    println!("cargo:rustc-link-lib=framework=Foundation");
 }
 
 /// Stage the MSVC runtime DLLs into `transcribe-libs/` for app-local deployment.

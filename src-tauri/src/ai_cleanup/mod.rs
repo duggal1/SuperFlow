@@ -86,7 +86,11 @@ pub async fn edit(
     .await
 }
 
-pub async fn execute(instruction: &str, settings: &AppSettings) -> Result<String, String> {
+pub async fn execute_with_page_context(
+    instruction: &str,
+    snapshot: Option<&crate::context::types::ContextSnapshot>,
+    settings: &AppSettings,
+) -> Result<String, String> {
     let instruction = instruction.trim();
     if instruction.is_empty() {
         return Err("No voice instruction was provided".to_string());
@@ -97,16 +101,30 @@ pub async fn execute(instruction: &str, settings: &AppSettings) -> Result<String
     )?;
     let api_key = credentials::load(settings)?;
 
-    let system_prompt =
-        prompts::hey_superflow::superflow_system_prompt(&settings.hey_superflow_tone, &superflow_personal_data(settings));
+    let page_context = snapshot.map(page_context_for_prompt);
+    let system_prompt = prompts::hey_superflow::superflow_system_prompt(
+        &settings.hey_superflow_tone,
+        &superflow_personal_data(settings),
+    );
     client::generate(
         &api_key,
         &settings.ai_cleanup_model,
         settings.ai_cleanup_thinking_level,
         &system_prompt,
-        &prompt::build_edit_user_content("", instruction),
+        &prompt::build_edit_user_content(page_context.as_deref().unwrap_or(""), instruction),
     )
     .await
+}
+
+fn page_context_for_prompt(snapshot: &crate::context::types::ContextSnapshot) -> String {
+    format!(
+        "Application: {}\nSurface: {}\nTitle: {}\nURL: {}\n\nVisible page content:\n{}",
+        snapshot.app_name,
+        snapshot.surface.as_str(),
+        snapshot.title.as_deref().unwrap_or("unknown"),
+        snapshot.url.as_deref().unwrap_or("unknown"),
+        snapshot.focused_text.as_deref().unwrap_or("unavailable")
+    )
 }
 
 /// Compose the personal-data "memory" block for Hey Superflow: the user's
@@ -129,6 +147,29 @@ fn superflow_personal_data(settings: &AppSettings) -> String {
         data.push_str(context);
     }
     data
+}
+
+#[cfg(test)]
+mod page_context_tests {
+    use super::*;
+    use crate::context::types::{ContextSnapshot, Surface};
+
+    #[test]
+    fn packages_real_page_context_separately_from_the_instruction() {
+        let snapshot = ContextSnapshot {
+            surface: Surface::Gmail,
+            app_name: "Google Chrome".to_string(),
+            bundle_id: Some("com.google.Chrome".to_string()),
+            url: Some("https://mail.google.com/".to_string()),
+            title: Some("New sign-in to your OpenAI account".to_string()),
+            focused_text: Some("If this was you, no action is needed.".to_string()),
+            captured_at_ms: 1,
+        };
+        let context = page_context_for_prompt(&snapshot);
+        assert!(context.contains("Surface: gmail"));
+        assert!(context.contains("New sign-in to your OpenAI account"));
+        assert!(context.contains("If this was you, no action is needed."));
+    }
 }
 
 pub(crate) async fn generate_with_system_prompt(

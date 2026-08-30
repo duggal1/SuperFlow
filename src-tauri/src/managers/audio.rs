@@ -1020,9 +1020,10 @@ impl AudioRecordingManager {
 
     pub fn take_recording_context(&self) -> Option<RecordingContext> {
         let receiver = self.context_capture.lock().unwrap().take()?;
-        // Must exceed the agent's CAPTURE_TIMEOUT (900ms) or a slow-but-valid
-        // capture is discarded here after already paying its full cost.
-        receiver.recv_timeout(Duration::from_millis(950)).ok()
+        // Leave spawn/IPC margin beyond the native page-capture hard ceiling.
+        // Capture runs concurrently with recording, so this is normally ready
+        // before stop; the ceiling only covers a cold Chromium AX tree.
+        receiver.recv_timeout(Duration::from_millis(6500)).ok()
     }
 
     pub fn clear_context_capture(&self) {

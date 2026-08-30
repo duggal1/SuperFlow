@@ -117,8 +117,31 @@ pub async fn generate(
         .build()
         .map_err(|error| format!("Gemini client could not be created: {error}"))?;
 
-    let (mut status, mut body) =
-        send(&client, api_key, model, level, system_prompt, user_content).await?;
+    let mut first_transport_error = None;
+    let first = send(&client, api_key, model, level, system_prompt, user_content).await;
+    let (mut status, mut body) = match first {
+        Ok(response) => response,
+        Err(error) => {
+            first_transport_error = Some(error);
+            tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+            send(&client, api_key, model, level, system_prompt, user_content).await?
+        }
+    };
+
+    // A voice command is safe to retry: generation has no external side
+    // effect, and insertion happens only after a complete response. Retry one
+    // transient quota/server failure instead of falsely reporting the model as
+    // unavailable after a single network edge failure.
+    if status == StatusCode::TOO_MANY_REQUESTS || status.is_server_error() {
+        tokio::time::sleep(std::time::Duration::from_millis(350)).await;
+        (status, body) = send(&client, api_key, model, level, system_prompt, user_content)
+            .await
+            .map_err(|retry_error| {
+                first_transport_error.map_or(retry_error.clone(), |first_error| {
+                    format!("{first_error}; retry failed: {retry_error}")
+                })
+            })?;
+    }
 
     if status == StatusCode::BAD_REQUEST
         && model == "gemini-3.5-flash-lite"

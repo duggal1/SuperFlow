@@ -49,31 +49,41 @@ jobs:
           - platform: "macos-26" # for Arm based macs (M1 and above). Uses macOS 26 for Apple Intelligence SDK.
             args: "--target aarch64-apple-darwin"
             target: "aarch64-apple-darwin"
+            # Ad-hoc sign ($0): no paid Apple Developer certificate required. The
+            # app is signed with the "-" identity from tauri.conf.json; users
+            # approve it via System Settings → Privacy & Security on first open.
+            sign-binaries: false
           - platform: "macos-latest" # for Intel based macs.
             args: "--target x86_64-apple-darwin"
             target: "x86_64-apple-darwin"
+            sign-binaries: false # ad-hoc, same as above
           - platform: "ubuntu-22.04" # Build .deb on 22.04
             args: "--bundles deb"
             target: "x86_64-unknown-linux-gnu"
+            sign-binaries: false
           - platform: "ubuntu-24.04" # Build AppImage and RPM on 24.04
             args: "--bundles appimage,rpm"
             target: "x86_64-unknown-linux-gnu"
+            sign-binaries: false
           - platform: "ubuntu-24.04-arm" # Build for ARM64 Linux
             args: "--bundles appimage,deb,rpm"
             target: "aarch64-unknown-linux-gnu"
+            sign-binaries: false
           - platform: "windows-latest"
             args: ""
             target: "x86_64-pc-windows-msvc"
+            sign-binaries: true # Azure Trusted Signing (free tier)
           - platform: "windows-11-arm" # for ARM64 Windows runner
             args: "--target aarch64-pc-windows-msvc"
             target: "aarch64-pc-windows-msvc"
+            sign-binaries: true # Azure Trusted Signing (free tier)
 
     uses: ./.github/workflows/build.yml
     with:
       platform: ${{ matrix.platform }}
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
-      sign-binaries: true
+      sign-binaries: ${{ matrix.sign-binaries }}
       asset-prefix: "superflow"
       upload-artifacts: false
       release-id: ${{ needs.create-release.outputs.release-id }}

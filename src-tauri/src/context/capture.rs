@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 
 /// Hard ceiling for one helper round-trip. AX captures are single-digit ms
 /// when healthy; this exists for pathological cases only.
-const CAPTURE_TIMEOUT: Duration = Duration::from_millis(900);
+const CAPTURE_TIMEOUT: Duration = Duration::from_millis(6000);
 
 /// Consecutive failures before the breaker opens.
 const BREAKER_THRESHOLD: u32 = 4;
@@ -167,11 +167,17 @@ pub fn capture_snapshot() -> ContextSnapshot {
             record_success();
             log::debug!(
                 target: "context_capture",
-                "snapshot: surface={} app={:?} url={:?} title={:?}",
+                "snapshot: surface={} app={:?} url={:?} title={:?} page_context_chars={}",
                 snapshot.surface.as_str(),
                 snapshot.app_name,
                 snapshot.url,
-                snapshot.title
+                snapshot.title,
+                snapshot
+                    .focused_text
+                    .as_deref()
+                    .map(str::chars)
+                    .map(Iterator::count)
+                    .unwrap_or(0)
             );
             snapshot
         }
@@ -256,7 +262,7 @@ pub fn capture_snapshot() -> ContextSnapshot {
 /// carries nothing but the JSON payload.
 #[cfg(target_os = "macos")]
 pub fn run_context_agent() {
-    use super::{browser, classify, detector, focused_text};
+    use super::{browser, classify, detector, focused_text, native_page};
 
     // Report permission problems loudly: the supervisor captures this stderr
     // and logs it next to the (degraded) snapshot.
@@ -286,15 +292,15 @@ pub fn run_context_agent() {
                 tab.as_ref().and_then(|t| t.title.as_deref()),
             );
 
-            let focused_text = match surface {
-                Surface::Terminal | Surface::Editor => {
-                    if crate::secure_input::is_enabled_now() {
-                        None
-                    } else {
+            let focused_text = if crate::secure_input::is_enabled_now() {
+                None
+            } else {
+                native_page::capture(app.pid).or_else(|| match surface {
+                    Surface::Terminal | Surface::Editor => {
                         focused_text::focused_element_text(app.pid)
                     }
-                }
-                _ => None,
+                    _ => None,
+                })
             };
 
             ContextSnapshot {

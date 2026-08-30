@@ -91,6 +91,12 @@ fn host_is(host: &str, domains: &[&str]) -> bool {
         .any(|domain| host == *domain || host.ends_with(&format!(".{domain}")))
 }
 
+fn title_has_delimited_product(title: &str, product: &str) -> bool {
+    title
+        .split(['-', '–', '|'])
+        .any(|segment| segment.trim().eq_ignore_ascii_case(product))
+}
+
 pub fn classify(bundle_id: Option<&str>, url: Option<&str>, title: Option<&str>) -> Surface {
     if let Some(url) = url {
         if let Some(host) = url_host(url) {
@@ -117,11 +123,13 @@ pub fn classify(bundle_id: Option<&str>, url: Option<&str>, title: Option<&str>)
     // the browser/webview still exposes a recognizable page title.
     if is_known_browser(bundle_id) {
         if let Some(title) = title {
-            let trimmed = title.trim_end();
-            if trimmed.ends_with("- Gmail") || trimmed.ends_with("– Gmail") {
+            // Chrome appends the browser and profile after the page product,
+            // e.g. "Subject - account@gmail.com - Gmail - Google Chrome - Work".
+            // Match a complete delimited segment, never a loose substring.
+            if title_has_delimited_product(title, "Gmail") {
                 return Surface::Gmail;
             }
-            if trimmed.ends_with(" | Slack") || trimmed.ends_with(" - Slack") {
+            if title_has_delimited_product(title, "Slack") {
                 return Surface::Slack;
             }
         }
@@ -176,6 +184,16 @@ mod tests {
             ),
             Surface::Slack
         );
+        assert_eq!(
+            classify(
+                Some("com.google.Chrome"),
+                None,
+                Some(
+                    "New sign-in to your OpenAI account - amenduggal1@gmail.com - Gmail - Google Chrome - DUGGAL"
+                )
+            ),
+            Surface::Gmail
+        );
     }
 
     #[test]
@@ -186,6 +204,14 @@ mod tests {
         );
         assert_eq!(
             classify(None, None, Some("reading about Gmail tips")),
+            Surface::Other
+        );
+        assert_eq!(
+            classify(
+                Some("com.google.Chrome"),
+                None,
+                Some("Gmail security guidance - Google Chrome")
+            ),
             Surface::Other
         );
     }

@@ -31,10 +31,16 @@ pub enum GmailVoiceInput {
 const REPLY_ALIASES: &[&str] = &[
     "please reply to this email",
     "reply to this email",
+    "please respond to this email",
+    "respond to this email",
     "please reply to this",
     "reply to this",
+    "please respond to this",
+    "respond to this",
     "please reply",
     "reply",
+    "please respond",
+    "respond",
 ];
 
 const COMPOSE_ALIASES: &[&str] = &[
@@ -132,7 +138,10 @@ fn strip_terminal_send(value: &str) -> Option<String> {
             continue;
         }
         let before_len = lower.len() - alias_lower.len();
-        let before = without_terminal_punctuation.get(..before_len).unwrap_or("").trim_end();
+        let before = without_terminal_punctuation
+            .get(..before_len)
+            .unwrap_or("")
+            .trim_end();
         // Handle " please" suffix already trimmed above, but also handle bare alias
         if before.is_empty() {
             return Some(String::new());
@@ -309,9 +318,8 @@ mod tests {
         assert_eq!(ambiguous.terminal_action, TerminalAction::None);
         assert!(ambiguous.instruction.ends_with("send it"));
 
-        let compose = command(
-            "Draft an email to alex@company.com thanking him for the update. Send it.",
-        );
+        let compose =
+            command("Draft an email to alex@company.com thanking him for the update. Send it.");
         assert_eq!(compose.intent, GmailIntent::Compose);
         assert_eq!(compose.terminal_action, TerminalAction::Send);
         assert_eq!(compose.recipient_hint.as_deref(), Some("alex@company.com"));
@@ -399,7 +407,10 @@ mod tests {
                 "Reply. The build is ready. Send it now.",
                 "The build is ready",
             ),
-            ("Reply. The build is ready. Send this.", "The build is ready"),
+            (
+                "Reply. The build is ready. Send this.",
+                "The build is ready",
+            ),
             (
                 "Reply. The build is ready. Send this email.",
                 "The build is ready",

@@ -254,11 +254,6 @@ async fn handle_start(
     settings: &AppSettings,
     app: &AppHandle,
 ) -> GmailHandleResult {
-    if command.instruction.trim().is_empty() {
-        return GmailHandleResult::Failed(GmailVoiceError::GenerationFailed(
-            "Gmail instruction is empty".to_string(),
-        ));
-    }
     let Some(frontmost) = crate::context::detector::frontmost_app() else {
         return GmailHandleResult::Failed(GmailVoiceError::NotGmail);
     };
