@@ -34,12 +34,18 @@ extern "C" {
         attribute: CFStringRef,
         value: *mut CFTypeRef,
     ) -> AxError;
+    fn AXUIElementSetAttributeValue(
+        element: AXUIElementRef,
+        attribute: CFStringRef,
+        value: CFTypeRef,
+    ) -> AxError;
     fn CFRelease(cf: CFTypeRef);
     fn CFRetain(cf: CFTypeRef);
     fn CFArrayGetCount(array: CFArrayRef) -> isize;
     fn CFArrayGetValueAtIndex(array: CFArrayRef, index: isize) -> CFTypeRef;
     fn CFURLCopyAbsoluteURL(url: CFURLRef) -> CFURLRef;
     fn CFURLGetString(url: CFURLRef) -> CFStringRef;
+    static kCFBooleanTrue: CFTypeRef;
     fn CFStringGetCString(
         string: CFStringRef,
         buffer: *mut u8,
@@ -209,11 +215,54 @@ fn window_url_safari(window: AXUIElementRef) -> Option<String> {
 fn window_url_chromium(window: AXUIElementRef) -> Option<String> {
     // Owned handles: toolbar and field each keep their own reference alive
     // independent of any parent attribute fetch.
-    let toolbar = find_descendant_by_role(window, "AXToolbar", 2, 64)?;
-    let field = find_descendant_by_role(toolbar.as_element(), "AXTextField", 8, 256)?;
-    let value = element_value_string(field.as_element())?;
+    let Some(toolbar) = find_descendant_by_role(window, "AXToolbar", 2, 64) else {
+        log::debug!(target: "browser_ax", "chromium: no AXToolbar within 2 levels / 64 nodes");
+        return None;
+    };
+    let Some(field) = find_descendant_by_role(toolbar.as_element(), "AXTextField", 8, 256) else {
+        log::debug!(target: "browser_ax", "chromium: no AXTextField (omnibox) within 8 levels / 256 nodes");
+        return None;
+    };
+    let Some(value) = element_value_string(field.as_element()) else {
+        log::debug!(target: "browser_ax", "chromium: omnibox value was not a string");
+        return None;
+    };
     // The omnibox holds the URL while browsing; only trust URL-shaped values.
     (value.starts_with("http://") || value.starts_with("https://")).then_some(value)
+}
+
+/// Chromium browsers only expose their full web-content accessibility tree
+/// once an assistive client opts in by setting `AXManualAccessibility` to
+/// `true` on the application element. Without this, Chrome/Edge/Brave report
+/// no toolbar, omnibox, or web content via AX, so tab URL/title extraction
+/// silently returns nothing and gmail.com misclassifies as `Surface::Other`.
+/// The flag persists for the browser session once set, so the first capture
+/// after a browser launch may still come up empty while Chromium builds its
+/// tree; later captures then succeed. Safari exposes its tree unconditionally.
+pub fn ensure_chromium_accessibility(pid: i32, bundle_id: Option<&str>) {
+    let is_chromium = CHROMIUM_BUNDLE_PREFIXES
+        .iter()
+        .any(|prefix| bundle_id.is_some_and(|bundle| bundle.starts_with(prefix)));
+    if !is_chromium {
+        return;
+    }
+    let app = unsafe { AXUIElementCreateApplication(pid) };
+    if app.is_null() {
+        return;
+    }
+    let _app_guard = CfRef(app as CFTypeRef);
+    let status = unsafe {
+        AXUIElementSetAttributeValue(app, ax_attr!("AXManualAccessibility"), k_cf_boolean_true())
+    };
+    if status != AX_SUCCESS {
+        log::debug!(target: "browser_ax", "AXManualAccessibility set failed for pid {pid} (status {status})");
+    }
+}
+
+/// `kCFBooleanTrue` — CoreFoundation's canonical `true` object (exported data
+/// symbol, toll-free bridged with NSNumber).
+fn k_cf_boolean_true() -> CFTypeRef {
+    unsafe { kCFBooleanTrue }
 }
 
 /// Capture URL/title for the given frontmost browser. Returns `None` entirely
@@ -229,18 +278,29 @@ pub fn frontmost_tab(bundle_id: Option<&str>, pid: i32) -> Option<TabInfo> {
     }
     let _system_wide_guard = CfRef(system_wide as CFTypeRef);
 
-    let focused_app = copy_attribute(system_wide, ax_attr!("AXFocusedApplication"))?;
+    let Some(focused_app) = copy_attribute(system_wide, ax_attr!("AXFocusedApplication")) else {
+        log::debug!(target: "browser_ax", "frontmost_tab: no AXFocusedApplication on system-wide element");
+        return None;
+    };
     let pid_attr = unsafe { AXUIElementCreateApplication(pid) };
     if pid_attr.is_null() {
         return None;
     }
     let _app_guard = CfRef(pid_attr as CFTypeRef);
 
+    // Chromium gates its web-content AX tree behind this opt-in; without it
+    // the toolbar/omnibox walk below finds nothing.
+    ensure_chromium_accessibility(pid, bundle_id);
+
     // Prefer the app's own focused window; fall back to its main window.
     // The owned handle is bound for the function's duration — the raw
     // element must never outlive it.
-    let window_handle = copy_attribute(focused_app.as_element(), ax_attr!("AXFocusedWindow"))
-        .or_else(|| copy_attribute(focused_app.as_element(), ax_attr!("AXMainWindow")))?;
+    let Some(window_handle) = copy_attribute(focused_app.as_element(), ax_attr!("AXFocusedWindow"))
+        .or_else(|| copy_attribute(focused_app.as_element(), ax_attr!("AXMainWindow")))
+    else {
+        log::debug!(target: "browser_ax", "frontmost_tab: no AXFocusedWindow/AXMainWindow for pid {pid} ({bundle_id:?}) — accessibility denied or window closing");
+        return None;
+    };
     let window = window_handle.as_element();
 
     let title = copy_attribute(window, ax_attr!("AXTitle")).and_then(|t| t.as_string());
@@ -262,8 +322,10 @@ pub fn frontmost_tab(bundle_id: Option<&str>, pid: i32) -> Option<TabInfo> {
 
     // A missing URL alone shouldn't discard the title signal.
     if url.is_none() && title.is_none() {
+        log::debug!(target: "browser_ax", "frontmost_tab: no url and no title for {bundle_id:?} pid {pid}");
         return None;
     }
+    log::debug!(target: "browser_ax", "frontmost_tab {bundle_id:?}: url={url:?} title={title:?}");
 
     Some(TabInfo { url, title })
 }

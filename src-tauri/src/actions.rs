@@ -63,6 +63,10 @@ pub trait ShortcutAction: Send + Sync {
 // Transcribe Action
 struct TranscribeAction {
     post_process: bool,
+    /// When true, this is the AI hotkey (e.g., ctrl+space) — transcript is
+    /// treated as an AI instruction without needing "Hey Superflow" prefix.
+    /// Same as voice hook, but via hotkey.
+    ai_hotkey: bool,
 }
 
 /// Field name for structured output JSON schema
@@ -1466,6 +1470,7 @@ impl ShortcutAction for TranscribeAction {
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
+        let ai_hotkey = self.ai_hotkey;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -1664,6 +1669,162 @@ impl ShortcutAction for TranscribeAction {
                                 }
                             };
 
+                            // AI hotkey: same as Hey Superflow, but via hotkey — no voice hook needed
+                            // Keeps both options working. Hotkey never same as standard (validated in UI).
+                            let ai_instruction_via_hotkey = if ai_hotkey {
+                                let instr = transcription.trim().to_string();
+                                if instr.is_empty() { None } else { Some(instr) }
+                            } else { None };
+
+                            if let Some(ai_instruction) = ai_instruction_via_hotkey {
+                                // Direct AI path — full context, never hallucinate
+                                // This mirrors the voice hook path below but without stripping.
+                                // For "Reply to this email" it will include the full thread via recording_context.
+                                // Try Gmail first if it looks like a Gmail command
+                                let gmail_parse_matched =
+                                    crate::gmail_voice::grammar::parse(&ai_instruction).is_some();
+                                let gmail_context = gmail_voice_hook_context(
+                                    &ai_instruction,
+                                    settings.experimental_gmail_voice_enabled,
+                                    recording_context.as_ref(),
+                                );
+                                if gmail_context.is_none() {
+                                    debug!(
+                                        target: "gmail_voice",
+                                        "AI hotkey: gmail routing skipped (parse_matched={gmail_parse_matched}, recording_context_present={}, surface={:?})",
+                                        recording_context.is_some(),
+                                        recording_context
+                                            .as_ref()
+                                            .map(|context| context.snapshot.surface.as_str())
+                                    );
+                                }
+                                if let Some(gmail_context) = gmail_context {
+                                    let gmail_result = complete_unless_cancelled(
+                                        crate::gmail_voice::handle(
+                                            &ai_instruction,
+                                            &gmail_context.snapshot,
+                                            &settings,
+                                            &ah,
+                                        ),
+                                        || rm.was_cancelled_since(cancel_generation),
+                                    )
+                                    .await;
+                                    let Some(gmail_result) = gmail_result else {
+                                        utils::hide_recording_overlay(&ah);
+                                        change_tray_icon(&ah, TrayIconState::Idle);
+                                        return;
+                                    };
+                                    match gmail_result {
+                                        crate::gmail_voice::GmailHandleResult::NotHandled => {
+                                            debug!(
+                                                target: "gmail_voice",
+                                                "AI hotkey: gmail handle returned NotHandled"
+                                            );
+                                        }
+                                        crate::gmail_voice::GmailHandleResult::Drafted
+                                        | crate::gmail_voice::GmailHandleResult::Sent
+                                        | crate::gmail_voice::GmailHandleResult::Cancelled => {
+                                            if wav_saved {
+                                                if let Err(error) = hm.save_entry(
+                                                    file_name,
+                                                    transcription,
+                                                    false,
+                                                    None,
+                                                    None,
+                                                    sample_count as f64 / 16_000.0,
+                                                ) {
+                                                    error!(
+                                                        "Failed to save Gmail voice-command history entry: {error}"
+                                                    );
+                                                }
+                                            }
+                                            // Deterministic send: the drafted body is
+                                            // already in the compose field — fire the key.
+                                            if let Some(plan) = &send_plan {
+                                                crate::send_it::inject_send_key(&ah, plan.key);
+                                            }
+                                            utils::hide_recording_overlay(&ah);
+                                            change_tray_icon(&ah, TrayIconState::Idle);
+                                            return;
+                                        }
+                                        crate::gmail_voice::GmailHandleResult::Failed(
+                                            gmail_error,
+                                        ) => {
+                                            if wav_saved {
+                                                if let Err(save_error) = hm.save_entry(
+                                                    file_name,
+                                                    transcription,
+                                                    false,
+                                                    None,
+                                                    None,
+                                                    sample_count as f64 / 16_000.0,
+                                                ) {
+                                                    error!(
+                                                        "Failed to save failed Gmail voice-command history entry: {save_error}"
+                                                    );
+                                                }
+                                            }
+                                            error!(
+                                                target: "gmail_voice",
+                                                "AI hotkey Gmail command failed: {gmail_error}"
+                                            );
+                                            crate::audio_feedback::play_ai_cleanup_sound(
+                                                &ah,
+                                                AiCleanupSound::Error,
+                                            );
+                                            crate::overlay::show_ai_cleanup_notice(
+                                                &ah,
+                                                gmail_error.to_string(),
+                                                "Gmail".to_string(),
+                                                "error",
+                                            );
+                                            change_tray_icon(&ah, TrayIconState::Idle);
+                                            return;
+                                        }
+                                    }
+                                } else if gmail_parse_matched {
+                                    // Anti-fabrication guard: the utterance IS a
+                                    // Gmail command but no verified Gmail snapshot
+                                    // exists. The generic AI writer would hallucinate
+                                    // an email from nothing — block it and say why.
+                                    warn!(
+                                        target: "gmail_voice",
+                                        "AI hotkey: Gmail command without a Gmail snapshot; blocking generic AI fallback"
+                                    );
+                                    crate::audio_feedback::play_ai_cleanup_sound(
+                                        &ah,
+                                        AiCleanupSound::Error,
+                                    );
+                                    crate::overlay::show_ai_cleanup_notice(
+                                        &ah,
+                                        "Gmail context unavailable — make sure gmail.com is the active Chrome tab, then try again".to_string(),
+                                        "Gmail".to_string(),
+                                        "error",
+                                    );
+                                    utils::hide_recording_overlay(&ah);
+                                    change_tray_icon(&ah, TrayIconState::Idle);
+                                    return;
+                                }
+                                // Generic AI — only reached for non-Gmail instructions.
+                                debug!(
+                                    "AI hotkey: routing {} chars to Gemini with full context",
+                                    ai_instruction.len()
+                                );
+                                run_voice_command(
+                                    &ah,
+                                    &rm,
+                                    &hm,
+                                    transcription.clone(),
+                                    ai_instruction.clone(),
+                                    file_name.clone(),
+                                    wav_saved,
+                                    sample_count,
+                                    cancel_generation,
+                                    send_plan.as_ref().map(|p| p.key),
+                                ).await;
+                                return;
+                            }
+
                             if binding_id == "transcribe" && !post_process {
                                 if let Some(instruction_owned) = instruction_opt {
                                     if let Some(gmail_context) = gmail_voice_hook_context(
@@ -1754,6 +1915,30 @@ impl ShortcutAction for TranscribeAction {
                                                 return;
                                             }
                                         }
+                                    }
+                                    // Anti-fabrication guard: a parsed Gmail command
+                                    // without a Gmail snapshot must not fall through
+                                    // to the generic AI writer — it would hallucinate
+                                    // an email with no thread context.
+                                    if crate::gmail_voice::grammar::parse(&instruction_owned)
+                                        .is_some()
+                                    {
+                                        warn!(
+                                            target: "gmail_voice",
+                                            "Hooked Gmail command without a Gmail snapshot; blocking generic AI fallback"
+                                        );
+                                        crate::audio_feedback::play_ai_cleanup_sound(
+                                            &ah,
+                                            AiCleanupSound::Error,
+                                        );
+                                        crate::overlay::show_ai_cleanup_notice(
+                                            &ah,
+                                            "Gmail context unavailable — make sure gmail.com is the active Chrome tab, then try again".to_string(),
+                                            "Gmail".to_string(),
+                                            "error",
+                                        );
+                                        change_tray_icon(&ah, TrayIconState::Idle);
+                                        return;
                                     }
                                     debug!(
                                         "Voice command hook matched; routing {} instruction characters to Gemini",
@@ -2155,16 +2340,28 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "transcribe".to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            ai_hotkey: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+        Arc::new(TranscribeAction {
+            post_process: true,
+            ai_hotkey: false,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "transcribe_with_ai".to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            ai_hotkey: true,
+        }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         crate::transcription_coordinator::HANDS_FREE_BINDING_ID.to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            ai_hotkey: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(

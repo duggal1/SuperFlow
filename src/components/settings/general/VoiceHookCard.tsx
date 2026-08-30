@@ -6,6 +6,7 @@ import { SettingsGroup } from "../../ui/SettingsGroup";
 import { Input } from "../../ui/Input";
 import { Badge } from "../../ui/Badge";
 import { Dropdown, type DropdownOption } from "../../ui/Dropdown";
+import { ShortcutInput } from "../ShortcutInput";
 
 const MAX_HOOK_CHARS = 80;
 
@@ -80,14 +81,19 @@ export const VoiceHookCard: React.FC = React.memo(() => {
   return (
     <SettingsGroup title={t("settings.general.superWhisper.title")}>
       <div className="px-4 py-3.5">
+        {/* AI Hotkey on top — same UX as standard, never same */}
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium tracking-tight text-stone-100">
+            {t("settings.general.superWhisper.aiHotkeyLabel", { defaultValue: "AI hotkey" })}
+          </p>
+          <ShortcutInput shortcutId="transcribe_with_ai" grouped={false} />
+        </div>
+
         {/* Hook row: label + live badge mirror */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="mt-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-medium tracking-tight text-stone-100">
               {t("settings.general.superWhisper.hookLabel")}
-            </p>
-            <p className="mt-0.5 text-xs leading-5 text-stone-500">
-              {t("settings.general.superWhisper.hookDescription")}
             </p>
           </div>
           <Badge
@@ -136,12 +142,7 @@ export const VoiceHookCard: React.FC = React.memo(() => {
             spellCheck={false}
             className="w-full text-[15px] font-medium tracking-tight"
           />
-          <div className="mt-1.5 flex items-center justify-between gap-3">
-            <span
-              className={`text-xs leading-4 ${overLimit ? "text-rose-400" : empty && error ? "text-rose-400" : "text-stone-500"}`}
-            >
-              {error ? error : t("settings.general.superWhisper.helper")}
-            </span>
+          <div className="mt-1.5 flex justify-end">
             <span className={`shrink-0 text-xs tabular-nums ${overLimit ? "text-rose-400" : remaining < 12 ? "text-amber-400" : "text-stone-500"}`}>
               {draft.length}/{MAX_HOOK_CHARS}
             </span>
@@ -168,9 +169,6 @@ export const VoiceHookCard: React.FC = React.memo(() => {
           <p className="text-sm font-medium tracking-tight text-stone-100">
             {t("settings.general.superWhisper.toneLabel")}
           </p>
-          <p className="text-xs leading-5 text-stone-500">
-            {t("settings.general.superWhisper.toneDescription")}
-          </p>
           <div>
             <Dropdown
               options={TONE_OPTIONS}
@@ -184,6 +182,7 @@ export const VoiceHookCard: React.FC = React.memo(() => {
             />
           </div>
         </div>
+
       </div>
     </SettingsGroup>
   );

@@ -1213,6 +1213,25 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_ai_cleanup_shortcut.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_ai_hotkey = "ctrl+space";
+    #[cfg(target_os = "windows")]
+    let default_ai_hotkey = "ctrl+shift+space";
+    #[cfg(target_os = "linux")]
+    let default_ai_hotkey = "ctrl+space";
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    let default_ai_hotkey = "ctrl+space";
+
+    bindings.insert(
+        "transcribe_with_ai".to_string(),
+        ShortcutBinding {
+            id: "transcribe_with_ai".to_string(),
+            name: "AI Transcribe".to_string(),
+            description: "Dictate with AI — same as Hey Superflow, via hotkey.".to_string(),
+            default_binding: default_ai_hotkey.to_string(),
+            current_binding: default_ai_hotkey.to_string(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),

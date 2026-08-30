@@ -82,22 +82,30 @@ fn record_failure() {
 pub fn capture_snapshot() -> ContextSnapshot {
     // Unit tests have no real executable context to spawn; degrade quietly.
     if cfg!(test) || breaker_open() {
+        log::debug!(
+            target: "context_capture",
+            "snapshot degraded to Other before spawn (test={} breaker_open={})",
+            cfg!(test),
+            breaker_open()
+        );
         return ContextSnapshot::other("Unknown");
     }
 
     let Ok(exe) = std::env::current_exe() else {
         record_failure();
+        log::warn!(target: "context_capture", "context-agent: current_exe unavailable; surface degrades to Other");
         return ContextSnapshot::other("Unknown");
     };
 
     let Ok(mut child) = Command::new(exe)
         .arg("--context-agent")
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped())
         .stdin(Stdio::null())
         .spawn()
     else {
         record_failure();
+        log::warn!(target: "context_capture", "context-agent failed to spawn; surface degrades to Other");
         return ContextSnapshot::other("Unknown");
     };
 
@@ -106,6 +114,14 @@ pub fn capture_snapshot() -> ContextSnapshot {
         let mut out = String::new();
         let _ = stdout.read_to_string(&mut out);
         out
+    });
+    // The agent reports permission/tree problems on stderr; surface them in
+    // the parent log instead of dropping them.
+    let mut stderr = child.stderr.take().expect("stderr was piped");
+    let stderr_reader = std::thread::spawn(move || {
+        let mut err = String::new();
+        let _ = stderr.read_to_string(&mut err);
+        err
     });
 
     let finished = match wait_with_timeout(&mut child, CAPTURE_TIMEOUT) {
@@ -119,6 +135,11 @@ pub fn capture_snapshot() -> ContextSnapshot {
 
     if !finished {
         record_failure();
+        log::warn!(
+            target: "context_capture",
+            "context-agent exceeded {:?}; surface degrades to Other (the Chromium AX opt-in may still be building its tree)",
+            CAPTURE_TIMEOUT
+        );
         return ContextSnapshot::other("Unknown");
     }
 
@@ -126,19 +147,37 @@ pub fn capture_snapshot() -> ContextSnapshot {
         Ok(out) => out,
         Err(_) => {
             record_failure();
+            log::warn!(target: "context_capture", "context-agent stdout reader panicked; surface degrades to Other");
             return ContextSnapshot::other("Unknown");
         }
     };
+    let agent_stderr = stderr_reader.join().unwrap_or_default();
+    if !agent_stderr.trim().is_empty() {
+        log::warn!(
+            target: "context_capture",
+            "context-agent stderr: {}",
+            agent_stderr.trim()
+        );
+    }
 
     // The agent prints exactly one JSON line on stdout.
     let json = output.lines().last().unwrap_or("");
     match serde_json::from_str::<ContextSnapshot>(json) {
         Ok(snapshot) => {
             record_success();
+            log::debug!(
+                target: "context_capture",
+                "snapshot: surface={} app={:?} url={:?} title={:?}",
+                snapshot.surface.as_str(),
+                snapshot.app_name,
+                snapshot.url,
+                snapshot.title
+            );
             snapshot
         }
         Err(_) => {
             record_failure();
+            log::warn!(target: "context_capture", "context-agent JSON unparsable ({} bytes); surface degrades to Other", json.len());
             ContextSnapshot::other("Unknown")
         }
     }
@@ -218,6 +257,17 @@ pub fn capture_snapshot() -> ContextSnapshot {
 #[cfg(target_os = "macos")]
 pub fn run_context_agent() {
     use super::{browser, classify, detector, focused_text};
+
+    // Report permission problems loudly: the supervisor captures this stderr
+    // and logs it next to the (degraded) snapshot.
+    extern "C" {
+        fn AXIsProcessTrusted() -> i32;
+    }
+    if unsafe { AXIsProcessTrusted() } == 0 {
+        eprintln!(
+            "context-agent: Accessibility permission missing (AXIsProcessTrusted=false); URL/title capture will fail"
+        );
+    }
 
     let snapshot = detector::frontmost_app().map_or_else(
         || ContextSnapshot::other("Unknown"),

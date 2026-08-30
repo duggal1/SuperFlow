@@ -230,6 +230,10 @@ fn capture_live_target(pid: i32, expected_bundle_id: &str) -> Result<LiveTarget,
         );
     }
 
+    // Chromium only exposes web content to AX after this opt-in; without it
+    // the window walk below finds no Gmail editor.
+    crate::context::browser::ensure_chromium_accessibility(pid, Some(expected_bundle_id));
+
     let application = CfRef::take(unsafe { AXUIElementCreateApplication(pid) } as CFTypeRef)
         .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
     let window = copy_attribute(application.element(), ax_attr!("AXFocusedWindow"))
@@ -440,6 +444,7 @@ pub(crate) fn set_subject_for_frontmost_compose(subject: &str) -> Result<(), Str
     if !crate::context::classify::classify(Some(bundle_id), url.as_deref(), title.as_deref()).is_gmail_like() {
         return Err("Frontmost app is not Gmail".to_string());
     }
+    crate::context::browser::ensure_chromium_accessibility(pid, Some(bundle_id));
     let application = CfRef::take(unsafe { AXUIElementCreateApplication(pid) } as CFTypeRef)
         .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
     let window = copy_attribute(application.element(), ax_attr!("AXFocusedWindow"))

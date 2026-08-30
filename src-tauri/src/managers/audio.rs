@@ -1020,7 +1020,9 @@ impl AudioRecordingManager {
 
     pub fn take_recording_context(&self) -> Option<RecordingContext> {
         let receiver = self.context_capture.lock().unwrap().take()?;
-        receiver.recv_timeout(Duration::from_millis(500)).ok()
+        // Must exceed the agent's CAPTURE_TIMEOUT (900ms) or a slow-but-valid
+        // capture is discarded here after already paying its full cost.
+        receiver.recv_timeout(Duration::from_millis(950)).ok()
     }
 
     pub fn clear_context_capture(&self) {
