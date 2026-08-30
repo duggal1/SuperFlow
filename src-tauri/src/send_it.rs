@@ -169,8 +169,12 @@ pub fn inject_send_key(app: &tauri::AppHandle, key: SendKey) {
     };
 
     match &result {
-        Ok(()) => log::info!(target: "send_it", "sent {:?} key via Swift — 8 levels / 256 nodes success", key),
-        Err(error) => log::warn!(target: "send_it", "send key injection failed: {error} — 8 levels / 256 nodes check, key={key:?}", error = error, key = key),
+        Ok(()) => {
+            log::info!(target: "send_it", "sent {:?} key via Swift — 8 levels / 256 nodes success", key)
+        }
+        Err(error) => {
+            log::warn!(target: "send_it", "send key injection failed: {error} — 8 levels / 256 nodes check, key={key:?}", error = error, key = key)
+        }
     }
     if let Err(error) = result {
         log::warn!(target: "send_it", "send key injection failed: {error}");

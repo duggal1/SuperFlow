@@ -684,10 +684,11 @@ class CleanupLLM:
             self.model_id
         )
 
-    def cleanup(
+    def generate(
         self,
-        transcript: str,
+        user: str,
         max_tokens: int = 1024,
+        system: str | None = None,
     ) -> str:
 
         if self.model is None:
@@ -699,11 +700,13 @@ class CleanupLLM:
         messages = [
             {
                 "role": "system",
-                "content": CLEANUP_SYSTEM_PROMPT,
+                "content": system
+                if system is not None
+                else CLEANUP_SYSTEM_PROMPT,
             },
             {
                 "role": "user",
-                "content": transcript,
+                "content": user,
             },
         ]
 
@@ -740,6 +743,83 @@ class CleanupLLM:
         )
 
         return response.strip()
+
+    def cleanup(
+        self,
+        transcript: str,
+        max_tokens: int = 1024,
+    ) -> str:
+
+        return self.generate(
+            transcript,
+            max_tokens,
+        )
+
+
+def run_llm_serve(model_id: str) -> None:
+    """Long-lived local LLM inference for Rust (JSONL stdin/stdout).
+
+    The model is loaded once and reused for every request, so a sequence of
+    AI prompts never pays a reload. One JSON line in:
+
+        {"system": "...", "user": "...", "max_tokens": 1024}
+
+    one JSON line out:
+
+        {"text": "..."}   or   {"error": "..."}
+    """
+
+    cleaner = CleanupLLM(model_id)
+
+    # Confirm liveness immediately so Rust can fail fast on a bad model id.
+    print(
+        json.dumps({"ready": True, "model": model_id}),
+        flush=True,
+    )
+
+    for line in sys.stdin:
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        try:
+            request = json.loads(line)
+        except json.JSONDecodeError as error:
+            print(
+                json.dumps({"error": f"bad request json: {error}"}),
+                flush=True,
+            )
+            continue
+
+        if request.get("type") == "ping":
+            print(
+                json.dumps({"text": "pong"}),
+                flush=True,
+            )
+            continue
+
+        system = request.get("system")
+        user = request.get("user", "")
+        max_tokens = int(request.get("max_tokens", 1024))
+
+        try:
+            output = cleaner.generate(
+                user,
+                max_tokens,
+                system=system,
+            )
+            print(
+                json.dumps({"text": output}),
+                flush=True,
+            )
+
+        except Exception as error:
+            print(
+                json.dumps({"error": str(error)}),
+                flush=True,
+            )
 
 
 # ============================================================================
@@ -1346,6 +1426,19 @@ def parser() -> argparse.ArgumentParser:
         default="auto",
     )
 
+    serve = commands.add_parser(
+        "llm-serve",
+        help=(
+            "Long-lived local LLM inference for Rust"
+            " (JSONL stdin/stdout, model loaded once)."
+        ),
+    )
+
+    serve.add_argument(
+        "--llm",
+        default="auto",
+    )
+
     pipe = commands.add_parser(
         "pipeline",
     )
@@ -1452,6 +1545,18 @@ def main() -> None:
         print(
             cleaner.cleanup(args.text)
         )
+
+        return
+
+    if args.command == "llm-serve":
+
+        llm_id = (
+            choose_llm(ram)
+            if args.llm == "auto"
+            else args.llm
+        )
+
+        run_llm_serve(llm_id)
 
         return
 

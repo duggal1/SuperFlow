@@ -3,7 +3,10 @@ use superflow_app_lib::settings::PunctuationStyle;
 
 fn assert_eq_verbose(name: &str, got: &str, expected: &str) {
     if got != expected {
-        eprintln!("FAIL {}:\n  got:      {:?}\n  expected: {:?}", name, got, expected);
+        eprintln!(
+            "FAIL {}:\n  got:      {:?}\n  expected: {:?}",
+            name, got, expected
+        );
         std::process::exit(1);
     } else {
         println!("PASS {}", name);
@@ -21,10 +24,26 @@ fn main() {
         ("hello world:", PunctuationStyle::Informal, "Hello world:"),
         ("", PunctuationStyle::Formal, ""),
         ("   ", PunctuationStyle::Formal, "   "),
-        ("fix the MY_CONSTANT value", PunctuationStyle::Informal, "Fix the MY_CONSTANT value."),
-        ("myFunction should stay", PunctuationStyle::Informal, "myFunction should stay."),
-        ("src/file.rs should stay", PunctuationStyle::Informal, "Src/file.rs should stay."), // actually recapitalize will capitalize? Check
-        ("café and résumé", PunctuationStyle::Informal, "Café and résumé."),
+        (
+            "fix the MY_CONSTANT value",
+            PunctuationStyle::Informal,
+            "Fix the MY_CONSTANT value.",
+        ),
+        (
+            "myFunction should stay",
+            PunctuationStyle::Informal,
+            "myFunction should stay.",
+        ),
+        (
+            "src/file.rs should stay",
+            PunctuationStyle::Informal,
+            "Src/file.rs should stay.",
+        ), // actually recapitalize will capitalize? Check
+        (
+            "café and résumé",
+            PunctuationStyle::Informal,
+            "Café and résumé.",
+        ),
         ("hello José", PunctuationStyle::Informal, "Hello José."),
     ];
     for (i, (input, style, expected_suffix)) in cases.iter().enumerate() {
@@ -57,7 +76,10 @@ fn main() {
         ("meet at three thirty a m", "meet at 3:30 AM"),
         ("meet at three thirty", "meet at 3:30"),
         ("give me five", "give me five"),
-        ("meet at twenty three thirty pm", "meet at twenty three thirty pm"), // should NOT parse
+        (
+            "meet at twenty three thirty pm",
+            "meet at twenty three thirty pm",
+        ), // should NOT parse
         ("twenty three thirty", "twenty three thirty"), // no cue, no parse
         ("costs two thousand dollars", "costs $2,000"),
         ("add sixteen pixels", "add 16px"),
@@ -126,7 +148,11 @@ fn main() {
     ];
     for case in unicode_cases {
         let out = format_layout(case);
-        assert!(std::str::from_utf8(out.as_bytes()).is_ok(), "unicode case failed {:?}", case);
+        assert!(
+            std::str::from_utf8(out.as_bytes()).is_ok(),
+            "unicode case failed {:?}",
+            case
+        );
         let preview: String = case.chars().take(20).collect();
         println!("PASS unicode {:?}", preview);
     }
@@ -153,7 +179,11 @@ fn main() {
     let start = std::time::Instant::now();
     let output = format(&input, PunctuationStyle::Formal);
     let elapsed = start.elapsed();
-    assert!(elapsed < std::time::Duration::from_millis(500), "10min transcript took {:?}", elapsed);
+    assert!(
+        elapsed < std::time::Duration::from_millis(500),
+        "10min transcript took {:?}",
+        elapsed
+    );
     assert!(output.contains("$200,000"));
     assert!(output.contains("25%"));
     assert!(output.contains("`src/backend/payment/payment.ts`"));
@@ -166,11 +196,16 @@ fn main() {
     let elapsed = start.elapsed();
     let second = format_layout(&first);
     assert_eq!(second, first, "layout idempotent");
-    assert!(elapsed < std::time::Duration::from_millis(200), "long layout took {:?}", elapsed);
+    assert!(
+        elapsed < std::time::Duration::from_millis(200),
+        "long layout took {:?}",
+        elapsed
+    );
     println!("PASS long layout deterministic {:?}", elapsed);
 
     // 6. Idempotence
-    let once = format_layout("hey sam quick update first fix payments second verify receipts thanks");
+    let once =
+        format_layout("hey sam quick update first fix payments second verify receipts thanks");
     let twice = format_layout(&once);
     assert_eq!(twice, once, "idempotent");
     println!("PASS idempotence");
@@ -181,7 +216,10 @@ fn main() {
 
     // 7. Time edge cases
     assert_eq!(normalize_values("meet at 10:30 pm"), "meet at 10:30 pm"); // already normalized? Should be?
-    assert_eq!(normalize_values("meet at twenty 3:30 PM"), "meet at twenty 3:30 PM"); // not double parse
+    assert_eq!(
+        normalize_values("meet at twenty 3:30 PM"),
+        "meet at twenty 3:30 PM"
+    ); // not double parse
     println!("PASS time edge");
 
     println!("\n=== ALL AGGRESSIVE TESTS PASSED ===");

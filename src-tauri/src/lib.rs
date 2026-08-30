@@ -2,7 +2,6 @@ mod actions;
 mod ai_cleanup;
 mod audio_feedback;
 pub mod audio_toolkit;
-pub mod superflow_grammar;
 mod autostart;
 mod catalog;
 pub mod cli;
@@ -30,6 +29,7 @@ pub mod settings;
 mod shortcut;
 mod shortcuts;
 mod signal_handle;
+pub mod superflow_grammar;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
@@ -52,12 +52,12 @@ use tauri::image::Image;
 pub use transcription_coordinator::TranscriptionCoordinator;
 
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Listener, Manager};
 #[cfg(target_os = "macos")]
 use tauri::{
     window::{Effect, EffectState, EffectsBuilder},
     TitleBarStyle,
 };
+use tauri::{AppHandle, Emitter, Listener, Manager};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_log::{Builder as LogBuilder, RotationStrategy, Target, TargetKind};
 
@@ -788,6 +788,8 @@ pub fn run(cli_args: CliArgs) {
             commands::ai_cleanup::set_gemini_api_key,
             commands::ai_cleanup::set_voice_command_hook,
             commands::ai_cleanup::change_hey_superflow_tone_setting,
+            commands::ai_cleanup::change_local_llm_enabled_setting,
+            commands::ai_cleanup::change_local_llm_model_setting,
             commands::ai_cleanup::get_ai_cleanup_history,
             commands::ai_cleanup::is_gemini_api_configured,
             commands::transcription::set_model_unload_timeout,

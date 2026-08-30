@@ -81,19 +81,30 @@ fn build_native_page_context() {
         .join("lib/swift/macosx");
 
     let mut cmd = Command::new("xcrun");
-    cmd.args(["swiftc", "-parse-as-library", "-O", "-emit-library", "-static"])
-        .arg("-sdk")
-        .arg(sdk.trim())
-        .arg("-target")
-        .arg(target)
-        .arg("-module-name")
-        .arg("SuperflowPageContext");
+    cmd.args([
+        "swiftc",
+        "-parse-as-library",
+        "-O",
+        "-emit-library",
+        "-static",
+    ])
+    .arg("-sdk")
+    .arg(sdk.trim())
+    .arg("-target")
+    .arg(target)
+    .arg("-module-name")
+    .arg("SuperflowPageContext");
     for src in &sources {
         cmd.arg(src);
     }
     cmd.arg("-o").arg(&archive);
-    let status = cmd.status().expect("compile native Swift page-context bridge");
-    assert!(status.success(), "native Swift page-context bridge failed to compile");
+    let status = cmd
+        .status()
+        .expect("compile native Swift page-context bridge");
+    assert!(
+        status.success(),
+        "native Swift page-context bridge failed to compile"
+    );
 
     for src in &sources {
         println!("cargo:rerun-if-changed={}", src.display());

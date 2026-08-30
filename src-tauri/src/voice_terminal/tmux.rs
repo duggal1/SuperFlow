@@ -85,37 +85,11 @@ impl Tmux {
         Ok(())
     }
 
-    /// Split a pane side-by-side (`-h`). Returns the new pane id.
-    pub fn split_horizontal(&self, target_pane: &str) -> Result<String, String> {
-        self.run(&[
-            "split-window",
-            "-P",
-            "-F",
-            "#{pane_id}",
-            "-h",
-            "-t",
-            target_pane,
-        ])
-    }
-
     pub fn pane_ids(&self, session: &str) -> Vec<String> {
         match self.run(&["list-panes", "-t", session, "-F", "#{pane_id}"]) {
             Ok(out) if !out.is_empty() => out.lines().map(str::to_owned).collect(),
             _ => Vec::new(),
         }
-    }
-
-    /// Apply the grid layout for a batch of `count` panes — same shape rules
-    /// as sp's `create_batch_sessions`: 1 single, 2 side-by-side, 4 → 2x2,
-    /// 5–8 tiled.
-    pub fn apply_grid_layout(&self, session: &str, count: usize) {
-        let layout = match count {
-            1 => "even-vertical",
-            2 => "even-horizontal",
-            n if n <= 4 => "tiled",
-            _ => "tiled",
-        };
-        let _ = self.run(&["select-layout", "-t", session, layout]);
     }
 
     /// Paste a full prompt into a pane through a named tmux buffer (atomic,

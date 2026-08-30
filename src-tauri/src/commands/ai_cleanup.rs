@@ -130,3 +130,24 @@ pub fn change_hey_superflow_tone_setting(app: AppHandle, tone: String) -> Result
     settings::write_settings(&app, current);
     Ok(())
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_local_llm_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut current = settings::get_settings(&app);
+    current.local_llm_enabled = enabled;
+    settings::write_settings(&app, current);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_local_llm_model_setting(app: AppHandle, model: String) -> Result<(), String> {
+    if !ai_cleanup::LOCAL_LLM_MODELS.contains(&model.as_str()) {
+        return Err("Unsupported local model".to_string());
+    }
+    let mut current = settings::get_settings(&app);
+    current.local_llm_model = model;
+    settings::write_settings(&app, current);
+    Ok(())
+}

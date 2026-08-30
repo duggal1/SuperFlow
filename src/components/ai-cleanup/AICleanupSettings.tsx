@@ -30,6 +30,28 @@ const MODELS: DropdownOption[] = [
   icon: <img src="/icons/gemini.svg" alt="" className="size-4" />,
 }));
 
+const LOCAL_MODELS: DropdownOption[] = [
+  {
+    value: "prism-ml/Ternary-Bonsai-4B-mlx-2bit",
+    label: "Ternary Bonsai 4B · 2-bit",
+  },
+  { value: "prism-ml/Bonsai-8B-mlx-2bit", label: "Bonsai 8B · 2-bit" },
+  {
+    value: "salohcin714/gemma-4-12B-it-2bit-mlx",
+    label: "Gemma 4 12B IT · 2-bit",
+  },
+  {
+    value: "lmstudio-community/gemma-4-12B-it-MLX-4bit",
+    label: "Gemma 4 12B IT · 4-bit",
+  },
+  {
+    value: "lmstudio-community/gemma-4-12B-it-MLX-8bit",
+    label: "Gemma 4 12B IT · 8-bit",
+  },
+  { value: "mlx-community/Qwen3.8-27B-8bit", label: "Qwen3.8 27B · 8-bit" },
+  { value: "Qwen/Qwen3.8-Flash-Next", label: "Qwen3.8 Flash Next" },
+];
+
 const THINKING_LABELS: Record<AiCleanupThinkingLevel, string> = {
   minimal: "Minimal",
   low: "Low",
@@ -65,7 +87,8 @@ const EMPTY_CONFIGURATION: AiCleanupConfiguration = {
 };
 
 export function AICleanupSettings() {
-  const { settings, refreshSettings } = useSettings();
+  const { settings, refreshSettings, updateSetting, isUpdating } =
+    useSettings();
   const [configuration, setConfiguration] =
     useState<AiCleanupConfiguration>(EMPTY_CONFIGURATION);
   const [history, setHistory] = useState<AiCleanupHistoryEntry[]>([]);
@@ -180,6 +203,23 @@ export function AICleanupSettings() {
     });
   };
 
+  // Local AI LLM: when on, every prompt below runs on the selected MLX
+  // model instead of Gemini. Same prompts, same pipeline — only the
+  // backend changes. Gemini settings stay exactly as they are.
+  const localLlmEnabled = settings?.local_llm_enabled ?? false;
+  const localLlmModel = settings?.local_llm_model ?? LOCAL_MODELS[0].value;
+  const localModelLabel =
+    LOCAL_MODELS.find((model) => model.value === localLlmModel)?.label ??
+    localLlmModel;
+
+  const selectLocalModel = (model: string) => {
+    void updateSetting("local_llm_model", model);
+  };
+
+  const toggleLocalLlm = (enabled: boolean) => {
+    void updateSetting("local_llm_enabled", enabled);
+  };
+
   const saveApiKey = async (apiKey: string, successMessage?: string) => {
     if (!apiKey.trim()) return;
     setApiKeySaving(true);
@@ -226,6 +266,36 @@ export function AICleanupSettings() {
           description="Clean every completed transcription before it is pasted."
           grouped
         />
+      </SettingsGroup>
+
+      <SettingsGroup title="Local AI LLM">
+        <ToggleSwitch
+          checked={localLlmEnabled}
+          onChange={toggleLocalLlm}
+          label="Use Local LLM"
+          description="Run every prompt on the selected MLX model on your Mac instead of Gemini."
+          grouped
+          isUpdating={isUpdating("local_llm_enabled")}
+        />
+        <SettingContainer
+          title="Local model"
+          description="Model used for all AI inference while Local AI LLM is on."
+          grouped
+          disabled={!localLlmEnabled}
+        >
+          <Dropdown
+            options={LOCAL_MODELS}
+            selectedValue={localLlmModel}
+            onSelect={selectLocalModel}
+            className="min-w-56"
+          />
+        </SettingContainer>
+        {localLlmEnabled && (
+          <p className="px-4 pb-3 text-xs leading-5 text-stone-500">
+            Gemini is bypassed — the same prompts run on {localModelLabel}. The
+            model stays loaded between requests.
+          </p>
+        )}
       </SettingsGroup>
 
       <SettingsGroup title="Model">

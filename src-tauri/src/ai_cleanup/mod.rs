@@ -12,6 +12,23 @@ pub const MODELS: &[&str] = &[
     "gemini-3.1-pro-preview",
 ];
 
+/// Local MLX models selectable in Settings → AI clean up → Local AI LLM.
+/// Validated by `change_local_llm_model_setting`; weights are pulled from the
+/// shared Hugging Face cache and served by the existing mlx_voice.py runtime.
+pub const LOCAL_LLM_MODELS: &[&str] = &[
+    "prism-ml/Ternary-Bonsai-4B-mlx-2bit",
+    "prism-ml/Bonsai-8B-mlx-2bit",
+    "salohcin714/gemma-4-12B-it-2bit-mlx",
+    "lmstudio-community/gemma-4-12B-it-MLX-4bit",
+    "lmstudio-community/gemma-4-12B-it-MLX-8bit",
+    "mlx-community/Qwen3.8-27B-8bit",
+    "Qwen/Qwen3.8-Flash-Next",
+];
+
+/// Generation ceiling for local inference. Prompts are identical to the
+/// Gemini ones, so the budget only caps runaway local generations.
+const LOCAL_LLM_MAX_TOKENS: u32 = 2048;
+
 pub fn thinking_level_name(level: AiCleanupThinkingLevel) -> &'static str {
     match level {
         AiCleanupThinkingLevel::Minimal => "minimal",
@@ -38,23 +55,56 @@ pub fn validate_model_and_thinking(
     Ok(())
 }
 
+/// Single inference routing point for every AI-cleanup prompt. When
+/// `local_llm_enabled` is on, the exact same system prompt and user content
+/// are sent to the selected local MLX model; otherwise they go to Gemini
+/// exactly as before. There is no second prompt system — only the backend
+/// changes.
+pub async fn generate(
+    system_prompt: &str,
+    user_content: &str,
+    settings: &AppSettings,
+) -> Result<String, String> {
+    if settings.local_llm_enabled {
+        let system = system_prompt.to_string();
+        let user = user_content.to_string();
+        let model = settings.local_llm_model.clone();
+        tokio::task::spawn_blocking(move || {
+            crate::managers::mlx_llm::generate_blocking(
+                &system,
+                &user,
+                &model,
+                LOCAL_LLM_MAX_TOKENS,
+            )
+        })
+        .await
+        .map_err(|error| format!("Local LLM inference failed: {error}"))?
+    } else {
+        validate_model_and_thinking(
+            &settings.ai_cleanup_model,
+            settings.ai_cleanup_thinking_level,
+        )?;
+        let api_key = credentials::load(settings)?;
+        client::generate(
+            &api_key,
+            &settings.ai_cleanup_model,
+            settings.ai_cleanup_thinking_level,
+            system_prompt,
+            user_content,
+        )
+        .await
+    }
+}
+
 pub async fn clean(input: &str, settings: &AppSettings) -> Result<String, String> {
     let input = input.trim();
     if input.is_empty() {
         return Err("No text was provided".to_string());
     }
-    validate_model_and_thinking(
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
-    )?;
-    let api_key = credentials::load(settings)?;
-
-    client::generate(
-        &api_key,
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
+    generate(
         prompt::SYSTEM_PROMPT,
         &prompt::build_user_content(input, settings),
+        settings,
     )
     .await
 }
@@ -70,18 +120,10 @@ pub async fn edit(
     if instruction.trim().is_empty() {
         return Err("No edit instruction was provided".to_string());
     }
-    validate_model_and_thinking(
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
-    )?;
-    let api_key = credentials::load(settings)?;
-
-    client::generate(
-        &api_key,
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
+    generate(
         prompt::EDIT_SYSTEM_PROMPT,
         &prompt::build_edit_user_content(selected_text, instruction.trim()),
+        settings,
     )
     .await
 }
@@ -95,23 +137,16 @@ pub async fn execute_with_page_context(
     if instruction.is_empty() {
         return Err("No voice instruction was provided".to_string());
     }
-    validate_model_and_thinking(
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
-    )?;
-    let api_key = credentials::load(settings)?;
 
     let page_context = snapshot.map(page_context_for_prompt);
     let system_prompt = prompts::hey_superflow::superflow_system_prompt(
         &settings.hey_superflow_tone,
         &superflow_personal_data(settings),
     );
-    client::generate(
-        &api_key,
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
+    generate(
         &system_prompt,
         &prompt::build_edit_user_content(page_context.as_deref().unwrap_or(""), instruction),
+        settings,
     )
     .await
 }
@@ -177,19 +212,7 @@ pub(crate) async fn generate_with_system_prompt(
     user_content: &str,
     settings: &AppSettings,
 ) -> Result<String, String> {
-    validate_model_and_thinking(
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
-    )?;
-    let api_key = credentials::load(settings)?;
-    client::generate(
-        &api_key,
-        &settings.ai_cleanup_model,
-        settings.ai_cleanup_thinking_level,
-        system_prompt,
-        user_content,
-    )
-    .await
+    generate(system_prompt, user_content, settings).await
 }
 
 #[cfg(test)]

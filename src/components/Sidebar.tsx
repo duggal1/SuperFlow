@@ -124,8 +124,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav
         className={`flex h-full w-[176px] flex-col px-2 pb-2 pt-3 ${
           opaque
-            ? "bg-stone-950"
-            : "sidebar-material border-r border-white/[0.045]"
+            ? "border-r border-stone-700 bg-stone-950"
+            : "sidebar-material border-r border-stone-700"
         }`}
       >
         <div
@@ -137,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onToggle}
             aria-label="Close sidebar"
             title="Close sidebar (Ctrl+B)"
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-stone-100"
+            className="flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100"
           >
             <SidebarToggleIcon expanded={open} />
           </button>
@@ -159,10 +159,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   type="button"
                   onClick={() => onSectionChange(section.id)}
                   title={t(section.labelKey)}
-                  className={`flex w-full items-center gap-2.5 rounded-lg p-2 text-start text-sm font-normal tracking-tight transition-colors duration-150 ${
+                  className={`flex w-full items-center gap-2.5 rounded-md p-2 text-start text-sm font-normal tracking-tight transition-colors duration-150 ${
                     isActive
-                      ? "bg-white/[0.075] text-stone-50"
-                      : "text-stone-300/75 hover:bg-white/[0.045] hover:text-stone-100"
+                      ? "bg-stone-800 text-stone-50"
+                      : "text-stone-300 hover:bg-stone-900 hover:text-stone-100"
                   }`}
                 >
                   <HugeiconsIcon

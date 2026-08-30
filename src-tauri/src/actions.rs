@@ -1096,6 +1096,16 @@ async fn run_voice_command(
         return;
     }
 
+    // A Super Whisper utterance may be a terminal-agent command. The LLM
+    // returns strict agent/count JSON only; Rust validates it and launches one
+    // supervisor, which owns all worker prompts and tmux orchestration.
+    if crate::voice_terminal::try_handle_ai_command(&instruction, &settings).await {
+        debug!("Voice command handled as AI-interpreted terminal command");
+        crate::overlay::hide_recording_overlay(app);
+        change_tray_icon(app, TrayIconState::Idle);
+        return;
+    }
+
     if AI_CLEANUP_IN_FLIGHT.swap(true, Ordering::AcqRel) {
         crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
         crate::overlay::show_ai_cleanup_notice(
@@ -1117,9 +1127,7 @@ async fn run_voice_command(
             page_context.map(|context| &context.snapshot),
             &settings,
         ),
-        || {
-            recording_manager.was_cancelled_since(cancel_generation)
-        },
+        || recording_manager.was_cancelled_since(cancel_generation),
     )
     .await;
     drop(flight_guard);
@@ -1192,8 +1200,7 @@ async fn run_voice_command(
     }
     let mut target_ready = crate::clipboard::is_pasteable_target_focused();
     #[cfg(target_os = "macos")]
-    if !target_ready
-        && page_context.is_some_and(|context| context.snapshot.surface.is_gmail_like())
+    if !target_ready && page_context.is_some_and(|context| context.snapshot.surface.is_gmail_like())
     {
         if let Err(error) = crate::gmail_voice::ax::focus_reply_editor_for_frontmost_gmail() {
             warn!("Could not focus Gmail Reply editor for AI output: {error}");

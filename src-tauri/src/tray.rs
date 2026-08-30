@@ -288,15 +288,9 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
             let is_active =
                 settings.post_process_selected_prompt_id.as_deref() == Some(prompt.id.as_str());
             let item_id = format!("prompt_select:{}", prompt.id);
-            let item = CheckMenuItem::with_id(
-                app,
-                &item_id,
-                &prompt.name,
-                true,
-                is_active,
-                None::<&str>,
-            )
-            .expect("failed to create prompt item");
+            let item =
+                CheckMenuItem::with_id(app, &item_id, &prompt.name, true, is_active, None::<&str>)
+                    .expect("failed to create prompt item");
             let _ = submenu.append(&item);
         }
         submenu

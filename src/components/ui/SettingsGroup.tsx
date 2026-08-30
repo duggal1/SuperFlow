@@ -40,7 +40,7 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
           )}
         </div>
       )}
-      <div className="rounded-[10px] bg-surface overflow-visible">
+      <div className="overflow-visible rounded-lg border border-stone-700 bg-surface">
         <div className="divide-y divide-stone-700">{children}</div>
       </div>
     </div>

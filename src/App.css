@@ -19,8 +19,21 @@
   --color-warning: var(--color-warning);
   --color-error: var(--color-error);
 
-  /* Custom step between stone-800 and stone-700 for hover surfaces */
-  --color-stone-850: #34302c;
+  /* Existing components use the stone scale semantically from the original
+     dark UI (50 = strong text, 900 = inset surface). Keep those semantics
+     while presenting a coherent light palette. */
+  --color-stone-50: #1c1917;
+  --color-stone-100: #292524;
+  --color-stone-200: #44403c;
+  --color-stone-300: #57534e;
+  --color-stone-400: #78716c;
+  --color-stone-500: #a8a29e;
+  --color-stone-600: #d6d3d1;
+  --color-stone-700: #e7e5e4;
+  --color-stone-800: #f5f5f4;
+  --color-stone-850: #f7f6f5;
+  --color-stone-900: #fafaf9;
+  --color-stone-950: #ffffff;
 }
 
 :root {
@@ -45,10 +58,8 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  /* Scrollbars — stone-750 thumb (between stone-700 #44403c and stone-800
-     #292524), no border, no ring. Hover lightens to stone-700. */
-  --scrollbar-thumb: #37332f; /* stone-750 */
-  --scrollbar-thumb-hover: #44403c; /* stone-700 */
+  --scrollbar-thumb: #d6d3d1;
+  --scrollbar-thumb-hover: #a8a29e;
 
   /* Log console surface — a subtle shade off the app background so the live log
      viewer reads as a distinct console. In light mode this is a faint gray code
@@ -74,19 +85,97 @@ html:not([data-platform="macos"]) {
 }
 
 .sidebar-material {
-  background: rgba(20, 20, 19, 0.3);
-  backdrop-filter: blur(32px) saturate(128%);
-  -webkit-backdrop-filter: blur(32px) saturate(128%);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(24px) saturate(108%);
+  -webkit-backdrop-filter: blur(24px) saturate(108%);
 }
 
 html[data-platform="macos"] .sidebar-material {
-  background: rgba(20, 20, 21, 0.18);
+  background: rgba(255, 255, 255, 0.72);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 html[data-platform="macos"] .app-titlebar {
   padding-left: 78px;
+}
+
+html[data-theme="dark"] {
+  --color-text: #fafaf9;
+  --color-background: #1c1917;
+  --color-surface: #292524;
+  --color-surface-hover: #34302c;
+  --color-sidebar: #171412;
+  --color-divider: #44403c;
+  --color-logo-primary: #f5f5f4;
+  --color-logo-stroke: #d6d3d1;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-text-stroke: #f6f6f6;
+  --color-mid-gray: #808080;
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-850: #34302c;
+  --color-stone-900: #1c1917;
+  --color-stone-950: #0c0a09;
+  --scrollbar-thumb: #37332f;
+  --scrollbar-thumb-hover: #44403c;
+  --color-log-surface: color-mix(in srgb, var(--color-background), black 15%);
+}
+
+html[data-theme="dark"] .sidebar-material {
+  background: rgba(20, 20, 19, 0.3);
+}
+
+html[data-platform="macos"][data-theme="dark"] .sidebar-material {
+  background: rgba(20, 20, 21, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    --color-text: #fafaf9;
+    --color-background: #1c1917;
+    --color-surface: #292524;
+    --color-surface-hover: #34302c;
+    --color-sidebar: #171412;
+    --color-divider: #44403c;
+    --color-logo-primary: #f5f5f4;
+    --color-logo-stroke: #d6d3d1;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --color-text-stroke: #f6f6f6;
+    --color-mid-gray: #808080;
+    --color-stone-50: #fafaf9;
+    --color-stone-100: #f5f5f4;
+    --color-stone-200: #e7e5e4;
+    --color-stone-300: #d6d3d1;
+    --color-stone-400: #a8a29e;
+    --color-stone-500: #78716c;
+    --color-stone-600: #57534e;
+    --color-stone-700: #44403c;
+    --color-stone-800: #292524;
+    --color-stone-850: #34302c;
+    --color-stone-900: #1c1917;
+    --color-stone-950: #0c0a09;
+    --scrollbar-thumb: #37332f;
+    --scrollbar-thumb-hover: #44403c;
+    --color-log-surface: color-mix(in srgb, var(--color-background), black 15%);
+  }
+
+  html:not([data-theme]) .sidebar-material {
+    background: rgba(20, 20, 19, 0.3);
+  }
+
+  html[data-platform="macos"]:not([data-theme]) .sidebar-material {
+    background: rgba(20, 20, 21, 0.18);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -116,14 +205,7 @@ select:not(:disabled) {
   cursor: pointer;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Just a bit darker than the (already dark) background, keeping its warm tint */
-    --color-log-surface: color-mix(in srgb, var(--color-background), black 15%);
-  }
-}
-
-/* Custom Scrollbar — stone-750 thumb, borderless, no ring on hover */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -142,8 +224,7 @@ select:not(:disabled) {
   background-color: var(--scrollbar-thumb-hover);
 }
 
-/* Menu popup (dialog) scrollbars — darker thumb with a stone-700 hairline
-   border so it reads inside the stone-700 popup surface. */
+/* Menu popup scrollbars */
 [data-slot="menu-popup"] ::-webkit-scrollbar {
   width: 8px;
 }

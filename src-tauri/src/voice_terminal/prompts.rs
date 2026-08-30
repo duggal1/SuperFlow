@@ -1,70 +1,85 @@
-//! Prompt construction for the voice-launched terminal team.
-//!
-//! Every worker receives the full faithful mission. The brain coordinates and
-//! deduplicates work across the team.
+//! Supervisor bootstrap prompt for voice-launched terminal teams.
 
-use log::info;
+use super::grammar::AgentKind;
 
-/// Prompts are typed into interactive TUI readlines; embedded newlines would
-/// submit early. Voice missions are prose, so collapsing runs of whitespace
-/// to single spaces is lossless in practice.
-fn single_line(text: &str) -> String {
-    let collapsed: String = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    collapsed.chars().take(4000).collect()
+const TEAMMATE_FOOTER: &str = "You are Agent {n} on a concurrent team. Own only your assigned scope. Preserve teammate changes; never revert, reset, delete, or overwrite work you did not create.";
+
+pub(crate) fn single_line(text: &str) -> String {
+    let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    collapsed.chars().take(4_000).collect()
 }
 
-/// One faithful prompt per worker; the brain terminal coordinates ownership.
-pub async fn split_worker_prompts(mission: &str, workers: usize) -> Vec<String> {
-    let mission = single_line(mission);
-    info!(target: "voice_terminal", "Using faithful full-mission prompts for every worker");
-    vec![mission; workers.max(1)]
-}
-
-/// The prompt typed into the brain terminal: full mission + the roster of
-/// tmux pane targets it supervises.
-pub fn brain_prompt(
+pub fn supervisor_prompt(
     transcript_mission: &str,
-    worker_briefs: &[String],
-    roster_lines: &[String],
+    agent: AgentKind,
+    workers: usize,
+    session: &str,
 ) -> String {
     let mission = single_line(transcript_mission);
-    let mut prompt = String::new();
-    prompt.push_str(
-        "You are the BRAIN (supervisor) of a local voice-driven coding team running in tmux panes. ",
-    );
-    if mission.is_empty() {
-        prompt.push_str(
-            "No spoken mission was given yet — stand by; the user will dictate the mission here. ",
+    format!(
+        r#"You are the sole supervisor for this engineering mission. Act as the senior technical authority: maximize correctness and useful parallel throughput, protect the shared repository, and return one verified result.
+
+Mission: {mission}
+Worker CLI: {agent}
+Workers requested: {workers}
+Current tmux session: {session}
+
+Operating contract:
+1. Privately turn the mission into an execution plan. Launch exactly {workers} workers. You alone decompose work, write worker prompts, launch terminals, supervise, validate, and integrate. Workers must never launch other workers.
+2. Before launch, inspect repository instructions and the dirty working tree. Give every worker a distinct role, skills, starting point, owned files or domain, exact task, out-of-scope boundary, definition of done, required evidence, blocker protocol, and output format. Avoid overlapping write ownership.
+3. Write each complete assignment to an absolute temporary file, then start the worker CLI in its tmux pane and paste only a short loader that identifies Agent N and tells it to read @<absolute-assignment-file>. End every assignment with this exact team rule, replacing {{n}}: "{teammate_footer}"
+4. Use only this tmux session. Never open another macOS terminal window and never create one external tab per worker. Keep at most six panes in each tmux window, including your supervisor pane. Put yourself plus up to five workers in the first window; put overflow workers in additional tmux windows, at most six workers each. Use a side-by-side split for two total panes and a tiled 2x2 layout for three or four total panes; tile larger windows.
+5. Record every worker pane ID. Inspect progress with `tmux capture-pane`. Send every answer, correction, retry, or validation request back to that same pane using a named tmux buffer plus Enter. Never create a new pane, window, tab, or agent for a follow-up. Never send the same unchanged prompt twice.
+6. Supervise in bounded, evidence-driven rounds. Do not start a perpetual polling loop or an autonomous supervisor-worker conversation loop. Intervene only for a blocker, drift, conflict, weak evidence, or completion claim. Stop when all workers are validated or failed, or when a real user decision is required.
+7. A worker saying "done" is only a claim. Require exact changed files, commands and tests, observed results, remaining risks, and overlap status. Preserve concurrent teammate changes; never use git restore/reset, never discard unrelated work, and never push unless the user explicitly asked.
+8. Integrate the result, run the repository's relevant checks, resolve contradictions, then give the user one concise final report: completed work, validation, failures, and remaining risk. Do not keep supervising after finalization.
+
+Start now. Do not restate this brief and do not ask for confirmation unless execution is genuinely blocked."#,
+        agent = agent.executable(),
+        teammate_footer = TEAMMATE_FOOTER,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn supervisor_owns_all_prompting_and_launches() {
+        let prompt = supervisor_prompt(
+            "Fix the backend and verify it",
+            AgentKind::Codex,
+            4,
+            "sf-supervisor-1",
         );
-    } else {
-        prompt.push_str(&format!("Spoken mission from the user: \"{mission}\". "));
+        assert!(prompt.contains("Mission: Fix the backend and verify it"));
+        assert!(prompt.contains("Worker CLI: codex"));
+        assert!(prompt.contains("Workers requested: 4"));
+        assert!(prompt.contains("You alone decompose work, write worker prompts"));
+        assert!(prompt.contains("read @<absolute-assignment-file>"));
     }
 
-    if !worker_briefs.is_empty() && !roster_lines.is_empty() {
-        prompt.push_str("Workers already received their own briefs and are working now:\n");
-        for (i, line) in roster_lines.iter().enumerate() {
-            let brief = worker_briefs
-                .get(i)
-                .map(|p| {
-                    let chars: String = p.chars().take(300).collect();
-                    chars
-                })
-                .unwrap_or_default();
-            prompt.push_str(&format!("{line} brief: {brief}\n"));
-        }
-        prompt.push_str(
-            "Your job: supervise, do not implement. Periodically inspect each worker with \
-`tmux capture-pane -p -t <pane>` and coordinate by typing into panes with \
-`tmux send-keys -l -t <pane> '<text>'` followed by `tmux send-keys -t <pane> Enter`. \
-Redirect workers that drift, resolve file conflicts between them, integrate finished work, \
-and run the project's typecheck/lint when the mission looks complete. \
-Keep your own terminal as the live status board.",
-        );
-    } else {
-        prompt.push_str(
-            "Your job: await instructions from the user (they will speak through SuperFlow and the \
-transcript lands here) and drive this terminal yourself.",
-        );
+    #[test]
+    fn layout_follow_up_and_stop_rules_are_explicit() {
+        let prompt = supervisor_prompt("ship it", AgentKind::Claude, 7, "sf-supervisor-2");
+        assert!(prompt.contains("at most six panes in each tmux window"));
+        assert!(prompt.contains("same pane"));
+        assert!(prompt.contains("Never create a new pane, window, tab, or agent for a follow-up"));
+        assert!(prompt.contains("Do not start a perpetual polling loop"));
+        assert!(prompt.contains("Stop when all workers are validated or failed"));
     }
-    prompt
+
+    #[test]
+    fn teammate_footer_is_between_twenty_and_thirty_words() {
+        let rendered = TEAMMATE_FOOTER.replace("{n}", "1");
+        let word_count = rendered.split_whitespace().count();
+        assert!((20..=30).contains(&word_count), "word count: {word_count}");
+        assert!(rendered.contains("never revert, reset, delete, or overwrite"));
+    }
+
+    #[test]
+    fn mission_is_collapsed_to_one_bounded_line() {
+        let prompt = supervisor_prompt("fix\n\n  this\tthing", AgentKind::Kilo, 1, "session");
+        assert!(prompt.contains("Mission: fix this thing\n"));
+    }
 }

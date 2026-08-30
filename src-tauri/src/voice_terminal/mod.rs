@@ -1,46 +1,26 @@
 //! Voice-driven terminal orchestration.
 //!
-//! A finalized transcript like "please open four claude code terminals to fix
-//! the auth bug" launches a local tmux-backed agent team:
-//!
-//! - N worker panes (batches of up to 8 per visible page/grid),
-//! - one extra BRAIN supervisor pane when a count was spoken (the last one),
-//! - each pane boots the chosen agent CLI (`claude` | `codex` | `opencode`),
-//! - each worker receives the faithful spoken mission; the brain receives the
-//!   same mission plus the worker roster,
-//! - sessions attach to Ghostty tabs (Terminal.app fallback).
-//!
-//! Mechanism ported from the proven Terminal-kit (`sp`) tmux surface: real
-//! tmux splits instead of synthetic Cmd+D keystrokes, and buffer-based
-//! prompt pastes instead of character typing.
+//! Both command paths launch exactly one terminal: the supervisor. Standard
+//! transcription uses the deterministic grammar. Super Whisper uses an LLM
+//! only to return strict `{terminal, terminal_number}` JSON. The supervisor
+//! receives the original mission and owns all worker prompts, tmux panes,
+//! follow-ups, validation, and finalization.
 
+mod ai;
 mod ghostty;
 mod grammar;
 mod prompts;
 mod tmux;
 
-use grammar::{AgentKind, ParsedCommand};
+use crate::settings::AppSettings;
+use grammar::AgentKind;
 use log::{error, info};
 use tmux::Tmux;
 
-/// Panes per visible page/grid before a new tab is used.
-const PANES_PER_PAGE: usize = 8;
-/// Settle time after a tmux session exists before typing into its panes.
 const SHELL_SETTLE: std::time::Duration = std::time::Duration::from_millis(400);
-/// Stagger between typing launch lines into consecutive panes.
-const TYPE_STAGGER: std::time::Duration = std::time::Duration::from_millis(150);
-/// Wait for the agent CLI TUI to boot before nudging/pasting. Conservative:
-/// a prompt typed into a half-booted TUI is lost, while a late prompt just
-/// costs a second.
-const AGENT_BOOT_WAIT: std::time::Duration = std::time::Duration::from_millis(3200);
-/// Gap between the Enter nudge and the prompt paste.
+const AGENT_BOOT_WAIT: std::time::Duration = std::time::Duration::from_millis(3_200);
 const NUDGE_GAP: std::time::Duration = std::time::Duration::from_millis(500);
-/// Stagger between pasting prompts into consecutive panes.
-const PASTE_STAGGER: std::time::Duration = std::time::Duration::from_millis(200);
 
-/// The shell line typed into each pane: extend PATH for GUI-installed CLIs,
-/// then exec the agent through a login shell so the user's environment
-/// (homebrew, nvm, etc.) resolves exactly like their own terminal.
 fn launch_line(agent: AgentKind) -> String {
     format!(
         "export PATH=\"$HOME/.local/bin:$HOME/.opencode/bin:$HOME/.bun/bin:$PATH\"; exec {}",
@@ -48,39 +28,64 @@ fn launch_line(agent: AgentKind) -> String {
     )
 }
 
-struct TeamLayout {
-    /// (session name, pane ids) per worker page, in worker order.
-    pages: Vec<(String, Vec<String>)>,
-    brain: Option<(String, String)>,
+#[derive(Debug, Clone)]
+struct SupervisorRequest {
+    agent: AgentKind,
+    workers: usize,
+    mission: String,
 }
 
-/// Entry point called with every finalized transcript. Returns `true` when
-/// the transcript was a terminal command and the launch was dispatched —
-/// the caller must then skip dictation paste/history for this utterance.
+/// Standard transcription path. The parser behavior is unchanged; only the
+/// launch architecture is different. Rust dispatches one supervisor instead
+/// of pre-creating and pre-prompting the worker team.
 pub fn try_handle_voice_command(transcription: &str) -> bool {
-    let Some(cmd) = grammar::parse(transcription) else {
+    let Some(command) = grammar::parse(transcription) else {
         return false;
     };
 
     info!(
         target: "voice_terminal",
-        "Voice command: agent={}, workers={}, brain={}, mission={:?}",
-        cmd.agent.display_name(),
-        cmd.workers,
-        cmd.brain,
-        cmd.mission
+        "Voice supervisor request: agent={}, workers={}, mission={:?}",
+        command.agent.display_name(),
+        command.workers,
+        command.mission
     );
 
-    tauri::async_runtime::spawn(async move {
-        let worker_prompts = prompts::split_worker_prompts(&cmd.mission, cmd.workers).await;
-        let _ = tauri::async_runtime::spawn_blocking(move || launch(cmd, worker_prompts)).await;
-    });
-
+    let request = SupervisorRequest {
+        agent: command.agent,
+        workers: command.workers,
+        mission: command.mission,
+    };
+    let _ = tauri::async_runtime::spawn_blocking(move || launch_supervisor(request));
     true
 }
 
-/// Blocking orchestration — runs on a dedicated thread.
-fn launch(cmd: ParsedCommand, worker_prompts: Vec<String>) {
+/// Super Whisper path. The interpretation LLM returns agent/count JSON only;
+/// the original instruction goes untouched to the supervisor as its mission.
+pub async fn try_handle_ai_command(instruction: &str, settings: &AppSettings) -> bool {
+    let Some(plan) = ai::interpret(instruction, settings).await else {
+        return false;
+    };
+
+    info!(
+        target: "voice_terminal",
+        "AI supervisor request: agent={}, workers={}",
+        plan.agent.display_name(),
+        plan.workers
+    );
+
+    let request = SupervisorRequest {
+        agent: plan.agent,
+        workers: plan.workers,
+        mission: prompts::single_line(instruction),
+    };
+    let _ = tauri::async_runtime::spawn_blocking(move || launch_supervisor(request)).await;
+    true
+}
+
+/// The only Rust-side launch. One tmux session, one pane, one CLI, one prompt.
+/// The supervisor creates and owns every worker surface from inside tmux.
+fn launch_supervisor(request: SupervisorRequest) {
     let Some(tmux) = Tmux::discover() else {
         error!(target: "voice_terminal", "tmux not found; install it (brew install tmux) to use voice terminal commands");
         return;
@@ -90,144 +95,77 @@ fn launch(cmd: ParsedCommand, worker_prompts: Vec<String>) {
         return;
     };
 
-    let Some(layout) = build_layout(&tmux, &cmd, &work_dir) else {
+    let suffix = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or_default();
+    let session = format!("sf-{suffix}-supervisor");
+    if let Err(error) = tmux.create_session(&session, &work_dir) {
+        error!(target: "voice_terminal", "Failed to create supervisor session {session}: {error}");
+        return;
+    }
+    let Some(pane) = tmux.pane_ids(&session).into_iter().next() else {
+        error!(target: "voice_terminal", "Supervisor session {session} has no pane");
         return;
     };
 
-    // Boot the agent CLIs in every pane (workers first, brain last).
-    let mut all_panes: Vec<String> = Vec::new();
-    for (_session, panes) in &layout.pages {
-        all_panes.extend(panes.iter().cloned());
+    std::thread::sleep(SHELL_SETTLE);
+    if let Err(error) = tmux.send_keys_literal(&pane, &launch_line(request.agent)) {
+        error!(target: "voice_terminal", "Failed to launch supervisor CLI in {pane}: {error}");
+        return;
     }
-    let brain_pane = layout.brain.as_ref().map(|(_, pane)| pane.clone());
-    type_launch_lines(&tmux, &all_panes, cmd.agent, brain_pane.as_deref());
-
-    // Make the team visible: worker pages first, brain tab last.
-    let mut sessions: Vec<String> = layout.pages.iter().map(|(s, _)| s.clone()).collect();
-    if let Some((brain_session, _)) = &layout.brain {
-        sessions.push(brain_session.clone());
-    }
-    if let Err(e) = ghostty::open_sessions(tmux.binary(), &sessions) {
-        error!(target: "voice_terminal", "Could not attach terminal tabs (sessions still exist detached): {e}");
+    if let Err(error) = tmux.send_enter(&pane) {
+        error!(target: "voice_terminal", "Failed to submit supervisor CLI in {pane}: {error}");
+        return;
     }
 
-    // The agents have booted during the tab dance. Nudge each readline,
-    // then paste the briefs.
+    if let Err(error) = ghostty::open_sessions(tmux.binary(), std::slice::from_ref(&session)) {
+        error!(target: "voice_terminal", "Could not attach supervisor terminal (session remains detached): {error}");
+    }
+
     std::thread::sleep(AGENT_BOOT_WAIT);
-    for pane in all_panes.iter().chain(brain_pane.iter()) {
-        let _ = tmux.send_enter(pane);
-        std::thread::sleep(std::time::Duration::from_millis(60));
-    }
+    let _ = tmux.send_enter(&pane);
     std::thread::sleep(NUDGE_GAP);
 
-    let mut worker_index = 0;
-    for (_, panes) in &layout.pages {
-        for pane in panes {
-            if let Some(prompt) = worker_prompts.get(worker_index) {
-                if !prompt.trim().is_empty() {
-                    if let Err(e) = tmux.paste_prompt(pane, prompt) {
-                        error!(target: "voice_terminal", "Failed to paste prompt into {pane}: {e}");
-                    }
-                    std::thread::sleep(PASTE_STAGGER);
-                }
-            }
-            worker_index += 1;
-        }
+    let prompt =
+        prompts::supervisor_prompt(&request.mission, request.agent, request.workers, &session);
+    if let Err(error) = tmux.paste_prompt(&pane, &prompt) {
+        error!(target: "voice_terminal", "Failed to paste supervisor prompt into {pane}: {error}");
+        return;
     }
 
-    if let Some((_, brain_pane)) = &layout.brain {
-        // Roster labels reflect the global worker index across pages.
-        let mut roster = Vec::new();
-        let mut n = 0;
-        for (_, panes) in &layout.pages {
-            for pane in panes {
-                n += 1;
-                roster.push(format!("Worker-{n} at tmux pane {pane}"));
-            }
-        }
-        let brain_text = prompts::brain_prompt(&cmd.mission, &worker_prompts, &roster);
-        if let Err(e) = tmux.paste_prompt(brain_pane, &brain_text) {
-            error!(target: "voice_terminal", "Failed to paste brain prompt: {e}");
-        }
-    }
-
-    info!(target: "voice_terminal", "Launch complete: {} worker(s){}, agent={}",
-        cmd.workers,
-        if cmd.brain { " + brain" } else { "" },
-        cmd.agent.display_name()
+    info!(
+        target: "voice_terminal",
+        "Supervisor launch complete: session={}, agent={}, requested_workers={}",
+        session,
+        request.agent.display_name(),
+        request.workers
     );
 }
 
-/// Create the tmux sessions, split panes into grids, and return the pane map.
-fn build_layout(tmux: &Tmux, cmd: &ParsedCommand, work_dir: &str) -> Option<TeamLayout> {
-    let suffix = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos())
-        .unwrap_or_default();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let mut pages = Vec::new();
-    let mut remaining = cmd.workers;
-    let mut page_index = 0;
-    while remaining > 0 {
-        let batch = remaining.min(PANES_PER_PAGE);
-        remaining -= batch;
-        let session = format!("sf-{suffix}-w{page_index}");
-        if let Err(e) = tmux.create_session(&session, work_dir) {
-            error!(target: "voice_terminal", "Failed to create tmux session {session}: {e}");
-            return None;
-        }
-        // Split all panes first, then fix the geometry once (sp pattern).
-        let first_pane = tmux.pane_ids(&session).into_iter().next();
-        let Some(first_pane) = first_pane else {
-            error!(target: "voice_terminal", "Session {session} has no panes");
-            return None;
+    #[test]
+    fn standard_command_preserves_agent_count_and_mission_for_supervisor() {
+        let command = grammar::parse("open 4 codex terminals fix auth and run tests")
+            .expect("terminal command");
+        let request = SupervisorRequest {
+            agent: command.agent,
+            workers: command.workers,
+            mission: command.mission,
         };
-        let mut panes = vec![first_pane.clone()];
-        for _ in 1..batch {
-            match tmux.split_horizontal(&panes.last().unwrap()) {
-                Ok(id) => panes.push(id),
-                Err(e) => error!(target: "voice_terminal", "Split failed in {session}: {e}"),
-            }
-        }
-        tmux.apply_grid_layout(&session, panes.len());
-        pages.push((session, panes));
-        page_index += 1;
+        assert_eq!(request.agent, AgentKind::Codex);
+        assert_eq!(request.workers, 4);
+        assert_eq!(request.mission, "fix auth and run tests");
     }
 
-    let brain = if cmd.brain {
-        let session = format!("sf-{suffix}-brain");
-        match tmux.create_session(&session, work_dir) {
-            Ok(()) => tmux
-                .pane_ids(&session)
-                .into_iter()
-                .next()
-                .map(|pane| (session, pane)),
-            Err(e) => {
-                error!(target: "voice_terminal", "Failed to create brain session: {e}");
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    std::thread::sleep(SHELL_SETTLE);
-    Some(TeamLayout { pages, brain })
-}
-
-/// Type the agent launch command into every pane (workers, then brain).
-fn type_launch_lines(tmux: &Tmux, panes: &[String], agent: AgentKind, brain_pane: Option<&str>) {
-    let line = launch_line(agent);
-    for pane in panes
-        .iter()
-        .map(String::as_str)
-        .chain(brain_pane.into_iter())
-    {
-        if let Err(e) = tmux.send_keys_literal(pane, &line) {
-            error!(target: "voice_terminal", "Failed to type launch line into {pane}: {e}");
-            continue;
-        }
-        let _ = tmux.send_enter(pane);
-        std::thread::sleep(TYPE_STAGGER);
+    #[test]
+    fn launch_line_starts_only_the_selected_supervisor_cli() {
+        let line = launch_line(AgentKind::Claude);
+        assert!(line.ends_with("exec claude"));
+        assert!(!line.contains("tmux split-window"));
+        assert!(!line.contains("prompt"));
     }
 }

@@ -1,16 +1,60 @@
 const FILLERS: &[&str] = &["um", "uh", "erm", "hmm", "hm", "mmm", "mm"];
 
 const PROTECTED_WORDS: &[&str] = &[
-    "not", "never", "no", "n't", "don't", "dont", "can't", "cant", "cannot", "shouldn't",
-    "shouldnt", "won't", "wont", "wouldn't", "wouldnt", "couldn't", "couldnt", "isn't",
-    "isnt", "aren't", "arent", "wasn't", "wasnt", "weren't", "werent", "haven't",
-    "havent", "hasn't", "hasnt", "hadn't", "hadnt", "didn't", "didnt", "doesn't",
+    "not",
+    "never",
+    "no",
+    "n't",
+    "don't",
+    "dont",
+    "can't",
+    "cant",
+    "cannot",
+    "shouldn't",
+    "shouldnt",
+    "won't",
+    "wont",
+    "wouldn't",
+    "wouldnt",
+    "couldn't",
+    "couldnt",
+    "isn't",
+    "isnt",
+    "aren't",
+    "arent",
+    "wasn't",
+    "wasnt",
+    "weren't",
+    "werent",
+    "haven't",
+    "havent",
+    "hasn't",
+    "hasnt",
+    "hadn't",
+    "hadnt",
+    "didn't",
+    "didnt",
+    "doesn't",
     "doesnt",
 ];
 
 const RESTART_BRIDGES: &[&str] = &[
-    "okay", "ok", "right", "sorry", "actually", "well", "so", "like", "that", "basically",
-    "anyway", "anyways", "mean", "means", "no", "i",
+    "okay",
+    "ok",
+    "right",
+    "sorry",
+    "actually",
+    "well",
+    "so",
+    "like",
+    "that",
+    "basically",
+    "anyway",
+    "anyways",
+    "mean",
+    "means",
+    "no",
+    "i",
 ];
 
 const MAX_REPEAT_NGRAM: usize = 16;
@@ -492,9 +536,12 @@ fn remove_restarts(tokens: Vec<Token>) -> Vec<Token> {
 
 fn is_closing_punctuation_token(token: &str) -> bool {
     !token.is_empty()
-        && token
-            .chars()
-            .all(|ch| matches!(ch, ',' | '.' | ';' | ':' | '!' | '?' | '%' | ')' | ']' | '}'))
+        && token.chars().all(|ch| {
+            matches!(
+                ch,
+                ',' | '.' | ';' | ':' | '!' | '?' | '%' | ')' | ']' | '}'
+            )
+        })
 }
 
 fn is_opening_punctuation_token(token: &str) -> bool {
@@ -506,7 +553,10 @@ fn starts_with_digit(token: &str) -> bool {
 }
 
 fn ends_with_digit(token: &str) -> bool {
-    token.chars().next_back().is_some_and(|ch| ch.is_ascii_digit())
+    token
+        .chars()
+        .next_back()
+        .is_some_and(|ch| ch.is_ascii_digit())
 }
 
 fn normalize_spacing_and_punctuation(tokens: Vec<Token>) -> String {
@@ -585,7 +635,14 @@ fn collapse_self_correction_bridges(tokens: Vec<Token>) -> Vec<Token> {
     }
 
     const BRIDGES: &[&str] = &[
-        "mean", "meant", "actually", "wait", "rather", "instead", "sorry", "basically",
+        "mean",
+        "meant",
+        "actually",
+        "wait",
+        "rather",
+        "instead",
+        "sorry",
+        "basically",
     ];
     const SUBJECTS: &[&str] = &["i", "we", "you", "he", "she", "they", "it"];
     const MAX_SELF_CORRECT_FRAG: usize = 5;
@@ -654,9 +711,28 @@ fn collapse_no_corrections(tokens: Vec<Token>) -> Vec<Token> {
     }
 
     const ALT_CHOICES: &[&str] = &[
-        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
-        "january", "february", "march", "april", "may", "june", "july", "august",
-        "september", "october", "november", "december", "tomorrow", "today", "tonight",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+        "tomorrow",
+        "today",
+        "tonight",
     ];
 
     let mut out: Vec<Token> = Vec::with_capacity(tokens.len());
@@ -691,8 +767,19 @@ fn collapse_no_corrections(tokens: Vec<Token>) -> Vec<Token> {
 
 fn collapse_modifier_stacking(tokens: Vec<Token>) -> Vec<Token> {
     const INTENSIFIERS: &[&str] = &[
-        "really", "extremely", "very", "quite", "rather", "fairly", "highly", "super", "ultra",
-        "absolutely", "completely", "totally", "utterly",
+        "really",
+        "extremely",
+        "very",
+        "quite",
+        "rather",
+        "fairly",
+        "highly",
+        "super",
+        "ultra",
+        "absolutely",
+        "completely",
+        "totally",
+        "utterly",
     ];
     if tokens.len() < 3 {
         return tokens;
@@ -771,7 +858,10 @@ mod tests {
 
     #[test]
     fn carries_final_punctuation_when_collapsing_duplicates() {
-        check("when when, model dialog render", "when, model dialog render");
+        check(
+            "when when, model dialog render",
+            "when, model dialog render",
+        );
         check("really really really. Stop.", "really. Stop.");
     }
 
@@ -780,7 +870,10 @@ mod tests {
         check("very, very important", "very, very important");
         check("hello, hello there", "hello, hello there");
         check("No, no, keep that", "No, no, keep that");
-        check("I know, I know this is weird", "I know, I know this is weird");
+        check(
+            "I know, I know this is weird",
+            "I know, I know this is weird",
+        );
     }
 
     #[test]
@@ -811,7 +904,10 @@ mod tests {
 
     #[test]
     fn preserves_numbers_times_paths_urls_emails_and_code_tokens() {
-        check("src-tauri/src/managers/mlx.rs", "src-tauri/src/managers/mlx.rs");
+        check(
+            "src-tauri/src/managers/mlx.rs",
+            "src-tauri/src/managers/mlx.rs",
+        );
         check("@/components/ui/Badge.tsx", "@/components/ui/Badge.tsx");
         check("bg-rose-600", "bg-rose-600");
         check("10:00 AM for 30 minutes", "10:00 AM for 30 minutes");
@@ -931,7 +1027,10 @@ mod tests {
     #[test]
     fn streaming_preview_is_conservative() {
         assert_eq!(normalize_streaming_preview("when when hello"), "when hello");
-        assert_eq!(normalize_streaming_preview("um when when hello"), "when hello");
+        assert_eq!(
+            normalize_streaming_preview("um when when hello"),
+            "when hello"
+        );
         assert_eq!(
             normalize_streaming_preview("I don't I don't know"),
             "I don't I don't know"
@@ -956,11 +1055,11 @@ mod tests {
 
     #[test]
     fn collapses_self_correction_alternative() {
-        check("we should ship Tuesday no Wednesday", "we should ship Wednesday");
         check(
-            "the demo is Monday no Tuesday",
-            "the demo is Tuesday",
+            "we should ship Tuesday no Wednesday",
+            "we should ship Wednesday",
         );
+        check("the demo is Monday no Tuesday", "the demo is Tuesday");
         check(
             "lets meet Friday no Thursday next week",
             "lets meet Thursday next week",
@@ -974,7 +1073,10 @@ mod tests {
         // 2-3x intentional emphasis across commas → preserved (spec).
         check("very, very important", "very, very important");
         check("go, go, go", "go, go, go");
-        check("no, no, that's not what I meant", "no, no, that's not what I meant");
+        check(
+            "no, no, that's not what I meant",
+            "no, no, that's not what I meant",
+        );
     }
 
     #[test]

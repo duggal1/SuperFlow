@@ -111,10 +111,7 @@ pub(crate) fn strip_voice_command_hook<'a>(transcript: &'a str, hook: &str) -> O
         // Fuzzy fallback for ASR mis-recognitions of the first word (e.g.
         // "his" -> "hey", "hay" -> "hey"). Compare the transcript prefix of the
         // hook's length against the hook; a small edit distance is tolerated.
-        let candidate: String = norm_transcript
-            .chars()
-            .take(hook_len)
-            .collect();
+        let candidate: String = norm_transcript.chars().take(hook_len).collect();
         levenshtein(&candidate, &norm_hook) <= 2
     };
     if !matched {
@@ -127,17 +124,18 @@ pub(crate) fn strip_voice_command_hook<'a>(transcript: &'a str, hook: &str) -> O
         0
     } else {
         let last = offsets[hook_len - 1];
-        last + transcript[last..].chars().next().map_or(0, |c| c.len_utf8())
+        last + transcript[last..]
+            .chars()
+            .next()
+            .map_or(0, |c| c.len_utf8())
     };
-    Some(
-        transcript[split..].trim_start_matches(|character: char| {
-            character.is_whitespace()
-                || matches!(
-                    character,
-                    ',' | '.' | ':' | ';' | '!' | '?' | '-' | '–' | '—'
-                )
-        }),
-    )
+    Some(transcript[split..].trim_start_matches(|character: char| {
+        character.is_whitespace()
+            || matches!(
+                character,
+                ',' | '.' | ':' | ';' | '!' | '?' | '-' | '–' | '—'
+            )
+    }))
 }
 
 /// Classic Levenshtein edit distance (bounded — hook words are short).

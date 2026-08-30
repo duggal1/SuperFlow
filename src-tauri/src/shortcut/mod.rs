@@ -43,10 +43,8 @@ impl InjectedKeyGuard {
 impl Drop for InjectedKeyGuard {
     fn drop(&mut self) {
         INJECTED_KEY_GUARDS.fetch_sub(1, Ordering::AcqRel);
-        IGNORE_INJECTED_KEYS_UNTIL_MS.store(
-            crate::context::types::now_millis() + 250,
-            Ordering::Release,
-        );
+        IGNORE_INJECTED_KEYS_UNTIL_MS
+            .store(crate::context::types::now_millis() + 250, Ordering::Release);
     }
 }
 

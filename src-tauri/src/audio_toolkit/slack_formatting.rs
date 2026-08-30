@@ -137,14 +137,8 @@ const GREETING_BODY_START: &[&str] = &[
     "sorry",
 ];
 
-const KNOWN_GREETING_AUDIENCES: &[&str] = &[
-    "team",
-    "everyone",
-    "everybody",
-    "all",
-    "folks",
-    "guys",
-];
+const KNOWN_GREETING_AUDIENCES: &[&str] =
+    &["team", "everyone", "everybody", "all", "folks", "guys"];
 
 const ORDINAL_NON_LIST_FOLLOWERS: &[&str] = &[
     "in", "to", "of", "at", "for", "place", "time", "person", "half", "quarter",
@@ -202,10 +196,12 @@ pub fn has_strong_slack_signal(text: &str) -> bool {
             return true;
         }
 
-        if matches!(normalized.as_str(), "mention" | "tag" | "hashtag" | "channel" | "pound")
-            && words
-                .get(index + 1)
-                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        if matches!(
+            normalized.as_str(),
+            "mention" | "tag" | "hashtag" | "channel" | "pound"
+        ) && words
+            .get(index + 1)
+            .is_some_and(|candidate| valid_spoken_slack_name(candidate))
         {
             return true;
         }
@@ -219,8 +215,12 @@ pub fn has_strong_slack_signal(text: &str) -> bool {
         }
 
         if normalized == "at"
-            && words.get(index + 1).is_some_and(|next| normalized_word(next) == "the")
-            && words.get(index + 2).is_some_and(|next| normalized_word(next) == "rate")
+            && words
+                .get(index + 1)
+                .is_some_and(|next| normalized_word(next) == "the")
+            && words
+                .get(index + 2)
+                .is_some_and(|next| normalized_word(next) == "rate")
             && words
                 .get(index + 3)
                 .is_some_and(|candidate| valid_spoken_slack_name(candidate))
@@ -231,9 +231,9 @@ pub fn has_strong_slack_signal(text: &str) -> bool {
         if normalized == "at"
             && (index == 0
                 || index == 1
-                    && words
-                        .first()
-                        .is_some_and(|opener| GREETING_OPENERS.contains(&normalized_word(opener).as_str())))
+                    && words.first().is_some_and(|opener| {
+                        GREETING_OPENERS.contains(&normalized_word(opener).as_str())
+                    }))
             && words
                 .get(index + 1)
                 .is_some_and(|candidate| valid_spoken_slack_name(candidate))
@@ -332,8 +332,12 @@ fn normalize_spoken_slack_words(text: &str, slack_message: bool) -> String {
         let normalized = normalized_word(word);
 
         if normalized == "at"
-            && words.get(index + 1).is_some_and(|next| normalized_word(next) == "the")
-            && words.get(index + 2).is_some_and(|next| normalized_word(next) == "rate")
+            && words
+                .get(index + 1)
+                .is_some_and(|next| normalized_word(next) == "the")
+            && words
+                .get(index + 2)
+                .is_some_and(|next| normalized_word(next) == "rate")
             && words
                 .get(index + 3)
                 .is_some_and(|candidate| valid_spoken_slack_name(candidate))
@@ -353,10 +357,12 @@ fn normalize_spoken_slack_words(text: &str, slack_message: bool) -> String {
             continue;
         }
 
-        if matches!(normalized.as_str(), "hashtag" | "hash" | "channel" | "pound")
-            && words
-                .get(index + 1)
-                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        if matches!(
+            normalized.as_str(),
+            "hashtag" | "hash" | "channel" | "pound"
+        ) && words
+            .get(index + 1)
+            .is_some_and(|candidate| valid_spoken_slack_name(candidate))
         {
             output.push(with_slack_sigil(words[index + 1], '#'));
             index += 2;
@@ -378,20 +384,28 @@ fn normalize_spoken_slack_words(text: &str, slack_message: bool) -> String {
         index += 1;
     }
 
-    format!("{}{}{}", &text[..leading], output.join(" "), &text[trailing..])
+    format!(
+        "{}{}{}",
+        &text[..leading],
+        output.join(" "),
+        &text[trailing..]
+    )
 }
 
 fn valid_spoken_slack_name(token: &&str) -> bool {
     let core = trim_token_punctuation(token);
     let normalized = normalized_word(core);
     const REJECTED: &[&str] = &[
-        "a", "an", "the", "this", "that", "these", "those", "it", "me", "my", "our",
-        "your", "his", "her", "their", "password",
+        "a", "an", "the", "this", "that", "these", "those", "it", "me", "my", "our", "your", "his",
+        "her", "their", "password",
     ];
 
     !REJECTED.contains(&normalized.as_str())
         && !normalized.is_empty()
-        && !normalized.chars().next().is_some_and(|character| character.is_ascii_digit())
+        && !normalized
+            .chars()
+            .next()
+            .is_some_and(|character| character.is_ascii_digit())
         && valid_slack_name(core)
 }
 
@@ -411,9 +425,7 @@ fn with_slack_sigil(token: &str, sigil: char) -> String {
     let end = token
         .char_indices()
         .rev()
-        .find(|(_, character)| {
-            character.is_alphanumeric() || matches!(character, '.' | '_' | '-')
-        })
+        .find(|(_, character)| character.is_alphanumeric() || matches!(character, '.' | '_' | '-'))
         .map(|(index, character)| index + character.len_utf8())
         .unwrap_or(token.len());
     let mut output = String::with_capacity(token.len() + 1);
@@ -499,7 +511,10 @@ fn format_prose_segment(text: &str, options: SlackFormatOptions) -> String {
     let trimmed = cleaned.trim();
 
     if looks_like_existing_structured_slack(trimmed) {
-        return maybe_wrap_technical_tokens_preserving_lines(trimmed, options.format_technical_tokens);
+        return maybe_wrap_technical_tokens_preserving_lines(
+            trimmed,
+            options.format_technical_tokens,
+        );
     }
 
     let (greeting, body) = if options.format_greetings {
@@ -555,8 +570,14 @@ fn normalize_slack_prose_structure(text: &str) -> String {
         .replace("file mapping", "file-mapping")
         .replace("So basically quick update", "Quick update")
         .replace("so basically quick update", "quick update")
-        .replace("quick update on payroll migration", "quick update on the payroll migration")
-        .replace("Quick update on payroll migration", "Quick update on the payroll migration")
+        .replace(
+            "quick update on payroll migration",
+            "quick update on the payroll migration",
+        )
+        .replace(
+            "Quick update on payroll migration",
+            "Quick update on the payroll migration",
+        )
         .replace("quick update on this ", "quick update on the ")
         .replace("Quick update on this ", "Quick update on the ")
         .replace("a couple of Issues", "a couple of issues")
@@ -627,7 +648,9 @@ fn normalize_slack_prose_structure(text: &str) -> String {
 }
 
 fn lowercase_first_alpha(text: &str) -> String {
-    let Some((index, first)) = text.char_indices().find(|(_, character)| character.is_alphabetic())
+    let Some((index, first)) = text
+        .char_indices()
+        .find(|(_, character)| character.is_alphabetic())
     else {
         return text.to_string();
     };
@@ -993,9 +1016,7 @@ fn parse_numbered_list(text: &str) -> Option<ParsedNumberedList> {
     }
 
     if !cues.windows(2).all(|pair| {
-        pair[0].value == u16::MAX
-            || pair[1].value == u16::MAX
-            || pair[1].value > pair[0].value
+        pair[0].value == u16::MAX || pair[1].value == u16::MAX || pair[1].value > pair[0].value
     }) {
         return None;
     }
@@ -1518,11 +1539,7 @@ fn is_technical_token(token: &str) -> bool {
     }
 
     // ENV_CONSTANT / snake_case identifiers.
-    if token.contains('_')
-        && token
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-    {
+    if token.contains('_') && token.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return true;
     }
 
@@ -1649,7 +1666,10 @@ mod tests {
     #[test]
     fn ordinary_hey_sentence_is_not_forced_into_greeting() {
         let input = "hey this seems wrong and we should inspect it";
-        assert_eq!(format_for_slack(input), "Hey this seems wrong and we should inspect it");
+        assert_eq!(
+            format_for_slack(input),
+            "Hey this seems wrong and we should inspect it"
+        );
     }
 
     #[test]
@@ -1690,13 +1710,19 @@ mod tests {
     #[test]
     fn existing_bullets_are_preserved() {
         let input = "Update:\n• Auth fixed\n• Payments fixed\n• Deploy complete";
-        assert_eq!(format_for_slack(input), "Update: • Auth fixed • Payments fixed • Deploy complete");
+        assert_eq!(
+            format_for_slack(input),
+            "Update: • Auth fixed • Payments fixed • Deploy complete"
+        );
     }
 
     #[test]
     fn existing_numbered_list_is_preserved() {
         let input = "1. Fix login\n2. Check dashboard\n3. Ship";
-        assert_eq!(format_for_slack(input), "1. Fix login 2. Check dashboard 3. Ship");
+        assert_eq!(
+            format_for_slack(input),
+            "1. Fix login 2. Check dashboard 3. Ship"
+        );
     }
 
     #[test]
@@ -1711,10 +1737,7 @@ mod tests {
     #[test]
     fn wraps_file_paths_in_inline_code() {
         let out = format_for_slack("please check src-tauri/src/router.rs before shipping");
-        assert!(
-            out.contains("`src-tauri/src/router.rs`"),
-            "got: {out}"
-        );
+        assert!(out.contains("`src-tauri/src/router.rs`"), "got: {out}");
     }
 
     #[test]
@@ -1732,7 +1755,10 @@ mod tests {
     #[test]
     fn preserves_urls() {
         let input = "open https://example.com/test and check it";
-        assert_eq!(format_for_slack(input), "Open https://example.com/test and check it");
+        assert_eq!(
+            format_for_slack(input),
+            "Open https://example.com/test and check it"
+        );
     }
 
     #[test]
@@ -1746,7 +1772,8 @@ mod tests {
 
     #[test]
     fn code_fence_content_is_not_reformatted() {
-        let input = "check this\n```rust\nfn main() { println!(\"first second\"); }\n```\nthen reply";
+        let input =
+            "check this\n```rust\nfn main() { println!(\"first second\"); }\n```\nthen reply";
         let out = format_for_slack(input);
 
         assert!(out.contains("```rust\nfn main() { println!(\"first second\"); }\n```"));
@@ -1811,10 +1838,7 @@ mod tests {
         };
 
         assert_eq!(
-            format_for_slack_with_options(
-                "hey david quick update everything is working",
-                options
-            ),
+            format_for_slack_with_options("hey david quick update everything is working", options),
             "Hey david quick update everything is working"
         );
     }

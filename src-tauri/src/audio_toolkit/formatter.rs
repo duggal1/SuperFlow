@@ -1,8 +1,9 @@
-
 use crate::settings::PunctuationStyle;
 // Force slack_formatting into use as requested
 use crate::audio_toolkit::slack_formatting as _slack_fmt;
-const _: () = { let _ = _slack_fmt::SlackSurface::Unknown; };
+const _: () = {
+    let _ = _slack_fmt::SlackSurface::Unknown;
+};
 
 const UNITS: &[&str] = &[
     "zero",
@@ -234,7 +235,12 @@ fn try_parse_time(words: &[&str], start: usize) -> Option<(String, usize)> {
     let hour_word = clean(words.get(start)?);
     let hour = unit_value(&hour_word)
         .filter(|h| (1..=24).contains(h))
-        .or_else(|| hour_word.parse::<u64>().ok().filter(|h| (1..=24).contains(h)))?;
+        .or_else(|| {
+            hour_word
+                .parse::<u64>()
+                .ok()
+                .filter(|h| (1..=24).contains(h))
+        })?;
 
     let mut index = start + 1;
     let minute_word = clean(words.get(index)?);
@@ -273,9 +279,7 @@ fn try_parse_time(words: &[&str], start: usize) -> Option<(String, usize)> {
     // behaviour for "meet at twenty three thirty pm" → no conversion.
     if start > 0 {
         let prev = clean(words[start - 1]);
-        if unit_value(&prev).is_some()
-            || tens_value(&prev).is_some()
-            || prev.parse::<u64>().is_ok()
+        if unit_value(&prev).is_some() || tens_value(&prev).is_some() || prev.parse::<u64>().is_ok()
         {
             return None;
         }
@@ -291,14 +295,10 @@ fn try_parse_time(words: &[&str], start: usize) -> Option<(String, usize)> {
     } else if suffix == "am" {
         meridiem = Some("AM");
         suffix_words = 1;
-    } else if suffix == "p"
-        && words.get(index + 1).map(|w| clean(w)).as_deref() == Some("m")
-    {
+    } else if suffix == "p" && words.get(index + 1).map(|w| clean(w)).as_deref() == Some("m") {
         meridiem = Some("PM");
         suffix_words = 2;
-    } else if suffix == "a"
-        && words.get(index + 1).map(|w| clean(w)).as_deref() == Some("m")
-    {
+    } else if suffix == "a" && words.get(index + 1).map(|w| clean(w)).as_deref() == Some("m") {
         meridiem = Some("AM");
         suffix_words = 2;
     }
@@ -518,7 +518,6 @@ fn with_consumed_suffix(mut rendered: String, words: &[&str], start: usize, used
     rendered
 }
 
-
 fn coordinate_commas(sentence: &str, style: PunctuationStyle) -> String {
     if matches!(style, PunctuationStyle::Informal) {
         return sentence.to_string();
@@ -559,7 +558,10 @@ fn coordinate_commas(sentence: &str, style: PunctuationStyle) -> String {
                 seen += 1;
                 if seen < total
                     && rebuilt.last().is_some_and(|previous| {
-                        previous.chars().next_back().is_some_and(|c| c.is_alphanumeric())
+                        previous
+                            .chars()
+                            .next_back()
+                            .is_some_and(|c| c.is_alphanumeric())
                     })
                 {
                     if let Some(previous) = rebuilt.last_mut() {
@@ -576,7 +578,11 @@ fn coordinate_commas(sentence: &str, style: PunctuationStyle) -> String {
 }
 
 fn recapitalize(text: &str) -> String {
-    let Some(first_start) = text.char_indices().find(|(_, c)| c.is_alphabetic()).map(|(i, _)| i) else {
+    let Some(first_start) = text
+        .char_indices()
+        .find(|(_, c)| c.is_alphabetic())
+        .map(|(i, _)| i)
+    else {
         return text.to_string();
     };
 
@@ -726,7 +732,6 @@ fn wrap_technical_tokens(text: &str) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
-
 
 pub fn format(text: &str, style: PunctuationStyle) -> String {
     if text.trim().is_empty() {
@@ -895,16 +900,57 @@ struct ParsedColonList {
 
 const GREETING_OPENERS: &[&str] = &["hey", "hi", "hello", "dear"];
 const GREETING_REJECT_FIRST: &[&str] = &[
-    "everyone", "everybody", "team", "folks", "guys", "all", "there", "buddy", "buddies",
+    "everyone",
+    "everybody",
+    "team",
+    "folks",
+    "guys",
+    "all",
+    "there",
+    "buddy",
+    "buddies",
 ];
 const GREETING_BODY_START: &[&str] = &[
-    "just", "wanted", "quick", "hope", "please", "can", "could", "would", "how", "thanks",
-    "thank", "following", "checking", "reaching", "writing", "sending", "letting", "giving",
-    "i", "we", "the", "this", "that", "regarding", "about", "wanted", "sorry",
+    "just",
+    "wanted",
+    "quick",
+    "hope",
+    "please",
+    "can",
+    "could",
+    "would",
+    "how",
+    "thanks",
+    "thank",
+    "following",
+    "checking",
+    "reaching",
+    "writing",
+    "sending",
+    "letting",
+    "giving",
+    "i",
+    "we",
+    "the",
+    "this",
+    "that",
+    "regarding",
+    "about",
+    "wanted",
+    "sorry",
 ];
 const SIGNOFFS: &[&str] = &[
-    "many thanks", "thank you", "talk soon", "take care", "best regards", "kind regards",
-    "thanks", "cheers", "best", "regards", "sincerely",
+    "many thanks",
+    "thank you",
+    "talk soon",
+    "take care",
+    "best regards",
+    "kind regards",
+    "thanks",
+    "cheers",
+    "best",
+    "regards",
+    "sincerely",
 ];
 
 // -----------------------------------------------------------------------------
@@ -993,7 +1039,16 @@ const SUBJECT_MAX_WORDS: usize = 12;
 /// Words that start the actual email body when dictating subject-first
 /// ("subject updated rollout timeline hey sarah …" — body starts at "hey").
 const SUBJECT_BODY_STARTERS: &[&str] = &[
-    "hey", "hi", "hello", "dear", "greetings", "yo", "good", "morning", "afternoon", "evening",
+    "hey",
+    "hi",
+    "hello",
+    "dear",
+    "greetings",
+    "yo",
+    "good",
+    "morning",
+    "afternoon",
+    "evening",
     "team",
 ];
 
@@ -1077,7 +1132,9 @@ fn extract_email_subject(text: &str) -> ParsedEmailSubject {
         let mut span_start = 1usize;
         if words.len() > 1
             && canonical_marker(words[1]).is_none()
-            && words[1].trim_end_matches([':', ',', '.']).eq_ignore_ascii_case("line")
+            && words[1]
+                .trim_end_matches([':', ',', '.'])
+                .eq_ignore_ascii_case("line")
         {
             span_start = 2;
         }
@@ -1180,7 +1237,9 @@ fn extract_email_subject(text: &str) -> ParsedEmailSubject {
         // "subject line" / "subject is" / "subject line is" in middle — skip those fillers
         let mut span_start = marker_idx + 1;
         if words.len() > span_start
-            && words[span_start].trim_end_matches([':', ',', '.']).eq_ignore_ascii_case("line")
+            && words[span_start]
+                .trim_end_matches([':', ',', '.'])
+                .eq_ignore_ascii_case("line")
         {
             span_start += 1;
         }
@@ -1228,7 +1287,11 @@ fn extract_email_subject(text: &str) -> ParsedEmailSubject {
             if span.is_empty() || span.len() > SUBJECT_MAX_WORDS {
                 continue;
             }
-            let last = span.last().unwrap().trim_matches(|c: char| matches!(c, ':' | ',')).to_lowercase();
+            let last = span
+                .last()
+                .unwrap()
+                .trim_matches(|c: char| matches!(c, ':' | ','))
+                .to_lowercase();
             if GREETING_BODY_START.contains(&last.as_str()) {
                 continue;
             }
@@ -1259,7 +1322,11 @@ fn extract_email_subject(text: &str) -> ParsedEmailSubject {
         body_words.extend_from_slice(&words[span_end..]);
         let mut body = body_words.join(" ");
         // Clean stray double punctuation left by removal: "update , can" → "update can"
-        body = body.replace(" ,", ",").replace("  ", " ").trim().to_string();
+        body = body
+            .replace(" ,", ",")
+            .replace("  ", " ")
+            .trim()
+            .to_string();
         while body.ends_with(',') {
             body.pop();
             body = body.trim_end().to_string();
@@ -1365,10 +1432,17 @@ fn canonical_signoff_word(word: &str) -> Option<&'static str> {
 /// `Name` -> `Name\nTitle` -> `Name\nTitle, Company` -> `Name\nCompany`.
 /// Returns `None` when there is no known author name.
 fn build_email_signature(context: &EmailFormatContext<'_>) -> Option<String> {
-    let name = context.author_name.map(str::trim).filter(|n| !n.is_empty())?;
+    let name = context
+        .author_name
+        .map(str::trim)
+        .filter(|n| !n.is_empty())?;
     let mut lines = vec![name.to_string()];
     if context.include_title {
-        if let Some(title) = context.author_title.map(str::trim).filter(|t| !t.is_empty()) {
+        if let Some(title) = context
+            .author_title
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+        {
             let mut line = title.to_string();
             if context.include_company {
                 if let Some(company) = context
@@ -1410,8 +1484,27 @@ fn build_email_signature(context: &EmailFormatContext<'_>) -> Option<String> {
 // "Thanks so much"
 // "Thanks everyone"
 const SIGNOFF_CONTINUATIONS: &[&str] = &[
-    "for", "to", "again", "so", "very", "a", "the", "and", "but", "because", "everyone",
-    "everybody", "all", "your", "you", "that", "this", "with", "about", "if", "when",
+    "for",
+    "to",
+    "again",
+    "so",
+    "very",
+    "a",
+    "the",
+    "and",
+    "but",
+    "because",
+    "everyone",
+    "everybody",
+    "all",
+    "your",
+    "you",
+    "that",
+    "this",
+    "with",
+    "about",
+    "if",
+    "when",
 ];
 
 fn clean_email_word(word: &str) -> String {
@@ -1445,7 +1538,8 @@ fn looks_like_spoken_signature(tokens: &[&str]) -> bool {
         return false;
     }
     tokens.iter().all(|token| {
-        let cleaned = token.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'' && c != '’' && c != '-');
+        let cleaned =
+            token.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'' && c != '’' && c != '-');
         cleaned.len() >= 2
             && cleaned
                 .chars()
@@ -1586,10 +1680,7 @@ fn extract_email_closing(
 ///     "Hey Wojciech,"
 ///
 /// No fuzzy matching. No guessing. Exact metadata wins.
-fn canonicalize_email_greeting(
-    greeting: &str,
-    context: &EmailFormatContext<'_>,
-) -> String {
+fn canonicalize_email_greeting(greeting: &str, context: &EmailFormatContext<'_>) -> String {
     if !context.is_email {
         return greeting.to_string();
     }
@@ -1693,7 +1784,10 @@ fn trim_list_item(text: &str) -> &str {
 
 fn is_name_like(word: &str) -> bool {
     let core = word.trim_matches(|c: char| ",.;:!?\"'()[]{}".contains(c));
-    core.len() >= 2 && core.chars().all(|c| c.is_alphabetic() || c == '\'' || c == '-')
+    core.len() >= 2
+        && core
+            .chars()
+            .all(|c| c.is_alphabetic() || c == '\'' || c == '-')
 }
 
 fn extract_email_envelope(text: &str) -> Option<(String, String)> {
@@ -1759,7 +1853,10 @@ fn extract_email_envelope(text: &str) -> Option<(String, String)> {
         (false, false) => format!("{inline_body} {rest}"),
     };
 
-    let greeting = format!("{},", recapitalize(&format!("{opener} {}", names.join(" "))));
+    let greeting = format!(
+        "{},",
+        recapitalize(&format!("{opener} {}", names.join(" ")))
+    );
     Some((greeting, body))
 }
 
@@ -1799,10 +1896,7 @@ fn extract_signoff(text: &str, allow_inline: bool) -> Option<(String, String)> {
             continue;
         }
 
-        return Some((
-            before.to_string(),
-            format!("{},", recapitalize(signoff)),
-        ));
+        return Some((before.to_string(), format!("{},", recapitalize(signoff))));
     }
 
     None
@@ -1970,14 +2064,16 @@ fn parse_numbered_list(text: &str) -> Option<ParsedNumberedList> {
     }
 
     if !cues.windows(2).all(|pair| {
-        pair[0].value == u16::MAX
-            || pair[1].value == u16::MAX
-            || pair[1].value > pair[0].value
+        pair[0].value == u16::MAX || pair[1].value == u16::MAX || pair[1].value > pair[0].value
     }) {
         return None;
     }
 
-    if cues.iter().take(cues.len().saturating_sub(1)).any(|cue| cue.value == u16::MAX) {
+    if cues
+        .iter()
+        .take(cues.len().saturating_sub(1))
+        .any(|cue| cue.value == u16::MAX)
+    {
         return None;
     }
 
@@ -2518,10 +2614,7 @@ pub fn format_layout(text: &str) -> String {
 // DROP-IN REPLACEMENT
 // -----------------------------------------------------------------------------
 
-pub fn format_layout_with_email(
-    text: &str,
-    email: Option<EmailFormatContext<'_>>,
-) -> String {
+pub fn format_layout_with_email(text: &str, email: Option<EmailFormatContext<'_>>) -> String {
     let trimmed = text.trim();
     if trimmed.is_empty() || trimmed.contains("```") {
         return text.to_string();
@@ -2560,8 +2653,10 @@ pub fn format_layout_with_email(
     // `default_signoff` is only populated when the name exists (actions.rs),
     // so we never invent an ending for an unknown user.
     if closing.is_none() && context.is_email {
-        if let Some(default_signoff) =
-            context.default_signoff.map(str::trim).filter(|s| !s.is_empty())
+        if let Some(default_signoff) = context
+            .default_signoff
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
         {
             if working.split_whitespace().count() >= 3 {
                 if let Some(signature) = build_email_signature(&context) {
@@ -2612,19 +2707,37 @@ mod tests {
 
     #[test]
     fn formats_percentages_currency_and_units() {
-        assert_eq!(normalize_numerics("it takes two hundred milliseconds"), "it takes 200ms");
+        assert_eq!(
+            normalize_numerics("it takes two hundred milliseconds"),
+            "it takes 200ms"
+        );
         assert_eq!(normalize_numerics("twenty percent more"), "20% more");
-        assert_eq!(normalize_numerics("costs two thousand dollars"), "costs $2,000");
-        assert_eq!(normalize_numerics("add sixteen pixels of padding"), "add 16px of padding");
+        assert_eq!(
+            normalize_numerics("costs two thousand dollars"),
+            "costs $2,000"
+        );
+        assert_eq!(
+            normalize_numerics("add sixteen pixels of padding"),
+            "add 16px of padding"
+        );
         assert_eq!(normalize_numerics("set it ninety degrees"), "set it 90deg");
     }
 
     #[test]
     fn formats_decimals_and_large_numbers() {
         assert_eq!(normalize_numerics("one point five rem"), "1.5rem");
-        assert_eq!(normalize_numerics("we made two hundred thousand dollars"), "we made $200,000");
-        assert_eq!(normalize_numerics("about one million users"), "about 1,000,000 users");
-        assert_eq!(normalize_numerics("the project costs one point five million dollars"), "the project costs $1.5 million");
+        assert_eq!(
+            normalize_numerics("we made two hundred thousand dollars"),
+            "we made $200,000"
+        );
+        assert_eq!(
+            normalize_numerics("about one million users"),
+            "about 1,000,000 users"
+        );
+        assert_eq!(
+            normalize_numerics("the project costs one point five million dollars"),
+            "the project costs $1.5 million"
+        );
     }
 
     #[test]
@@ -2632,28 +2745,49 @@ mod tests {
         assert_eq!(normalize_numerics("give me five"), "give me five");
         assert_eq!(normalize_numerics("hello world"), "hello world");
         assert_eq!(normalize_numerics("one and done"), "one and done");
-        assert_eq!(normalize_numerics("two and three dollars"), "two and three dollars");
+        assert_eq!(
+            normalize_numerics("two and three dollars"),
+            "two and three dollars"
+        );
         assert_eq!(normalize_numerics("one two three"), "one two three");
     }
 
     #[test]
     fn formats_extended_numeric_grammar_without_losing_punctuation() {
-        assert_eq!(normalize_numerics("two hundreed thousand dollars,"), "$200,000,");
+        assert_eq!(
+            normalize_numerics("two hundreed thousand dollars,"),
+            "$200,000,"
+        );
         assert_eq!(normalize_numerics("negative twenty five percent"), "-25%");
         assert_eq!(normalize_numerics("point five per cent"), "0.5%");
         assert_eq!(normalize_numerics("one lakh rupees"), "₹1,00,000");
         assert_eq!(normalize_numerics("five gigabytes"), "5 GB");
-        assert_eq!(normalize_numerics("one trillion dollars"), "$1,000,000,000,000");
+        assert_eq!(
+            normalize_numerics("one trillion dollars"),
+            "$1,000,000,000,000"
+        );
     }
 
     #[test]
     fn parses_clock_times_with_context() {
-        assert_eq!(normalize_numerics("meet at three thirty pm"), "meet at 3:30 PM");
-        assert_eq!(normalize_numerics("meet at three thirty p m"), "meet at 3:30 PM");
-        assert_eq!(normalize_numerics("meet at three thirty a m"), "meet at 3:30 AM");
+        assert_eq!(
+            normalize_numerics("meet at three thirty pm"),
+            "meet at 3:30 PM"
+        );
+        assert_eq!(
+            normalize_numerics("meet at three thirty p m"),
+            "meet at 3:30 PM"
+        );
+        assert_eq!(
+            normalize_numerics("meet at three thirty a m"),
+            "meet at 3:30 AM"
+        );
         assert_eq!(normalize_numerics("meet at three thirty"), "meet at 3:30");
         assert_eq!(normalize_numerics("give me five"), "give me five");
-        assert_eq!(normalize_numerics("meet at twenty three thirty pm"), "meet at twenty three thirty pm");
+        assert_eq!(
+            normalize_numerics("meet at twenty three thirty pm"),
+            "meet at twenty three thirty pm"
+        );
     }
 
     #[test]
@@ -2670,7 +2804,10 @@ mod tests {
     #[test]
     fn wraps_technical_token_shapes_in_inline_code() {
         assert_eq!(
-            format("make the button bg-stone-600 text white", PunctuationStyle::Informal),
+            format(
+                "make the button bg-stone-600 text white",
+                PunctuationStyle::Informal
+            ),
             "Make the button `bg-stone-600` text white."
         );
         assert!(format(
@@ -2682,9 +2819,18 @@ mod tests {
 
     #[test]
     fn recapitalize_looks_only_at_the_first_token() {
-        assert_eq!(recapitalize("fix the MY_CONSTANT value"), "Fix the MY_CONSTANT value");
-        assert_eq!(recapitalize("myFunction should stay"), "myFunction should stay");
-        assert_eq!(recapitalize("src/file.rs should stay"), "src/file.rs should stay");
+        assert_eq!(
+            recapitalize("fix the MY_CONSTANT value"),
+            "Fix the MY_CONSTANT value"
+        );
+        assert_eq!(
+            recapitalize("myFunction should stay"),
+            "myFunction should stay"
+        );
+        assert_eq!(
+            recapitalize("src/file.rs should stay"),
+            "src/file.rs should stay"
+        );
     }
 
     #[test]
@@ -2695,8 +2841,14 @@ mod tests {
 
     #[test]
     fn sentence_boundary_ignores_abbreviations_and_urls() {
-        assert_eq!(split_sentences("use e.g. this value. Then continue.").len(), 2);
-        assert_eq!(split_sentences("open https://example.com and continue. Done.").len(), 2);
+        assert_eq!(
+            split_sentences("use e.g. this value. Then continue.").len(),
+            2
+        );
+        assert_eq!(
+            split_sentences("open https://example.com and continue. Done.").len(),
+            2
+        );
         assert_eq!(split_sentences("Use Next.js. Then Tauri.").len(), 2);
     }
 
@@ -2746,7 +2898,9 @@ mod tests {
     #[test]
     fn spoken_ordinals_absorb_only_immediate_cue_thing() {
         assert_eq!(
-            format_layout("first thing fix login second thing check dashboard third thing fix buttons"),
+            format_layout(
+                "first thing fix login second thing check dashboard third thing fix buttons"
+            ),
             "1. Fix login.\n2. Check dashboard.\n3. Fix buttons."
         );
     }
@@ -2804,7 +2958,9 @@ mod tests {
     #[test]
     fn natural_fruit_list_becomes_bullets() {
         assert_eq!(
-            format_layout("I'm going to get apples, bananas, pineapple, strawberries, and raspberries."),
+            format_layout(
+                "I'm going to get apples, bananas, pineapple, strawberries, and raspberries."
+            ),
             "I'm going to get:\n- Apples\n- Bananas\n- Pineapple\n- Strawberries\n- Raspberries"
         );
     }
@@ -2834,8 +2990,16 @@ mod tests {
         let out = format_layout(
             "We need React, TypeScript, Tailwind CSS, and Tauri. Keep the existing backend untouched because it already works correctly.",
         );
-        assert!(out.starts_with("We need:\n- React\n- TypeScript\n- Tailwind CSS\n- Tauri"), "got: {out}");
-        assert!(out.ends_with("Keep the existing backend untouched because it already works correctly."), "got: {out}");
+        assert!(
+            out.starts_with("We need:\n- React\n- TypeScript\n- Tailwind CSS\n- Tauri"),
+            "got: {out}"
+        );
+        assert!(
+            out.ends_with(
+                "Keep the existing backend untouched because it already works correctly."
+            ),
+            "got: {out}"
+        );
     }
 
     #[test]
@@ -2909,7 +3073,8 @@ mod tests {
 
     #[test]
     fn layout_is_idempotent_across_email_and_lists() {
-        let once = format_layout("hey sam quick update first fix payments second verify receipts thanks");
+        let once =
+            format_layout("hey sam quick update first fix payments second verify receipts thanks");
         let twice = format_layout(&once);
         assert_eq!(twice, once, "once: {once}\ntwice: {twice}");
     }
@@ -2963,7 +3128,10 @@ mod tests {
         let elapsed = started.elapsed();
         let second = format_layout(&first);
         assert_eq!(second, first);
-        assert!(elapsed < std::time::Duration::from_millis(200), "took {elapsed:?}");
+        assert!(
+            elapsed < std::time::Duration::from_millis(200),
+            "took {elapsed:?}"
+        );
     }
 
     #[test]
@@ -3036,7 +3204,8 @@ mod email_format_tests {
 
     #[test]
     fn thanks_inside_body_is_not_a_signoff() {
-        let input = "hey wojtek thanks for sending the files I reviewed everything and it looks correct";
+        let input =
+            "hey wojtek thanks for sending the files I reviewed everything and it looks correct";
         let out = format_layout_with_email(input, Some(ctx()));
         assert!(out.contains("thanks for sending the files"), "got: {out}");
         assert!(!out.ends_with("Thanks,\nHarpreet Duggal"));
@@ -3048,16 +3217,17 @@ mod email_format_tests {
             "hey wojtek thanks for sending that earlier I reviewed it and everything looks good thanks harprit",
             Some(ctx()),
         );
-        assert!(out.contains("thanks for sending that earlier"), "got: {out}");
+        assert!(
+            out.contains("thanks for sending that earlier"),
+            "got: {out}"
+        );
         assert!(out.ends_with("Thanks,\nHarpreet Duggal"), "got: {out}");
     }
 
     #[test]
     fn thanks_again_is_not_a_signature() {
-        let out = format_layout_with_email(
-            "hey wojtek everything looks good thanks again",
-            Some(ctx()),
-        );
+        let out =
+            format_layout_with_email("hey wojtek everything looks good thanks again", Some(ctx()));
         assert!(!out.ends_with("Thanks,\nHarpreet Duggal"));
     }
 
@@ -3067,15 +3237,15 @@ mod email_format_tests {
             "dear wojtek I have attached the completed documentation best regards harprit duggal",
             Some(ctx()),
         );
-        assert!(out.ends_with("Best regards,\nHarpreet Duggal"), "got: {out}");
+        assert!(
+            out.ends_with("Best regards,\nHarpreet Duggal"),
+            "got: {out}"
+        );
     }
 
     #[test]
     fn informal_cheers_works() {
-        let out = format_layout_with_email(
-            "hi wojtek everything is shipped cheers",
-            Some(ctx()),
-        );
+        let out = format_layout_with_email("hi wojtek everything is shipped cheers", Some(ctx()));
         assert!(out.ends_with("Cheers,\nHarpreet Duggal"), "got: {out}");
     }
 
@@ -3151,7 +3321,10 @@ mod email_format_tests {
             "subject updated rollout timeline hey wojtek the migration finished today thanks",
             ctx(),
         );
-        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        assert_eq!(
+            formatted.subject.as_deref(),
+            Some("Updated rollout timeline")
+        );
         let out = formatted.text;
         assert!(!out.contains("rollout timeline hey"), "got: {out}");
         assert!(out.starts_with("Hey Wojciech Kowalski,"), "got: {out}");
@@ -3164,7 +3337,10 @@ mod email_format_tests {
             "hi wojtek the qa pass is complete thanks alex. subject updated rollout timeline",
             ctx(),
         );
-        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        assert_eq!(
+            formatted.subject.as_deref(),
+            Some("Updated rollout timeline")
+        );
         let out = formatted.text;
         assert!(!out.contains("updated rollout"), "got: {out}");
         assert!(out.ends_with("Thanks,\nHarpreet Duggal"), "got: {out}");
@@ -3176,7 +3352,10 @@ mod email_format_tests {
             "hi wojtek the qa pass is complete\nthanks harprit duggal\nsubject updated rollout timeline",
             ctx(),
         );
-        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        assert_eq!(
+            formatted.subject.as_deref(),
+            Some("Updated rollout timeline")
+        );
         let out = formatted.text;
         assert!(!out.ends_with("rollout timeline"), "got: {out}");
     }
@@ -3187,10 +3366,19 @@ mod email_format_tests {
             "hey mike, quick update subject is updated rollout timeline can you check thanks",
             ctx(),
         );
-        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        assert_eq!(
+            formatted.subject.as_deref(),
+            Some("Updated rollout timeline")
+        );
         let out = formatted.text;
-        assert!(!out.to_lowercase().contains("updated rollout"), "subject should be removed from body, got: {out}");
-        assert!(out.starts_with("Hey Wojciech Kowalski,"), "greeting canonicalized, got: {out}");
+        assert!(
+            !out.to_lowercase().contains("updated rollout"),
+            "subject should be removed from body, got: {out}"
+        );
+        assert!(
+            out.starts_with("Hey Wojciech Kowalski,"),
+            "greeting canonicalized, got: {out}"
+        );
     }
 
     #[test]
@@ -3199,10 +3387,16 @@ mod email_format_tests {
             "subject updated rollout timeline hey mike, the email formatting doesn't work at all thanks",
             ctx(),
         );
-        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        assert_eq!(
+            formatted.subject.as_deref(),
+            Some("Updated rollout timeline")
+        );
         let out = formatted.text;
         assert!(out.starts_with("Hey Wojciech Kowalski,"), "got: {out}");
-        assert!(!out.to_lowercase().contains("updated rollout timeline hey"), "subject and greeting not cleanly split, got: {out}");
+        assert!(
+            !out.to_lowercase().contains("updated rollout timeline hey"),
+            "subject and greeting not cleanly split, got: {out}"
+        );
     }
 
     #[test]
@@ -3296,7 +3490,10 @@ mod email_format_tests {
             "subject updated rollout timeline hey sarah quick update on the payroll migration we finished most of the backend work today but qa found a couple issues with the employee import flow so we are fixing those now and we should have it ready for another qa pass tomorrow morning assuming everything looks good we should still be able to roll it out thursday afternoon i will send you another update once qa is done thanks alex",
             real_gmail_context(),
         );
-        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        assert_eq!(
+            formatted.subject.as_deref(),
+            Some("Updated rollout timeline")
+        );
         let out = formatted.text;
         assert!(out.starts_with("Hey Sarah,"), "got: {out}");
         // Spoken "thanks alex" is kept as the sign-off; the name is rendered

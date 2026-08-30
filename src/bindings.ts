@@ -966,6 +966,22 @@ async changeHeySuperflowToneSetting(tone: string) : Promise<Result<null, string>
     else return { status: "error", error: e  as any };
 }
 },
+async changeLocalLlmEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_local_llm_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeLocalLlmModelSetting(model: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_local_llm_model_setting", { model }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getAiCleanupHistory(limit: number) : Promise<Result<AiCleanupHistoryEntry[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_ai_cleanup_history", { limit }) };
@@ -1184,6 +1200,17 @@ experimental_mlx_enabled?: boolean;
  * When true, MLX transcripts are polished by a local mlx-lm cleanup LLM.
  */
 experimental_mlx_cleanup_enabled?: boolean; 
+/**
+ * When true, every Gemini-bound AI prompt (clean, edit, Hey Superflow)
+ * runs on the selected local MLX model instead. Same prompts, same
+ * pipeline — only the backend changes. Gemini stays fully intact.
+ */
+local_llm_enabled?: boolean; 
+/**
+ * Hugging Face model id of the local MLX LLM used when
+ * `local_llm_enabled` is on. Weights live in the shared HF cache.
+ */
+local_llm_model?: string; 
 /**
  * Experimental Gmail voice drafting/send. Gated separately from
  * `intelligence_awareness_enabled` so existing awareness users aren't

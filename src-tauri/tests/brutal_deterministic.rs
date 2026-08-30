@@ -8,36 +8,95 @@ fn brutal_messy_transcript_pipeline() {
     let start = std::time::Instant::now();
     let cleaned = transcript_cleanup::normalize_transcript(MESSY_TRANSCRIPT);
     let elapsed = start.elapsed();
-    println!("\n=== CLEANED ({}ms) ===\n{}\n", elapsed.as_millis(), cleaned);
-    assert!(elapsed.as_millis() < 50, "cleanup exceeded 50ms: {}ms", elapsed.as_millis());
-    
+    println!(
+        "\n=== CLEANED ({}ms) ===\n{}\n",
+        elapsed.as_millis(),
+        cleaned
+    );
+    assert!(
+        elapsed.as_millis() < 50,
+        "cleanup exceeded 50ms: {}ms",
+        elapsed.as_millis()
+    );
+
     // Verify no filler "um" at start (isolated filler should be removed)
-    assert!(!cleaned.to_lowercase().starts_with("um "), "filler 'um' not removed");
+    assert!(
+        !cleaned.to_lowercase().starts_with("um "),
+        "filler 'um' not removed"
+    );
     // Verify duplicate "when when" collapsed
-    assert!(!cleaned.contains("when when"), "duplicate 'when when' not collapsed");
-    assert!(cleaned.contains("when the active model dialog renders") || cleaned.contains("when the active model"), "when/when fix failed");
+    assert!(
+        !cleaned.contains("when when"),
+        "duplicate 'when when' not collapsed"
+    );
+    assert!(
+        cleaned.contains("when the active model dialog renders")
+            || cleaned.contains("when the active model"),
+        "when/when fix failed"
+    );
     // Verify "I don't I don't" collapsed but negation preserved
-    assert!(cleaned.contains("I don't want"), "negation collapsed incorrectly");
-    assert!(!cleaned.contains("I don't I don't"), "duplicate negation not collapsed");
+    assert!(
+        cleaned.contains("I don't want"),
+        "negation collapsed incorrectly"
+    );
+    assert!(
+        !cleaned.contains("I don't I don't"),
+        "duplicate negation not collapsed"
+    );
     // Verify "third thing third thing" collapsed
-    assert!(!cleaned.to_lowercase().contains("third thing third thing"), "third thing duplicate not collapsed");
+    assert!(
+        !cleaned.to_lowercase().contains("third thing third thing"),
+        "third thing duplicate not collapsed"
+    );
     // Verify "on the on the on the" collapsed
-    assert!(!cleaned.contains("on the on the"), "on the repetition not collapsed");
-    assert!(cleaned.contains("on the card itself") || cleaned.contains("On the card itself"), "on the card not preserved");
+    assert!(
+        !cleaned.contains("on the on the"),
+        "on the repetition not collapsed"
+    );
+    assert!(
+        cleaned.contains("on the card itself") || cleaned.contains("On the card itself"),
+        "on the card not preserved"
+    );
     // Verify really x5 -> really (single)
-    assert!(!cleaned.contains("really really"), "really repetition not collapsed");
+    assert!(
+        !cleaned.contains("really really"),
+        "really repetition not collapsed"
+    );
     // Verify protected tokens preserved
-    for token in ["10:00 AM", "30 seconds", "bg-rose-600", "https://example.com/test?q=1.5", "dev@example.com", "src-tauri/src/managers/mlx.rs", "Next.js", "TanStack Query", "shadcn/ui", "GGUF"] {
-        assert!(cleaned.contains(token), "protected token '{}' corrupted or removed, got: {}", token, cleaned);
+    for token in [
+        "10:00 AM",
+        "30 seconds",
+        "bg-rose-600",
+        "https://example.com/test?q=1.5",
+        "dev@example.com",
+        "src-tauri/src/managers/mlx.rs",
+        "Next.js",
+        "TanStack Query",
+        "shadcn/ui",
+        "GGUF",
+    ] {
+        assert!(
+            cleaned.contains(token),
+            "protected token '{}' corrupted or removed, got: {}",
+            token,
+            cleaned
+        );
     }
     // Verify restart: "The second issue is that okay. The second issue is that right now" -> "The second issue is that right now"
-    assert!(!cleaned.contains("okay. The second issue is that right now") || cleaned.contains("The second issue is that right now"), "restart not cleaned");
-    assert!(cleaned.contains("right now this giant transcript"), "restart handling broke trailing");
+    assert!(
+        !cleaned.contains("okay. The second issue is that right now")
+            || cleaned.contains("The second issue is that right now"),
+        "restart not cleaned"
+    );
+    assert!(
+        cleaned.contains("right now this giant transcript"),
+        "restart handling broke trailing"
+    );
 
     // Step 2: formatting (paragraphs + lists)
     let layout = formatter::format_layout(&cleaned);
     println!("\n=== LAYOUT ===\n{}\n", layout);
-    
+
     // Verify numbered list for first/second/third thing
     // After cleanup, "first thing" duplicate should be single, but formatter should create numbered list
     // Check that formatted contains numbered items
@@ -50,12 +109,24 @@ fn brutal_messy_transcript_pipeline() {
     let has_bullet = layout.contains("- React") || layout.contains("- TypeScript");
     println!("has_bullet: {}", has_bullet);
     // Verify false positives remain prose
-    assert!(layout.contains("I opened Gmail") || layout.contains("opened Gmail"), "Gmail action sequence corrupted");
+    assert!(
+        layout.contains("I opened Gmail") || layout.contains("opened Gmail"),
+        "Gmail action sequence corrupted"
+    );
     // Verify paragraph breaks exist (not one giant paragraph)
-    assert!(layout.contains("\n\n"), "no paragraph breaks, still giant paragraph");
+    assert!(
+        layout.contains("\n\n"),
+        "no paragraph breaks, still giant paragraph"
+    );
     // Verify file paths not split
-    assert!(layout.contains("src-tauri/src/managers/mlx.rs"), "file path split");
-    assert!(layout.contains("https://example.com/test?q=1.5"), "URL split");
+    assert!(
+        layout.contains("src-tauri/src/managers/mlx.rs"),
+        "file path split"
+    );
+    assert!(
+        layout.contains("https://example.com/test?q=1.5"),
+        "URL split"
+    );
     assert!(layout.contains("dev@example.com"), "email split");
     // Verify determinism: second run same output
     let cleaned2 = transcript_cleanup::normalize_transcript(MESSY_TRANSCRIPT);
@@ -82,12 +153,23 @@ fn brutal_paragraph_boundaries() {
             // This is complex, just ensure it doesn't panic and produces deterministic output
             assert!(!layout.is_empty());
         } else {
-            assert!(layout.contains("\n\n") || word_count < 30, "word_count {} should have paragraph break", word_count);
+            assert!(
+                layout.contains("\n\n") || word_count < 30,
+                "word_count {} should have paragraph break",
+                word_count
+            );
         }
         // Ensure no split inside file path
-        let with_path = format!("{} src-tauri/src/managers/mlx.rs is not split.", "word ".repeat(word_count));
+        let with_path = format!(
+            "{} src-tauri/src/managers/mlx.rs is not split.",
+            "word ".repeat(word_count)
+        );
         let layout_path = formatter::format_layout(&with_path);
-        assert!(layout_path.contains("src-tauri/src/managers/mlx.rs"), "file path split at {}", word_count);
+        assert!(
+            layout_path.contains("src-tauri/src/managers/mlx.rs"),
+            "file path split at {}",
+            word_count
+        );
     }
 }
 
@@ -98,25 +180,40 @@ fn brutal_natural_list_detection() {
     let cleaned = transcript_cleanup::normalize_transcript(list_input);
     let layout = formatter::format_layout(&cleaned);
     println!("natural list layout: {}", layout);
-    assert!(layout.contains("- Apples") || layout.contains("- apples") || layout.contains("Apples"), "natural list not detected");
-    
+    assert!(
+        layout.contains("- Apples") || layout.contains("- apples") || layout.contains("Apples"),
+        "natural list not detected"
+    );
+
     // Technical list
     let tech_input = "We need React, TypeScript, Tailwind CSS, and Tauri.";
     let layout2 = formatter::format_layout(&transcript_cleanup::normalize_transcript(tech_input));
     println!("tech list layout: {}", layout2);
-    assert!(layout2.contains("- React") && layout2.contains("- TypeScript"), "tech list not detected");
-    
+    assert!(
+        layout2.contains("- React") && layout2.contains("- TypeScript"),
+        "tech list not detected"
+    );
+
     // False positives must remain prose
     let action_seq = "I opened Gmail, replied to Alex, and then went back to work.";
     let layout3 = formatter::format_layout(&transcript_cleanup::normalize_transcript(action_seq));
-    assert!(!layout3.contains("- Gmail"), "false positive: action sequence turned into list");
-    assert!(layout3.contains("I opened Gmail"), "action sequence corrupted");
-    
+    assert!(
+        !layout3.contains("- Gmail"),
+        "false positive: action sequence turned into list"
+    );
+    assert!(
+        layout3.contains("I opened Gmail"),
+        "action sequence corrupted"
+    );
+
     let adjectives = "The system is fast, reliable, and works locally.";
     let layout4 = formatter::format_layout(&transcript_cleanup::normalize_transcript(adjectives));
     // This is 3 adjectives but should remain prose per spec
     // Might be considered not a list because no introducer
-    assert!(!layout4.contains("- fast") || layout4.contains("fast, reliable"), "adjectives false positive");
+    assert!(
+        !layout4.contains("- fast") || layout4.contains("fast, reliable"),
+        "adjectives false positive"
+    );
 }
 
 #[test]
@@ -130,12 +227,21 @@ fn brutal_repeated_phrases_and_restarts() {
     }
     // Partial restart
     let restart = "if I if I right now";
-    assert_eq!(transcript_cleanup::normalize_transcript(restart), "if I right now");
-    
+    assert_eq!(
+        transcript_cleanup::normalize_transcript(restart),
+        "if I right now"
+    );
+
     // Negation preservation
-    assert_eq!(transcript_cleanup::normalize_transcript("I don't want this"), "I don't want this");
-    assert_eq!(transcript_cleanup::normalize_transcript("not working"), "not working");
-    
+    assert_eq!(
+        transcript_cleanup::normalize_transcript("I don't want this"),
+        "I don't want this"
+    );
+    assert_eq!(
+        transcript_cleanup::normalize_transcript("not working"),
+        "not working"
+    );
+
     // Profanity preservation (should not be removed)
     let profanity = "the front end is fucked";
     assert!(transcript_cleanup::normalize_transcript(profanity).contains("fucked"));
@@ -154,12 +260,22 @@ fn brutal_technical_casing_and_protected() {
         let layout = formatter::format_layout(&transcript_cleanup::normalize_transcript(input));
         // The formatter or cleanup should preserve or correct to canonical
         // At least it should not corrupt
-        assert!(layout.to_lowercase().contains(&expected.to_lowercase()) || layout.contains(expected), "tech casing failed for {}", input);
+        assert!(
+            layout.to_lowercase().contains(&expected.to_lowercase()) || layout.contains(expected),
+            "tech casing failed for {}",
+            input
+        );
     }
     // Paths, URLs, etc. must not be corrupted
     let protected = "Check https://example.com/test?q=1.5 and dev@example.com and src-tauri/src/managers/mlx.rs and 10:00 AM and bg-rose-600";
     let cleaned = transcript_cleanup::normalize_transcript(protected);
-    for token in ["https://example.com/test?q=1.5", "dev@example.com", "src-tauri/src/managers/mlx.rs", "10:00 AM", "bg-rose-600"] {
+    for token in [
+        "https://example.com/test?q=1.5",
+        "dev@example.com",
+        "src-tauri/src/managers/mlx.rs",
+        "10:00 AM",
+        "bg-rose-600",
+    ] {
         assert!(cleaned.contains(token), "protected {} lost", token);
     }
 }
@@ -171,13 +287,25 @@ fn brutal_long_transcript_performance() {
     let start = std::time::Instant::now();
     let cleaned = transcript_cleanup::normalize_transcript(&long);
     let elapsed = start.elapsed();
-    println!("long transcript {} chars -> {}ms", long.len(), elapsed.as_millis());
-    assert!(elapsed.as_millis() < 50, "hard budget 50ms exceeded: {}ms", elapsed.as_millis());
-    
+    println!(
+        "long transcript {} chars -> {}ms",
+        long.len(),
+        elapsed.as_millis()
+    );
+    assert!(
+        elapsed.as_millis() < 50,
+        "hard budget 50ms exceeded: {}ms",
+        elapsed.as_millis()
+    );
+
     let start2 = std::time::Instant::now();
     let _layout = formatter::format_layout(&cleaned);
     let elapsed2 = start2.elapsed();
-    println!("layout {} chars -> {}ms", cleaned.len(), elapsed2.as_millis());
+    println!(
+        "layout {} chars -> {}ms",
+        cleaned.len(),
+        elapsed2.as_millis()
+    );
     assert!(elapsed2.as_millis() < 500, "formatter too slow");
 
     // Also test incremental: 200 repeats should still be <500ms for formatter, but cleanup may be ~100ms in debug, which is okay for 6000 words
@@ -186,8 +314,16 @@ fn brutal_long_transcript_performance() {
     let start3 = std::time::Instant::now();
     let _cleaned3 = transcript_cleanup::normalize_transcript(&very_long);
     let elapsed3 = start3.elapsed();
-    println!("very long transcript {} chars -> {}ms (debug, allow <200ms)", very_long.len(), elapsed3.as_millis());
-    assert!(elapsed3.as_millis() < 200, "very long transcript too slow: {}ms", elapsed3.as_millis());
+    println!(
+        "very long transcript {} chars -> {}ms (debug, allow <200ms)",
+        very_long.len(),
+        elapsed3.as_millis()
+    );
+    assert!(
+        elapsed3.as_millis() < 200,
+        "very long transcript too slow: {}ms",
+        elapsed3.as_millis()
+    );
 }
 
 #[test]
@@ -215,6 +351,10 @@ fn brutal_fuzz_properpty_no_crash() {
         let layout2 = formatter::format_layout(&cleaned);
         assert_eq!(layout, layout2, "layout not deterministic for {:?}", input);
         // Must not invent words or corrupt protected
-        assert!(!layout.contains("invented"), "invented word for {:?}", input);
+        assert!(
+            !layout.contains("invented"),
+            "invented word for {:?}",
+            input
+        );
     }
 }

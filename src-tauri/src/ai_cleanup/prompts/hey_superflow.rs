@@ -91,7 +91,6 @@ Surface formatting must never change the user's meaning.
 
 Return the complete final replacement text and nothing else."#;
 
-
 pub const HUMANIZER_FORMAL: &str = r#"
 # Humanizer — Formal
 
@@ -197,7 +196,6 @@ Before returning, cut the rewrite again: any sentence that can lose a clause wit
 Return only the shortest correct rewrite. No draft, no notes, no sign-off.
 "#;
 
-
 pub const HUMANIZER_INFORMAL: &str = r#"
 # Humanizer — Informal
 
@@ -251,7 +249,6 @@ Read it back like you'd say it out loud. If a line sounds like a memo, redo that
 
 Return only the rewrite, sounding like a person talking. No draft, no disclaimer, no "let me know."
 "#;
-
 
 pub const HUMANIZER_PROMPT: &str = r#"
 # Humanizer: remove AI writing patterns

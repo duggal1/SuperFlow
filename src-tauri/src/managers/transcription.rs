@@ -2816,7 +2816,10 @@ mod tests {
             assert!(output.contains(expected), "missing {expected} in: {output}");
         }
         for forbidden in ["Talk Soon", "Thanks,\n", "CEO and Co-Founder", "Subject:"] {
-            assert!(!output.contains(forbidden), "unexpected {forbidden} in: {output}");
+            assert!(
+                !output.contains(forbidden),
+                "unexpected {forbidden} in: {output}"
+            );
         }
         assert_eq!(
             output,

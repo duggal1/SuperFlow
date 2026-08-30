@@ -609,6 +609,15 @@ pub struct AppSettings {
     /// When true, MLX transcripts are polished by a local mlx-lm cleanup LLM.
     #[serde(default)]
     pub experimental_mlx_cleanup_enabled: bool,
+    /// When true, every Gemini-bound AI prompt (clean, edit, Hey Superflow)
+    /// runs on the selected local MLX model instead. Same prompts, same
+    /// pipeline — only the backend changes. Gemini stays fully intact.
+    #[serde(default)]
+    pub local_llm_enabled: bool,
+    /// Hugging Face model id of the local MLX LLM used when
+    /// `local_llm_enabled` is on. Weights live in the shared HF cache.
+    #[serde(default = "default_local_llm_model")]
+    pub local_llm_model: String,
     /// Experimental Gmail voice drafting/send. Gated separately from
     /// `intelligence_awareness_enabled` so existing awareness users aren't
     /// surprised and the feature can be tested independently.
@@ -829,6 +838,10 @@ fn default_ai_cleanup_enabled() -> bool {
 
 fn default_ai_cleanup_model() -> String {
     "gemini-3.5-flash-lite".to_string()
+}
+
+fn default_local_llm_model() -> String {
+    "prism-ml/Ternary-Bonsai-4B-mlx-2bit".to_string()
 }
 
 fn default_voice_command_hook() -> String {
@@ -1295,6 +1308,8 @@ pub fn get_default_settings() -> AppSettings {
         lazy_stream_close: false,
         experimental_mlx_enabled: false,
         experimental_mlx_cleanup_enabled: false,
+        local_llm_enabled: false,
+        local_llm_model: default_local_llm_model(),
         experimental_gmail_voice_enabled: false,
         keyboard_implementation: KeyboardImplementation::default(),
         show_tray_icon: default_show_tray_icon(),

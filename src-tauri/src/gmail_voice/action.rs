@@ -69,8 +69,12 @@ impl GmailActionController {
                 {
                     // Fallback: Cmd+Enter is Gmail's native send shortcut
                     // Verify still on same target before sending key
-                    context::verify(session.identity.clone(), Some(body.clone()), Some(recipient.clone()))
-                        .map_err(|_| GmailActionError::TargetChanged)?;
+                    context::verify(
+                        session.identity.clone(),
+                        Some(body.clone()),
+                        Some(recipient.clone()),
+                    )
+                    .map_err(|_| GmailActionError::TargetChanged)?;
                     // Use the app's Enigo state like clipboard does
                     // We need AppHandle; session doesn't have it, so we try global
                     // For now, use a fresh Enigo via with_enigo pattern if available

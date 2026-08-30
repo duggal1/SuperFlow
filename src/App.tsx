@@ -390,14 +390,14 @@ function App() {
                   onClick={() => setSidebarOpen(true)}
                   aria-label="Open sidebar"
                   title="Open sidebar (Ctrl+B)"
-                  className="flex size-7 items-center justify-center rounded-md text-stone-500 transition-colors duration-150 hover:bg-white/[0.06] hover:text-stone-200"
+                  className="flex size-7 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100"
                 >
                   <SidebarToggleIcon expanded={false} />
                 </button>
               )}
             </div>
             <div className="flex-1 overflow-y-auto">
-              <div className="flex flex-col items-center p-4 gap-4">
+              <div className="flex flex-col items-center gap-5 px-6 pb-10 pt-4">
                 <AccessibilityPermissions />
                 <SecureInputWarning />
                 {renderSettingsContent(currentSection)}

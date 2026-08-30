@@ -364,10 +364,9 @@ pub(crate) fn focus_reply_editor_for_frontmost_gmail() -> Result<(), String> {
         return Err("Frontmost application is not Gmail".to_string());
     }
 
-    let application = CfRef::take(
-        unsafe { AXUIElementCreateApplication(frontmost.pid) } as CFTypeRef,
-    )
-    .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
+    let application =
+        CfRef::take(unsafe { AXUIElementCreateApplication(frontmost.pid) } as CFTypeRef)
+            .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
     if focused_message_body_editor(application.element()).is_some() {
         return Ok(());
     }
@@ -523,11 +522,10 @@ fn set_compose_subject(container: &CfRef, subject: &str) -> Result<(), String> {
 #[cfg(target_os = "macos")]
 pub(crate) fn set_subject_for_frontmost_compose(subject: &str) -> Result<(), String> {
     log::info!(target: "gmail_voice", "set_subject_for_frontmost_compose: subject={:?} — 8 levels / 256 nodes check", subject.chars().take(40).collect::<String>());
-    let frontmost = crate::context::detector::frontmost_app()
-        .ok_or_else(|| {
-            log::warn!(target: "gmail_voice", "set_subject: no frontmost app — 8 levels / 256 nodes");
-            "No frontmost application".to_string()
-        })?;
+    let frontmost = crate::context::detector::frontmost_app().ok_or_else(|| {
+        log::warn!(target: "gmail_voice", "set_subject: no frontmost app — 8 levels / 256 nodes");
+        "No frontmost application".to_string()
+    })?;
     let pid = frontmost.pid;
     let bundle_id = frontmost.bundle_id.as_deref().unwrap_or("");
     log::info!(target: "gmail_voice", "set_subject: pid={} bundle={:?} — 8 levels / 256 nodes", pid, bundle_id);
@@ -578,8 +576,12 @@ pub(crate) fn set_subject_for_frontmost_compose(subject: &str) -> Result<(), Str
     log::info!(target: "gmail_voice", "set_subject: found container — 8 levels / 256 nodes success, setting subject");
     let res = set_compose_subject(&container, subject);
     match &res {
-        Ok(()) => log::info!(target: "gmail_voice", "set_subject: AX set success — 8 levels / 256 nodes"),
-        Err(e) => log::warn!(target: "gmail_voice", "set_subject: AX set failed: {} — 8 levels / 256 nodes", e),
+        Ok(()) => {
+            log::info!(target: "gmail_voice", "set_subject: AX set success — 8 levels / 256 nodes")
+        }
+        Err(e) => {
+            log::warn!(target: "gmail_voice", "set_subject: AX set failed: {} — 8 levels / 256 nodes", e)
+        }
     }
     res
 }

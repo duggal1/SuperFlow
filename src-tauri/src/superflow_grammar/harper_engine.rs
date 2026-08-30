@@ -136,9 +136,9 @@ fn is_safe_to_auto_fix(lint: &harper_core::linting::Lint, rule_name: &str) -> bo
     // Curated harper rules — only an explicit allow-list is auto-fixed.
     // Everything else is SuggestOnly (high recall, zero auto-mutation risk).
     const ALLOW_RULES: &[&str] = &[
-        "RepeatedWords",       // the the → the (CERTAIN)
-        "AnA",                 // an test → a test (CERTAIN)
-        "ThereIsAgreement",    // There is many → are (HIGH, single noun)
+        "RepeatedWords",        // the the → the (CERTAIN)
+        "AnA",                  // an test → a test (CERTAIN)
+        "ThereIsAgreement",     // There is many → are (HIGH, single noun)
         "PronounVerbAgreement", // he have → has (HIGH, guarded)
     ];
     // Even allowed names must be Grammar/Agreement/Punctuation, not Spelling etc.

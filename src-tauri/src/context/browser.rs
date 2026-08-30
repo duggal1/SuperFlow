@@ -221,7 +221,8 @@ fn window_url_chromium(window: AXUIElementRef) -> Option<String> {
     };
     let Some(field) = find_descendant_by_role(toolbar.as_element(), "AXTextField", 16, 1024) else {
         eprintln!("browser_ax: chromium — no AXTextField (omnibox) within 16 levels / 1024 nodes — retrying 24/2048");
-        if let Some(field) = find_descendant_by_role(toolbar.as_element(), "AXTextField", 24, 2048) {
+        if let Some(field) = find_descendant_by_role(toolbar.as_element(), "AXTextField", 24, 2048)
+        {
             let Some(value) = element_value_string(field.as_element()) else {
                 eprintln!("browser_ax: chromium — omnibox retry value was not a string");
                 return None;
@@ -229,7 +230,10 @@ fn window_url_chromium(window: AXUIElementRef) -> Option<String> {
             if value.starts_with("http://") || value.starts_with("https://") {
                 return Some(value);
             }
-            eprintln!("browser_ax: chromium — omnibox retry value not URL-shaped: {:?}", value.chars().take(80).collect::<String>());
+            eprintln!(
+                "browser_ax: chromium — omnibox retry value not URL-shaped: {:?}",
+                value.chars().take(80).collect::<String>()
+            );
             return None;
         }
         return None;
@@ -275,7 +279,11 @@ pub fn ensure_chromium_accessibility(pid: i32, bundle_id: Option<&str>) {
         AXUIElementSetAttributeValue(app, ax_attr!("AXManualAccessibility"), k_cf_boolean_true())
     };
     let status_enhanced = unsafe {
-        AXUIElementSetAttributeValue(app, ax_attr!("AXEnhancedUserInterface"), k_cf_boolean_true())
+        AXUIElementSetAttributeValue(
+            app,
+            ax_attr!("AXEnhancedUserInterface"),
+            k_cf_boolean_true(),
+        )
     };
     if status_manual != AX_SUCCESS || status_enhanced != AX_SUCCESS {
         // eprintln, not log::debug!: this also runs inside the logger-less

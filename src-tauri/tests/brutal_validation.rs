@@ -46,10 +46,7 @@ fn brutal_validation_report() {
         "You Promise me that you will do things for me that I never thought I could it could have and I could have it couldn't be possible",
     );
 
-    show(
-        "self-correction (I mean)",
-        "I can I mean I can't do that",
-    );
+    show("self-correction (I mean)", "I can I mean I can't do that");
     show(
         "self-correction (no alt)",
         "we should ship Tuesday no Wednesday",
@@ -64,8 +61,14 @@ fn brutal_validation_report() {
     show("dup verb", "we have have finished");
     show("dup word", "the the issue is clear");
     show("dup phrase", "it actually it actually works");
-    show("intensifier stack", "really extremely very extremely important");
-    show("intensifier keep", "high-quality deterministic grammar engine");
+    show(
+        "intensifier stack",
+        "really extremely very extremely important",
+    );
+    show(
+        "intensifier keep",
+        "high-quality deterministic grammar engine",
+    );
 
     show(
         "USER: comma-stuttered don't",
