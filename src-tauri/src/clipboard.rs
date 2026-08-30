@@ -1086,6 +1086,14 @@ mod pasteable_target {
 #[cfg(target_os = "macos")]
 pub use pasteable_target::is_pasteable_target_focused;
 
+#[cfg(not(target_os = "macos"))]
+pub fn is_pasteable_target_focused() -> bool {
+    // Off macOS there is no Accessibility focus probe, so assume an editable
+    // target is focused and never suppress pasting. Mirrors the
+    // `let pasteable = true` fallback used elsewhere for non-macOS.
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

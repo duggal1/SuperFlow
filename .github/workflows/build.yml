@@ -224,11 +224,27 @@ jobs:
         if: contains(inputs.platform, 'macos') && inputs.sign-binaries
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then
-            echo "::warning::APPLE_CERTIFICATE secret is not set on this repository. Building an ad-hoc (unsigned) macOS artifact. To enable Developer ID signing + notarization, add the APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD, KEYCHAIN_PASSWORD, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID secrets."
+            echo "::warning::APPLE_CERTIFICATE secret is not set on this repository. Building an ad-hoc (unsigned) macOS artifact — free, works, but users must right-click > Open on first launch. To enable Developer ID signing + notarization later, add the APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD, KEYCHAIN_PASSWORD, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID secrets."
           else
             echo "APPLE_CERTIFICATE_PRESENT=true" >> "$GITHUB_ENV"
+            # Export only when present. tauri-bundler treats a bare — even
+            # empty — APPLE_CERTIFICATE env var as "import this certificate",
+            # so an unconditional empty value fails the keychain import with
+            # "SecKeychainItemImport: One or more parameters ... not valid".
+            # GITHUB_ENV is the only way to make a variable truly ABSENT.
+            {
+              echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE"
+              echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+              echo "APPLE_ID=$APPLE_ID"
+              echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+            } >> "$GITHUB_ENV"
           fi
 
       - name: import Apple Developer Certificate
@@ -252,7 +268,10 @@ jobs:
         run: |
           CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
           CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
-          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
+          # Exported (not set unconditionally) so that when no certificate is
+          # configured the variable is ABSENT and tauri-bundler falls back to
+          # the ad-hoc identity from tauri.conf.json ("signingIdentity": "-").
+          echo "APPLE_SIGNING_IDENTITY=$CERT_ID" >> $GITHUB_ENV
           echo "Certificate imported."
 
       - name: Patch asset name pattern
@@ -529,13 +548,16 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ inputs.sign-binaries && secrets.APPLE_ID || '' }}
-          APPLE_ID_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_ID_PASSWORD || '' }}
-          APPLE_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ inputs.sign-binaries && secrets.APPLE_TEAM_ID || '' }}
-          APPLE_CERTIFICATE: ${{ inputs.sign-binaries && secrets.APPLE_CERTIFICATE || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ inputs.sign-binaries && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          APPLE_SIGNING_IDENTITY: ${{ inputs.sign-binaries && env.CERT_ID || '' }}
+          # Apple signing/notarization variables (APPLE_CERTIFICATE,
+          # APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, APPLE_ID,
+          # APPLE_PASSWORD, APPLE_TEAM_ID) are intentionally NOT set here.
+          # They are conditionally exported to GITHUB_ENV by the "Check Apple
+          # signing secrets" / "verify certificate" steps ONLY when the
+          # corresponding secrets exist. tauri-bundler treats a bare — even
+          # empty — APPLE_CERTIFICATE as "import this certificate", which
+          # fails the build when no paid Apple certificate is configured.
+          # With the variables absent, the bundler signs ad-hoc using
+          # tauri.conf.json's "signingIdentity": "-" — completely free.
           AZURE_CLIENT_ID: ${{ inputs.sign-binaries && secrets.AZURE_CLIENT_ID || '' }}
           AZURE_CLIENT_SECRET: ${{ inputs.sign-binaries && secrets.AZURE_CLIENT_SECRET || '' }}
           AZURE_TENANT_ID: ${{ inputs.sign-binaries && secrets.AZURE_TENANT_ID || '' }}

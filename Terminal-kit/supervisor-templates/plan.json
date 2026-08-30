@@ -1,0 +1,137 @@
+# Supervisor Mission Plan Template
+#
+# This file is an EXAMPLE plan structure used for documentation and testing.
+# The actual plan is generated at runtime by the supervisor session.
+#
+# Plan JSON must appear between BEGIN_SAPPHIRE_PLAN_JSON and END_SAPPHIRE_PLAN_JSON markers.
+# The watchdog validates: no markdown fences, no prose outside markers,
+# arrays must be arrays, execution must be one of: parallel|dependent|validation|integration.
+
+BEGIN_SAPPHIRE_PLAN_JSON
+{
+  # Supervisor's rewritten mission statement
+  "mission_rewrite": "Debug, harden security, document CLI architecture",
+
+  # Decomposed workstreams — each is a track of work assigned to one or more workers
+  "workstreams": [
+    {
+      "id": "debug",
+      "name": "Debug and validate codebase",
+      "execution": "parallel",
+      "owned_scope": "All source files, tests, runtime correctness",
+      "success_criteria": ["Zero failing tests", "No runtime panics", "Clean cargo check"],
+      "depends_on": []
+    },
+    {
+      "id": "security",
+      "name": "Security hardening and audit",
+      "execution": "dependent",
+      "owned_scope": "Auth flows, input validation, secret handling",
+      "success_criteria": ["Input sanitization added", "No hardcoded secrets", "Secure defaults enforced"],
+      "depends_on": ["debug"]
+    },
+    {
+      "id": "docs",
+      "name": "Documentation architecture and guides",
+      "execution": "parallel",
+      "owned_scope": "Docs folder, CLI reference, architecture diagrams",
+      "success_criteria": ["Complete CLI guide", "Architecture docs written", "Contributor onboarding ready"],
+      "depends_on": []
+    },
+    {
+      "id": "integration",
+      "name": "Integration and final validation",
+      "execution": "integration",
+      "owned_scope": "Full build, e2e smoke tests, polish",
+      "success_criteria": ["Release build passes", "CLI smoke tests clean", "All docs linked"],
+      "depends_on": ["debug", "security", "docs"]
+    }
+  ],
+
+  # Risk map — known risks and planned mitigations
+  "risk_map": [
+    {
+      "zone": "Shared files",
+      "risk": "Workers edit same modules",
+      "mitigation": "Strict lease ownership enforcement"
+    },
+    {
+      "zone": "Security claims",
+      "risk": "False positive security flags",
+      "mitigation": "Require evidence for each claim"
+    },
+    {
+      "zone": "Doc drift",
+      "risk": "Docs diverge from actual code",
+      "mitigation": "Final integration pass syncs docs"
+    }
+  ],
+
+  # Worker assignment packets — one per worker
+  "worker_packets": [
+    {
+      "worker_id": "worker-01",
+      "role": "Debug and runtime validation",
+      "starting_angle": "Hunt panics, unwrap errors, test gaps",
+      "owned_scope": "Tests, error handling, runtime stability",
+      "explicit_task": "Fix all failing paths",
+      "out_of_scope": "Security and documentation",
+      "definition_of_done": ["All tests pass", "No unwraps in hot paths", "Cargo check clean"],
+      "required_evidence": ["Test output logs", "Fixed file diffs"],
+      "blocker_protocol": "Report blocking bugs with traces",
+      "conflict_warning": "Claim files before editing",
+      "communication_rules": ["Mail blockers immediately", "Request deps via mail"],
+      "validation_standard": ["Tests must pass locally", "No skipped test cases"],
+      "expected_output_format": ["Test results summary", "List of fixed issues"]
+    },
+    {
+      "worker_id": "worker-02",
+      "role": "Security hardening engineer",
+      "starting_angle": "Audit secrets, inputs, auth, and permissions",
+      "owned_scope": "Credential handling, input sanitization, permissions",
+      "explicit_task": "Harden all security surfaces",
+      "out_of_scope": "Debugging unrelated bugs",
+      "definition_of_done": ["No hardcoded secrets", "All inputs sanitized", "Permissions least-privilege"],
+      "required_evidence": ["Security audit checklist", "Code diff per fix"],
+      "blocker_protocol": "Escalate critical vulns immediately",
+      "conflict_warning": "Do not touch debug fixes",
+      "communication_rules": ["Flag vulns to all workers", "Require ack on advisories"],
+      "validation_standard": ["Each fix has rationale", "No regressions introduced"],
+      "expected_output_format": ["Security findings list", "Applied hardening diff"]
+    },
+    {
+      "worker_id": "worker-03",
+      "role": "Documentation architect",
+      "starting_angle": "Map codebase structure, write contributor guides",
+      "owned_scope": "Docs folder, architecture diagrams, CLI reference",
+      "explicit_task": "Build complete documentation set",
+      "out_of_scope": "Code changes and fixes",
+      "definition_of_done": ["CLI usage guide written", "Architecture explained", "Contributor onboarding complete"],
+      "required_evidence": ["Docs folder contents", "Table of contents"],
+      "blocker_protocol": "Request code clarifications via mail",
+      "conflict_warning": "Docs are read-only for others",
+      "communication_rules": ["Query workers for details", "Confirm accuracy with owners"],
+      "validation_standard": ["A new dev can onboard", "All commands documented"],
+      "expected_output_format": ["Docs folder tree", "Guide summaries"]
+    },
+    {
+      "worker_id": "worker-04",
+      "role": "Integration and polish lead",
+      "starting_angle": "Validate full build, link docs, smoke test",
+      "owned_scope": "Release build, e2e flows, doc cross-references",
+      "explicit_task": "Ship clean integrated release",
+      "out_of_scope": "New feature development",
+      "definition_of_done": ["Cargo build release clean", "All docs linked", "Smoke tests pass"],
+      "required_evidence": ["Build output", "Smoke test results"],
+      "blocker_protocol": "Block if build is broken",
+      "conflict_warning": "Freeze code before integration",
+      "communication_rules": ["Collect status from all", "Broadcast integration result"],
+      "validation_standard": ["Release binary runs", "Docs match actual CLI"],
+      "expected_output_format": ["Integration checklist", "Release readiness verdict"]
+    }
+  ],
+
+  # How the supervisor will monitor and intervene
+  "supervision_strategy": "Monitor leases, validate security claims, enforce doc accuracy, gate integration release"
+}
+END_SAPPHIRE_PLAN_JSON
