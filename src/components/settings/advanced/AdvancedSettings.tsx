@@ -11,22 +11,14 @@ import { PasteMethodSetting } from "../PasteMethod";
 import { TypingToolSetting } from "../TypingTool";
 import { ClipboardHandlingSetting } from "../ClipboardHandling";
 import { AutoSubmit } from "../AutoSubmit";
-import { PostProcessingToggle } from "../PostProcessingToggle";
-import { AppendTrailingSpace } from "../AppendTrailingSpace";
 import { HistoryLimit } from "../HistoryLimit";
 import { RecordingRetentionPeriodSelector } from "../RecordingRetentionPeriod";
 import { ExperimentalToggle } from "../ExperimentalToggle";
-import { MlxExperimentalCard } from "../MlxToggles";
-import { GmailVoiceToggle } from "../GmailVoiceToggle";
 import { useSettings } from "../../../hooks/useSettings";
 import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
 import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
-import { FillerWordRemoval } from "../FillerWordRemoval";
-import { TechLexicon } from "../TechLexicon";
-import { SmartFileReferences } from "../SmartFileReferences";
-import { IntelligenceAwareness } from "../IntelligenceAwareness";
 import { ShowLiveStreaming } from "../ShowLiveStreaming";
 
 export const AdvancedSettings: React.FC = () => {
@@ -54,13 +46,8 @@ export const AdvancedSettings: React.FC = () => {
 
       <SettingsGroup title={t("settings.advanced.groups.transcription")}>
         <VoiceActivityDetection descriptionMode="tooltip" grouped={true} />
-        <FillerWordRemoval descriptionMode="tooltip" grouped={true} />
-        <TechLexicon descriptionMode="tooltip" grouped={true} />
-        <SmartFileReferences descriptionMode="tooltip" grouped={true} />
-        <IntelligenceAwareness descriptionMode="tooltip" grouped={true} />
         <ShowLiveStreaming descriptionMode="tooltip" grouped={true} />
         <CustomWords descriptionMode="tooltip" grouped />
-        <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.advanced.groups.history")}>
@@ -73,9 +60,6 @@ export const AdvancedSettings: React.FC = () => {
 
       {experimentalEnabled && (
         <SettingsGroup title={t("settings.advanced.groups.experimental")}>
-          <MlxExperimentalCard />
-          <GmailVoiceToggle descriptionMode="tooltip" grouped={true} />
-          <PostProcessingToggle descriptionMode="tooltip" grouped={true} />
           <KeyboardImplementationSelector
             descriptionMode="tooltip"
             grouped={true}

@@ -45,6 +45,7 @@ pub(crate) mod ax;
 mod bridge;
 #[cfg(target_os = "macos")]
 mod context;
+#[cfg(target_os = "macos")]
 mod generator;
 pub(crate) mod grammar;
 pub(crate) mod session;
@@ -171,9 +172,7 @@ pub async fn handle(
     app: &AppHandle,
 ) -> GmailHandleResult {
     let instruction = normalize_gmail_instruction(transcription, &settings.voice_command_hook);
-    if !settings.experimental_gmail_voice_enabled {
-        return GmailHandleResult::NotHandled;
-    }
+    // Always enabled — no frontend toggle
     if !snapshot.surface.is_gmail_like() {
         // Only worth a warn when the utterance actually parses as a Gmail
         // command — plain dictation outside Gmail is the common case.

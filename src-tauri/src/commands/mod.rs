@@ -1,7 +1,6 @@
 pub mod ai_cleanup;
 pub mod audio;
 pub mod history;
-pub mod local_cleanup;
 pub mod models;
 pub mod transcription;
 

@@ -389,9 +389,7 @@ pub fn resume_all_shortcuts(app: &AppHandle) {
         if id == "cancel" {
             continue;
         }
-        if id == "transcribe_with_post_process" && !settings.post_process_enabled {
-            continue;
-        }
+        // post_process always enabled — no frontend toggle
         if id == "ai_cleanup" && !settings.ai_cleanup_enabled {
             continue;
         }
@@ -583,10 +581,6 @@ fn register_all_shortcuts_for_implementation(
             continue;
         }
 
-        // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !current_settings.post_process_enabled {
-            continue;
-        }
         if id == "ai_cleanup" && !current_settings.ai_cleanup_enabled {
             continue;
         }
@@ -1512,22 +1506,6 @@ pub fn change_tech_lexicon_enabled_setting(app: AppHandle, enabled: bool) -> Res
 }
 
 /// S1-mini cleanup model master switch (default off). Enabling persists the
-/// setting and immediately downloads/loads the model with live progress
-/// events; disabling unloads it so nothing downloads or runs until re-enabled.
-#[tauri::command]
-#[specta::specta]
-pub fn change_cleanup_model_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    settings.cleanup_model_enabled = enabled;
-    settings::write_settings(&app, settings);
-    if enabled {
-        crate::local_cleanup::install(app);
-    } else {
-        crate::local_cleanup::deactivate(&app);
-    }
-    Ok(())
-}
-
 #[tauri::command]
 #[specta::specta]
 pub fn change_smart_file_references_enabled_setting(

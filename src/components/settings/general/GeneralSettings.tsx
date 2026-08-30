@@ -12,7 +12,6 @@ import { useSettings } from "../../../hooks/useSettings";
 import { VolumeSlider } from "../VolumeSlider";
 import { MuteWhileRecording } from "../MuteWhileRecording";
 import { ModelSettingsCard } from "./ModelSettingsCard";
-import { AIModelsStatusCard } from "./AIModelsStatusCard";
 import { ShortcutsCard } from "./ShortcutsCard";
 import { VoiceHookCard } from "./VoiceHookCard";
 import SpecificationPanel from "./specifications/shared-tab";
@@ -24,7 +23,6 @@ export const GeneralSettings: React.FC = () => {
   const isLinux = type() === "linux";
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
-      <AIModelsStatusCard />
       <SettingsGroup title={t("settings.general.title")}>
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <ShortcutInput shortcutId="hands_free_transcribe" grouped={true} />

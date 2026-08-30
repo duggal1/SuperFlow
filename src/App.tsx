@@ -153,11 +153,7 @@ function App() {
     const unlisten = listen<RecordingErrorEvent>("recording-error", (event) => {
       const { error_type, detail } = event.payload;
 
-      if (error_type === "cleanup_model_not_ready") {
-        toast.error(t("errors.cleanupModelNotReadyTitle"), {
-          description: t("errors.cleanupModelNotReady"),
-        });
-      } else if (error_type === "microphone_permission_denied") {
+      if (error_type === "microphone_permission_denied") {
         const currentPlatform = platform();
         const platformKey = `errors.micPermissionDenied.${currentPlatform}`;
         const description = t(platformKey, {

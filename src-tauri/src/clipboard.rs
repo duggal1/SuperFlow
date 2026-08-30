@@ -811,12 +811,8 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     let paste_delay_ms = settings.paste_delay_ms;
     let paste_delay_after_ms = settings.paste_delay_after_ms;
 
-    // Append trailing space if setting is enabled
-    let text = if settings.append_trailing_space {
-        format!("{} ", text)
-    } else {
-        text
-    };
+    // Append trailing space — removed frontend toggle, always disabled
+    let text = text;
 
     info!(
         "Using paste method: {:?}, delay before: {}ms, delay after: {}ms",

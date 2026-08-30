@@ -280,11 +280,9 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
     )
     .expect("failed to create unload model item");
 
-    // Post-processing tone quick-switcher — label is the active prompt name.
-    // Items are listed even when post-processing is off but disabled, so the
-    // user can see the feature exists.
+    // Post-processing tone quick-switcher — always enabled, no frontend toggle.
     let tone_submenu = {
-        let submenu = Submenu::with_id(app, "tone_submenu", "Tone", settings.post_process_enabled)
+        let submenu = Submenu::with_id(app, "tone_submenu", "Tone", true)
             .expect("failed to create tone submenu");
         for prompt in &settings.post_process_prompts {
             let is_active =
@@ -294,7 +292,7 @@ pub fn update_tray_menu(app: &AppHandle, locale: Option<&str>) {
                 app,
                 &item_id,
                 &prompt.name,
-                settings.post_process_enabled,
+                true,
                 is_active,
                 None::<&str>,
             )

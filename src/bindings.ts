@@ -417,17 +417,7 @@ async changeTechLexiconEnabledSetting(enabled: boolean) : Promise<Result<null, s
 },
 /**
  * S1-mini cleanup model master switch (default off). Enabling persists the
- * setting and immediately downloads/loads the model with live progress
- * events; disabling unloads it so nothing downloads or runs until re-enabled.
  */
-async changeCleanupModelEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("change_cleanup_model_enabled_setting", { enabled }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async changeSmartFileReferencesEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_smart_file_references_enabled_setting", { enabled }) };
@@ -992,30 +982,6 @@ async isGeminiApiConfigured() : Promise<Result<boolean, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-/**
- * Install state of the mandatory S1-mini text clean-up model.
- */
-async getCleanupModelStatus() : Promise<Result<CleanupModelStatus, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_cleanup_model_status") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Explicit user-driven install (onboarding page or dashboard card). Progress
- * streams via `cleanup-model-progress`; completion/failure via
- * `cleanup-model-complete` / `cleanup-model-failed`.
- */
-async installCleanupModel() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("install_cleanup_model") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async setModelUnloadTimeout(timeout: ModelUnloadTimeout) : Promise<void> {
     await TAURI_INVOKE("set_model_unload_timeout", { timeout });
 },
@@ -1127,14 +1093,10 @@ async isLaptop() : Promise<Result<boolean, string>> {
 
 
 export const events = __makeEvents__<{
-cleanupProgressEvent: CleanupProgressEvent,
-cleanupRunStatusEvent: CleanupRunStatusEvent,
 historyUpdatePayload: HistoryUpdatePayload,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
-cleanupProgressEvent: "cleanup-progress-event",
-cleanupRunStatusEvent: "cleanup-run-status-event",
 historyUpdatePayload: "history-update-payload",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
@@ -1240,12 +1202,6 @@ reliable_paste?: boolean; typing_tool?: TypingTool; external_script_path?: strin
  */
 tech_lexicon_enabled?: boolean; 
 /**
- * S1-mini cleanup model master switch. Opt-in and disabled by default:
- * the model is never auto-downloaded, loaded, or run unless explicitly
- * enabled here.
- */
-cleanup_model_enabled?: boolean; 
-/**
  * Resolve spoken file names ("hero dot tsx") against the active dev
  * project when dictating into a terminal or editor. Local-only.
  */
@@ -1282,76 +1238,6 @@ export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
-/**
- * Timing and token accounting for one chunk. No text fields, by design.
- */
-export type CleanupChunkMetrics = { chunk_index: number; chunk_count: number; queue_wait_ms: number; prompt_eval_ms: number; generation_ms: number; input_tokens: number; output_tokens: number; generated_tokens_per_second: number }
-/**
- * Stage at which a failed run stopped. Stable reason codes — never free text.
- */
-export type CleanupFailureStage = "not_ready" | "queue_timeout" | "generation_timeout" | "generation_error" | "validation_rejected" | "cancelled"
-/**
- * Where the pasted text actually came from.
- */
-export type CleanupFinalSource = "s1" | "mixed_chunk_fallback" | "raw_fallback" | "non_english_skip"
-/**
- * Terminal lifecycle of a cleanup run.
- */
-export type CleanupLifecycle = 
-/**
- * Full S1 output accepted for every chunk.
- */
-"applied" | 
-/**
- * At least one chunk fell back to its source span; neighbors kept.
- */
-"partially_applied" | 
-/**
- * No cleanup attempted (non-English or empty input).
- */
-"skipped" | 
-/**
- * Model output rejected by validation; source text substituted.
- */
-"rejected" | 
-/**
- * Engine, timeout, queue, or lifecycle failure; source text substituted.
- */
-"failed" | 
-/**
- * Superseded or cancelled before completion.
- */
-"cancelled"
-/**
- * Full install state for one UI render pass.
- */
-export type CleanupModelStatus = { model_name: string; installed: boolean; installing: boolean; ready: boolean; active: boolean; last_error: string | null; 
-/**
- * Inference backend this stage always uses.
- */
-backend: string; 
-/**
- * Latest terminal cleanup run, if any has finished this session.
- */
-last_run: CleanupOutcomeSummary | null; 
-/**
- * Queued or generating S1 jobs. This is lifecycle state, not an estimate.
- */
-pending_jobs: number; cleaning: boolean }
-/**
- * Serializable terminal summary for one run: safe for events, status, UI.
- */
-export type CleanupOutcomeSummary = { run_id: number; lifecycle: CleanupLifecycle; final_source: CleanupFinalSource; failure_stage: CleanupFailureStage | null; validation_reason: CleanupValidationReason | null; metrics: CleanupRunMetrics }
-export type CleanupProgressEvent = { pending_jobs: number }
-export type CleanupRunMetrics = { total_ms: number; backend: string; chunks: CleanupChunkMetrics[] }
-/**
- * Typed terminal event emitted exactly once per finished run.
- */
-export type CleanupRunStatusEvent = { summary: CleanupOutcomeSummary }
-/**
- * Stable per-chunk validation rejection codes (full set enforced from T3).
- */
-export type CleanupValidationReason = "think_tag_leakage" | "repetition_loop" | "invented_identifier" | "missing_numeric_token" | "missing_currency_or_percentage" | "negation_changed" | "implausible_truncation" | "empty_for_meaningful_speech"
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CustomSounds = { start: boolean; stop: boolean }
 export type EngineType = 

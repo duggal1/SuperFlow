@@ -176,8 +176,6 @@ const settingUpdaters: {
     commands.changeFillerWordRemovalEnabledSetting(value as boolean),
   tech_lexicon_enabled: (value) =>
     commands.changeTechLexiconEnabledSetting(value as boolean),
-  cleanup_model_enabled: (value) =>
-    commands.changeCleanupModelEnabledSetting(value as boolean),
   smart_file_references_enabled: (value) =>
     commands.changeSmartFileReferencesEnabledSetting(value as boolean),
   live_punctuation_enabled: (value) =>

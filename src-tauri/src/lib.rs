@@ -19,7 +19,6 @@ mod helpers;
 mod input;
 mod intelligence;
 mod llm_client;
-mod local_cleanup;
 mod managers;
 mod memory;
 mod overlay;
@@ -188,10 +187,6 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
     managers::transcription::init_transcribe_backend();
-
-    // Mandatory S1-mini cleanup stage: download (if needed) and load the model
-    // off the hot path so dictation never waits on it.
-    local_cleanup::preload(app_handle.clone());
 
     // Warm Superflow Grammar (harper-core) caches off the hot path — first
     // correct() is ~900ms cold (dictionary + LintGroup), warm is <30ms.
@@ -630,6 +625,7 @@ pub fn run(cli_args: CliArgs) {
     // before ANY app machinery initializes — this process exists only to
     // isolate AX faults away from the main app.
     if cli_args.context_agent {
+        #[cfg(target_os = "macos")]
         context::capture::run_context_agent();
         return;
     }
@@ -722,7 +718,6 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_vad_enabled_setting,
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_tech_lexicon_enabled_setting,
-            shortcut::change_cleanup_model_enabled_setting,
             shortcut::change_smart_file_references_enabled_setting,
             shortcut::change_live_punctuation_enabled_setting,
             shortcut::change_show_live_streaming_setting,
@@ -795,8 +790,6 @@ pub fn run(cli_args: CliArgs) {
             commands::ai_cleanup::change_hey_superflow_tone_setting,
             commands::ai_cleanup::get_ai_cleanup_history,
             commands::ai_cleanup::is_gemini_api_configured,
-            commands::local_cleanup::get_cleanup_model_status,
-            commands::local_cleanup::install_cleanup_model,
             commands::transcription::set_model_unload_timeout,
             commands::transcription::get_model_load_status,
             commands::transcription::unload_model_manually,
@@ -815,8 +808,6 @@ pub fn run(cli_args: CliArgs) {
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
-            local_cleanup::metrics::CleanupRunStatusEvent,
-            local_cleanup::CleanupProgressEvent,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

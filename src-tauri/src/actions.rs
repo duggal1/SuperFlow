@@ -433,24 +433,6 @@ async fn apply_local_transcript_cleanup(
         text = converted_text;
     }
 
-    if settings.cleanup_model_enabled && !text.trim().is_empty() {
-        let outcome = match crate::local_cleanup::finalize_session(app, &effective_language, &text)
-            .await
-        {
-            Some(outcome) => outcome,
-            None => crate::local_cleanup::normalize(app, &effective_language, text.clone()).await,
-        };
-        debug!(
-            "cleanup run {}: {:?} via {:?} ({} -> {} chars)",
-            outcome.summary.run_id,
-            outcome.summary.lifecycle,
-            outcome.summary.final_source,
-            text.len(),
-            outcome.final_text.len()
-        );
-        text = outcome.final_text;
-    }
-
     text
 }
 
@@ -548,7 +530,8 @@ async fn process_transcription_output_with_context(
 
     // Smart file references: resolve spoken file names against the active dev
     // project when dictating into a terminal or editor. Local-only, best-effort.
-    if settings.smart_file_references_enabled {
+    // Always enabled — no frontend toggle.
+    if true {
         let project = context
             .as_ref()
             .and_then(|context| context.project_root.clone());
@@ -595,7 +578,8 @@ async fn process_transcription_output_with_context(
     // (fail closed on error — nothing is pasted or sent). The universal "send it"
     // hook above owns send detection, so we skip this path whenever a send
     // command was detected — that keeps the simple paste+send path authoritative.
-    if settings.experimental_gmail_voice_enabled && send_plan.is_none() {
+    // Always enabled — no frontend toggle.
+    if send_plan.is_none() {
         if let Some(ctx) = context {
             match crate::gmail_voice::handle(&effective_input, &ctx.snapshot, &settings, app).await {
                 crate::gmail_voice::GmailHandleResult::NotHandled => {}
@@ -630,7 +614,8 @@ async fn process_transcription_output_with_context(
     // composes finished prose. This prevents Ghostty from pasting
     // hallucinated engineering prompts when the user simply said
     // "fix hero dot tsx".
-    if settings.intelligence_awareness_enabled {
+    // Always enabled — no frontend toggle.
+    if true {
         if let Some(context) = context.filter(|context| {
             matches!(
                 context.snapshot.surface,
@@ -1244,23 +1229,6 @@ impl ShortcutAction for TranscribeAction {
         debug!("TranscribeAction::start called for binding: {}", binding_id);
         let is_hands_free = binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID;
 
-        // The optional S1-mini clean-up stage only constrains dictation when
-        // the user explicitly enabled it: then the engine must be live before
-        // any speech is captured, and while it downloads/loads recording is
-        // refused with a distinct error type the UI maps to a toast. With the
-        // model disabled (the default) dictation never waits on it.
-        if get_settings(app).cleanup_model_enabled && !crate::local_cleanup::is_ready() {
-            debug!("Dictation refused: clean-up model not ready yet");
-            let _ = app.emit(
-                "recording-error",
-                serde_json::json!({
-                    "error_type": "cleanup_model_not_ready",
-                    "detail": "text cleanup model is still installing"
-                }),
-            );
-            return;
-        }
-
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
         let rm = app.state::<Arc<AudioRecordingManager>>();
@@ -1293,10 +1261,6 @@ impl ShortcutAction for TranscribeAction {
         // Get the microphone mode to determine audio feedback timing
         let plan_started = Instant::now();
         let settings = get_settings(app);
-        let cleanup_language = resolve_effective_language(app, &settings);
-        if settings.cleanup_model_enabled {
-            crate::local_cleanup::start_session(app, &cleanup_language);
-        }
         let is_always_on = settings.always_on_microphone;
 
         let selected_model_info = app

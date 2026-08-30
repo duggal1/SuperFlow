@@ -126,7 +126,6 @@ pub fn cancel_current_operation(app: &AppHandle) {
     // Abandon any live streaming transcription
     let tm = app.state::<Arc<TranscriptionManager>>();
     tm.cancel_stream();
-    crate::local_cleanup::cancel_session();
 
     // Update tray icon, then acknowledge the cancel: play the canceled cue and
     // show the short "Transcription canceled" toast (with Undo once the

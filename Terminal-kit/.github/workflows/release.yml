@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v0.1.0)'
+        required: false
+        type: string
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: sp
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: sp
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: sp
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: sp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross-compilation tools
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build release
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          cd target/${{ matrix.target }}/release
+          tar czf sp-${{ matrix.target }}.tar.gz sp
+          mv sp-${{ matrix.target }}.tar.gz ../../../
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp-${{ matrix.target }}
+          path: sp-${{ matrix.target }}.tar.gz
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version || 'v0.1.0' }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            sp-x86_64-unknown-linux-gnu/sp-x86_64-unknown-linux-gnu.tar.gz
+            sp-aarch64-unknown-linux-gnu/sp-aarch64-unknown-linux-gnu.tar.gz
+            sp-x86_64-apple-darwin/sp-x86_64-apple-darwin.tar.gz
+            sp-aarch64-apple-darwin/sp-aarch64-apple-darwin.tar.gz
+          draft: false
+          prerelease: false
+
+  update-installers:
+    name: Update Installers
+    needs: release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update version in install scripts
+        run: |
+          VERSION="${{ github.ref_name }}"
+          # Update scripts to point to new release
+          sed -i "s/VERSION=\"\${SP_VERSION:-latest}\"/VERSION=\"\${SP_VERSION:-${VERSION}}\"/" install.sh
+          
+      - name: Commit version updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add install.sh install-simple.sh
+          git commit -m "chore: update installer version to ${{ github.ref_name }}" || echo "No changes to commit"
+          git push

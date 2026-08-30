@@ -1064,8 +1064,6 @@ impl TranscriptionManager {
                     }
                     perf.record_emit();
                     self.emit_stream_text(&ev.committed, &ev.tentative);
-                    // Keep local_cleanup in sync with committed prefix (revision 0 for MLX)
-                    crate::local_cleanup::submit_committed(0, &ev.committed);
                     perf.maybe_log();
                 }
 
@@ -1264,12 +1262,6 @@ impl TranscriptionManager {
                                     // punctuation, and structure belong exclusively
                                     // to S1-mini after the stream is finalized.
                                     self.emit_stream_text(&text.committed, &text.tentative);
-                                    // T4: seal newly stable sentences for
-                                    // background cleanup while capture continues.
-                                    crate::local_cleanup::submit_committed(
-                                        update.revision,
-                                        &text.committed,
-                                    );
                                 }
                                 perf.maybe_log();
                             }
@@ -2234,20 +2226,8 @@ fn post_process_transcription_text(
         // stripped as English filler (see tests: portuguese_transcription_…).
         // See `superflow_grammar/mod.rs` and `protected_spans.rs`.
         // ------------------------------------------------------------------
-        let language_hint = output_language.language();
         let grammar_enabled =
             superflow_grammar_should_run(&raw, output_language, supported_languages);
-
-        // Streaming commits and the finalized transcript must stay byte-identical
-        // until CleanupSession reconciles them. S1 performs the shared custom-word,
-        // technical-vocabulary, value, and path preparation immediately before
-        // each incremental span and final tail generation.
-        if settings.cleanup_model_enabled
-            && crate::local_cleanup::is_ready()
-            && crate::local_cleanup::should_run(language_hint.unwrap_or("auto"), &raw)
-        {
-            return raw;
-        }
 
         let protected = crate::superflow_grammar::ProtectedText::new(&raw);
         let raw = protected.masked().to_string();
@@ -2266,7 +2246,8 @@ fn post_process_transcription_text(
         // framework names ("next year" → "Next.js"), spoken file extensions
         // ("dot tsx" → ".tsx") and path separators ("slash" → "/"). Runs
         // after user custom words so a user's own correction always wins.
-        let corrected = if settings.tech_lexicon_enabled {
+        // Always enabled — no frontend toggle (deterministic, local).
+        let corrected = {
             let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
             // Styling catalogs (both Tailwind datasets) and the programming
             // syntax catalog ride the same gate — all pre-built technical
@@ -2275,18 +2256,14 @@ fn post_process_transcription_text(
             let corrected = crate::audio_toolkit::styling::apply(&corrected);
             let corrected = crate::audio_toolkit::programming_syntax::apply(&corrected);
             crate::audio_toolkit::emoji::apply(&corrected)
-        } else {
-            corrected
         };
 
         // Last-resort language evidence: confidence-gated detection from the
         // transcribed text itself, constrained to the model's languages. Only
         // consulted when it can change the outcome (built-in gated fillers).
+        // Always enabled — no frontend toggle.
         let output_language = match output_language {
-            OutputLanguageEvidence::Unknown
-                if settings.filler_word_removal_enabled
-                    && settings.custom_filler_words.is_none() =>
-            {
+            OutputLanguageEvidence::Unknown if settings.custom_filler_words.is_none() => {
                 match detect_output_language(&corrected, supported_languages) {
                     Some(language) => {
                         debug!("Text-based language detection resolved '{}'", language);
@@ -2302,7 +2279,7 @@ fn post_process_transcription_text(
             &corrected,
             &output_language,
             &settings.custom_filler_words,
-            settings.filler_word_removal_enabled,
+            true,
         );
 
         // Deterministic processing is intentionally limited to value and token

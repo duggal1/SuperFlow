@@ -641,11 +641,6 @@ pub struct AppSettings {
     /// Local-only; complements user custom words on every model path.
     #[serde(default = "default_tech_lexicon_enabled")]
     pub tech_lexicon_enabled: bool,
-    /// S1-mini cleanup model master switch. Opt-in and disabled by default:
-    /// the model is never auto-downloaded, loaded, or run unless explicitly
-    /// enabled here.
-    #[serde(default)]
-    pub cleanup_model_enabled: bool,
     /// Resolve spoken file names ("hero dot tsx") against the active dev
     /// project when dictating into a terminal or editor. Local-only.
     #[serde(default = "default_smart_file_references_enabled")]
@@ -1292,7 +1287,6 @@ pub fn get_default_settings() -> AppSettings {
         filler_word_removal_enabled: default_filler_word_removal_enabled(),
         custom_filler_words: None,
         tech_lexicon_enabled: default_tech_lexicon_enabled(),
-        cleanup_model_enabled: false,
         smart_file_references_enabled: default_smart_file_references_enabled(),
         live_punctuation_enabled: default_live_punctuation_enabled(),
         punctuation_style: PunctuationStyle::default(),
