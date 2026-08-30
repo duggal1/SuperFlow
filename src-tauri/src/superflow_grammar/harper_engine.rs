@@ -98,20 +98,13 @@ fn is_safe_to_auto_fix(lint: &harper_core::linting::Lint, rule_name: &str) -> bo
     if lint.suggestions.len() != 1 {
         return false;
     }
-    // Explicit allow-list: only these rule names are CERTAIN/HIGH. Everything else is SuggestOnly.
-    // This fixes the bug where any future custom rule with 1 suggestion would be auto-fixed even if low-confidence.
-    const ALLOW_RULES: &[&str] = &[
-        "RepeatedWords",          // the the → the (CERTAIN)
-        "AnA",                    // an test → a test (CERTAIN)
-        "ThereIsAgreement",       // There is many → are (HIGH, single noun)
-        "PronounVerbAgreement",   // he have → has (HIGH, guarded)
-        "SentenceCapitalization", // Minimal, but we deny it for code — keep denied, not here
-    ];
-    // Deny these even if they somehow appear in allow-list (defense in depth)
+    // Deny these even if they somehow appear in allow-list (defense in depth).
+    // Harper's Spelling/Style/Enhancement/Regionalism/Redundancy/Readability are
+    // all SuggestOnly — never auto-fixed (semantic risk, code-corruption risk).
     const DENY_RULES: &[&str] = &[
         "Spaces",
         "NoFrenchSpaces",
-        "SentenceCapitalization",
+        "SentenceCapitalization", // harper #1107: corrupts code (transcript_cleanup.rs → .Rs)
         "SpellCheck",
         "SplitWords",
         "CompoundNouns",
@@ -133,7 +126,23 @@ fn is_safe_to_auto_fix(lint: &harper_core::linting::Lint, rule_name: &str) -> bo
     if DENY_RULES.contains(&rule_name) {
         return false;
     }
-    // Check lint_kind as well — even allowed names must be Grammar/Agreement/Punctuation, not Spelling etc.
+    // Our own curated custom rules (registered in `rules/mod.rs`) are vetted,
+    // single-suggestion, and deterministic. They are safe to auto-fix.
+    // This is the critical fix: previously every `Sf*` rule was dropped by the
+    // default `false`, making the "5 core grammar families" dead code.
+    if rule_name.starts_with("Sf") {
+        return true;
+    }
+    // Curated harper rules — only an explicit allow-list is auto-fixed.
+    // Everything else is SuggestOnly (high recall, zero auto-mutation risk).
+    const ALLOW_RULES: &[&str] = &[
+        "RepeatedWords",       // the the → the (CERTAIN)
+        "AnA",                 // an test → a test (CERTAIN)
+        "ThereIsAgreement",    // There is many → are (HIGH, single noun)
+        "PronounVerbAgreement", // he have → has (HIGH, guarded)
+    ];
+    // Even allowed names must be Grammar/Agreement/Punctuation, not Spelling etc.
+    // (Covered by DENY_RULES above, but be explicit for safety.)
     match lint.lint_kind {
         harper_core::linting::LintKind::Spelling
         | harper_core::linting::LintKind::Style

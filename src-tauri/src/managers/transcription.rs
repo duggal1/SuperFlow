@@ -2208,10 +2208,13 @@ fn superflow_grammar_should_run(
     if let Some(detected) = crate::audio_toolkit::detect_output_language(raw, supported_languages) {
         return detected.starts_with("en");
     }
-    // Unknown + undetectable (short/mixed) → if model supports English, assume English.
-    // This is the 100% fix: parakeet-unified-en-0.6b is English-only, so short
-    // English like "This are a test." must still get harper.
-    supported_languages.iter().any(|l| l.starts_with("en"))
+    // Unknown + undetectable (short/mixed) → only assume English when the model
+    // can ONLY produce English (parakeet-unified-en-0.6b → ["en"]). This is the
+    // 100% fix: short English like "This are a test." must still get harper.
+    // For a multilingual model (e.g. ["en","pt"]) we must NOT assume English,
+    // otherwise English-only transcript_cleanup would strip the Portuguese
+    // article "um". A multilingual model's Unknown text stays untouched.
+    supported_languages.iter().all(|l| l.starts_with("en"))
 }
 
 fn post_process_transcription_text(
@@ -2302,12 +2305,19 @@ fn post_process_transcription_text(
         let normalized = normalize_transcription_output(&without_fillers);
         let normalized = crate::audio_toolkit::formatter::normalize_values(&normalized);
         let joined = join_path_tokens(&normalized);
-        // Ultra-fast deterministic transcript cleanup (always enabled, no toggle):
-        // removes speech noise without changing meaning. Runs on the finalized
-        // transcript before downstream hooks/intelligence/paste. Deterministic,
-        // local-only, <10ms ideal. Harper already ran right after Parakeet (100%),
-        // so this is just speech cleanup, not grammar.
-        let cleaned = crate::audio_toolkit::transcript_cleanup::normalize_transcript(&joined);
+        // Ultra-fast deterministic transcript cleanup: removes speech noise
+        // (fillers, repeats, restarts, self-corrections, modifier stacking)
+        // without changing meaning. Deterministic, local-only, <10ms ideal.
+        // Gated to English-only evidence — it is speech cleanup, not grammar, and
+        // its `remove_fillers` list includes tokens that are real words in other
+        // languages (Portuguese "um" = "a/an"), so running it on non-English would
+        // corrupt the transcript. This mirrors `superflow_grammar_should_run`.
+        // Harper already ran right after Parakeet (100%), so this is just cleanup.
+        let cleaned = if grammar_enabled {
+            crate::audio_toolkit::transcript_cleanup::normalize_transcript(&joined)
+        } else {
+            joined
+        };
         cleaned
     })
 }

@@ -55,6 +55,16 @@ fn iso639_1_for_whatlang(lang: Lang) -> Option<&'static str> {
 /// model can output. Returns an ISO 639-1 code only for a reliable,
 /// high-confidence detection; `None` otherwise.
 pub fn detect_output_language(text: &str, supported_languages: &[String]) -> Option<String> {
+    // Fail closed on very short text. whatlang's confidence gate still clears
+    // 3-4 word strings like "um uhm ok" or "eu vi um carro" as English, which
+    // would delete the Portuguese article "um" via gated filler removal. Below
+    // ~5 words there is not enough signal to risk deleting a real word that is
+    // an article elsewhere, so we return None and let callers skip gated
+    // removal (the universal tier still applies).
+    if text.split_whitespace().count() < 5 {
+        return None;
+    }
+
     // Codes whatlang cannot represent (e.g. Maltese in Parakeet V3's list,
     // Cantonese in SenseVoice's) are dropped rather than disabling detection
     // for the whole model. Text in a dropped language only causes harm if it
