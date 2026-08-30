@@ -33,6 +33,7 @@ dist-ssr
 
 /target/
 testing/harper-playground/target/
+/Terminal-kit/
 recording_*
 .crush/
 
