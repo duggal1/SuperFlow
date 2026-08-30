@@ -233,7 +233,9 @@
         "helper": "Hold your Transcribe key, say the hook, then your request, then release.",
         "exampleLabel": "Try saying",
         "exampleText": "Draft a concise follow-up email to the design team recapping today's review and listing the three revisions we agreed on.",
-        "usesModelHint": "Uses your Prompt Engineering Gemini model and tone. Set your API key and style there."
+        "usesModelHint": "Uses your Prompt Engineering Gemini model and tone. Set your API key and style there.",
+        "toneLabel": "Output tone",
+        "toneDescription": "Applied to every Hey Superflow output — email, Slack, or generated prompt. Switch to “Keep my voice” to disable tone shaping."
       }
     },
     "models": {

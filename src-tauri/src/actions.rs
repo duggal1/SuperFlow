@@ -503,6 +503,12 @@ fn parse_user_spec(json: &str) -> UserSpec {
     serde_json::from_str(json).unwrap_or_default()
 }
 
+fn should_use_slack_formatter(surface: &crate::context::types::Surface, text: &str) -> bool {
+    matches!(surface, crate::context::types::Surface::Slack)
+        || matches!(surface, crate::context::types::Surface::Other)
+            && crate::audio_toolkit::slack_formatting::has_strong_slack_signal(text)
+}
+
 async fn process_transcription_output_with_context(
     app: &AppHandle,
     transcription: &str,
@@ -720,8 +726,9 @@ async fn process_transcription_output_with_context(
         // what the user explicitly configured is used. Disabled -> ignored.
         let spec = parse_user_spec(&settings.user_specification);
 
-        match surface {
-            crate::context::types::Surface::Slack => {
+        let use_slack_formatter = should_use_slack_formatter(&surface, &final_text);
+
+        if use_slack_formatter {
                 let mut slack_opts =
                     crate::audio_toolkit::slack_formatting::SlackFormatOptions::default();
                 if spec.enabled {
@@ -743,71 +750,80 @@ async fn process_transcription_output_with_context(
                     &final_text,
                     slack_opts,
                 )
-            }
-            crate::context::types::Surface::Gmail => {
-                let author_name = if spec.enabled {
-                    spec.email
+        } else {
+            // Email path. Trigger on a confident Gmail surface OR — the reliable
+            // fallback signal on an otherwise unknown surface. Explicit terminal
+            // and editor contexts stay generic, and a greeting alone is never
+            // enough to append an email signature.
+                let is_email = matches!(surface, crate::context::types::Surface::Gmail)
+                    || matches!(surface, crate::context::types::Surface::Other)
+                        && crate::audio_toolkit::formatter::is_email_message(&final_text);
+                if is_email {
+                    // The email signature is benign: it only appends the user's
+                    // own stored name and sign-off. It applies whenever the user
+                    // has configured an identity, independent of the master
+                    // `enabled` toggle (which gates Slack formatting extras).
+                    let author_name = spec
+                        .email
                         .signature_name
                         .clone()
                         .or_else(|| spec.identity.full_name.clone())
-                } else {
-                    None
-                }
-                .map(|name| name.trim().to_string())
-                .filter(|name| !name.is_empty());
-                let author_title = if spec.enabled && spec.email.include_job_title {
-                    spec.identity
-                        .job_title
-                        .clone()
-                        .map(|t| t.trim().to_string())
-                        .filter(|t| !t.is_empty())
-                } else {
-                    None
-                };
-                let author_company = if spec.enabled && spec.email.include_company {
-                    spec.identity
-                        .company
-                        .clone()
-                        .map(|c| c.trim().to_string())
-                        .filter(|c| !c.is_empty())
-                } else {
-                    None
-                };
-                // Default ending only when the author is known — we never
-                // invent a sign-off for an unknown user. Falls back to the
-                // user's own informal US default when the field is empty.
-                let default_signoff = if author_name.is_some() {
-                    Some(
-                        spec.email
-                            .signoff
+                        .map(|name| name.trim().to_string())
+                        .filter(|name| !name.is_empty());
+                    let author_title = if spec.email.include_job_title {
+                        spec.identity
+                            .job_title
                             .clone()
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty())
-                            .unwrap_or_else(|| "Talk soon".to_string()),
-                    )
+                            .map(|t| t.trim().to_string())
+                            .filter(|t| !t.is_empty())
+                    } else {
+                        None
+                    };
+                    let author_company = if spec.email.include_company {
+                        spec.identity
+                            .company
+                            .clone()
+                            .map(|c| c.trim().to_string())
+                            .filter(|c| !c.is_empty())
+                    } else {
+                        None
+                    };
+                    // Default ending only when the author is known — we never
+                    // invent a sign-off for an unknown user. Falls back to the
+                    // user's own informal US default when the field is empty.
+                    let default_signoff = if author_name.is_some() {
+                        Some(
+                            spec.email
+                                .signoff
+                                .clone()
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .unwrap_or_else(|| "Talk soon".to_string()),
+                        )
+                    } else {
+                        None
+                    };
+                    let email_ctx = crate::audio_toolkit::formatter::EmailFormatContext {
+                        is_email: true,
+                        // Recipient from Gmail header, author from the local spec.
+                        // None falls back to deterministic ASR text without fuzzy correction.
+                        recipient_name: None,
+                        author_name: author_name.as_deref(),
+                        author_title: author_title.as_deref(),
+                        author_company: author_company.as_deref(),
+                        include_title: spec.email.include_job_title,
+                        include_company: spec.email.include_company,
+                        default_signoff: default_signoff.as_deref(),
+                    };
+                    let formatted = crate::audio_toolkit::formatter::format_email_for_surface(
+                        &final_text,
+                        email_ctx,
+                    );
+                    email_subject_out = formatted.subject;
+                    formatted.text
                 } else {
-                    None
-                };
-                let email_ctx = crate::audio_toolkit::formatter::EmailFormatContext {
-                    is_email: true,
-                    // Recipient from Gmail header, author from the local spec.
-                    // None falls back to deterministic ASR text without fuzzy correction.
-                    recipient_name: None,
-                    author_name: author_name.as_deref(),
-                    author_title: author_title.as_deref(),
-                    author_company: author_company.as_deref(),
-                    include_title: spec.enabled && spec.email.include_job_title,
-                    include_company: spec.enabled && spec.email.include_company,
-                    default_signoff: default_signoff.as_deref(),
-                };
-                let formatted = crate::audio_toolkit::formatter::format_email_for_surface(
-                    &final_text,
-                    email_ctx,
-                );
-                email_subject_out = formatted.subject;
-                formatted.text
-            }
-            _ => crate::audio_toolkit::formatter::format_layout(&final_text),
+                    crate::audio_toolkit::formatter::format_layout(&final_text)
+                }
         }
     };
     if post_processed_text.is_some() && shaped != final_text {
@@ -1054,6 +1070,7 @@ async fn run_voice_command(
     wav_saved: bool,
     sample_count: usize,
     cancel_generation: u64,
+    send_after_paste: Option<crate::send_it::SendKey>,
 ) {
     let settings = get_settings(app);
     let Some(instruction) = complete_unless_cancelled(
@@ -1184,6 +1201,7 @@ async fn run_voice_command(
     let fallback = output.clone();
     let fallback_for_closure = fallback.clone();
     let recording_manager = Arc::clone(recording_manager);
+    let send_after_paste = send_after_paste;
     if let Err(error) = app.run_on_main_thread(move || {
         if recording_manager.was_cancelled_since(cancel_generation)
             || crate::secure_input::is_enabled_now()
@@ -1200,6 +1218,11 @@ async fn run_voice_command(
                     AiCleanupSound::Complete,
                 );
                 crate::overlay::hide_recording_overlay(&app_for_paste);
+                // Deterministic "send it" hook: the Gemini output is in the field,
+                // now submit it with the app-appropriate send keystroke.
+                if let Some(key) = send_after_paste {
+                    crate::send_it::inject_send_key(&app_for_paste, key);
+                }
             }
             Err(error) => {
                 warn!("Voice command paste failed: {error}");
@@ -1641,30 +1664,44 @@ impl ShortcutAction for TranscribeAction {
 
                             let settings = get_settings(&ah);
 
-                            // Universal "send it" hook: a terminal send command
-                            // wins over Gemini voice-command and Gmail routing. We
-                            // detect it here (hook already stripped) so the normal
-                            // paste path below does the pasting + key injection.
-                            let surface_str = recording_context
-                                .as_ref()
-                                .map(|c| c.snapshot.surface.as_str())
-                                .unwrap_or("");
-                            let hook_stripped = crate::gmail_voice::strip_voice_command_hook(
-                                &transcription,
-                                &settings.voice_command_hook,
-                            )
-                            .map(|s| s.to_string())
-                            .unwrap_or_else(|| transcription.clone());
-                            let has_send_it = !hook_stripped.trim().is_empty()
-                                && crate::send_it::detect_send_it(&hook_stripped, surface_str)
-                                    .is_some();
-
-                            if !has_send_it && binding_id == "transcribe" && !post_process {
-                                if let Some(instruction) = strip_voice_command_hook(
+                            // Universal "send it" hook: fully deterministic, and completely
+                            // independent of Gemini. Detect a terminal "send it" up front,
+                            // strip it from the instruction, and remember the key to press
+                            // AFTER Gemini's output is pasted. Gemini still runs normally on
+                            // the cleaned instruction — we only remove the literal command so
+                            // the model never tries to tool-call a send.
+                            let (instruction_opt, send_plan) = {
+                                let stripped = crate::gmail_voice::strip_voice_command_hook(
                                     &transcription,
                                     &settings.voice_command_hook,
-                                ) {
-                                    let instruction_owned = instruction.to_string();
+                                )
+                                .map(|s| s.to_string());
+                                match stripped {
+                                    Some(stripped) => {
+                                        let surface_str = recording_context
+                                            .as_ref()
+                                            .map(|c| c.snapshot.surface.as_str())
+                                            .unwrap_or("");
+                                        let plan = if stripped.trim().is_empty() {
+                                            None
+                                        } else {
+                                            crate::send_it::detect_send_it(
+                                                &stripped,
+                                                surface_str,
+                                            )
+                                        };
+                                        let instruction = plan
+                                            .as_ref()
+                                            .map(|p| p.cleaned.clone())
+                                            .unwrap_or_else(|| stripped.clone());
+                                        (Some(instruction), plan)
+                                    }
+                                    None => (None, None),
+                                }
+                            };
+
+                            if binding_id == "transcribe" && !post_process {
+                                if let Some(instruction_owned) = instruction_opt {
                                     if let Some(gmail_context) = gmail_voice_hook_context(
                                         &instruction_owned,
                                         settings.experimental_gmail_voice_enabled,
@@ -1708,6 +1745,11 @@ impl ShortcutAction for TranscribeAction {
                                                             "Failed to save Gmail voice-command history entry: {error}"
                                                         );
                                                     }
+                                                }
+                                                // Deterministic send: the drafted body is
+                                                // already in the compose field — fire the key.
+                                                if let Some(plan) = &send_plan {
+                                                    crate::send_it::inject_send_key(&ah, plan.key);
                                                 }
                                                 utils::hide_recording_overlay(&ah);
                                                 change_tray_icon(&ah, TrayIconState::Idle);
@@ -1763,6 +1805,7 @@ impl ShortcutAction for TranscribeAction {
                                         wav_saved,
                                         sample_count,
                                         cancel_generation,
+                                        send_plan.map(|p| p.key),
                                     )
                                     .await;
                                     return;
@@ -1920,7 +1963,7 @@ impl ShortcutAction for TranscribeAction {
                                             // Universal "send it" hook: submit the message
                                             // by injecting the app-appropriate send keystroke.
                                             if let Some(key) = send_after_paste {
-                                                crate::send_it::inject_send_key(key);
+                                                crate::send_it::inject_send_key(&ah_clone, key);
                                             }
                                             utils::hide_recording_overlay(&ah_clone);
                                             change_tray_icon(&ah_clone, TrayIconState::Idle);
@@ -2179,8 +2222,8 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
 mod tests {
     use super::{
         complete_unless_cancelled, gmail_voice_hook_context, is_blank_transcription,
-        selection_is_unchanged, should_enter_edit_mode, should_use_streaming_overlay,
-        strip_think_block, strip_voice_command_hook,
+        selection_is_unchanged, should_enter_edit_mode, should_use_slack_formatter,
+        should_use_streaming_overlay, strip_think_block, strip_voice_command_hook,
     };
     use crate::context::capture::SelectionSnapshot;
     use crate::context::types::{ContextSnapshot, Surface};
@@ -2342,5 +2385,25 @@ mod tests {
         assert!(
             gmail_voice_hook_context(gmail_instruction, true, Some(&non_gmail_context)).is_none()
         );
+    }
+
+    #[test]
+    fn slack_surface_and_strong_slack_syntax_override_email_heuristics() {
+        assert!(should_use_slack_formatter(
+            &Surface::Slack,
+            "hey Sarah quick update"
+        ));
+        assert!(should_use_slack_formatter(
+            &Surface::Other,
+            "hey at Sarah quick update in hashtag engineering"
+        ));
+        assert!(!should_use_slack_formatter(
+            &Surface::Other,
+            "hey Sarah quick update"
+        ));
+        assert!(!should_use_slack_formatter(
+            &Surface::Gmail,
+            "hey at Sarah quick update in hashtag engineering"
+        ));
     }
 }

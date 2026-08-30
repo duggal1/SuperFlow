@@ -14,6 +14,7 @@
 //! Because the app already inserts text at the system cursor, this works in
 //! Gmail, Slack, Outlook, and any other text field — no per-app integration.
 
+use tauri::Manager;
 /// Which keystroke should be synthesized to submit the message.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SendKey {
@@ -138,22 +139,32 @@ pub fn detect_send_it(text: &str, surface: &str) -> Option<SendItPlan> {
     })
 }
 
-/// Synthesize the send keystroke. Best-effort: failures are logged and ignored
-/// so a failed key injection never blocks the (already pasted) message.
+/// Synthesize the send keystroke using the app's managed `EnigoState` (the same
+/// single enigo instance the rest of the app uses for pasting). We must NOT call
+/// `Enigo::new` here — enigo's macOS backend can only have one live instance per
+/// process, so a fresh `Enigo::new` fails and the key press is silently dropped.
+/// Failures are logged so a missing send is diagnosable rather than silent.
 #[cfg(target_os = "macos")]
-pub fn inject_send_key(key: SendKey) {
-    use enigo::{Direction, Enigo, Key, Keyboard, Settings};
+pub fn inject_send_key(app: &tauri::AppHandle, key: SendKey) {
+    use enigo::{Direction, Key, Keyboard};
 
-    let mut enigo = match Enigo::new(&Settings::default()) {
-        Ok(enigo) => enigo,
-        Err(error) => {
-            log::warn!(target: "send_it", "failed to init enigo: {error}");
+    let enigo_state = match app.try_state::<crate::input::EnigoState>() {
+        Some(state) => state,
+        None => {
+            log::warn!(target: "send_it", "EnigoState not initialized; cannot send");
+            return;
+        }
+    };
+    let mut enigo = match enigo_state.0.lock() {
+        Ok(guard) => guard,
+        Err(_) => {
+            log::warn!(target: "send_it", "EnigoState lock poisoned; cannot send");
             return;
         }
     };
 
     // Give the simulated paste a beat to land before we submit.
-    std::thread::sleep(std::time::Duration::from_millis(60));
+    std::thread::sleep(std::time::Duration::from_millis(80));
 
     let result = match key {
         SendKey::Enter => enigo.key(Key::Return, Direction::Click),
@@ -174,11 +185,13 @@ pub fn inject_send_key(key: SendKey) {
 
     if let Err(error) = result {
         log::warn!(target: "send_it", "send key injection failed: {error}");
+    } else {
+        log::info!(target: "send_it", "sent {:?} key", key);
     }
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn inject_send_key(_key: SendKey) {
+pub fn inject_send_key(_app: &tauri::AppHandle, _key: SendKey) {
     log::warn!(target: "send_it", "send key injection is only supported on macOS");
 }
 

@@ -423,6 +423,50 @@ fn set_compose_subject(container: &CfRef, subject: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Dictation path: set subject for the frontmost Gmail compose without needing a
+/// prior `GmailTargetIdentity`. Finds the compose container from the focused
+/// element (body or subject) and writes the subject directly via AX — no
+/// cursor assumption, no Tab. Used by `clipboard::paste_with_email_subject`.
+#[cfg(target_os = "macos")]
+pub(crate) fn set_subject_for_frontmost_compose(subject: &str) -> Result<(), String> {
+    let frontmost = crate::context::detector::frontmost_app()
+        .ok_or_else(|| "No frontmost application".to_string())?;
+    let pid = frontmost.pid;
+    let bundle_id = frontmost.bundle_id.as_deref().unwrap_or("");
+    // Quick gate: must look like Gmail, otherwise don't touch AX (avoid spurious writes)
+    let tab = crate::context::browser::frontmost_tab(Some(bundle_id), pid);
+    let url = tab.as_ref().and_then(|t| t.url.clone());
+    let title = tab.as_ref().and_then(|t| t.title.clone());
+    if !crate::context::classify::classify(Some(bundle_id), url.as_deref(), title.as_deref()).is_gmail_like() {
+        return Err("Frontmost app is not Gmail".to_string());
+    }
+    let application = CfRef::take(unsafe { AXUIElementCreateApplication(pid) } as CFTypeRef)
+        .ok_or_else(|| "Gmail Accessibility application was unavailable".to_string())?;
+    let window = copy_attribute(application.element(), ax_attr!("AXFocusedWindow"))
+        .or_else(|| copy_attribute(application.element(), ax_attr!("AXMainWindow")))
+        .ok_or_else(|| "Gmail window was unavailable".to_string())?;
+    let focused = copy_attribute(application.element(), ax_attr!("AXFocusedUIElement"))
+        .ok_or_else(|| "No focused UI element".to_string())?;
+    // Try to find compose container from focused element (body or subject both work)
+    // Walk up from focused element to find a container with a Send button (compose)
+    let container = nearest_compose_container(focused.element(), window.element())
+        .or_else(|| {
+            // Fallback: search entire window for any compose container with a subject field
+            descendants(window.element(), 16, 8_192)
+                .into_iter()
+                .find(|el| find_compose_field(&CfRef::retained(el.0).unwrap(), "subject").is_some())
+                .and_then(|el| CfRef::retained(el.0))
+                .and_then(|el| nearest_compose_container(el.element(), window.element()))
+        })
+        .ok_or_else(|| "Gmail compose container was not found".to_string())?;
+    set_compose_subject(&container, subject)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn set_subject_for_frontmost_compose(_subject: &str) -> Result<(), String> {
+    Err("Not on macOS".to_string())
+}
+
 const RECIPIENT_RESOLVE_ATTEMPTS: usize = 8;
 const RECIPIENT_RESOLVE_DELAY_MS: u64 = 60;
 

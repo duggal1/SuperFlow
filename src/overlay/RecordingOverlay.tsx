@@ -17,6 +17,7 @@ import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 import { Button } from "@/components/ui/Button";
 import { LiveWaveform } from "@/components/waves/live-waveform";
+import { IOSSpinner } from "@/components/shared/global-spinner";
 
 type OverlayState =
   | "recording"
@@ -456,9 +457,12 @@ const RecordingOverlay: React.FC = () => {
   }, []);
 
   // Elapsed capture timer starts only once microphone samples are flowing.
+  // Shows for hands_free, streaming, and standard recording (logo | waveform | timer)
   useEffect(() => {
     if (
-      (state !== "streaming" && state !== "hands_free") ||
+      (state !== "streaming" &&
+        state !== "hands_free" &&
+        state !== "recording") ||
       !isVisible ||
       !captureReady
     )
@@ -767,7 +771,7 @@ const RecordingOverlay: React.FC = () => {
   const workingRow = (label: string, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
-        <span className="sspinner" />
+        <IOSSpinner size={13} color="var(--s-accent)" speed={1.0} />
       </div>
       <span className="swork-label">{label}</span>
       <div className="sbase-r">{showCancel && cancelBtn}</div>
@@ -873,7 +877,7 @@ const RecordingOverlay: React.FC = () => {
       <div
         className={`scard compact ${working && isVisible ? "cworking" : ""} ${state === "prompting" || state === "editing" ? "ai-prompting" : ""}`}
       >
-        {working ? workingRow(workLabel, true) : listeningRow(false, true)}
+        {working ? workingRow(workLabel, true) : listeningRow(true, false)}
       </div>
     </div>
   );

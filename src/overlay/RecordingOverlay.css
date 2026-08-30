@@ -232,7 +232,26 @@
   text-rendering: optimizeLegibility;
 }
 .scard.compact.cworking {
-  width: var(--ov-work-w);
+  width: fit-content;
+  min-width: var(--ov-rest-w);
+  max-width: 260px;
+}
+.scard.compact.cworking .sbase {
+  width: auto;
+  gap: 6px;
+  padding-inline: 10px;
+  grid-template-columns: auto auto auto;
+  justify-content: center;
+}
+.scard.compact.cworking .sbase-l {
+  padding-left: 0;
+  justify-self: center;
+}
+.scard.compact.cworking .sbase-r {
+  justify-self: center;
+}
+.scard.compact.cworking .swork-label {
+  padding: 0 4px;
 }
 .scard.compact.hands-free {
   width: 184px;
@@ -329,8 +348,8 @@
 /* Keep the resting pill compact without disturbing the expanded panel's
    symmetrical timer layout. */
 .scard:not(.open):not(.working) .sbase {
-  grid-template-columns: 22px auto 22px;
-  column-gap: 10px;
+  grid-template-columns: 22px auto auto;
+  column-gap: 8px;
   justify-content: center;
 }
 .scard:not(.open):not(.working) .sbase-l {
@@ -367,6 +386,9 @@
   opacity: 1;
 }
 .hands-free .stimer {
+  opacity: 1;
+}
+.scard.compact .stimer {
   opacity: 1;
 }
 .scard.compact .sbase.shandsfree {

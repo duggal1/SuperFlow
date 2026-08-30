@@ -1845,6 +1845,9 @@
       "canonical": "Zustand",
       "aliases": [
         "zustand",
+        "zostand",
+        "zostan",
+        "zoostand",
         "zoo stand",
         "zoo standoff",
         "zoo stan",
@@ -4801,6 +4804,20 @@
       ]
     },
     {
+      "canonical": ".env.local",
+      "aliases": [
+        "dot env local",
+        "dot env dot local",
+        "dot e n v local",
+        "dot e n v dot local",
+        "env local",
+        "dot emv local",
+        "dot emv.local",
+        ".emv.local",
+        "environment local file"
+      ]
+    },
+    {
       "canonical": ".gitignore",
       "aliases": [
         "dot gitignore",
@@ -5031,7 +5048,6 @@
     {
       "canonical": "Issue",
       "aliases": [
-        "issue",
         "github issue",
         "gitlab issue",
         "bug ticket"
@@ -5080,7 +5096,6 @@
         "database migration",
         "db migration",
         "database migrations",
-        "migration",
         "sql migration",
         "schema migration"
       ]
@@ -5922,6 +5937,8 @@
       "canonical": "useState",
       "aliases": [
         "use state",
+        "use-state",
+        "usestate",
         "useState",
         "use state hook",
         "use state react"
@@ -5931,9 +5948,33 @@
       "canonical": "useEffect",
       "aliases": [
         "use effect",
+        "use-effect",
+        "useeffect",
         "useEffect",
         "use effect hook",
         "use effect react"
+      ]
+    },
+    {
+      "canonical": "getUserById",
+      "aliases": [
+        "get user by id",
+        "get user by i d",
+        "getUserById"
+      ]
+    },
+    {
+      "canonical": "fileName",
+      "aliases": [
+        "file-name",
+        "filename"
+      ]
+    },
+    {
+      "canonical": "SuperflowPanel",
+      "aliases": [
+        "superflow panel",
+        "super flow panel"
       ]
     },
     {

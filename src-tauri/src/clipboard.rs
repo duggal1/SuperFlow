@@ -772,19 +772,36 @@ pub(crate) fn send_tab_key(enigo: &mut Enigo) -> Result<(), String> {
     Ok(())
 }
 
-/// Dictated-email delivery: the subject lands in the focused Subject field,
-/// Tab advances focus into the message body (Gmail/Outlook compose order),
-/// then the body is pasted through the normal path so auto-submit and
-/// clipboard handling keep applying to the final action.
+/// Dictated-email delivery: subject → Subject field, body → body.
+/// Tries direct AX write to Gmail Subject (no cursor, no Tab) first — the
+/// dual parallel path. Falls back to legacy Tab path, then to body-only.
 pub fn paste_with_email_subject(
     subject: String,
     body: String,
     app_handle: AppHandle,
 ) -> Result<(), String> {
-    paste_exact(subject, app_handle.clone())?;
-    std::thread::sleep(Duration::from_millis(150));
-    with_enigo(&app_handle, send_tab_key)?;
-    std::thread::sleep(Duration::from_millis(150));
+    // 1. Try direct AX — subject to Subject field regardless of focus
+    #[cfg(target_os = "macos")]
+    {
+        if crate::gmail_voice::ax::set_subject_for_frontmost_compose(&subject).is_ok() {
+            // Subject is now in Subject field via AX; paste body where focus already is (body).
+            // Small delay to let Gmail commit the AX value before body paste
+            std::thread::sleep(Duration::from_millis(80));
+            return paste(body, app_handle);
+        }
+    }
+    // 2. Legacy Tab path — assumes focus was in Subject, Tab → body
+    if paste_exact(subject.clone(), app_handle.clone()).is_ok() {
+        std::thread::sleep(Duration::from_millis(150));
+        let _ = with_enigo(&app_handle, send_tab_key);
+        std::thread::sleep(Duration::from_millis(150));
+        if paste(body.clone(), app_handle.clone()).is_ok() {
+            return Ok(());
+        }
+    }
+    // 3. Fail-closed: subject already stripped from body by formatter, so
+    // pasting body alone never duplicates subject in body. This is the safe
+    // fallback for non-Gmail, no AX permission, or Tab failure.
     paste(body, app_handle)
 }
 

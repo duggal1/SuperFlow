@@ -70,7 +70,6 @@
       }
     },
     "windows": {
-      "signCommand": "trusted-signing-cli -e https://eus.codesigning.azure.net/ -a CJ-Signing -c cjpais-dev -d SuperFlow %1",
       "nsis": {
         "template": "nsis/installer.nsi"
       }
@@ -78,9 +77,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBQjcyMDk1MjA2NjAxRjkKUldUNUFXWWdsU0MzdXRRZi8zYzhqV2FaNUVDbDd2Rk5VM1IvWWowVXdmRFNKQ1BrMXF5RFFsLy8K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVFMzhFNTkzNEIzNkIzRDEKUldUUnN6WkxrK1U0WHI2UmVSeHVRUklqUFBITkN2LzVYTUh3Q1BpbFVDTVFRY1JDTDc5VTdCSVUK",
       "endpoints": [
-        "https://github.com/cjpais/SuperFlow/releases/latest/download/latest.json"
+        "https://github.com/duggal1/superflow/releases/latest/download/latest.json"
       ]
     }
   }

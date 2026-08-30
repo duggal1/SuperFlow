@@ -968,6 +968,14 @@ async setVoiceCommandHook(hook: string) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async changeHeySuperflowToneSetting(tone: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_hey_superflow_tone_setting", { tone }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getAiCleanupHistory(limit: number) : Promise<Result<AiCleanupHistoryEntry[], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_ai_cleanup_history", { limit }) };
@@ -1190,7 +1198,12 @@ shortcuts?: Shortcut[]; voice_command_hook?: string;
  * Stored as JSON. Typed keys are first-class; `custom` holds arbitrary
  * user-defined key/value pairs. Never auto-syncs or leaves the device.
  */
-user_specification?: string; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
+user_specification?: string; 
+/**
+ * Tone applied to Hey Superflow voice outputs (email, Slack, generated
+ * prompts). One of: own, professional, concise, informal, humanized.
+ */
+hey_superflow_tone?: string; model_unload_timeout?: ModelUnloadTimeout; word_correction_threshold?: number; history_limit?: number; 
 /**
  * Format used by the journal's Export action. Markdown by default.
  */

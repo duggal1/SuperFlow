@@ -2194,6 +2194,28 @@ fn transcribe_cpp_run_plan(
     }
 }
 
+fn superflow_grammar_should_run(
+    raw: &str,
+    output_language: &OutputLanguageEvidence,
+    supported_languages: &[String],
+) -> bool {
+    // Harper is English-only (curated FST + Brill tagger). Running it on
+    // Portuguese/German would treat articles like "um" as filler and corrupt
+    // the transcript (see failing tests: portuguese_transcription_…).
+    // Gate identically to `remove_filler_words`'s language-gated list:
+    // only run when we have evidence the output is English.
+    if let Some(lang) = output_language.language() {
+        return lang.starts_with("en");
+    }
+    // Unknown evidence — last-resort text detection, constrained to the model's
+    // supported languages, exactly as `post_process_transcription_text` does for
+    // gated fillers. Short / ambiguous text returns None → skip harper.
+    if let Some(detected) = crate::audio_toolkit::detect_output_language(raw, supported_languages) {
+        return detected.starts_with("en");
+    }
+    false
+}
+
 fn post_process_transcription_text(
     raw: String,
     settings: &AppSettings,
@@ -2202,17 +2224,33 @@ fn post_process_transcription_text(
     supported_languages: &[String],
 ) -> String {
     fail_open_text_transform(raw, |raw| {
+        // ------------------------------------------------------------------
+        // SUPERFLOW GRAMMAR — deterministic, offline, no toggle.
+        // Parakeet → immutable-span masking → normalization/cleanup → Harper
+        //         → exact span restoration → formatter.
+        // Never runs on Gemini (ai_cleanup / post_process LLM paths don't call
+        // this function). Always runs on Parakeet raw when language is English,
+        // fail-open. Gated by output language so Portuguese "um" (article) is not
+        // stripped as English filler (see tests: portuguese_transcription_…).
+        // See `superflow_grammar/mod.rs` and `protected_spans.rs`.
+        // ------------------------------------------------------------------
+        let language_hint = output_language.language();
+        let grammar_enabled =
+            superflow_grammar_should_run(&raw, output_language, supported_languages);
+
         // Streaming commits and the finalized transcript must stay byte-identical
         // until CleanupSession reconciles them. S1 performs the shared custom-word,
         // technical-vocabulary, value, and path preparation immediately before
         // each incremental span and final tail generation.
-        let language_hint = output_language.language();
         if settings.cleanup_model_enabled
             && crate::local_cleanup::is_ready()
             && crate::local_cleanup::should_run(language_hint.unwrap_or("auto"), &raw)
         {
             return raw;
         }
+
+        let protected = crate::superflow_grammar::ProtectedText::new(&raw);
+        let raw = protected.masked().to_string();
 
         let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
             apply_custom_words(
@@ -2277,7 +2315,13 @@ fn post_process_transcription_text(
         // removes speech noise without changing meaning. Runs on the finalized
         // transcript before downstream hooks/intelligence/paste. Deterministic,
         // local-only, <10ms ideal.
-        crate::audio_toolkit::transcript_cleanup::normalize_transcript(&joined)
+        let cleaned = crate::audio_toolkit::transcript_cleanup::normalize_transcript(&joined);
+        let corrected = if grammar_enabled {
+            crate::superflow_grammar::correct(&cleaned)
+        } else {
+            cleaned
+        };
+        protected.restore(&corrected)
     })
 }
 
@@ -2737,6 +2781,50 @@ mod tests {
         });
 
         assert_eq!(result, raw);
+    }
+
+    #[test]
+    fn raw_slack_transcript_uses_real_normalization_without_email_envelope() {
+        let settings = AppSettings {
+            selected_language: "en".to_string(),
+            ..Default::default()
+        };
+        let raw = concat!(
+            "hey at sarah so um basically quick update on payroll migration qa find couple of Issue ",
+            "at alex was checking source tauri source audio toolkit transcript cleanup dot r s ",
+            "and get user by id dont handle file name correctly when dot env local is missing ",
+            "use effect and use state with Zustand are also causing weird state issue in SuperflowPanel ",
+            "please dont merge yet post another update in hashtag engineering after qa finish"
+        );
+        let normalized = post_process_transcription_text(
+            raw.to_string(),
+            &settings,
+            false,
+            &OutputLanguageEvidence::UserSelected("en".to_string()),
+            &languages(&["en"]),
+        );
+        let output = crate::audio_toolkit::slack_formatting::format_for_slack(&normalized);
+
+        for expected in [
+            "@Sarah",
+            "@Alex",
+            "#engineering",
+            ".env.local",
+            "useEffect",
+            "useState",
+            "getUserById",
+            "Zustand",
+            "SuperflowPanel",
+        ] {
+            assert!(output.contains(expected), "missing {expected} in: {output}");
+        }
+        for forbidden in ["Talk Soon", "Thanks,\n", "CEO and Co-Founder", "Subject:"] {
+            assert!(!output.contains(forbidden), "unexpected {forbidden} in: {output}");
+        }
+        assert_eq!(
+            output,
+            crate::audio_toolkit::slack_formatting::format_for_slack(&normalized)
+        );
     }
 
     #[test]

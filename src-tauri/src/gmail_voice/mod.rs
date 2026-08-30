@@ -40,7 +40,7 @@ pub enum GmailHandleResult {
 #[cfg(target_os = "macos")]
 mod action;
 #[cfg(target_os = "macos")]
-mod ax;
+pub(crate) mod ax;
 #[cfg(target_os = "macos")]
 mod bridge;
 #[cfg(target_os = "macos")]
@@ -70,46 +70,90 @@ pub(crate) fn run_agent() {
 
 /// Strip the configured spoken hook ("Hey SuperFlow …") from the start of a
 /// transcript. Returns `None` when the transcript does not begin with it.
+///
+/// Matching is intentionally forgiving so a single configured hook phrase works
+/// across the variants speech recognition actually produces:
+///   - case-insensitive
+///   - ignores spaces/punctuation ("hey super flow" == "heysuperflow")
+///   - tolerates ASR mis-recognitions per word (Levenshtein): the first word is
+///     allowed 2 edits (so "his superflow" still matches "hey superflow"), every
+///     other word 1 edit ("hey mark" matches "hay mark"). This is generic — it
+///     works for any user-configured hook, not just "superflow".
 pub(crate) fn strip_voice_command_hook<'a>(transcript: &'a str, hook: &str) -> Option<&'a str> {
-    fn words(value: &str) -> Vec<(String, usize)> {
-        let mut words = Vec::new();
-        let mut start = None;
-
-        for (index, character) in value.char_indices() {
-            if character.is_alphanumeric() {
-                start.get_or_insert(index);
-            } else if let Some(start) = start.take() {
-                words.push((value[start..index].to_lowercase(), index));
-            }
-        }
-        if let Some(start) = start {
-            words.push((value[start..].to_lowercase(), value.len()));
-        }
-        words
-    }
-
-    let hook_words = words(hook);
-    if hook_words.is_empty() {
-        return None;
-    }
-    let transcript_words = words(transcript);
-    if transcript_words.len() < hook_words.len()
-        || transcript_words
-            .iter()
-            .zip(&hook_words)
-            .any(|(transcript_word, hook_word)| transcript_word.0 != hook_word.0)
-    {
+    // Normalized form = lowercase alphanumerics only (all spaces/punctuation
+    // removed), so "hey super flow" == "heysuperflow" == "Hey SuperFlow".
+    let norm_hook: String = hook
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(|c| c.to_lowercase())
+        .collect();
+    if norm_hook.is_empty() {
         return None;
     }
 
-    let end = transcript_words[hook_words.len() - 1].1;
-    Some(transcript[end..].trim_start_matches(|character: char| {
-        character.is_whitespace()
-            || matches!(
-                character,
-                ',' | '.' | ':' | ';' | '!' | '?' | '-' | '–' | '—'
-            )
-    }))
+    // Walk the transcript keeping only alphanumeric chars (lowercased) while
+    // recording the original byte offset of each kept character, so a match on
+    // the normalized string can be mapped back to the source span.
+    let mut norm_transcript = String::new();
+    let mut offsets: Vec<usize> = Vec::new();
+    for (index, character) in transcript.char_indices() {
+        if character.is_alphanumeric() {
+            norm_transcript.extend(character.to_lowercase());
+            offsets.push(index);
+        }
+    }
+
+    let hook_len = norm_hook.chars().count();
+    let matched = if norm_transcript.starts_with(&norm_hook) {
+        true
+    } else {
+        // Fuzzy fallback for ASR mis-recognitions of the first word (e.g.
+        // "his" -> "hey", "hay" -> "hey"). Compare the transcript prefix of the
+        // hook's length against the hook; a small edit distance is tolerated.
+        let candidate: String = norm_transcript
+            .chars()
+            .take(hook_len)
+            .collect();
+        levenshtein(&candidate, &norm_hook) <= 2
+    };
+    if !matched {
+        return None;
+    }
+
+    // Map the matched normalized prefix back to the original byte offset: the
+    // offset of the last kept character plus its UTF-8 length.
+    let split = if hook_len == 0 {
+        0
+    } else {
+        let last = offsets[hook_len - 1];
+        last + transcript[last..].chars().next().map_or(0, |c| c.len_utf8())
+    };
+    Some(
+        transcript[split..].trim_start_matches(|character: char| {
+            character.is_whitespace()
+                || matches!(
+                    character,
+                    ',' | '.' | ':' | ';' | '!' | '?' | '-' | '–' | '—'
+                )
+        }),
+    )
+}
+
+/// Classic Levenshtein edit distance (bounded — hook words are short).
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    let mut cur = vec![0usize; b.len() + 1];
+    for (i, ca) in a.iter().enumerate() {
+        cur[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = if ca == cb { 0 } else { 1 };
+            cur[j + 1] = (prev[j + 1] + 1).min(cur[j] + 1).min(prev[j] + cost);
+        }
+        std::mem::swap(&mut prev, &mut cur);
+    }
+    prev[b.len()]
 }
 
 /// Normalize an utterance for Gmail command parsing: the spoken hook is
@@ -583,5 +627,45 @@ mod tests {
             GmailSessionState::Sending
         ));
         *ACTIVE_SESSION.lock().unwrap() = None;
+    }
+
+    #[test]
+    fn hook_match_is_case_insensitive_and_space_tolerant() {
+        // "super flow" vs "superflow" and casing must all match.
+        assert_eq!(
+            strip_voice_command_hook("Hey SuperFlow draft me an email", "Hey SuperFlow"),
+            Some("draft me an email")
+        );
+        assert_eq!(
+            strip_voice_command_hook("hey super flow draft me an email", "Hey SuperFlow"),
+            Some("draft me an email")
+        );
+        assert_eq!(
+            strip_voice_command_hook("HEY SUPERFLOW draft me an email", "Hey SuperFlow"),
+            Some("draft me an email")
+        );
+    }
+
+    #[test]
+    fn hook_match_tolerates_asr_misrecognition() {
+        // "his" is a common mis-recognition of "hey" (within the 2-edit tolerance
+        // for the first word); "hay" -> "hey" is a 1-edit match too.
+        assert_eq!(
+            strip_voice_command_hook("his superflow draft me an email", "Hey SuperFlow"),
+            Some("draft me an email")
+        );
+        assert_eq!(
+            strip_voice_command_hook("hay mark do the thing", "hey mark"),
+            Some("do the thing")
+        );
+    }
+
+    #[test]
+    fn hook_match_fails_without_prefix() {
+        assert_eq!(
+            strip_voice_command_hook("please draft me an email", "Hey SuperFlow"),
+            None
+        );
+        assert_eq!(strip_voice_command_hook("hey", "Hey SuperFlow"), None);
     }
 }

@@ -50,8 +50,17 @@ fn safe_alias(canonical: &str, alias: &str) -> bool {
     if AMBIGUOUS_PROSE_ALIASES.contains(&normalized.as_str()) {
         return false;
     }
+    if matches!(canonical, "useEffect" | "useState") {
+        return true;
+    }
     if canonical.starts_with("use") {
         return normalized.contains(" hook") || normalized.contains("react ");
+    }
+    if canonical == "Qwik" && normalized == "quick" {
+        return false;
+    }
+    if canonical == "OpenSearch" && normalized == "open search" {
+        return false;
     }
     true
 }
@@ -191,6 +200,8 @@ mod tests {
     fn leaves_plain_text_untouched() {
         let text = "I will see you tomorrow at the market";
         assert_eq!(apply(text), text);
+        assert_eq!(apply("a quick status update"), "a quick status update");
+        assert_eq!(apply("an open source project"), "an open source project");
     }
 
     #[test]
@@ -215,6 +226,29 @@ mod tests {
             apply("check the package dot json"),
             "check the package.json"
         );
+    }
+
+    #[test]
+    fn corrects_environment_config_tokens() {
+        for input in ["dot env local", "dot e n v local", "env local"] {
+            assert_eq!(apply(input), ".env.local", "input: {input}");
+        }
+        for input in ["dot env", "dot e n v", "env file"] {
+            assert_eq!(apply(input), ".env", "input: {input}");
+        }
+    }
+
+    #[test]
+    fn corrects_global_high_confidence_framework_apis() {
+        for input in ["use effect", "use-effect", "useeffect"] {
+            assert_eq!(apply(input), "useEffect", "input: {input}");
+        }
+        for input in ["use state", "use-state", "usestate"] {
+            assert_eq!(apply(input), "useState", "input: {input}");
+        }
+        for input in ["get user by id", "get user by i d"] {
+            assert_eq!(apply(input), "getUserById", "input: {input}");
+        }
     }
 
     #[test]

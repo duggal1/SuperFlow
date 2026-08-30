@@ -535,6 +535,10 @@ pub struct AppSettings {
     /// user-defined key/value pairs. Never auto-syncs or leaves the device.
     #[serde(default = "default_user_specification")]
     pub user_specification: String,
+    /// Tone applied to Hey Superflow voice outputs (email, Slack, generated
+    /// prompts). One of: own, professional, concise, informal, humanized.
+    #[serde(default = "default_hey_superflow_tone")]
+    pub hey_superflow_tone: String,
     #[serde(default)]
     pub model_unload_timeout: ModelUnloadTimeout,
     #[serde(default = "default_word_correction_threshold")]
@@ -838,6 +842,10 @@ fn default_voice_command_hook() -> String {
 
 fn default_user_specification() -> String {
     "{}".to_string()
+}
+
+fn default_hey_superflow_tone() -> String {
+    "own".to_string()
 }
 
 fn default_intelligence_awareness_enabled() -> bool {
@@ -1239,6 +1247,7 @@ pub fn get_default_settings() -> AppSettings {
         shortcuts: Vec::new(),
         voice_command_hook: default_voice_command_hook(),
         user_specification: default_user_specification(),
+        hey_superflow_tone: default_hey_superflow_tone(),
         model_unload_timeout: ModelUnloadTimeout::default(),
         word_correction_threshold: default_word_correction_threshold(),
         history_limit: default_history_limit(),
@@ -1652,7 +1661,7 @@ mod tests {
             "overlay_position": "bottom",
             "debug_mode": false,
             "log_level": 2,
-            "custom_words": ["SuperFlow", "cjpais"],
+            "custom_words": ["SuperFlow", "duggal1"],
             "model_unload_timeout": "min5",
             "word_correction_threshold": 0.18,
             "history_limit": 5,

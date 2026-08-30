@@ -56,8 +56,10 @@ const AMBIGUOUS_BARE_ALIASES: &[&str] = &[
     "filter", "sort", "upper", "lower", "trim", "round", "max", "min", "sum", "count", "mean",
     "index", "value", "values", "text", "like", "generic", "normal", "medium", "thin", "bold",
     "light", "flex", "grid", "block", "inline", "hidden", "delete", "post", "patch", "head",
-    "options",
+    "options", "http", "https",
 ];
+
+const AMBIGUOUS_PROSE_PHRASES: &[&str] = &["to be", "to equal", "to contain"];
 
 const AMBIGUOUS_SQL_CANONICALS: &[&str] = &["LIKE", "IS NULL", "IS NOT NULL", "NOT NULL"];
 
@@ -90,6 +92,9 @@ fn denylist_ambiguous_aliases(pairs: Vec<AliasPair>) -> Vec<AliasPair> {
                 .aliases
                 .into_iter()
                 .filter(|alias| !alias_is_ambiguous_bare_word(alias))
+                .filter(|alias| {
+                    !AMBIGUOUS_PROSE_PHRASES.contains(&alias.trim().to_lowercase().as_str())
+                })
                 .collect();
             AliasPair {
                 canonical: pair.canonical,
@@ -283,6 +288,11 @@ mod tests {
     fn plain_prose_passes_through() {
         let text = "let us grab lunch after the meeting";
         assert_eq!(apply(text), text);
+        assert_eq!(
+            apply("the design need to be updated"),
+            "the design need to be updated"
+        );
+        assert_eq!(apply("the HTTP status is 200"), "the HTTP status is 200");
     }
 
     #[test]

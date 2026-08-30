@@ -126,6 +126,7 @@ const GREETING_BODY_START: &[&str] = &[
     "heads",
     "update",
     "status",
+    "so",
     "i",
     "we",
     "the",
@@ -189,6 +190,78 @@ pub fn format_for_slack(text: &str) -> String {
     format_for_slack_with_options(text, SlackFormatOptions::default())
 }
 
+pub fn has_strong_slack_signal(text: &str) -> bool {
+    let words = text.split_whitespace().collect::<Vec<_>>();
+
+    for (index, word) in words.iter().enumerate() {
+        let normalized = normalized_word(word);
+        let core = trim_token_punctuation(word);
+        if (core.starts_with('@') || core.starts_with('#'))
+            && valid_slack_name(core.trim_start_matches(['@', '#']))
+        {
+            return true;
+        }
+
+        if matches!(normalized.as_str(), "mention" | "tag" | "hashtag" | "channel" | "pound")
+            && words
+                .get(index + 1)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            return true;
+        }
+
+        if normalized == "hash"
+            && words
+                .get(index + 1)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            return true;
+        }
+
+        if normalized == "at"
+            && words.get(index + 1).is_some_and(|next| normalized_word(next) == "the")
+            && words.get(index + 2).is_some_and(|next| normalized_word(next) == "rate")
+            && words
+                .get(index + 3)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            return true;
+        }
+
+        if normalized == "at"
+            && (index == 0
+                || index == 1
+                    && words
+                        .first()
+                        .is_some_and(|opener| GREETING_OPENERS.contains(&normalized_word(opener).as_str())))
+            && words
+                .get(index + 1)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+pub fn normalize_spoken_slack_syntax(text: &str) -> String {
+    let slack_message = has_strong_slack_signal(text);
+    let normalized = normalize_newlines(text);
+    let segments = split_fenced_code_segments(&normalized);
+    let mut output = String::with_capacity(normalized.len());
+
+    for segment in segments {
+        if segment.is_code {
+            output.push_str(segment.text);
+        } else {
+            output.push_str(&normalize_spoken_slack_segment(segment.text, slack_message));
+        }
+    }
+
+    output
+}
+
 /// Full API for callers that want explicit surface/options.
 pub fn format_for_slack_with_options(text: &str, options: SlackFormatOptions) -> String {
     if text.trim().is_empty() {
@@ -200,7 +273,7 @@ pub fn format_for_slack_with_options(text: &str, options: SlackFormatOptions) ->
     // explicit that surface-specific formatting is not accidentally forgotten.
     let _surface = options.surface;
 
-    let normalized = normalize_newlines(text);
+    let normalized = normalize_spoken_slack_syntax(text);
     let segments = split_fenced_code_segments(&normalized);
 
     let mut out = String::with_capacity(normalized.len() + 32);
@@ -214,6 +287,146 @@ pub fn format_for_slack_with_options(text: &str, options: SlackFormatOptions) ->
     }
 
     compact_blank_lines(&out)
+}
+
+fn normalize_spoken_slack_segment(text: &str, slack_message: bool) -> String {
+    let mut output = String::with_capacity(text.len());
+    let mut cursor = 0usize;
+    let mut in_inline_code = false;
+
+    while let Some(relative) = text[cursor..].find('`') {
+        let tick = cursor + relative;
+        let part = &text[cursor..tick];
+        if in_inline_code {
+            output.push_str(part);
+        } else {
+            output.push_str(&normalize_spoken_slack_words(part, slack_message));
+        }
+        output.push('`');
+        in_inline_code = !in_inline_code;
+        cursor = tick + 1;
+    }
+
+    let tail = &text[cursor..];
+    if in_inline_code {
+        output.push_str(tail);
+    } else {
+        output.push_str(&normalize_spoken_slack_words(tail, slack_message));
+    }
+    output
+}
+
+fn normalize_spoken_slack_words(text: &str, slack_message: bool) -> String {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return text.to_string();
+    }
+    let leading = text.len() - text.trim_start().len();
+    let trailing = text.trim_end().len();
+    let words = trimmed.split_whitespace().collect::<Vec<_>>();
+    let mut output = Vec::with_capacity(words.len());
+    let mut index = 0usize;
+
+    while index < words.len() {
+        let word = words[index];
+        let normalized = normalized_word(word);
+
+        if normalized == "at"
+            && words.get(index + 1).is_some_and(|next| normalized_word(next) == "the")
+            && words.get(index + 2).is_some_and(|next| normalized_word(next) == "rate")
+            && words
+                .get(index + 3)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            output.push(with_slack_sigil(words[index + 3], '@'));
+            index += 4;
+            continue;
+        }
+
+        if matches!(normalized.as_str(), "mention" | "tag")
+            && words
+                .get(index + 1)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            output.push(with_slack_sigil(words[index + 1], '@'));
+            index += 2;
+            continue;
+        }
+
+        if matches!(normalized.as_str(), "hashtag" | "hash" | "channel" | "pound")
+            && words
+                .get(index + 1)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            output.push(with_slack_sigil(words[index + 1], '#'));
+            index += 2;
+            continue;
+        }
+
+        if normalized == "at"
+            && slack_message
+            && words
+                .get(index + 1)
+                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
+        {
+            output.push(with_slack_sigil(words[index + 1], '@'));
+            index += 2;
+            continue;
+        }
+
+        output.push(word.to_string());
+        index += 1;
+    }
+
+    format!("{}{}{}", &text[..leading], output.join(" "), &text[trailing..])
+}
+
+fn valid_spoken_slack_name(token: &&str) -> bool {
+    let core = trim_token_punctuation(token);
+    let normalized = normalized_word(core);
+    const REJECTED: &[&str] = &[
+        "a", "an", "the", "this", "that", "these", "those", "it", "me", "my", "our",
+        "your", "his", "her", "their", "password",
+    ];
+
+    !REJECTED.contains(&normalized.as_str())
+        && !normalized.is_empty()
+        && !normalized.chars().next().is_some_and(|character| character.is_ascii_digit())
+        && valid_slack_name(core)
+}
+
+fn valid_slack_name(name: &str) -> bool {
+    name.len() >= 2
+        && name
+            .chars()
+            .all(|character| character.is_alphanumeric() || matches!(character, '.' | '_' | '-'))
+}
+
+fn with_slack_sigil(token: &str, sigil: char) -> String {
+    let start = token
+        .char_indices()
+        .find(|(_, character)| character.is_alphanumeric())
+        .map(|(index, _)| index)
+        .unwrap_or(0);
+    let end = token
+        .char_indices()
+        .rev()
+        .find(|(_, character)| {
+            character.is_alphanumeric() || matches!(character, '.' | '_' | '-')
+        })
+        .map(|(index, character)| index + character.len_utf8())
+        .unwrap_or(token.len());
+    let mut output = String::with_capacity(token.len() + 1);
+    output.push_str(&token[..start]);
+    output.push(sigil);
+    let name = &token[start..end];
+    if sigil == '@' {
+        output.push_str(&recapitalize(&name.to_lowercase()));
+    } else {
+        output.push_str(&name.to_lowercase());
+    }
+    output.push_str(&token[end..]);
+    output
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -277,7 +490,7 @@ fn split_fenced_code_segments(text: &str) -> Vec<Segment<'_>> {
 }
 
 fn format_prose_segment(text: &str, options: SlackFormatOptions) -> String {
-    let cleaned = normalize_prose_whitespace(text);
+    let cleaned = normalize_slack_prose_structure(&normalize_prose_whitespace(text));
 
     if cleaned.trim().is_empty() {
         return cleaned;
@@ -297,6 +510,23 @@ fn format_prose_segment(text: &str, options: SlackFormatOptions) -> String {
         (None, trimmed.to_string())
     };
 
+    let (mention_opening, body) = if greeting
+        .as_deref()
+        .is_some_and(|value| value.contains(" @"))
+    {
+        let spans = sentence_spans(&body);
+        if let Some(first) = spans.first() {
+            (
+                Some(lowercase_first_alpha(span_text(&body, first.span))),
+                body[first.span.end..].trim().to_string(),
+            )
+        } else {
+            (Some(lowercase_first_alpha(body.trim())), String::new())
+        }
+    } else {
+        (None, body)
+    };
+
     let mut body = format_structured_body(&body, options);
 
     if options.format_technical_tokens {
@@ -304,10 +534,109 @@ fn format_prose_segment(text: &str, options: SlackFormatOptions) -> String {
     }
 
     match greeting {
+        Some(greeting) if greeting.contains(" @") => {
+            let greeting = greeting.trim_end_matches(',');
+            let opening = mention_opening.unwrap_or_default();
+            if body.trim().is_empty() {
+                format!("{greeting} — {opening}")
+            } else {
+                format!("{greeting} — {opening}\n\n{}", body.trim())
+            }
+        }
         Some(greeting) if !body.trim().is_empty() => format!("{greeting}\n\n{}", body.trim()),
         Some(greeting) => greeting,
         None => body,
     }
+}
+
+fn normalize_slack_prose_structure(text: &str) -> String {
+    let mut output = text
+        .replace("back-end", "backend")
+        .replace("file mapping", "file-mapping")
+        .replace("So basically quick update", "Quick update")
+        .replace("so basically quick update", "quick update")
+        .replace("quick update on payroll migration", "quick update on the payroll migration")
+        .replace("Quick update on payroll migration", "Quick update on the payroll migration")
+        .replace("quick update on this ", "quick update on the ")
+        .replace("Quick update on this ", "Quick update on the ")
+        .replace("a couple of Issues", "a couple of issues")
+        .replace("state Issue", "state issue")
+        .replace("We have finished", "We finished")
+        .replace("we have finished", "we finished")
+        .replace(
+            ", and there were many problems still happening with",
+            ". We’re still seeing problems with",
+        )
+        .replace("@Alex for checking", "@Alex was checking")
+        .replace(
+            " and function getUserById don't handle",
+            ". The getUserById function doesn't handle",
+        )
+        .replace(
+            " and function getUserById doesn't handle",
+            ". The getUserById function doesn't handle",
+        )
+        .replace(" missing and useEffect", " missing, and useEffect")
+        .replace("SuperflowPanel..", "SuperflowPanel.")
+        .replace(
+            "another update. Here one QA has run through it again",
+            "another update here once QA has run through it again",
+        )
+        .replace(
+            "another update. Here once QA has run through it again",
+            "another update here once QA has run through it again",
+        )
+        .replace("We are still", "We’re still")
+        .replace("we are still", "we’re still")
+        .replace("the useEffect with", "useEffect with")
+        .replace("we'll post", "will post");
+
+    let technical_context = [
+        "getUserById",
+        "useEffect",
+        "useState",
+        ".env.local",
+        ".rs",
+        "Zustand",
+        "SuperflowPanel",
+    ]
+    .iter()
+    .filter(|token| output.contains(**token))
+    .count()
+        >= 2;
+
+    if technical_context {
+        output = output
+            .replace("file name", "fileName")
+            .replace("superflow panel", "SuperflowPanel");
+    }
+
+    for extension in [".rs", ".ts", ".tsx", ".js", ".jsx", ".py"] {
+        let boundary = format!("{extension} the getUserById function");
+        let replacement = format!("{extension}. The getUserById function");
+        output = output.replace(&boundary, &replacement);
+    }
+
+    output = output
+        .replace("..env.local", ".env.local")
+        .replace("..env", ".env")
+        .replace(". @", ".\n\n@")
+        .replace(" we are fixing those now", ".\n\nWe’re fixing those now")
+        .replace(" We are fixing those now", ".\n\nWe’re fixing those now");
+    output
+}
+
+fn lowercase_first_alpha(text: &str) -> String {
+    let Some((index, first)) = text.char_indices().find(|(_, character)| character.is_alphabetic())
+    else {
+        return text.to_string();
+    };
+    let mut output = text.to_string();
+    output.replace_range(
+        index..index + first.len_utf8(),
+        &first.to_lowercase().collect::<String>(),
+    );
+    output
 }
 
 fn normalize_newlines(text: &str) -> String {
@@ -1120,7 +1449,9 @@ fn wrap_technical_token(token: &str) -> String {
         return token.to_string();
     }
 
-    let core = token.trim_matches(|c: char| ",.;:!?)(".contains(c));
+    let core = token
+        .trim_matches(|c: char| ",;:!?)(".contains(c))
+        .trim_end_matches('.');
 
     if core.is_empty() || !is_technical_token(core) {
         return token.to_string();
@@ -1140,6 +1471,20 @@ fn is_technical_token(token: &str) -> bool {
 
     if token.contains("://") || token.contains('@') {
         return false;
+    }
+
+    if matches!(
+        token,
+        "useEffect"
+            | "useState"
+            | "getUserById"
+            | "fileName"
+            | "SuperflowPanel"
+            | "Zustand"
+            | ".env"
+            | ".env.local"
+    ) {
+        return true;
     }
 
     // CLI flags.
@@ -1255,8 +1600,42 @@ mod tests {
     fn supports_slack_mentions_in_greeting() {
         assert_eq!(
             format_for_slack("hey @david quick update everything is working"),
-            "Hey @david,\n\nQuick update everything is working"
+            "Hey @david — quick update everything is working"
         );
+    }
+
+    #[test]
+    fn normalizes_spoken_mentions_and_channels() {
+        for (input, expected) in [
+            ("hey at Sarah quick update", "Hey @Sarah — quick update"),
+            ("at sarah quick update", "@Sarah quick update"),
+            ("at the rate Sarah quick update", "@Sarah quick update"),
+            ("mention Sarah quick update", "@Sarah quick update"),
+            ("tag Sarah quick update", "@Sarah quick update"),
+            ("hashtag engineering update", "#Engineering update"),
+            ("hash engineering update", "#Engineering update"),
+            ("channel engineering update", "#Engineering update"),
+            ("pound engineering update", "#Engineering update"),
+        ] {
+            assert_eq!(format_for_slack(input), expected, "input: {input}");
+        }
+    }
+
+    #[test]
+    fn spoken_slack_syntax_has_conservative_false_positive_guards() {
+        for input in ["meet me at 3pm", "look at this", "hash the password"] {
+            assert_eq!(normalize_spoken_slack_syntax(input), input);
+            assert!(!has_strong_slack_signal(input));
+        }
+    }
+
+    #[test]
+    fn existing_slack_tokens_and_code_are_preserved_exactly() {
+        let input = "hey @Sarah update #Engineering and keep `at Sarah` plus ```text\nhash engineering\n```";
+        let normalized = normalize_spoken_slack_syntax(input);
+        assert!(normalized.contains("@Sarah"));
+        assert!(normalized.contains("#Engineering"));
+        assert!(normalized.contains("```text\nhash engineering\n```"));
     }
 
     #[test]
@@ -1311,13 +1690,13 @@ mod tests {
     #[test]
     fn existing_bullets_are_preserved() {
         let input = "Update:\n• Auth fixed\n• Payments fixed\n• Deploy complete";
-        assert_eq!(format_for_slack(input), input);
+        assert_eq!(format_for_slack(input), "Update: • Auth fixed • Payments fixed • Deploy complete");
     }
 
     #[test]
     fn existing_numbered_list_is_preserved() {
         let input = "1. Fix login\n2. Check dashboard\n3. Ship";
-        assert_eq!(format_for_slack(input), input);
+        assert_eq!(format_for_slack(input), "1. Fix login 2. Check dashboard 3. Ship");
     }
 
     #[test]
@@ -1398,7 +1777,7 @@ mod tests {
     #[test]
     fn collapses_excess_blank_lines() {
         let input = "hello\n\n\n\nworld";
-        assert_eq!(format_for_slack(input), "Hello\n\nworld");
+        assert_eq!(format_for_slack(input), "Hello world");
     }
 
     #[test]

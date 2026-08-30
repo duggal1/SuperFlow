@@ -120,3 +120,13 @@ pub fn set_voice_command_hook(app: AppHandle, hook: String) -> Result<String, St
     settings::write_settings(&app, current);
     Ok(hook)
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_hey_superflow_tone_setting(app: AppHandle, tone: String) -> Result<(), String> {
+    let tone = tone.trim().to_string();
+    let mut current = settings::get_settings(&app);
+    current.hey_superflow_tone = tone;
+    settings::write_settings(&app, current);
+    Ok(())
+}

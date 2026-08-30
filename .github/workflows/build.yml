@@ -217,8 +217,22 @@ jobs:
         if: ${{ inputs.target != '' && !contains(inputs.target, 'x86_64-unknown-linux-gnu') && !contains(inputs.target, 'aarch64-unknown-linux-gnu') && !contains(inputs.target, 'x86_64-pc-windows-msvc') }}
         run: rustup target add ${{ inputs.target }}
 
-      - name: import Apple Developer Certificate
+      # Skip gracefully when the Apple signing secrets are not configured (e.g. on
+      # forks). The build then falls back to the ad-hoc identity from
+      # tauri.conf.json ("signingIdentity": "-") instead of failing on an empty p12.
+      - name: Check Apple signing secrets
         if: contains(inputs.platform, 'macos') && inputs.sign-binaries
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::warning::APPLE_CERTIFICATE secret is not set on this repository. Building an ad-hoc (unsigned) macOS artifact. To enable Developer ID signing + notarization, add the APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD, KEYCHAIN_PASSWORD, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID secrets."
+          else
+            echo "APPLE_CERTIFICATE_PRESENT=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: import Apple Developer Certificate
+        if: contains(inputs.platform, 'macos') && inputs.sign-binaries && env.APPLE_CERTIFICATE_PRESENT == 'true'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -234,7 +248,7 @@ jobs:
           security find-identity -v -p codesigning build.keychain
 
       - name: verify certificate
-        if: contains(inputs.platform, 'macos') && inputs.sign-binaries
+        if: contains(inputs.platform, 'macos') && inputs.sign-binaries && env.APPLE_CERTIFICATE_PRESENT == 'true'
         run: |
           CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
           CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')

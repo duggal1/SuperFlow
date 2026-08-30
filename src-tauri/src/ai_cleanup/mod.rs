@@ -1,6 +1,7 @@
 mod client;
 pub(crate) mod credentials;
 pub mod prompt;
+mod prompts;
 
 use crate::settings::{AiCleanupThinkingLevel, AppSettings};
 
@@ -96,14 +97,38 @@ pub async fn execute(instruction: &str, settings: &AppSettings) -> Result<String
     )?;
     let api_key = credentials::load(settings)?;
 
+    let system_prompt =
+        prompts::hey_superflow::superflow_system_prompt(&settings.hey_superflow_tone, &superflow_personal_data(settings));
     client::generate(
         &api_key,
         &settings.ai_cleanup_model,
         settings.ai_cleanup_thinking_level,
-        prompt::EDIT_SYSTEM_PROMPT,
+        &system_prompt,
         &prompt::build_edit_user_content("", instruction),
     )
     .await
+}
+
+/// Compose the personal-data "memory" block for Hey Superflow: the user's
+/// local specification plus any saved AI-cleanup contexts. Both are small,
+/// local, and surfaced in settings, so they are safe to include by default.
+fn superflow_personal_data(settings: &AppSettings) -> String {
+    let mut data = String::new();
+    let spec = settings.user_specification.trim();
+    if !spec.is_empty() {
+        data.push_str(spec);
+    }
+    for context in &settings.ai_cleanup_contexts {
+        let context = context.trim();
+        if context.is_empty() {
+            continue;
+        }
+        if !data.is_empty() {
+            data.push('\n');
+        }
+        data.push_str(context);
+    }
+    data
 }
 
 pub(crate) async fn generate_with_system_prompt(

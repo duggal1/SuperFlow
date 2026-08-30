@@ -1052,9 +1052,10 @@ fn clean_subject_text(raw: &str, allow_leading_is: bool) -> Option<String> {
     }
 }
 
-/// Deterministic subject detection. Handles exactly the two real-world
-/// placements — dictated FIRST or LAST — plus written-style "Subject: …" on
-/// its own line. Anything ambiguous is left untouched (fail-closed).
+/// Deterministic subject detection. Handles FIRST, LAST, and MID-FLOW
+/// placements plus written-style "Subject: …" on its own line. Anything
+/// ambiguous is left untouched (fail-closed). Subject is always moved to
+/// Subject field, removed from body, and capped at 12 words.
 fn extract_email_subject(text: &str) -> ParsedEmailSubject {
     let trimmed = text.trim();
     let no_op = || ParsedEmailSubject {
@@ -1156,6 +1157,118 @@ fn extract_email_subject(text: &str) -> ParsedEmailSubject {
         }
     }
 
+    // --- Case D: subject MID-FLOW in one utterance ("Hey Mike, quick update subject updated rollout … can you check")
+    // Handles greeting-first → subject-later in same flow, and subject buried in middle.
+    // Fail-closed: prose "the subject is unclear" must not be extracted.
+    let mut best: Option<(usize, usize, String)> = None; // (marker_index, tail_end, subject)
+    for (marker_idx, word) in words.iter().enumerate() {
+        if canonical_marker(word).is_none() {
+            continue;
+        }
+        if marker_idx == 0 {
+            continue; // already handled by Case A
+        }
+        // Prose guard: "the subject is unclear" / "this subject …" — marker preceded by determiner → likely mention, not dictation
+        if marker_idx > 0 {
+            let prev = words[marker_idx - 1]
+                .trim_matches(|c: char| matches!(c, ':' | ',' | '.' | '!' | '?'))
+                .to_lowercase();
+            if matches!(prev.as_str(), "the" | "this" | "that" | "it" | "a" | "an") {
+                continue;
+            }
+        }
+        // "subject line" / "subject is" / "subject line is" in middle — skip those fillers
+        let mut span_start = marker_idx + 1;
+        if words.len() > span_start
+            && words[span_start].trim_end_matches([':', ',', '.']).eq_ignore_ascii_case("line")
+        {
+            span_start += 1;
+        }
+        if words.len() > span_start
+            && words[span_start]
+                .trim_matches(|c: char| matches!(c, ':' | ','))
+                .eq_ignore_ascii_case("is")
+        {
+            span_start += 1;
+        }
+        if span_start >= words.len() {
+            continue;
+        }
+        // Find span_end: until greeting starter, body starter, sentence punctuation, or 12w
+        // Body starters like "can", "please", "quick" signal end of subject phrase
+        let mut span_end = (span_start + SUBJECT_MAX_WORDS).min(words.len());
+        for idx in span_start..span_end {
+            if is_greeting_starter(words[idx]) {
+                span_end = idx;
+                break;
+            }
+            // Body starters that clearly begin the next clause — subject ends before them
+            let w = words[idx]
+                .trim_matches(|c: char| matches!(c, ':' | ',' | '.' | '!' | '?'))
+                .to_lowercase();
+            if GREETING_BODY_START.contains(&w.as_str()) && idx > span_start {
+                // But don't cut single-word subjects like "subject meeting" where next is "can" immediately
+                // We need at least 1 word for subject, so if idx == span_start+1 and that one word is already subject, keep it
+                // For "subject is updated rollout timeline can you check" — span_start at "updated", idx 3 is "can", so subject is 3 words before "can" — correct
+                span_end = idx;
+                break;
+            }
+            if words[idx].ends_with(['.', '!', '?']) && idx > span_start {
+                span_end = idx + 1;
+                break;
+            }
+        }
+        while span_end > span_start && is_greeting_starter(words[span_end - 1]) {
+            span_end -= 1;
+        }
+        // Try longest valid subject that still leaves body — gives "updated rollout timeline" not just "updated"
+        let mut found: Option<(usize, String)> = None;
+        for try_end in ((span_start + 1)..=span_end).rev() {
+            let span = &words[span_start..try_end];
+            if span.is_empty() || span.len() > SUBJECT_MAX_WORDS {
+                continue;
+            }
+            let last = span.last().unwrap().trim_matches(|c: char| matches!(c, ':' | ',')).to_lowercase();
+            if GREETING_BODY_START.contains(&last.as_str()) {
+                continue;
+            }
+            if let Some(subject) = clean_subject_text(&span.join(" "), true) {
+                let body_len = marker_idx + (words.len() - try_end);
+                if body_len >= 3 {
+                    found = Some((try_end, subject));
+                    break; // longest valid wins
+                }
+            }
+        }
+        let (span_end, subject) = match found {
+            Some(v) => v,
+            None => continue,
+        };
+        // Body must still have ≥3 words after removal (already checked)
+        let mut body_words = Vec::with_capacity(words.len() - (span_end - marker_idx));
+        body_words.extend_from_slice(&words[..marker_idx]);
+        body_words.extend_from_slice(&words[span_end..]);
+        if body_words.len() >= 3 && best.is_none() {
+            best = Some((marker_idx, span_end, subject));
+            break; // first valid mid-flow subject wins deterministically
+        }
+    }
+    if let Some((marker_idx, span_end, subject)) = best {
+        let mut body_words = Vec::new();
+        body_words.extend_from_slice(&words[..marker_idx]);
+        body_words.extend_from_slice(&words[span_end..]);
+        let mut body = body_words.join(" ");
+        // Clean stray double punctuation left by removal: "update , can" → "update can"
+        body = body.replace(" ,", ",").replace("  ", " ").trim().to_string();
+        while body.ends_with(',') {
+            body.pop();
+            body = body.trim_end().to_string();
+        }
+        if body.split_whitespace().count() >= 3 {
+            return ParsedEmailSubject { body, subject };
+        }
+    }
+
     no_op()
 }
 
@@ -1179,6 +1292,27 @@ pub fn format_email_for_surface(text: &str, context: EmailFormatContext<'_>) -> 
         text: format_layout_with_email(&parsed.body, Some(context)),
         subject,
     }
+}
+
+/// Cheap, deterministic signal that `text` is an email draft. Rules:
+/// - opens with a greeting addressed to a person and ends with an explicit
+///   sign-off → email;
+/// - opens with a dictated subject marker ("subject …") → email;
+/// - a greeting alone or bare body → NOT an email.
+/// This is the reliable fallback for routing dictation into the email formatter
+/// (deterministic sign-off + signature, and subject extraction) when
+/// Accessibility surface capture fails to identify the Gmail window. A greeting
+/// to a known audience ("hey team") is intentionally not treated as an email.
+pub fn is_email_message(text: &str) -> bool {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    // A dictated subject marker is itself a reliable email signal.
+    if !extract_email_subject(trimmed).subject.is_empty() {
+        return true;
+    }
+    extract_email_envelope(trimmed).is_some() && extract_signoff(trimmed, true).is_some()
 }
 
 // Longest phrases first.
@@ -3048,6 +3182,30 @@ mod email_format_tests {
     }
 
     #[test]
+    fn subject_midflow_after_greeting_is_extracted() {
+        let formatted = format_email_for_surface(
+            "hey mike, quick update subject is updated rollout timeline can you check thanks",
+            ctx(),
+        );
+        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        let out = formatted.text;
+        assert!(!out.to_lowercase().contains("updated rollout"), "subject should be removed from body, got: {out}");
+        assert!(out.starts_with("Hey Wojciech Kowalski,"), "greeting canonicalized, got: {out}");
+    }
+
+    #[test]
+    fn subject_first_and_greeting_one_flow_is_clean() {
+        let formatted = format_email_for_surface(
+            "subject updated rollout timeline hey mike, the email formatting doesn't work at all thanks",
+            ctx(),
+        );
+        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        let out = formatted.text;
+        assert!(out.starts_with("Hey Wojciech Kowalski,"), "got: {out}");
+        assert!(!out.to_lowercase().contains("updated rollout timeline hey"), "subject and greeting not cleanly split, got: {out}");
+    }
+
+    #[test]
     fn prose_mention_of_subject_is_never_extracted() {
         let formatted = format_email_for_surface(
             "hi wojtek the subject is unclear in the last email can you clarify it tomorrow",
@@ -3056,5 +3214,96 @@ mod email_format_tests {
         assert_eq!(formatted.subject, None);
         let out = formatted.text;
         assert!(out.contains("the subject is unclear"), "got: {out}");
+    }
+
+    /// End-to-end check mirroring a real dictated email: a greeting + body with
+    /// NO spoken sign-off, plus (second case) a dictated subject. This is the
+    /// exact path the app exercises when surface == Gmail and the user has
+    /// configured their identity — it must produce a finished email with the
+    /// subject in the Subject field and "Talk soon" + name at the end.
+    fn real_gmail_context() -> EmailFormatContext<'static> {
+        EmailFormatContext {
+            is_email: true,
+            recipient_name: None,
+            author_name: Some("Harpreet Duggal"),
+            author_title: None,
+            author_company: None,
+            include_title: false,
+            include_company: false,
+            default_signoff: Some("Talk soon"),
+        }
+    }
+
+    #[test]
+    fn real_dictated_email_appends_signature_without_spoken_ending() {
+        let out = format_layout_with_email(
+            "hey sarah just wanted to follow up on the q3 roadmap deck can you share the latest version before friday",
+            Some(real_gmail_context()),
+        );
+        assert!(out.starts_with("Hey Sarah,"), "got: {out}");
+        assert!(
+            out.ends_with("Talk soon,\nHarpreet Duggal"),
+            "expected default sign-off + name, got: {out}"
+        );
+    }
+
+    #[test]
+    fn real_dictated_email_with_subject_routes_subject_and_signs_body() {
+        let formatted = format_email_for_surface(
+            "subject q3 roadmap update hey sarah please share the latest deck before friday",
+            real_gmail_context(),
+        );
+        assert_eq!(formatted.subject.as_deref(), Some("Q3 roadmap update"));
+        let out = formatted.text;
+        assert!(out.starts_with("Hey Sarah,"), "got: {out}");
+        assert!(
+            out.ends_with("Talk soon,\nHarpreet Duggal"),
+            "expected default sign-off + name, got: {out}"
+        );
+        assert!(
+            !out.contains("q3 roadmap update hey"),
+            "subject must not leak into the body, got: {out}"
+        );
+    }
+
+    #[test]
+    fn email_detection_follows_the_simple_rules() {
+        // A greeting alone is ambiguous and must not invent an email envelope.
+        assert!(!is_email_message(
+            "hey sarah just wanted to follow up on the q3 roadmap deck can you share it before friday"
+        ));
+        // Greeting + explicitly dictated sign-off => email.
+        assert!(is_email_message(
+            "hey sarah just wanted to follow up on the q3 roadmap deck can you share it before friday thanks"
+        ));
+        // subject + greeting + body => email
+        assert!(is_email_message(
+            "subject updated rollout timeline hey sarah quick update on the payroll migration we finished most of the backend work today thanks alex"
+        ));
+        // only body (no greeting, no subject) => NOT an email
+        assert!(!is_email_message(
+            "the backend migration finished today and qa found a couple issues with the import flow"
+        ));
+        // greeting to a known audience => NOT an email
+        assert!(!is_email_message(
+            "hey team quick update the deploy is finished and qa passed"
+        ));
+    }
+
+    #[test]
+    fn subject_first_email_routes_subject_and_appends_signature() {
+        let formatted = format_email_for_surface(
+            "subject updated rollout timeline hey sarah quick update on the payroll migration we finished most of the backend work today but qa found a couple issues with the employee import flow so we are fixing those now and we should have it ready for another qa pass tomorrow morning assuming everything looks good we should still be able to roll it out thursday afternoon i will send you another update once qa is done thanks alex",
+            real_gmail_context(),
+        );
+        assert_eq!(formatted.subject.as_deref(), Some("Updated rollout timeline"));
+        let out = formatted.text;
+        assert!(out.starts_with("Hey Sarah,"), "got: {out}");
+        // Spoken "thanks alex" is kept as the sign-off; the name is rendered
+        // from the stored identity, never the ASR-spoken "alex".
+        assert!(
+            out.ends_with("Thanks,\nHarpreet Duggal"),
+            "expected spoken sign-off + stored name, got: {out}"
+        );
     }
 }

@@ -2,6 +2,7 @@ mod actions;
 mod ai_cleanup;
 mod audio_feedback;
 pub mod audio_toolkit;
+pub mod superflow_grammar;
 mod autostart;
 mod catalog;
 pub mod cli;
@@ -13,7 +14,7 @@ mod dev_icon;
 mod escape_cancel;
 mod export;
 mod file_refs;
-mod gmail_voice;
+pub(crate) mod gmail_voice;
 mod helpers;
 mod input;
 mod intelligence;
@@ -191,6 +192,18 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Mandatory S1-mini cleanup stage: download (if needed) and load the model
     // off the hot path so dictation never waits on it.
     local_cleanup::preload(app_handle.clone());
+
+    // Warm Superflow Grammar (harper-core) caches off the hot path — first
+    // correct() is ~900ms cold (dictionary + LintGroup), warm is <30ms.
+    // No toggle, always runs, every Parakeet transcription; never on Gemini.
+    {
+        let app_handle = app_handle.clone();
+        std::thread::spawn(move || {
+            crate::superflow_grammar::harper_engine::warm_up();
+            log::debug!("superflow_grammar warmup complete");
+            let _ = app_handle;
+        });
+    }
 
     // Apply accelerator preferences before any model loads
     managers::transcription::apply_accelerator_settings(app_handle);
@@ -779,6 +792,7 @@ pub fn run(cli_args: CliArgs) {
             commands::ai_cleanup::update_ai_cleanup_configuration,
             commands::ai_cleanup::set_gemini_api_key,
             commands::ai_cleanup::set_voice_command_hook,
+            commands::ai_cleanup::change_hey_superflow_tone_setting,
             commands::ai_cleanup::get_ai_cleanup_history,
             commands::ai_cleanup::is_gemini_api_configured,
             commands::local_cleanup::get_cleanup_model_status,

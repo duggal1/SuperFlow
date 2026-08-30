@@ -5,6 +5,7 @@ import { useSettings } from "../../../hooks/useSettings";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { Input } from "../../ui/Input";
 import { Badge } from "../../ui/Badge";
+import { Dropdown, type DropdownOption } from "../../ui/Dropdown";
 
 const MAX_HOOK_CHARS = 80;
 
@@ -13,6 +14,16 @@ export const VoiceHookCard: React.FC = React.memo(() => {
   const { getSetting, updateSetting, isUpdating } = useSettings();
   const stored = getSetting("voice_command_hook") ?? "Hey SuperFlow";
   const busy = isUpdating("voice_command_hook");
+
+  const TONE_OPTIONS: DropdownOption[] = [
+    { value: "own", label: "Keep my voice" },
+    { value: "professional", label: "Professional" },
+    { value: "concise", label: "Concise" },
+    { value: "informal", label: "Informal" },
+    { value: "humanized", label: "Humanized" },
+  ];
+  const storedTone = getSetting("hey_superflow_tone") ?? "own";
+  const toneBusy = isUpdating("hey_superflow_tone");
 
   const [draft, setDraft] = useState(stored);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +161,28 @@ export const VoiceHookCard: React.FC = React.memo(() => {
               {t("settings.general.superWhisper.exampleText")}
             </span>
           </p>
+        </div>
+
+        {/* Tone: applied to every Hey Superflow output (email, Slack, prompt) */}
+        <div className="mt-4 flex flex-col gap-2">
+          <p className="text-sm font-medium tracking-tight text-stone-100">
+            {t("settings.general.superWhisper.toneLabel")}
+          </p>
+          <p className="text-xs leading-5 text-stone-500">
+            {t("settings.general.superWhisper.toneDescription")}
+          </p>
+          <div>
+            <Dropdown
+              options={TONE_OPTIONS}
+              selectedValue={storedTone}
+              onSelect={(value) => {
+                void updateSetting("hey_superflow_tone", value as never);
+              }}
+              placeholder="Keep my voice"
+              disabled={toneBusy}
+              className="w-56"
+            />
+          </div>
         </div>
       </div>
     </SettingsGroup>

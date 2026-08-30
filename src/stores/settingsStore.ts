@@ -220,6 +220,8 @@ const settingUpdaters: {
   },
   user_specification: (value) =>
     commands.changeUserSpecificationSetting(value as string),
+  hey_superflow_tone: (value) =>
+    commands.changeHeySuperflowToneSetting(value as string),
 };
 
 export const useSettingsStore = create<SettingsStore>()(
