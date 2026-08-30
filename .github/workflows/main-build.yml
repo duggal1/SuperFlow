@@ -23,24 +23,31 @@ jobs:
           - platform: "macos-26"
             args: "--target aarch64-apple-darwin"
             target: "aarch64-apple-darwin"
+            sign-binaries: false # ad-hoc ($0): no paid Apple Developer cert
           - platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
             target: "x86_64-apple-darwin"
+            sign-binaries: false # ad-hoc ($0)
           - platform: "ubuntu-22.04"
             args: "--bundles deb"
             target: "x86_64-unknown-linux-gnu"
+            sign-binaries: false
           - platform: "ubuntu-24.04"
             args: "--bundles appimage,rpm"
             target: "x86_64-unknown-linux-gnu"
+            sign-binaries: false
           - platform: "ubuntu-24.04-arm"
             args: "--bundles appimage,deb,rpm"
             target: "aarch64-unknown-linux-gnu"
+            sign-binaries: false
           - platform: "windows-latest"
             args: ""
             target: "x86_64-pc-windows-msvc"
+            sign-binaries: true # Azure Trusted Signing (free tier)
           - platform: "windows-11-arm"
             args: "--target aarch64-pc-windows-msvc"
             target: "aarch64-pc-windows-msvc"
+            sign-binaries: true # Azure Trusted Signing (free tier)
 
     uses: ./.github/workflows/build.yml
     with:
@@ -48,5 +55,5 @@ jobs:
       target: ${{ matrix.target }}
       build-args: ${{ matrix.args }}
       upload-artifacts: true
-      sign-binaries: true
+      sign-binaries: ${{ matrix.sign-binaries }}
     secrets: inherit
