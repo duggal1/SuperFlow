@@ -5,6 +5,7 @@ use harper_core::{
     Dialect, DictWordMetadata, Document,
 };
 use once_cell::sync::Lazy;
+use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
 use super::protected_spans::{find_protected_spans, is_protected};
@@ -80,14 +81,32 @@ fn build_merged_dict() -> Arc<MergedDictionary> {
 
 static MERGED_DICT: Lazy<Arc<MergedDictionary>> = Lazy::new(build_merged_dict);
 
-/// LintGroup is not Sync due to internal caches (LruCache), so we wrap in Mutex.
-/// We create one per thread via thread_local or global Mutex for simplicity.
-/// For <50ms target we want to reuse the group (caches warm), so we keep a global.
-static LINT_GROUP: Lazy<Mutex<LintGroup>> = Lazy::new(|| {
+/// LintGroup is not Sync due to internal caches (LruCache), so each Harper worker
+/// owns a separately locked, warm group while sharing the immutable dictionary.
+const MAX_HARPER_WORKERS: usize = 8;
+const PARALLEL_MIN_CHARS: usize = 2_000;
+
+fn build_lint_group() -> Mutex<LintGroup> {
     let dict = MERGED_DICT.clone();
     let mut group = LintGroup::new_curated(dict, Dialect::American);
     super::rules::register(&mut group);
     Mutex::new(group)
+}
+
+static LINT_GROUPS: Lazy<Vec<Mutex<LintGroup>>> = Lazy::new(|| {
+    let workers = std::thread::available_parallelism()
+        .map(usize::from)
+        .unwrap_or(1)
+        .min(MAX_HARPER_WORKERS);
+    (0..workers).map(|_| build_lint_group()).collect()
+});
+
+static HARPER_POOL: Lazy<rayon::ThreadPool> = Lazy::new(|| {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(LINT_GROUPS.len())
+        .thread_name(|index| format!("harper-{index}"))
+        .build()
+        .expect("failed to build Harper worker pool")
 });
 
 /// Safe auto-fix policy — EXPLICIT ALLOW-LIST, not permissive.
@@ -168,7 +187,11 @@ fn minimal_prepass(text: &str) -> String {
 /// Warm harper caches off the hot path — call once at startup.
 /// First `correct()` pays ~900ms cold (dictionary + LintGroup init); warmup moves that to init.
 pub fn warm_up() {
-    let _ = correct("warmup text for caches");
+    HARPER_POOL.install(|| {
+        LINT_GROUPS.par_iter().for_each(|group| {
+            let _ = correct_with_group("warmup text for caches", group);
+        });
+    });
 }
 
 /// Correct `text` with harper-core, protected spans, and safe auto-fix policy.
@@ -197,7 +220,7 @@ fn correct_inner(text: &str) -> String {
     }
 
     let start = std::time::Instant::now();
-    let corrected = correct_with_group(&pre, &LINT_GROUP);
+    let corrected = correct_preprocessed(&pre);
 
     let elapsed = start.elapsed();
     if elapsed.as_millis() > 50 {
@@ -206,6 +229,65 @@ fn correct_inner(text: &str) -> String {
         log::debug!("superflow_grammar corrected in {:?}", elapsed);
     }
     corrected
+}
+
+fn correct_preprocessed(pre: &str) -> String {
+    let chunks = parallel_chunks(pre, LINT_GROUPS.len());
+    if chunks.len() == 1 {
+        return correct_with_group(pre, &LINT_GROUPS[0]);
+    }
+
+    let corrected: Vec<String> = HARPER_POOL.install(|| {
+        chunks
+            .par_iter()
+            .enumerate()
+            .map(|(index, chunk)| correct_with_group(chunk, &LINT_GROUPS[index]))
+            .collect()
+    });
+    corrected.concat()
+}
+
+fn parallel_chunks(text: &str, workers: usize) -> Vec<&str> {
+    if workers < 2 || text.chars().count() < PARALLEL_MIN_CHARS {
+        return vec![text];
+    }
+
+    let mut boundaries = Vec::new();
+    let mut chars = text.char_indices().peekable();
+    while let Some((_, ch)) = chars.next() {
+        let Some(&(next_byte, next)) = chars.peek() else {
+            break;
+        };
+        if (matches!(ch, '.' | '!' | '?') && next.is_whitespace()) || ch == '\n' {
+            boundaries.push(next_byte);
+        }
+    }
+
+    if boundaries.len() < 2 {
+        return vec![text];
+    }
+
+    let chunk_count = workers.min(boundaries.len() + 1);
+    let mut chunks = Vec::with_capacity(chunk_count);
+    let mut start = 0;
+    let mut boundary_index = 0;
+    for part in 1..chunk_count {
+        let target = text.len() * part / chunk_count;
+        while boundary_index < boundaries.len() && boundaries[boundary_index] < target {
+            boundary_index += 1;
+        }
+        if boundary_index == boundaries.len() {
+            break;
+        }
+        let end = boundaries[boundary_index];
+        if end > start {
+            chunks.push(&text[start..end]);
+            start = end;
+        }
+        boundary_index += 1;
+    }
+    chunks.push(&text[start..]);
+    chunks
 }
 
 fn correct_with_group(pre: &str, group: &Mutex<LintGroup>) -> String {
@@ -323,6 +405,21 @@ mod tests {
     }
 
     #[test]
+    fn long_transcript_matches_single_worker_output() {
+        warm_up();
+        let input = (0..160)
+            .map(|index| {
+                format!("Sentence {index} has the the repeated word and this is an test. ")
+            })
+            .collect::<String>();
+        let pre = minimal_prepass(&input);
+        let expected = correct_with_group(&pre, &LINT_GROUPS[0]);
+
+        assert_eq!(correct(&input), expected);
+        assert_eq!(parallel_chunks(&pre, LINT_GROUPS.len()).len(), 8);
+    }
+
+    #[test]
     fn performance_budget() {
         // Warm caches first — first run includes dictionary + LintGroup init (~900ms cold)
         let _ = correct("warmup text for caches");
@@ -343,5 +440,33 @@ mod tests {
             budget_ms,
             elapsed
         );
+    }
+
+    #[test]
+    #[ignore = "manual release benchmark"]
+    fn benchmark_transcript_sizes() {
+        warm_up();
+        for words in [100_usize, 300, 750, 1_000, 1_500, 4_500, 5_000, 6_750] {
+            let sentence = "We should fix the the file because this is an test today. ";
+            let repeats = words.div_ceil(sentence.split_whitespace().count());
+            let input = sentence.repeat(repeats);
+            let pre = minimal_prepass(&input);
+            let sequential_start = std::time::Instant::now();
+            let sequential = correct_with_group(&pre, &LINT_GROUPS[0]);
+            let sequential_ms = sequential_start.elapsed().as_secs_f64() * 1_000.0;
+            let parallel_start = std::time::Instant::now();
+            let output = correct(&input);
+            let parallel_ms = parallel_start.elapsed().as_secs_f64() * 1_000.0;
+            println!(
+                "{words:>5} words: {:>8.3} ms adaptive, {:>8.3} ms single, {:>5.2}x ({} chunks)",
+                parallel_ms,
+                sequential_ms,
+                sequential_ms / parallel_ms,
+                parallel_chunks(input.trim(), LINT_GROUPS.len()).len()
+            );
+            assert_eq!(output, sequential);
+            assert!(output.contains("the file"));
+            assert!(output.contains("a test"));
+        }
     }
 }
