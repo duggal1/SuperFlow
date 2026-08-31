@@ -2,7 +2,7 @@
   description = "SuperFlow - A free, open source, and extensible speech-to-text application that works completely offline";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     # bun2nix: generates per-package Nix fetchurl expressions from bun.lock,
     # replacing the old FOD approach where a single hash covered the entire
