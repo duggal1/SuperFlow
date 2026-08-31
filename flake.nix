@@ -31,15 +31,18 @@
       # so identify these fixed-output fetches until the lock advances past the
       # upstream static.crates.io fix.
       cratesIoFetchOverlay = final: prev: {
-        fetchurl = final.lib.makeOverridable (
-          args:
-            prev.fetchurl (args // {
-              curlOptsList = (args.curlOptsList or [ ]) ++ [
-                "--user-agent"
-                "nixpkgs-fetchCargoVendor/2 (https://github.com/NixOS/nixpkgs)"
-              ];
-            })
-        );
+        cratesIoCurl = prev.symlinkJoin {
+          name = "curl-crates-io-user-agent";
+          paths = [ prev.curl ];
+          nativeBuildInputs = [ prev.makeWrapper ];
+          postBuild = ''
+            wrapProgram $out/bin/curl \
+              --add-flags '--user-agent "nixpkgs-fetchCargoVendor/2 (https://github.com/NixOS/nixpkgs)"'
+          '';
+        };
+        fetchurl = prev.fetchurl.override {
+          curl = final.cratesIoCurl;
+        };
       };
       # Read version from Cargo.toml
       cargoToml = fromTOML (builtins.readFile ./src-tauri/Cargo.toml);
