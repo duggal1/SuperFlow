@@ -9,6 +9,7 @@ import { Input } from "../../ui/Input";
 import { Textarea } from "../../ui/Textarea";
 import { Button } from "../../ui/Button";
 import { Badge } from "../../ui/Badge";
+import { useIsLight } from "../../../lib/utils/theme";
 import type { Shortcut } from "@/bindings";
 
 const MAX_NAME = 40;
@@ -40,8 +41,8 @@ const linkify = (text: string) =>
           : `[${m}](${m})`,
     );
 
-const Markdown = ({ children }: { children: string }) => (
-  <div className="text-sm font-normal leading-6 tracking-tight text-stone-100 antialiased [&_a]:font-normal [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600 [&_a]:decoration-dotted [&_a]:underline-offset-2 hover:[&_a]:text-blue-500 [&_blockquote]:border-l-2 [&_blockquote]:border-stone-700 [&_blockquote]:pl-3 [&_blockquote]:text-stone-400 [&_code]:rounded-[3px] [&_code]:bg-stone-900 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px] [&_h1]:mt-4 [&_h1]:text-lg [&_h1]:font-medium [&_h1]:tracking-tight [&_h1]:text-stone-50 [&_h1:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-medium [&_h2]:tracking-tight [&_h2]:text-stone-100 [&_h2:first-child]:mt-0 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:tracking-tight [&_h3]:text-stone-100 [&_hr]:border-stone-800 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-stone-900 [&_pre]:p-3 [&_strong]:font-medium [&_strong]:text-stone-50 [&_ul]:mt-2 [&_ul]:list-none [&_ul]:space-y-1 [&_ul>li]:relative [&_ul>li]:pl-4 [&_ul>li]:before:absolute [&_ul>li]:before:left-0 [&_ul>li]:before:top-[0.55em] [&_ul>li]:before:h-[5px] [&_ul>li]:before:w-[5px] [&_ul>li]:before:rounded-[1px] [&_ul>li]:before:bg-blue-600">
+const Markdown = ({ children, isLight }: { children: string; isLight?: boolean }) => (
+  <div className={`text-sm font-normal leading-6 tracking-tight antialiased [&_a]:font-normal [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600 [&_a]:decoration-dotted [&_a]:underline-offset-2 hover:[&_a]:text-blue-500 [&_blockquote]:pl-3 [&_code]:rounded-[3px] [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px] [&_h1]:mt-4 [&_h1]:text-lg [&_h1]:font-medium [&_h1]:tracking-tight [&_h1:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-medium [&_h2]:tracking-tight [&_h2:first-child]:mt-0 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:tracking-tight [&_hr]:border-stone-800 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:p-3 [&_ul]:mt-2 [&_ul]:list-none [&_ul]:space-y-1 [&_ul>li]:relative [&_ul>li]:pl-4 [&_ul>li]:before:absolute [&_ul>li]:before:left-0 [&_ul>li]:before:top-[0.55em] [&_ul>li]:before:h-[5px] [&_ul>li]:before:w-[5px] [&_ul>li]:before:rounded-[1px] [&_ul>li]:before:bg-blue-600 ${isLight ? "text-stone-900 [&_blockquote]:border-stone-200 [&_blockquote]:text-stone-500 [&_code]:bg-stone-100 [&_h1]:text-stone-900 [&_h2]:text-stone-900 [&_h3]:text-stone-900 [&_pre]:bg-stone-100 [&_strong]:text-stone-900" : "text-stone-100 [&_blockquote]:border-stone-700 [&_blockquote]:text-stone-400 [&_code]:bg-stone-900 [&_h1]:text-stone-50 [&_h2]:text-stone-100 [&_h3]:text-stone-100 [&_pre]:bg-stone-900 [&_strong]:text-stone-50"}`}>
     <ReactMarkdown
       components={{
         a: (props) => <a {...props} target="_blank" rel="noreferrer" />,
@@ -68,7 +69,7 @@ const Markdown = ({ children }: { children: string }) => (
 );
 
 /** Scrollable viewport with a bottom mask fade ONLY when content overflows. */
-const OverflowFade = ({ children }: { children: React.ReactNode }) => {
+const OverflowFade = ({ children, isLight }: { children: React.ReactNode; isLight?: boolean }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [overflows, setOverflows] = useState(false);
 
@@ -94,7 +95,7 @@ const OverflowFade = ({ children }: { children: React.ReactNode }) => {
       {overflows && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[#221f1d] via-[#221f1d]/70 to-transparent"
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t ${isLight ? "from-white via-white/70 to-transparent" : "from-[#221f1d] via-[#221f1d]/70 to-transparent"}`}
         />
       )}
     </div>
@@ -110,6 +111,7 @@ interface Draft {
 export const ShortcutsCard: React.FC = React.memo(() => {
   const { t } = useTranslation();
   const { getSetting, updateSetting, isUpdating } = useSettings();
+  const isLight = useIsLight();
   // Direct read — store updates re-render immediately.
   const shortcuts = getSetting("shortcuts") || [];
   const busy = isUpdating("shortcuts");
@@ -197,13 +199,13 @@ export const ShortcutsCard: React.FC = React.memo(() => {
           if (e.target === e.currentTarget) closeDialog();
         }}
       >
-        <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl border-none bg-[#221f1d] p-5">
+        <div className={`relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl p-5 shadow-none ${isLight ? "bg-white border border-stone-200" : "bg-[#221f1d] border-none"}`}>
           {/* Close — top right, borderless */}
           <button
             type="button"
             onClick={closeDialog}
             aria-label={t("settings.general.shortcuts.cancel")}
-            className="absolute right-3 top-3 cursor-pointer rounded-md p-2 text-stone-400 transition-colors duration-150 hover:bg-stone-700 hover:text-white"
+            className={`absolute right-3 top-3 cursor-pointer rounded-md p-2 transition-colors duration-150 ${isLight ? "text-stone-500 hover:bg-stone-100 hover:text-stone-900" : "text-stone-400 hover:bg-stone-700 hover:text-white"}`}
           >
             <X className="h-4 w-4" weight="bold" />
           </button>
@@ -222,7 +224,7 @@ export const ShortcutsCard: React.FC = React.memo(() => {
                 disabled={busy}
               />
             ) : (
-              <p className="text-base font-medium tracking-tight text-stone-50">
+              <p className={`text-base font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}>
                 {viewing.name}
               </p>
             )}
@@ -241,8 +243,8 @@ export const ShortcutsCard: React.FC = React.memo(() => {
                 disabled={busy}
               />
             ) : (
-              <OverflowFade>
-                <Markdown>{viewing.content}</Markdown>
+              <OverflowFade isLight={isLight}>
+                <Markdown isLight={isLight}>{viewing.content}</Markdown>
               </OverflowFade>
             )}
           </div>
@@ -314,13 +316,13 @@ export const ShortcutsCard: React.FC = React.memo(() => {
         </h2>
       </div>
 
-      <div className="rounded-[10px] bg-surface p-4">
+      <div className={`rounded-[10px] bg-surface p-4 ${isLight ? "border border-stone-200/80" : ""}`}>
         {/* Badge cloud — system Badge primitive */}
         <div className="flex flex-wrap items-center gap-2">
           {shortcuts.map((s) => (
             <span
               key={s.id}
-              className="inline-flex items-stretch overflow-hidden rounded-[3.5px] bg-neutral-500/[0.11]"
+              className={`inline-flex items-stretch overflow-hidden rounded-[3.5px] ${isLight ? "bg-stone-500/[0.12]" : "bg-neutral-500/[0.11]"}`}
             >
               <button
                 type="button"
@@ -330,7 +332,7 @@ export const ShortcutsCard: React.FC = React.memo(() => {
                   setDraft({ id: s.id, name: s.name, content: s.content });
                 }}
                 disabled={busy}
-                className={`cursor-pointer px-3 py-1 text-[14px] font-medium leading-none tracking-[-0.09px] text-neutral-400 transition-colors hover:bg-neutral-500/[0.11] hover:text-neutral-300 disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`cursor-pointer px-3 py-1 text-[14px] font-medium leading-none tracking-[-0.09px] transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${isLight ? "text-stone-700 hover:bg-stone-500/[0.12] hover:text-stone-900" : "text-neutral-400 hover:bg-neutral-500/[0.11] hover:text-neutral-300"}`}
               >
                 {s.name}
               </button>

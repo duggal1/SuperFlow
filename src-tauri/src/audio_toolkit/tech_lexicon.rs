@@ -161,10 +161,6 @@ pub fn apply(text: &str) -> String {
         .apply(text)
 }
 
-pub(crate) fn warm_up() {
-    let _ = MATCHER.get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD));
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

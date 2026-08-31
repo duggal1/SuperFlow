@@ -23,6 +23,7 @@ import SidebarToggleIcon from "./components/icons/SidebarToggleIcon";
 import { WhatsNewGate } from "./components/whats-new";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
+import { useIsLight } from "./lib/utils/theme";
 import { commands } from "@/bindings";
 import { getLanguageDirection, initializeRTL } from "@/lib/utils/rtl";
 
@@ -46,6 +47,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [windowFullPage, setWindowFullPage] = useState(false);
   const { settings, updateSetting } = useSettings();
+  const isLight = useIsLight();
   const direction = getLanguageDirection(i18n.language);
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
@@ -390,14 +392,18 @@ function App() {
                   onClick={() => setSidebarOpen(true)}
                   aria-label="Open sidebar"
                   title="Open sidebar (Ctrl+B)"
-                  className="flex size-7 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100"
+                  className={
+                    isLight
+                      ? "flex size-7 items-center justify-center rounded-md text-stone-500 transition-colors duration-150 hover:bg-stone-200 hover:text-stone-900"
+                      : "flex size-7 items-center justify-center rounded-md text-stone-500 transition-colors duration-150 hover:bg-white/[0.06] hover:text-stone-200"
+                  }
                 >
                   <SidebarToggleIcon expanded={false} />
                 </button>
               )}
             </div>
             <div className="flex-1 overflow-y-auto">
-              <div className="flex flex-col items-center gap-5 px-6 pb-10 pt-4">
+              <div className="flex flex-col items-center p-4 gap-4">
                 <AccessibilityPermissions />
                 <SecureInputWarning />
                 {renderSettingsContent(currentSection)}

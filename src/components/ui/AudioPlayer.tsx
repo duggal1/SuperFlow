@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { Play, Pause } from "@phosphor-icons/react";
+import { useIsLight } from "@/lib/utils/theme";
 
 interface AudioPlayerProps {
   /** Audio source URL. If not provided, onLoadRequest must be provided. */
@@ -275,6 +276,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   };
 
   const progressPercent = getProgressPercent();
+  const isLight = useIsLight();
+  const trackBg = isLight ? "rgba(168,162,158,0.35)" : "rgba(128,128,128,0.2)";
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -283,7 +286,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       <button
         onClick={togglePlay}
         disabled={isLoading}
-        className="transition-colors cursor-pointer text-text hover:text-blue-500 disabled:opacity-50"
+        className={`transition-colors cursor-pointer disabled:opacity-50 ${isLight ? "text-stone-700 hover:text-blue-600" : "text-text hover:text-blue-500"}`}
         aria-label={isPlaying ? "Pause" : "Play"}
       >
         {isPlaying ? (
@@ -294,7 +297,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </button>
 
       <div className="flex-1 flex items-center gap-2">
-        <span className="text-xs text-text/60 min-w-[30px] tabular-nums">
+        <span className={`text-xs min-w-[30px] tabular-nums ${isLight ? "text-stone-500" : "text-text/60"}`}>
           {formatTime(currentTime)}
         </span>
 
@@ -309,11 +312,11 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           onTouchStart={handleSliderTouchStart}
           className={`flex-1 h-1 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-600 ${progressPercent >= 99.5 ? "[&::-webkit-slider-thumb]:translate-x-0.5 [&::-moz-range-thumb]:translate-x-0.5" : ""}`}
           style={{
-            background: `linear-gradient(to right, #2563eb 0%, #2563eb ${progressPercent}%, rgba(128, 128, 128, 0.2) ${progressPercent}%, rgba(128, 128, 128, 0.2) 100%)`,
+            background: `linear-gradient(to right, #2563eb 0%, #2563eb ${progressPercent}%, ${trackBg} ${progressPercent}%, ${trackBg} 100%)`,
           }}
         />
 
-        <span className="text-xs text-text/60 min-w-[30px] tabular-nums">
+        <span className={`text-xs min-w-[30px] tabular-nums ${isLight ? "text-stone-500" : "text-text/60"}`}>
           {formatTime(duration)}
         </span>
       </div>

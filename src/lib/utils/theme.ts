@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { commands, type Theme } from "@/bindings";
 
 /**
@@ -60,4 +61,39 @@ export const syncThemeFromSettings = async (): Promise<void> => {
   } catch (e) {
     console.warn("Failed to sync theme from settings:", e);
   }
+};
+
+/**
+ * Resolve the *effective* appearance: explicit `light`/`dark` overrides win,
+ * otherwise we follow the OS `prefers-color-scheme`. Re-renders whenever the
+ * document `data-theme` or the OS color scheme changes.
+ */
+const computeIsLight = (): boolean => {
+  const theme = document.documentElement.dataset.theme;
+  if (theme === "light") return true;
+  if (theme === "dark") return false;
+  return window.matchMedia("(prefers-color-scheme: light)").matches;
+};
+
+export const useIsLight = (): boolean => {
+  const [isLight, setIsLight] = useState<boolean>(() =>
+    typeof document === "undefined" ? false : computeIsLight(),
+  );
+
+  useEffect(() => {
+    const update = () => setIsLight(computeIsLight());
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    mq.addEventListener("change", update);
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => {
+      mq.removeEventListener("change", update);
+      observer.disconnect();
+    };
+  }, []);
+
+  return isLight;
 };

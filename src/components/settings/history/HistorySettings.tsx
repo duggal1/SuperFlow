@@ -24,22 +24,26 @@ import { AudioPlayer, AudioPlayerGroup } from "../../ui/AudioPlayer";
 import { Button } from "../../ui/Button";
 import { Badge } from "../../ui/Badge";
 import { ExportFormatSelector } from "../ExportFormatSelector";
+import { useIsLight } from "@/lib/utils/theme";
 
 const IconButton: React.FC<{
   onClick: () => void;
   title: string;
   disabled?: boolean;
   children: React.ReactNode;
-}> = ({ onClick, title, disabled, children }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className="flex cursor-pointer items-center justify-center rounded-md p-1.5 text-text/50 transition-colors hover:bg-stone-700/60 hover:text-blue-500 disabled:cursor-not-allowed disabled:text-text/20"
-    title={title}
-  >
-    {children}
-  </button>
-);
+}> = ({ onClick, title, disabled, children }) => {
+  const isLight = useIsLight();
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex cursor-pointer items-center justify-center rounded-md p-1.5 transition-colors disabled:cursor-not-allowed ${isLight ? "text-stone-500 hover:bg-stone-100 hover:text-blue-600 disabled:text-stone-300" : "text-text/50 hover:bg-stone-700/60 hover:text-blue-500 disabled:text-text/20"}`}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+};
 
 const PAGE_SIZE = 30;
 
@@ -241,6 +245,7 @@ export const HistorySettings: React.FC = () => {
     }
   };
 
+  const isLight = useIsLight();
   let content: React.ReactNode;
 
   if (loading) {
@@ -259,7 +264,7 @@ export const HistorySettings: React.FC = () => {
     content = (
       <>
         <AudioPlayerGroup>
-          <div className="divide-y divide-stone-700">
+          <div className={isLight ? "divide-y divide-stone-200/60" : "divide-y divide-stone-700"}>
             {entries.map((entry) => (
               <HistoryEntryComponent
                 key={entry.id}
@@ -278,7 +283,6 @@ export const HistorySettings: React.FC = () => {
       </>
     );
   }
-
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <ExportFormatSelector />
@@ -294,7 +298,7 @@ export const HistorySettings: React.FC = () => {
             label={t("settings.history.openFolder")}
           />
         </div>
-        <div className="rounded-[10px] bg-surface overflow-visible">
+        <div className={`rounded-[10px] bg-surface overflow-visible ${isLight ? "border border-stone-200/80" : ""}`}>
           {content}
         </div>
       </div>
@@ -365,13 +369,14 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   };
 
   const formattedDate = formatDateTime(String(entry.timestamp), i18n.language);
+  const isLightRow = useIsLight();
 
   return (
     <article className="flex flex-col gap-3 px-4 py-4 [content-visibility:auto] [contain-intrinsic-size:auto_156px]">
       <div className="flex items-center justify-between gap-3">
         <span className="flex min-w-0 flex-col items-start gap-1.5">
           <span className="flex items-center gap-2">
-            <span className="shrink-0 text-sm font-medium tracking-tight text-stone-100">
+            <span className={`shrink-0 text-sm font-medium tracking-tight ${isLightRow ? "text-stone-900" : "text-stone-100"}`}>
               {formattedDate}
             </span>
             {busy && (
@@ -421,8 +426,8 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
         <p
           className={`pb-2 text-sm leading-6 ${
             busy
-              ? "text-stone-500"
-              : "select-text whitespace-pre-wrap break-words text-stone-200"
+              ? isLightRow ? "text-stone-600" : "text-stone-500"
+              : isLightRow ? "select-text whitespace-pre-wrap break-words text-stone-800" : "select-text whitespace-pre-wrap break-words text-stone-200"
           }`}
           style={
             busy

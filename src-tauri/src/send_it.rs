@@ -14,7 +14,6 @@
 //! Because the app already inserts text at the system cursor, this works in
 //! Gmail, Slack, Outlook, and any other text field — no per-app integration.
 
-use tauri::Manager;
 /// Which keystroke should be synthesized to submit the message.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SendKey {
@@ -23,6 +22,7 @@ pub enum SendKey {
     /// Cmd+Return — Gmail and Outlook on macOS.
     CommandEnter,
     /// Ctrl+Return — Gmail/Outlook on Windows/Linux.
+    #[allow(dead_code)] // constructed via (de)serialization from the Swift side
     ControlEnter,
 }
 

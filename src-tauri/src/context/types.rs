@@ -37,6 +37,7 @@ impl Surface {
         }
     }
 
+    #[allow(dead_code)] // used in `#[cfg(test)]` assertions
     pub fn is_aware_surface(&self) -> bool {
         matches!(
             self,
@@ -89,6 +90,7 @@ impl ContextSnapshot {
     }
 
     /// Whether this snapshot's surface participates in Intelligence Awareness.
+    #[allow(dead_code)] // used in `#[cfg(test)]` assertions
     pub fn is_aware_surface(&self) -> bool {
         self.surface.is_aware_surface()
     }

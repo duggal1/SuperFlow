@@ -133,10 +133,12 @@ fn should_enter_edit_mode(binding_id: &str, post_process: bool, has_selection: b
     binding_id == "transcribe" && !post_process && has_selection
 }
 
+#[allow(dead_code)] // test helper — only referenced from `#[cfg(test)]` code
 fn strip_voice_command_hook<'a>(transcript: &'a str, hook: &str) -> Option<&'a str> {
     crate::gmail_voice::strip_voice_command_hook(transcript, hook)
 }
 
+#[allow(dead_code)] // test helper — only referenced from `#[cfg(test)]` code
 fn gmail_voice_hook_context<'a>(
     instruction: &str,
     context: Option<&'a crate::context::RecordingContext>,

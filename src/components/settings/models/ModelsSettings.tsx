@@ -16,6 +16,7 @@ import { ModelCard, isMlxModel } from "@/components/onboarding";
 import { commands } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
 import { useModelStore } from "@/stores/modelStore";
+import { useIsLight } from "@/lib/utils/theme";
 import {
   Dropdown,
   Menu,
@@ -59,6 +60,7 @@ const SORT_OPTIONS: { value: SortMode; labelKey: string }[] = [
 export const ModelsSettings: React.FC = () => {
   const { t } = useTranslation();
   const { getSetting } = useSettings();
+  const isLight = useIsLight();
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStreaming, setFilterStreaming] = useState(false);
@@ -301,16 +303,13 @@ export const ModelsSettings: React.FC = () => {
   return (
     <div className="max-w-3xl w-full mx-auto space-y-4">
       <div className="mb-4">
-        <h1 className="text-xl font-semibold mb-2">
+        <h1 className={`text-xl font-semibold mb-2 ${isLight ? "text-stone-900" : ""}`}>
           {t("settings.models.title")}
         </h1>
-        <p className="text-sm text-text/60">
-          {t("settings.models.description")}
-        </p>
       </div>
 
       {/* Search bar — filter the catalog by name or description */}
-      <label className="group flex w-full items-center gap-2 rounded-lg bg-stone-800 px-3 text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100 focus-within:bg-stone-800 focus-within:text-stone-100">
+      <label className={`group flex w-full items-center gap-2 rounded-lg px-3 transition-colors duration-150 ${isLight ? "bg-white border border-stone-200 text-stone-500 hover:text-stone-700 focus-within:text-stone-900" : "bg-stone-800 text-stone-400 hover:bg-stone-800 hover:text-stone-100 focus-within:bg-stone-800 focus-within:text-stone-100"}`}>
         <HugeiconsIcon
           icon={MagnifyingGlassIcon}
           size={18}
@@ -321,7 +320,7 @@ export const ModelsSettings: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t("settings.models.searchPlaceholder")}
-          className="min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-inherit outline-none ring-0 placeholder:text-stone-400 group-hover:placeholder:text-stone-100 group-focus-within:placeholder:text-stone-100 focus:outline-none focus:ring-0"
+          className={`min-w-0 flex-1 border-0 bg-transparent py-2 text-sm text-inherit outline-none ring-0 focus:outline-none focus:ring-0 ${isLight ? "placeholder:text-stone-400 group-hover:placeholder:text-stone-600 group-focus-within:placeholder:text-stone-600" : "placeholder:text-stone-400 group-hover:placeholder:text-stone-100 group-focus-within:placeholder:text-stone-100"}`}
         />
       </label>
 
@@ -329,7 +328,7 @@ export const ModelsSettings: React.FC = () => {
         {/* Downloaded Models Section — header always visible so filter stays accessible */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-text/60">
+            <h2 className={`text-sm font-medium ${isLight ? "text-stone-600" : "text-text/60"}`}>
               {t("settings.models.yourModels")}
             </h2>
             <div className="flex items-center gap-2">
@@ -340,9 +339,9 @@ export const ModelsSettings: React.FC = () => {
                 disabled={isRescanning}
                 title={t("settings.models.rescan.tooltip")}
                 aria-label={t("settings.models.rescan.tooltip")}
-                className={`flex items-center justify-center size-8 rounded-lg bg-stone-900 text-text/60 hover:bg-stone-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isRescanning ? "animate-spin" : ""
-                }`}
+                className={`flex items-center justify-center size-8 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isLight ? "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50" : "bg-stone-900 text-text/60 hover:bg-stone-800"
+                } ${isRescanning ? "animate-spin" : ""}`}
               >
                 <ClockCounterClockwise size={16} />
               </button>
@@ -356,7 +355,7 @@ export const ModelsSettings: React.FC = () => {
                 className={`flex items-center justify-center size-8 rounded-lg transition-colors ${
                   filterStreaming
                     ? "bg-blue-600/20 text-blue-500 hover:bg-blue-600/30"
-                    : "bg-stone-900 text-text/60 hover:bg-stone-800"
+                    : isLight ? "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50" : "bg-stone-900 text-text/60 hover:bg-stone-800"
                 }`}
               >
                 <Equalizer size={16} />
@@ -389,15 +388,15 @@ export const ModelsSettings: React.FC = () => {
             <MenuTrigger
               aria-label={t("settings.models.filters.sort")}
               title={t("settings.models.filters.sort")}
-              className="flex h-7 cursor-pointer items-center gap-2 rounded-lg border-0 bg-[#36322f] px-3 text-[13px] text-text/60 outline-none transition-colors duration-150 hover:bg-stone-700"
+              className={`flex h-7 cursor-pointer items-center gap-2 rounded-lg border-0 px-3 text-[13px] outline-none transition-colors duration-150 ${isLight ? "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50" : "bg-[#36322f] text-text/60 hover:bg-stone-700"}`}
             >
               <Funnel size={16} />
               <span>{t("settings.models.filters.sort")}</span>
-              <CaretDown size={12} className="text-text/40" />
+              <CaretDown size={12} className={isLight ? "text-stone-400" : "text-text/40"} />
             </MenuTrigger>
             <MenuPopup
               align="start"
-              className="min-w-48 rounded-lg border-none bg-stone-700 p-1 text-stone-50"
+              className={`min-w-48 rounded-lg p-1 ${isLight ? "border border-stone-200 bg-white text-stone-900" : "border-none bg-stone-700 text-stone-50"}`}
             >
               <MenuRadioGroup
                 value={sortMode}
@@ -409,7 +408,7 @@ export const ModelsSettings: React.FC = () => {
                   <MenuRadioItem
                     key={option.value}
                     value={option.value}
-                    className="flex cursor-pointer select-none items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] text-stone-50 outline-none data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:bg-stone-600"
+                    className={`flex cursor-pointer select-none items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] outline-none data-disabled:pointer-events-none data-disabled:opacity-50 ${isLight ? "text-stone-900 data-highlighted:bg-stone-100" : "text-stone-50 data-highlighted:bg-stone-600"}`}
                   >
                     {t(option.labelKey)}
                   </MenuRadioItem>
@@ -474,7 +473,7 @@ export const ModelsSettings: React.FC = () => {
         {/* Available Models Section */}
         {availableModels.length > 0 && (
           <div className="space-y-3">
-            <h2 className="text-sm font-medium text-text/60">
+            <h2 className={`text-sm font-medium ${isLight ? "text-stone-600" : "text-text/60"}`}>
               {t("settings.models.availableModels")}
             </h2>
             {availableModels.map((model: ModelInfo) => (
@@ -494,7 +493,7 @@ export const ModelsSettings: React.FC = () => {
           </div>
         )}
         {filteredModels.length === 0 && (
-          <div className="text-center py-8 text-text/50">
+          <div className={`text-center py-8 ${isLight ? "text-stone-500" : "text-text/50"}`}>
             {t("settings.models.noModelsMatch")}
           </div>
         )}

@@ -252,10 +252,6 @@ pub fn apply(text: &str) -> String {
     crate::audio_toolkit::text::join_path_tokens(&corrected)
 }
 
-pub(crate) fn warm_up() {
-    let _ = MATCHER.get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD));
-}
-
 /// Same strictness as the other catalogs: near-exact hits only.
 const MATCH_THRESHOLD: f64 = 0.2;
 

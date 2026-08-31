@@ -4,7 +4,7 @@
 //! would show a generic executable icon and process name. Packaged builds
 //! carry `icon.icns`, but the product look is the painted tile below, so both
 //! paths render the same identity: an Apple-style rounded square in
-//! stone-900 with the embedded `logo.svg` centered on it, plus a best-effort
+//! stone-950 with the embedded `logo.svg` centered on it, plus a best-effort
 //! bundle-name override while unbundled.
 //!
 //! The SVG is compiled into the binary, so nothing depends on the source
@@ -23,11 +23,11 @@ const LOGO_SVG: &str = include_str!("../../public/logo.svg");
 const TILE: f64 = 1024.0;
 /// Apple's squircle corner ratio for app tiles.
 const CORNER_RADIUS_RATIO: f64 = 0.2237;
-/// stone-900 (#1c1917) — matches the app background token.
-const STONE_900: (f64, f64, f64) = (
-    0x1c as f64 / 255.0,
-    0x19 as f64 / 255.0,
-    0x17 as f64 / 255.0,
+/// stone-950 (#0c0a09) — matches the packaged app icon background.
+const STONE_950: (f64, f64, f64) = (
+    0x0c as f64 / 255.0,
+    0x0a as f64 / 255.0,
+    0x09 as f64 / 255.0,
 );
 /// Logo occupies ~54% of the tile, optically centered.
 const LOGO_SCALE: f64 = 0.54;
@@ -70,9 +70,9 @@ pub fn apply() {
             container.lockFocus();
 
             let bg = NSColor::colorWithSRGBRed_green_blue_alpha(
-                STONE_900.0,
-                STONE_900.1,
-                STONE_900.2,
+                STONE_950.0,
+                STONE_950.1,
+                STONE_950.2,
                 1.0,
             );
             bg.setFill();

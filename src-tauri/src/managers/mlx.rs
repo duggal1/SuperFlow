@@ -121,13 +121,6 @@ pub struct MlxRuntime {
     pub script: PathBuf,
 }
 
-impl MlxRuntime {
-    /// True only when both resolved components actually exist on disk.
-    pub fn is_complete(&self) -> bool {
-        self.python.exists() && self.script.exists()
-    }
-}
-
 /// Why a runtime could not be located, used to produce precise, actionable
 /// diagnostics instead of the old vague "python or mlx_voice.py missing".
 #[derive(Debug, Default, Clone)]
@@ -435,7 +428,7 @@ fn run_piped(mut cmd: Command, timeout: Duration) -> Result<(String, String)> {
 
     let deadline = Instant::now() + timeout;
     let mut timed_out = false;
-    let mut exited: Option<std::process::ExitStatus> = None;
+    let exited: Option<std::process::ExitStatus>;
     loop {
         match child.try_wait()? {
             Some(status) => {
@@ -548,7 +541,7 @@ pub fn transcribe_wav(
 // ---------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Type)]
-struct PyProbe {
+pub(crate) struct PyProbe {
     python_version: String,
     mlx_version: String,
     mlx_audio_version: String,
@@ -775,11 +768,6 @@ impl MlxLiveSession {
     /// Non-blocking drain of any hypothesis already emitted by Python.
     pub fn try_recv_event(&self) -> Option<MlxLiveEvent> {
         self.events.try_recv().ok()
-    }
-
-    /// Blocking recv for the final hypothesis after `finalize()`. Waits up to `timeout`.
-    pub fn recv_event_timeout(&self, timeout: Duration) -> Option<MlxLiveEvent> {
-        self.events.recv_timeout(timeout).ok()
     }
 
     /// Signal end-of-utterance and wait for the final committed text. Returns

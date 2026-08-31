@@ -1027,7 +1027,7 @@ pub fn run(cli_args: CliArgs) {
 
             initialize_core_logic(&app_handle);
 
-            // Paint the Dock tile (stone-900 squircle + embedded logo) so
+            // Paint the Dock tile (stone-950 squircle + embedded logo) so
             // both `tauri dev` runs and packaged builds carry the product
             // identity. No-op outside macOS.
             #[cfg(target_os = "macos")]

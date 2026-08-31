@@ -1,5 +1,6 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { cn } from "../lib/utils";
+import { useIsLight } from "../../lib/utils/theme";
 
 /* Blue-only button system. Primary carries the brand accent; secondary and
    ghost are quiet neutral surfaces within the same geometry. */
@@ -58,6 +59,32 @@ export function Button({
   icon,
   ...props
 }: ButtonProps) {
+  const isLight = useIsLight();
+
+  // Primary (blue) is identical in both themes. Secondary/ghost text and
+  // hover overlays are swapped to dark ink on the light surfaces.
+  const variants: Record<ButtonVariant, string> = {
+    primary:
+      "border-blue-600 bg-blue-600 hover:border-blue-700 hover:bg-blue-700/[0.85]",
+    secondary:
+      "border-stone-800 bg-surface hover:border-stone-700 hover:bg-surface-hover",
+    ghost: isLight
+      ? "border-transparent bg-transparent text-stone-900/70 hover:bg-stone-200 hover:text-stone-900"
+      : "border-transparent bg-transparent text-stone-50/70 hover:bg-surface-hover hover:text-stone-50",
+  };
+
+  const overlayVariants: Record<ButtonVariant, string> = {
+    primary: "bg-blue-950/15",
+    secondary: isLight ? "bg-stone-900/10" : "bg-stone-950/15",
+    ghost: "bg-transparent",
+  };
+
+  const textVariants: Record<ButtonVariant, string> = {
+    primary: "text-white",
+    secondary: isLight ? "text-stone-900" : "text-stone-50",
+    ghost: "text-current",
+  };
+
   return (
     <a
       {...props}

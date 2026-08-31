@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./Button";
+import { useIsLight } from "../../lib/utils/theme";
 
 interface PathDisplayProps {
   path: string;
@@ -14,10 +15,17 @@ export const PathDisplay: React.FC<PathDisplayProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
+  const isLight = useIsLight();
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 min-w-0 px-2 py-2 bg-stone-900 border border-stone-700 rounded-lg text-xs font-mono break-all select-text cursor-text">
+      <div
+        className={`flex-1 min-w-0 px-2 py-2 rounded-lg text-xs font-mono break-all select-text cursor-text ${
+          isLight
+            ? "bg-stone-100 border-0 text-stone-700"
+            : "bg-stone-900 border border-stone-700 text-stone-100"
+        }`}
+      >
         {path}
       </div>
       <Button

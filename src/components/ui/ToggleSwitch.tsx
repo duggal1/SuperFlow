@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { SettingContainer } from "./SettingContainer";
+import { useIsLight } from "../../lib/utils/theme";
 
 interface ToggleSwitchProps {
   checked: boolean;
@@ -30,6 +31,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   tooltipPosition = "top",
   bare = false,
 }) => {
+  const isLight = useIsLight();
   const control = (
     <button
       type="button"
@@ -38,9 +40,13 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
       aria-label={label}
       disabled={disabled || isUpdating}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
-        checked ? "bg-blue-600" : "bg-stone-700"
-      } ${disabled || isUpdating ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 ${
+        checked
+          ? "border-blue-600 bg-blue-600"
+          : isLight
+            ? "border-stone-200 bg-white"
+            : "border-stone-700 bg-stone-700"
+      } ${disabled || isUpdating ? "cursor-not-allowed opacity-50" : "cursor-pointer"} ${!checked && !disabled && !isLight ? "hover:border-stone-600" : ""} ${!checked && !disabled && isLight ? "hover:border-stone-300" : ""}`}
     >
       <motion.span
         initial={false}
@@ -51,7 +57,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
           damping: 32,
           mass: 0.6,
         }}
-        className="pointer-events-none absolute left-0 top-1/2 -mt-2.5 block size-5 rounded-full bg-stone-50"
+        className={`pointer-events-none absolute left-0 top-1/2 -mt-2.5 block size-5 rounded-full shadow-sm ${checked ? "bg-white" : isLight ? "bg-white border border-stone-200" : "bg-stone-50"}`}
       />
     </button>
   );

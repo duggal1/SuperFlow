@@ -625,7 +625,7 @@ const RecordingOverlay: React.FC = () => {
             <motion.button
               type="button"
               onClick={() => void handleCopy()}
-              className="group relative inline-flex h-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border border-stone-700/70 bg-[linear-gradient(#1816131a_0%_100%),linear-gradient(#403c38_0%,#1c1917_100%)] px-3.5 py-1 no-underline shadow-[0_0_0_1px_#29252426,inset_0_2px_#ffffff24,inset_0_-0.5px_2px_#00000070,0_2px_8px_#0000000a,0_3px_4px_#00000036] transition-[background,border-color,box-shadow] duration-200 ease-out hover:border-stone-800 hover:bg-[linear-gradient(#12100e1a_0%_100%),linear-gradient(#312d29_0%,#141210_100%)] hover:shadow-[0_0_0_1px_#1c191733,inset_0_2px_#ffffff18,inset_0_-0.5px_2px_#00000085,0_2px_8px_#00000010,0_3px_4px_#00000042] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-600"
+              className="group relative inline-flex h-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-[9px] border bg-white px-3.5 py-1 no-underline shadow-none transition-[background,border-color] duration-200 ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-300 dark:border-stone-700/70 dark:bg-[linear-gradient(#1816131a_0%_100%),linear-gradient(#403c38_0%,#1c1917_100%)] dark:shadow-[0_0_0_1px_#29252426,inset_0_2px_#ffffff24,inset_0_-0.5px_2px_#00000070,0_2px_8px_#0000000a,0_3px_4px_#00000036] dark:hover:border-stone-800 dark:hover:bg-[linear-gradient(#12100e1a_0%_100%),linear-gradient(#312d29_0%,#141210_100%)] dark:hover:shadow-[0_0_0_1px_#1c191733,inset_0_2px_#ffffff18,inset_0_-0.5px_2px_#00000085,0_2px_8px_#00000010,0_3px_4px_#00000042] border-stone-200 hover:border-stone-300 hover:bg-stone-50 dark:focus-visible:ring-stone-600"
               whileTap={{ scale: 0.985 }}
               transition={{
                 duration: 0.1,
@@ -634,7 +634,7 @@ const RecordingOverlay: React.FC = () => {
             >
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-[9px] bg-stone-950/25 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
+                className="pointer-events-none absolute inset-0 rounded-[9px] bg-stone-100 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 dark:bg-stone-950/25"
               />
 
               <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
@@ -649,7 +649,7 @@ const RecordingOverlay: React.FC = () => {
                         duration: 0.14,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      className="inline-flex items-center justify-center gap-1.5 text-[14px] font-[460] tracking-[0.15px] text-stone-50"
+                      className="inline-flex items-center justify-center gap-1.5 text-[14px] font-[460] tracking-[0.15px] text-stone-900 dark:text-stone-50"
                     >
                       <Check
                         aria-hidden="true"
@@ -668,7 +668,7 @@ const RecordingOverlay: React.FC = () => {
                         duration: 0.14,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      className="inline-flex items-center justify-center gap-1.5 text-[13px] font-[460] tracking-[0.15px] text-stone-50"
+                      className="inline-flex items-center justify-center gap-1.5 text-[13px] font-[460] tracking-[0.15px] text-stone-900 dark:text-stone-50"
                     >
                       <Copy
                         aria-hidden="true"
@@ -709,6 +709,11 @@ const RecordingOverlay: React.FC = () => {
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   // ---- Shared building blocks (one visual language for every overlay form) ----
+  const isLightOverlay =
+    typeof document !== "undefined" &&
+    (document.documentElement.dataset.theme === "light" ||
+      (!document.documentElement.dataset.theme &&
+        window.matchMedia("(prefers-color-scheme: light)").matches));
   const waveform = (
     <LiveWaveform
       className="swave"
@@ -718,7 +723,7 @@ const RecordingOverlay: React.FC = () => {
       barWidth={4}
       barGap={3}
       barRadius={2}
-      barColor="#fafaf9"
+      barColor={isLightOverlay ? "#1c1917" : "#fafaf9"}
       fadeEdges={false}
       mode="static"
     />

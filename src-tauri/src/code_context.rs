@@ -377,7 +377,7 @@ fn lang_for_tree_sitter(ext: &str) -> Option<Language> {
 /// Rust: fn/pub fn/async fn/const fn/unsafe, struct/enum/trait/type, impl methods
 /// TS/JS: function/class/interface/type, const foo = () =>, export variants, React components
 /// Python: def/async def/decorated, class/methods
-fn scan_symbols_tree_sitter(path: &Path, source: &str, ext: &str) -> Option<Vec<RawSymbol>> {
+fn scan_symbols_tree_sitter(_path: &Path, source: &str, ext: &str) -> Option<Vec<RawSymbol>> {
     let language = lang_for_tree_sitter(ext)?;
     let mut parser = Parser::new();
     parser.set_language(&language).ok()?;
@@ -866,13 +866,6 @@ fn enhance_symbols(files: &[FileHit], text: &str) -> Option<String> {
     out.pop(); // trailing space
     debug!("code_context: {} symbol(s) resolved inline", reps.len());
     Some(out)
-}
-
-/// Budget guard used by tests; production callers rely on the natural bounds
-/// above (<=3 files, <=3000 lines each).
-pub(crate) fn warm_up() {
-    let _ = Duration::from_millis(0);
-    let _ = Instant::now();
 }
 
 #[cfg(test)]

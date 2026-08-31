@@ -19,6 +19,7 @@ import { ToggleSwitch } from "@/components/ui/ToggleSwitch";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
+import { useIsLight } from "@/lib/utils/theme";
 
 const MODELS: DropdownOption[] = [
   { value: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite" },
@@ -235,15 +236,14 @@ export function AICleanupSettings() {
     if (successMessage) toast.success(successMessage);
   };
 
+  const isLight = useIsLight();
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8 pb-10">
       <header className="px-4 pt-2">
-        <h1 className="text-[28px] font-normal tracking-tight text-stone-50">
+        <h1 className={`text-[28px] font-normal tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}>
           AI clean up
         </h1>
-        <p className="mt-2 text-[15px] leading-6 text-stone-400">
-          Turn selected text into clear, focused prompts with one shortcut.
-        </p>
       </header>
 
       <SettingsGroup title="Workflow">
@@ -342,13 +342,13 @@ export function AICleanupSettings() {
         </SettingContainer>
         {configuration.style === "custom" && (
           <div className="px-4 py-3">
-            <div className="rounded-[14px] bg-stone-800 p-4">
+            <div className={`rounded-[14px] p-4 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-800"}`}>
               <Textarea
                 variant="inset"
                 value={configuration.style_tone}
                 onChange={(event) => update("style_tone", event.target.value)}
                 maxLength={2000}
-                className="w-full !rounded-[12px] !text-[15px] !text-stone-100"
+                className={`w-full !rounded-[12px] !text-[15px] ${isLight ? "!text-stone-900" : "!text-stone-100"}`}
                 placeholder="What should the tone be? For example: warm and encouraging, like a mentor reviewing my work."
               />
             </div>
@@ -357,7 +357,7 @@ export function AICleanupSettings() {
         <div className="px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-stone-100">
+              <p className={`text-sm font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}>
                 Gemini API key
               </p>
               <p className="mt-1 text-xs leading-5 text-stone-500">
@@ -408,20 +408,20 @@ export function AICleanupSettings() {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            className="mt-3 w-full min-w-0 text-stone-100 [-webkit-text-security:disc]"
+            className={`mt-3 w-full min-w-0 [-webkit-text-security:disc] ${isLight ? "text-stone-900" : "text-stone-100"}`}
           />
         </div>
       </SettingsGroup>
 
       <SettingsGroup
         title="Custom instruction"
-        titleClassName="text-sm font-normal text-stone-100 normal-case tracking-normal"
+        titleClassName={`text-sm font-normal normal-case tracking-normal ${isLight ? "text-stone-900" : "text-stone-100"}`}
         descriptionClassName="text-[13px] leading-5 text-stone-400"
         headerClassName="space-y-2 py-1"
         className="space-y-3"
         description="Add preferences without changing the protected system prompt."
       >
-        <div className="rounded-[14px] bg-stone-800 p-4">
+        <div className={`rounded-[14px] p-4 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-800"}`}>
           <Textarea
             variant="inset"
             value={configuration.custom_instruction}
@@ -429,7 +429,7 @@ export function AICleanupSettings() {
               update("custom_instruction", event.target.value)
             }
             maxLength={4000}
-            className="w-full !rounded-[12px] !text-[15px] !text-stone-100"
+            className={`w-full !rounded-[12px] !text-[15px] ${isLight ? "!text-stone-900" : "!text-stone-100"}`}
             placeholder="For example: Keep my tone direct and preserve code paths exactly."
           />
         </div>
@@ -440,9 +440,9 @@ export function AICleanupSettings() {
         description="Add writing samples or Markdown references Gemini should consider."
       >
         {configuration.contexts.map((context, index) => (
-          <div key={index} className="bg-stone-800 px-3 py-3">
+          <div key={index} className={`px-3 py-3 ${isLight ? "bg-stone-100 border-b border-stone-200" : "bg-stone-800"}`}>
             <div className="mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-2 text-xs text-stone-400">
+              <span className={`flex items-center gap-2 text-xs ${isLight ? "text-stone-600" : "text-stone-400"}`}>
                 <FileText size={14} /> Context {index + 1}
               </span>
               <button
@@ -454,7 +454,7 @@ export function AICleanupSettings() {
                   )
                 }
                 aria-label={`Remove context ${index + 1}`}
-                className="flex size-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-700 hover:text-stone-200"
+                className={`flex size-7 items-center justify-center rounded-lg transition-colors ${isLight ? "text-stone-500 hover:bg-stone-200 hover:text-stone-700" : "text-stone-500 hover:bg-stone-700 hover:text-stone-200"}`}
               >
                 <X size={14} />
               </button>
@@ -478,7 +478,7 @@ export function AICleanupSettings() {
             type="button"
             onClick={() => update("contexts", [...configuration.contexts, ""])}
             disabled={configuration.contexts.length >= 12}
-            className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-stone-700 px-3 text-[13px] text-stone-100 transition-colors hover:bg-stone-600 disabled:opacity-40"
+            className={`inline-flex h-8 items-center gap-2 rounded-[10px] px-3 text-[13px] transition-colors disabled:opacity-40 ${isLight ? "bg-white border border-stone-200 text-stone-900 hover:bg-stone-100" : "bg-stone-700 text-stone-100 hover:bg-stone-600"}`}
           >
             <Plus size={14} /> Add context
           </button>
@@ -486,7 +486,7 @@ export function AICleanupSettings() {
             type="button"
             onClick={() => fileInput.current?.click()}
             disabled={configuration.contexts.length >= 12}
-            className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-stone-850 px-3 text-[13px] text-stone-300 transition-colors hover:bg-stone-700 disabled:opacity-40"
+            className={`inline-flex h-8 items-center gap-2 rounded-[10px] px-3 text-[13px] transition-colors disabled:opacity-40 ${isLight ? "bg-stone-100 border border-stone-200 text-stone-700 hover:bg-stone-200" : "bg-stone-850 text-stone-300 hover:bg-stone-700"}`}
           >
             <UploadSimple size={14} /> Upload Markdown
           </button>
@@ -516,7 +516,7 @@ export function AICleanupSettings() {
           history.map((entry) => (
             <details key={entry.id} className="group px-4 py-3">
               <summary className="flex list-none items-center justify-between gap-4">
-                <span className="truncate text-sm text-stone-200">
+                <span className={`truncate text-sm ${isLight ? "text-stone-900" : "text-stone-200"}`}>
                   {entry.output_text}
                 </span>
                 <span className="shrink-0 text-xs text-stone-500">
@@ -526,7 +526,7 @@ export function AICleanupSettings() {
               <div className="mt-3 grid gap-3 text-sm leading-6">
                 <div>
                   <p className="mb-1 text-xs text-stone-500">Original</p>
-                  <p className="whitespace-pre-wrap text-stone-400">
+                  <p className={`whitespace-pre-wrap ${isLight ? "text-stone-600" : "text-stone-400"}`}>
                     {entry.input_text}
                   </p>
                 </div>
@@ -538,12 +538,12 @@ export function AICleanupSettings() {
                       onClick={() => copyCleanup(entry.output_text)}
                       aria-label="Copy clean prompt"
                       title="Copy clean prompt"
-                      className="flex size-7 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-stone-700/60 hover:text-stone-100"
+                      className={`flex size-7 items-center justify-center rounded-md transition-colors ${isLight ? "text-stone-500 hover:bg-stone-100 hover:text-stone-900" : "text-stone-500 hover:bg-stone-700/60 hover:text-stone-100"}`}
                     >
                       <Copy size={14} />
                     </button>
                   </div>
-                  <p className="whitespace-pre-wrap text-stone-100">
+                  <p className={`whitespace-pre-wrap ${isLight ? "text-stone-900" : "text-stone-100"}`}>
                     {entry.output_text}
                   </p>
                 </div>

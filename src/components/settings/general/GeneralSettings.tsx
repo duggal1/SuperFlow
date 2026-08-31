@@ -15,10 +15,12 @@ import { ModelSettingsCard } from "./ModelSettingsCard";
 import { ShortcutsCard } from "./ShortcutsCard";
 import { VoiceHookCard } from "./VoiceHookCard";
 import SpecificationPanel from "./specifications/shared-tab";
+import { useIsLight } from "../../../lib/utils/theme";
 
 export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
   const { audioFeedbackEnabled, getSetting } = useSettings();
+  const isLight = useIsLight();
   const pushToTalk = getSetting("push_to_talk");
   const isLinux = type() === "linux";
   return (
@@ -41,7 +43,7 @@ export const GeneralSettings: React.FC = () => {
             {t("specifications.title")}
           </h2>
         </div>
-        <div className="mt-3 rounded-[10px] bg-surface px-4 py-4">
+        <div className={`mt-3 rounded-[10px] bg-surface px-4 py-4 ${isLight ? "border border-stone-200/80" : ""}`}>
           <SpecificationPanel />
         </div>
       </div>

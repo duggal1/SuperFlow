@@ -7,6 +7,7 @@ import { Input } from "../../ui/Input";
 import { Badge } from "../../ui/Badge";
 import { Dropdown, type DropdownOption } from "../../ui/Dropdown";
 import { ShortcutInput } from "../ShortcutInput";
+import { useIsLight } from "../../../lib/utils/theme";
 
 const MAX_HOOK_CHARS = 80;
 
@@ -25,6 +26,7 @@ export const VoiceHookCard: React.FC = React.memo(() => {
   ];
   const storedTone = getSetting("hey_superflow_tone") ?? "own";
   const toneBusy = isUpdating("hey_superflow_tone");
+  const isLight = useIsLight();
 
   const [draft, setDraft] = useState(stored);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export const VoiceHookCard: React.FC = React.memo(() => {
       <div className="px-4 py-3.5">
         {/* AI Hotkey on top — same UX as standard, never same */}
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium tracking-tight text-stone-100">
+          <p className={`text-sm font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-100"}`}>
             {t("settings.general.superWhisper.aiHotkeyLabel", { defaultValue: "AI hotkey" })}
           </p>
           <ShortcutInput shortcutId="transcribe_with_ai" grouped={false} />
@@ -92,7 +94,7 @@ export const VoiceHookCard: React.FC = React.memo(() => {
         {/* Hook row: label + live badge mirror */}
         <div className="mt-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-medium tracking-tight text-stone-100">
+            <p className={`text-sm font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-100"}`}>
               {t("settings.general.superWhisper.hookLabel")}
             </p>
           </div>
@@ -150,11 +152,11 @@ export const VoiceHookCard: React.FC = React.memo(() => {
         </div>
 
         {/* Example — ultra subtle, same surface, dotted underline hint */}
-        <div className="mt-3 rounded-lg bg-stone-900/70 px-3 py-2.5">
-          <p className="text-xs font-medium tracking-wide text-stone-400">
+        <div className={`mt-3 rounded-lg px-3 py-2.5 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-900/70"}`}>
+          <p className={`text-xs font-medium tracking-wide ${isLight ? "text-stone-500" : "text-stone-400"}`}>
             {t("settings.general.superWhisper.exampleLabel")}
           </p>
-          <p className="mt-1 text-sm leading-6 text-stone-200 [mask-image:linear-gradient(to_bottom_right,black_60%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom_right,black_60%,transparent_100%)]">
+          <p className={`mt-1 text-sm leading-6 [mask-image:linear-gradient(to_bottom_right,black_60%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom_right,black_60%,transparent_100%)] ${isLight ? "text-stone-700" : "text-stone-200"}`}>
             <Badge variant="sky" className="mr-1.5 align-middle">
               {normalizedPreview}
             </Badge>
@@ -166,7 +168,7 @@ export const VoiceHookCard: React.FC = React.memo(() => {
 
         {/* Tone: applied to every Hey Superflow output (email, Slack, prompt) */}
         <div className="mt-4 flex flex-col gap-2">
-          <p className="text-sm font-medium tracking-tight text-stone-100">
+          <p className={`text-sm font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-100"}`}>
             {t("settings.general.superWhisper.toneLabel")}
           </p>
           <div>

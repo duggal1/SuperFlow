@@ -16,6 +16,7 @@ import SidebarToggleIcon from "./icons/SidebarToggleIcon";
 import { HomePage } from "./home";
 import { AICleanupSettings } from "./ai-cleanup";
 import { useSettings } from "../hooks/useSettings";
+import { useIsLight } from "../lib/utils/theme";
 import {
   GeneralSettings,
   AdvancedSettings,
@@ -105,6 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { t } = useTranslation();
   const { settings } = useSettings();
   const reduceMotion = useReducedMotion();
+  const isLight = useIsLight();
 
   const availableSections = Object.entries(SECTIONS_CONFIG)
     .filter(([_, config]) => config.enabled(settings))
@@ -124,8 +126,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <nav
         className={`flex h-full w-[176px] flex-col px-2 pb-2 pt-3 ${
           opaque
-            ? "border-r border-stone-700 bg-stone-950"
-            : "sidebar-material border-r border-stone-700"
+            ? isLight
+              ? "bg-white"
+              : "bg-stone-950"
+            : isLight
+              ? "sidebar-material border-r border-stone-200"
+              : "sidebar-material border-r border-white/[0.045]"
         }`}
       >
         <div
@@ -137,7 +143,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onToggle}
             aria-label="Close sidebar"
             title="Close sidebar (Ctrl+B)"
-            className="flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-stone-800 hover:text-stone-100"
+            className={
+              isLight
+                ? "flex size-7 shrink-0 items-center justify-center rounded-md text-stone-500 transition-colors duration-150 hover:bg-stone-200 hover:text-stone-900"
+                : "flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-stone-100"
+            }
           >
             <SidebarToggleIcon expanded={open} />
           </button>
@@ -146,7 +156,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex min-h-0 flex-1 flex-col">
           {/* Sidebar content starts below the native titlebar controls. */}
           <div className="mb-3 flex h-8 shrink-0 items-center pl-1.5 pr-0.5">
-            <SuperFlowLogo className="text-stone-100" />
+            <SuperFlowLogo className={isLight ? "text-stone-950" : "text-stone-100"} />
           </div>
 
           <div className="flex w-full flex-col gap-0.5">
@@ -159,10 +169,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   type="button"
                   onClick={() => onSectionChange(section.id)}
                   title={t(section.labelKey)}
-                  className={`flex w-full items-center gap-2.5 rounded-md p-2 text-start text-sm font-normal tracking-tight transition-colors duration-150 ${
+                  className={`flex w-full items-center gap-2.5 rounded-lg p-2 text-start text-sm font-normal tracking-tight transition-colors duration-150 ${
                     isActive
-                      ? "bg-stone-800 text-stone-50"
-                      : "text-stone-300 hover:bg-stone-900 hover:text-stone-100"
+                      ? isLight
+                        ? "bg-stone-200 text-stone-900"
+                        : "bg-white/[0.075] text-stone-50"
+                      : isLight
+                        ? "text-stone-600 hover:bg-stone-200 hover:text-stone-900"
+                        : "text-stone-300/75 hover:bg-white/[0.045] hover:text-stone-100"
                   }`}
                 >
                   <HugeiconsIcon

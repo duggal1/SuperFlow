@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Tooltip } from "./Tooltip";
+import { useIsLight } from "../../lib/utils/theme";
 
 interface SettingContainerProps {
   title: string;
@@ -24,6 +25,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const isLight = useIsLight();
 
   // Handle click outside to close tooltip
   useEffect(() => {
@@ -47,9 +49,14 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
     setShowTooltip(!showTooltip);
   };
 
+  // Dark cards are borderless; white-mode cards get a subtle stone border so
+  // the white surface reads against the stone-100 background — standalone
+  // settings (point 7) are BG white + border-stone-100/80 by default.
+  const cardBorder = isLight ? "border border-stone-200/80" : "";
+
   const containerClasses = grouped
     ? "px-4 p-2"
-    : "rounded-lg border border-stone-700 bg-surface px-4 p-2";
+    : `px-4 p-2 rounded-[10px] bg-surface ${cardBorder}`;
 
   if (layout === "stacked") {
     if (descriptionMode === "tooltip") {
@@ -69,7 +76,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               onClick={toggleTooltip}
             >
               <svg
-                className="w-4 h-4 text-mid-gray cursor-help hover:text-blue-500 transition-colors duration-200 select-none"
+                className={`w-4 h-4 cursor-help transition-colors duration-200 select-none ${isLight ? "text-stone-400 hover:text-blue-500" : "text-mid-gray hover:text-blue-500"}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -92,9 +99,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               </svg>
               {showTooltip && (
                 <Tooltip targetRef={tooltipRef} position="top">
-                  <p className="text-sm text-center leading-relaxed">
-                    {description}
-                  </p>
+                  {description}
                 </Tooltip>
               )}
             </div>
@@ -122,7 +127,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   // Horizontal layout (default)
   const horizontalContainerClasses = grouped
     ? "flex items-center justify-between min-h-12 px-4 p-2"
-    : "flex min-h-12 items-center justify-between rounded-lg border border-stone-700 bg-surface px-4 p-2";
+    : `flex items-center justify-between min-h-12 px-4 p-2 rounded-[10px] bg-surface ${cardBorder}`;
 
   if (descriptionMode === "tooltip") {
     return (
@@ -142,7 +147,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               onClick={toggleTooltip}
             >
               <svg
-                className="w-4 h-4 text-mid-gray cursor-help hover:text-blue-500 transition-colors duration-200 select-none"
+                className={`w-4 h-4 cursor-help transition-colors duration-200 select-none ${isLight ? "text-stone-400 hover:text-blue-500" : "text-mid-gray hover:text-blue-500"}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -165,9 +170,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
               </svg>
               {showTooltip && (
                 <Tooltip targetRef={tooltipRef} position={tooltipPosition}>
-                  <p className="text-sm text-center leading-relaxed">
-                    {description}
-                  </p>
+                  {description}
                 </Tooltip>
               )}
             </div>

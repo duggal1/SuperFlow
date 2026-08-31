@@ -168,15 +168,15 @@ export const Dialog: React.FC<DialogProps> = ({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={`flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-[10px] border border-stone-700 bg-surface shadow-xl outline-none sm:max-h-[calc(100dvh-3rem)] ${className}`}
+        className={`flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-[10px] border border-stone-200 bg-white shadow-none outline-none dark:border-stone-700 dark:bg-surface dark:shadow-none sm:max-h-[calc(100dvh-3rem)] ${className}`}
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-stone-700 px-4 py-2.5">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-stone-200 px-4 py-2.5 dark:border-stone-700">
           <div className="min-w-0">
-            <h2 id={titleId} className="text-base font-semibold text-text">
+            <h2 id={titleId} className="text-base font-semibold text-stone-900 dark:text-text">
               {title}
             </h2>
             {description && (
-              <p id={descriptionId} className="mt-1 text-sm text-mid-gray">
+              <p id={descriptionId} className="mt-1 text-sm text-stone-500 dark:text-mid-gray">
                 {description}
               </p>
             )}
@@ -186,20 +186,20 @@ export const Dialog: React.FC<DialogProps> = ({
               type="button"
               onClick={() => onOpenChange(false)}
               aria-label={closeLabel}
-              className="shrink-0 cursor-pointer rounded-md border border-transparent p-1 text-mid-gray transition-colors hover:border-stone-700 hover:bg-stone-900 hover:text-text focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-600"
+              className="shrink-0 cursor-pointer rounded-md border border-transparent p-1 text-stone-500 transition-colors hover:border-stone-200 hover:bg-stone-100 hover:text-stone-900 focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-600 dark:text-mid-gray dark:hover:border-stone-700 dark:hover:bg-stone-900 dark:hover:text-text"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
         <div
-          className={`min-h-0 overflow-y-auto px-4 pb-4 pt-3 ${contentClassName}`}
+          className={`min-h-0 overflow-y-auto bg-white px-4 pb-4 pt-3 dark:bg-surface ${contentClassName}`}
           style={contentStyle}
         >
           {children}
         </div>
         {footer && (
-          <div className="flex shrink-0 justify-end gap-2 border-t border-stone-700 px-4 py-3">
+          <div className="flex shrink-0 justify-end gap-2 border-t border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-surface">
             {footer}
           </div>
         )}

@@ -1,4 +1,5 @@
 import React from "react";
+import { useIsLight } from "../../lib/utils/theme";
 
 interface SettingsGroupProps {
   title?: string;
@@ -19,6 +20,11 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
   description,
   children,
 }) => {
+  const isLight = useIsLight();
+  // Dark groups are borderless; white-mode groups get a softer stone border,
+  // and dividers use a lighter stone so they read against the white cards.
+  const cardBorder = isLight ? "border border-stone-200/60" : "";
+  const divider = isLight ? "divide-stone-200/60" : "divide-stone-700";
   return (
     <div className={`space-y-2 ${className}`}>
       {title && (
@@ -40,8 +46,8 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
           )}
         </div>
       )}
-      <div className="overflow-visible rounded-lg border border-stone-700 bg-surface">
-        <div className="divide-y divide-stone-700">{children}</div>
+      <div className={`rounded-[10px] bg-surface overflow-visible ${cardBorder}`}>
+        <div className={`${divider}`}>{children}</div>
       </div>
     </div>
   );

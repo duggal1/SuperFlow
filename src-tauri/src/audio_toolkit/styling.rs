@@ -138,10 +138,6 @@ pub fn apply(text: &str) -> String {
         .apply(text)
 }
 
-pub(crate) fn warm_up() {
-    let _ = MATCHER.get_or_init(|| AliasMatcher::new(entries(), MATCH_THRESHOLD));
-}
-
 /// Same strictness as the technical lexicon: near-exact alias or canonical
 /// hits only.
 const MATCH_THRESHOLD: f64 = 0.2;

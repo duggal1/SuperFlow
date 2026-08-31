@@ -18,6 +18,7 @@ import {
 } from "../../lib/constants/languages";
 import { Badge, type BadgeVariant } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { useIsLight } from "@/lib/utils/theme";
 
 // Accuracy tier badge — green at/above 85%, orange from 70–85%, rose below.
 // No score means no badge: unknown is not the same as inaccurate.
@@ -99,6 +100,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   recommended,
 }) => {
   const { t } = useTranslation();
+  const isLight = useIsLight();
   const isFeatured = variant === "featured";
   // The active model is already loaded — re-selecting it just reloads it for no
   // gain, so it is deliberately not clickable.
@@ -115,8 +117,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   );
   const accuracyBadge = getAccuracyBadge(model);
 
-  const baseClasses =
-    "group flex flex-col rounded-[10px] border border-transparent bg-surface px-4 py-3 gap-2 text-left transition-colors duration-200";
+  const baseClasses = `group flex flex-col rounded-[10px] border bg-surface px-4 py-3 gap-2 text-left transition-colors duration-200 ${isLight ? "border-stone-200/80" : "border-transparent"}`;
 
   const getVariantClasses = () => {
     if (status === "active") {
@@ -131,7 +132,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const getInteractiveClasses = () => {
     if (!isClickable) return "";
     if (disabled) return "opacity-50 cursor-not-allowed";
-    return "cursor-pointer hover:border-stone-800 hover:bg-stone-850 active:scale-[0.99]";
+    return isLight
+      ? "cursor-pointer hover:border-stone-300 hover:bg-stone-50 active:scale-[0.99]"
+      : "cursor-pointer hover:border-stone-800 hover:bg-stone-850 active:scale-[0.99]";
   };
 
   const handleClick = () => {
@@ -170,7 +173,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         <div className="flex flex-col items-start flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h3
-              className={`text-base font-semibold text-text ${isClickable ? "group-hover:text-blue-500" : ""} transition-colors`}
+              className={`text-base font-semibold ${isLight ? "text-stone-900" : "text-text"} ${isClickable ? "group-hover:text-blue-500" : ""} transition-colors`}
             >
               {displayName}
             </h3>
@@ -204,7 +207,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
             )}
           </div>
           {!isMlxModel(model) && (
-            <p className="text-text/60 text-sm leading-relaxed">
+            <p className={`text-sm leading-relaxed ${isLight ? "text-stone-500" : "text-text/60"}`}>
               {displayDescription}
             </p>
           )}
@@ -214,10 +217,10 @@ const ModelCard: React.FC<ModelCardProps> = ({
             <div className="space-y-1">
               {model.accuracy_score > 0 && (
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-text/60 w-24 text-end">
+                  <p className={`text-xs w-24 text-end ${isLight ? "text-stone-500" : "text-text/60"}`}>
                     {t("onboarding.modelCard.accuracy")}
                   </p>
-                  <div className="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
+                  <div className={`w-16 h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
                     <div
                       className="h-full bg-blue-600 rounded-full"
                       style={{ width: `${model.accuracy_score * 100}%` }}
@@ -227,10 +230,10 @@ const ModelCard: React.FC<ModelCardProps> = ({
               )}
               {model.speed_score > 0 && (
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-text/60 w-24 text-end">
+                  <p className={`text-xs w-24 text-end ${isLight ? "text-stone-500" : "text-text/60"}`}>
                     {t("onboarding.modelCard.speed")}
                   </p>
-                  <div className="w-16 h-1.5 bg-stone-800 rounded-full overflow-hidden">
+                  <div className={`w-16 h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
                     <div
                       className="h-full bg-blue-600 rounded-full"
                       style={{ width: `${model.speed_score * 100}%` }}
@@ -243,13 +246,13 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
       </div>
 
-      <hr className="w-full border-stone-700" />
+      <hr className={`w-full ${isLight ? "border-stone-200" : "border-stone-700"}`} />
 
       {/* Bottom row: tags + action buttons (full width) */}
       <div className="flex items-center gap-3 w-full -mb-0.5 mt-0.5 h-5">
         {capabilityLanguages.length > 0 && (
           <div
-            className="flex items-center gap-1 text-xs text-text/50"
+            className={`flex items-center gap-1 text-xs ${isLight ? "text-stone-500" : "text-text/50"}`}
             title={
               capabilityLanguages.length === 1
                 ? t("modelSelector.capabilities.singleLanguage")
@@ -262,7 +265,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
         {model.supports_streaming && (
           <div
-            className="flex items-center gap-1 text-xs text-text/50"
+            className={`flex items-center gap-1 text-xs ${isLight ? "text-stone-500" : "text-text/50"}`}
             title={t("modelSelector.capabilities.streaming")}
           >
             <Equalizer className="w-3.5 h-3.5" />
@@ -271,7 +274,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
         {model.supports_translation && (
           <div
-            className="flex items-center gap-1 text-xs text-text/50"
+            className={`flex items-center gap-1 text-xs ${isLight ? "text-stone-500" : "text-text/50"}`}
             title={t("modelSelector.capabilities.translation")}
           >
             <Translate className="w-3.5 h-3.5" />
@@ -279,7 +282,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
           </div>
         )}
         {showModelSize && (
-          <span className="flex items-center gap-1.5 ms-auto text-xs text-text/50">
+          <span className={`flex items-center gap-1.5 ms-auto text-xs ${isLight ? "text-stone-500" : "text-text/50"}`}>
             <HardDrives className="w-3.5 h-3.5" />
             <span>{formattedModelSize}</span>
           </span>
@@ -290,7 +293,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
             size="sm"
             onClick={handleDelete}
             title={t("modelSelector.deleteModel", { modelName: displayName })}
-            className="text-stone-100 hover:bg-rose-600/10 hover:text-rose-700/80"
+            className={`${isLight ? "text-stone-600 hover:bg-rose-600/10 hover:text-rose-600" : "text-stone-100 hover:bg-rose-600/10 hover:text-rose-700/80"}`}
           >
             {t("common.delete")}
           </Button>
@@ -300,21 +303,21 @@ const ModelCard: React.FC<ModelCardProps> = ({
       {/* Download/extract progress */}
       {status === "downloading" && downloadProgress !== undefined && (
         <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
+          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
             <div
               className="h-full bg-blue-600 rounded-full transition-all duration-300"
               style={{ width: `${downloadProgress}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-xs mt-1">
-            <span className="text-text/50">
+            <span className={isLight ? "text-stone-500" : "text-text/50"}>
               {t("modelSelector.downloading", {
                 percentage: Math.round(downloadProgress),
               })}
             </span>
             <div className="flex items-center gap-2">
               {downloadSpeed !== undefined && downloadSpeed > 0 && (
-                <span className="tabular-nums text-text/50">
+                <span className={`tabular-nums ${isLight ? "text-stone-500" : "text-text/50"}`}>
                   {t("modelSelector.downloadSpeed", {
                     speed: downloadSpeed.toFixed(1),
                   })}
@@ -340,20 +343,20 @@ const ModelCard: React.FC<ModelCardProps> = ({
       )}
       {status === "verifying" && (
         <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
+          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
             <div className="h-full bg-blue-600 rounded-full animate-pulse w-full" />
           </div>
-          <p className="text-xs text-text/50 mt-1">
+          <p className={`text-xs mt-1 ${isLight ? "text-stone-500" : "text-text/50"}`}>
             {t("modelSelector.verifyingGeneric")}
           </p>
         </div>
       )}
       {status === "extracting" && (
         <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-stone-800 rounded-full overflow-hidden">
+          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
             <div className="h-full bg-blue-600 rounded-full animate-pulse w-full" />
           </div>
-          <p className="text-xs text-text/50 mt-1">
+          <p className={`text-xs mt-1 ${isLight ? "text-stone-500" : "text-text/50"}`}>
             {t("modelSelector.extractingGeneric")}
           </p>
         </div>

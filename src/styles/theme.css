@@ -1,27 +1,76 @@
 /* SuperFlow Colors */
 
-/* One coherent light system — white surfaces, stone neutrals, one blue accent. */
+/* One coherent dark system — stone neutrals, single blue accent.
+   Each token is defined once here; Tailwind utilities in App.css reference
+   these, so a hex value lives in exactly one place. */
 :root {
   /* Surfaces */
-  --color-text: #1c1917;
-  --color-background: #ffffff;
-  --color-surface: #fafaf9;
-  --color-surface-hover: #f5f5f4;
-  --color-sidebar: #ffffff;
-  --color-divider: #e7e5e4;
+  --color-text: #fafaf9; /* stone-50 */
+  --color-background: #1c1917; /* stone-900 — app background */
+  --color-surface: #292524; /* stone-800 — cards */
+  --color-surface-hover: #34302c; /* stone-850 (custom) — card hover */
+  --color-sidebar: #171412; /* stone-910 (custom) — sidebar, just under the app bg */
+  --color-divider: #44403c; /* stone-700 — bottom dividers only */
 
   /* Brand accent */
   --color-accent: #2563eb; /* blue-600 */
 
-  --color-logo-primary: #1c1917;
-  --color-logo-stroke: #57534e;
+  --color-logo-primary: #f5f5f4; /* stone-100 — brand mark fill */
+  --color-logo-stroke: #d6d3d1;
 
   /* Semantic status colors */
-  --color-warning: #d97706;
-  --color-error: #dc2626;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
 
   /* Legacy aliases — existing utilities re-theme through these */
   --color-background-ui: var(--color-accent);
+  --color-text-stroke: #f6f6f6;
+  --color-mid-gray: #808080;
+}
+
+/* ----------------------------------------------------------------------------
+   Light palette (white mode)
+   - Right-side app background: stone-100
+   - Cards: white, with a subtle stone border (set in the card components)
+   - Sidebar glass overlay: white (blur/intensity unchanged from dark)
+   - Text: dark stone so it reads on the light surfaces
+   Applies when the user picks `light` explicitly, or when the OS prefers
+   light and the user picked `system` (no `data-theme` override).
+---------------------------------------------------------------------------- */
+html[data-theme="light"] {
+  --color-text: #1c1917; /* stone-900 */
+  --color-background: #f5f5f4; /* stone-100 — app background */
+  --color-surface: #ffffff; /* white — cards */
+  --color-surface-hover: #e7e5e4; /* stone-200 — card hover */
+  --color-sidebar: #ffffff; /* white — sidebar glass */
+  --color-divider: #e7e5e4; /* stone-200 */
+  --color-accent: #2563eb; /* blue-600 */
+  --color-logo-primary: #1c1917;
+  --color-logo-stroke: #44403c;
+  --color-warning: #b45309;
+  --color-error: #dc2626;
+  --color-background-ui: var(--color-accent);
   --color-text-stroke: #1c1917;
   --color-mid-gray: #78716c;
+  --color-stone-850: #e7e5e4;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --color-text: #1c1917;
+    --color-background: #f5f5f4;
+    --color-surface: #ffffff;
+    --color-surface-hover: #e7e5e4;
+    --color-sidebar: #ffffff;
+    --color-divider: #e7e5e4;
+    --color-accent: #2563eb;
+    --color-logo-primary: #1c1917;
+    --color-logo-stroke: #44403c;
+    --color-warning: #b45309;
+    --color-error: #dc2626;
+    --color-background-ui: var(--color-accent);
+    --color-text-stroke: #1c1917;
+    --color-mid-gray: #78716c;
+    --color-stone-850: #e7e5e4;
+  }
 }

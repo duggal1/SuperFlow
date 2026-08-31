@@ -171,7 +171,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           </button>
 
           {isOpen && !isUpdating("selected_language") && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-stone-700 rounded shadow-lg z-50 max-h-60 overflow-hidden">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded shadow-none z-50 max-h-60 overflow-hidden dark:bg-surface dark:border-stone-700 dark:shadow-none">
               {/* Search input */}
               <div className="p-2 border-b border-stone-700">
                 <input

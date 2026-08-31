@@ -4,6 +4,7 @@ import { useSettings } from "../../../../hooks/useSettings";
 import { Input } from "../../../ui/Input";
 import { ToggleSwitch } from "../../../ui/ToggleSwitch";
 import { Dropdown } from "../../../ui/Dropdown";
+import { useIsLight } from "../../../../lib/utils/theme";
 
 /* ------------------------------------------------------------------ *
  * Superflow works best in Gmail, Slack, and Outlook.
@@ -141,6 +142,7 @@ function parseSpecification(raw: unknown): UserSpecification {
 export default function Page() {
   const { t } = useTranslation();
   const { getSetting, updateSetting } = useSettings();
+  const isLight = useIsLight();
   const [spec, setSpec] = useState<UserSpecification>(() =>
     parseSpecification(getSetting("user_specification")),
   );
@@ -189,7 +191,7 @@ export default function Page() {
   return (
     <div className="space-y-5">
       {/* Tabs — keep the icon rail exactly as designed */}
-      <div className="flex items-center gap-1 rounded-2xl bg-white/[0.06] p-1.5 ring-1 ring-white/[0.05]">
+      <div className={`flex items-center gap-1 rounded-2xl p-1.5 ring-1 ${isLight ? "bg-stone-100 ring-stone-200" : "bg-white/[0.06] ring-white/[0.05]"}`}>
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
           return (
@@ -203,21 +205,36 @@ export default function Page() {
                 "group relative flex h-14 w-14 items-center cursor-pointer justify-center",
                 "rounded-xl outline-none",
                 "transition-[background-color,opacity,transform,filter,box-shadow] duration-200",
-                "focus-visible:ring-2 focus-visible:ring-white/20",
+                isLight ? "focus-visible:ring-2 focus-visible:ring-stone-300" : "focus-visible:ring-2 focus-visible:ring-white/20",
                 isActive
-                  ? [
-                      "bg-stone-800",
-                      "opacity-100",
-                      "shadow-[0_1px_3px_rgba(0,0,0,0.32),0_6px_18px_rgba(0,0,0,0.28)]",
-                      "ring-1 ring-white/[0.06]",
-                    ].join(" ")
-                  : [
-                      "opacity-45",
-                      "grayscale",
-                      "hover:bg-white/[0.05]",
-                      "hover:opacity-75",
-                      "hover:grayscale-0",
-                    ].join(" "),
+                  ? isLight
+                    ? [
+                        "bg-white",
+                        "opacity-100",
+                        "shadow-none",
+                        "ring-1 ring-stone-200",
+                      ].join(" ")
+                    : [
+                        "bg-stone-800",
+                        "opacity-100",
+                        "shadow-[0_1px_3px_rgba(0,0,0,0.32),0_6px_18px_rgba(0,0,0,0.28)]",
+                        "ring-1 ring-white/[0.06]",
+                      ].join(" ")
+                  : isLight
+                    ? [
+                        "opacity-55",
+                        "grayscale",
+                        "hover:bg-white",
+                        "hover:opacity-90",
+                        "hover:grayscale-0",
+                      ].join(" ")
+                    : [
+                        "opacity-45",
+                        "grayscale",
+                        "hover:bg-white/[0.05]",
+                        "hover:opacity-75",
+                        "hover:grayscale-0",
+                      ].join(" "),
               ].join(" ")}
             >
               <div className="relative h-9 w-9">
@@ -235,7 +252,7 @@ export default function Page() {
               <span
                 className={[
                   "absolute -bottom-[7px] left-1/2 h-1 w-1",
-                  "-translate-x-1/2 rounded-full bg-stone-200",
+                  `-translate-x-1/2 rounded-full ${isLight ? "bg-stone-700" : "bg-stone-200"}`,
                   "transition-opacity duration-200",
                   isActive ? "opacity-100" : "opacity-0",
                 ].join(" ")}
@@ -248,7 +265,7 @@ export default function Page() {
       {/* Master toggle */}
       <div className="flex items-center justify-between px-1">
         <div>
-          <p className="text-sm font-medium text-stone-100">
+          <p className={`text-sm font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}>
             {t("specifications.useFor", { surface: active.label })}
           </p>
           <p className="text-xs text-stone-500">{t("specifications.useHint")}</p>
@@ -264,7 +281,7 @@ export default function Page() {
       </div>
 
       {spec.enabled && (
-        <div className="space-y-6 rounded-[12px] bg-stone-900/40 p-4 ring-1 ring-white/[0.05]">
+        <div className={`space-y-6 rounded-[12px] p-4 ring-1 ${isLight ? "bg-white ring-stone-200" : "bg-stone-900/40 ring-white/[0.05]"}`}>
           {/* Identity — first-class, shared across surfaces */}
           <Section title={t("specifications.identity.title")}>
             <Field
@@ -289,7 +306,7 @@ export default function Page() {
               placeholder={t("specifications.identity.company")}
             />
             <div className="flex items-center justify-between gap-6">
-              <span className="w-32 shrink-0 text-sm text-stone-300">
+              <span className={`w-32 shrink-0 text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}>
                 {t("specifications.identity.timezone")}
               </span>
               <Dropdown
@@ -415,7 +432,7 @@ export default function Page() {
                         customRows.filter((_, i) => i !== index),
                       );
                     }}
-                    className="shrink-0 rounded-md px-2 py-1 text-stone-500 transition-colors hover:bg-white/[0.05] hover:text-stone-200"
+                    className={`shrink-0 rounded-md px-2 py-1 transition-colors ${isLight ? "text-stone-500 hover:bg-stone-100 hover:text-stone-700" : "text-stone-500 hover:bg-white/[0.05] hover:text-stone-200"}`}
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -434,7 +451,7 @@ export default function Page() {
               <button
                 type="button"
                 onClick={() => updateCustomRows([...customRows, ["", ""]])}
-                className="rounded-md px-2 py-1 text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
+                className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${isLight ? "text-blue-600 hover:text-blue-700" : "text-blue-400 hover:text-blue-300"}`}
               >
                 {t("specifications.custom.add")}
               </button>
@@ -457,10 +474,11 @@ function Section({
   hint?: string;
   children: React.ReactNode;
 }) {
+  const isLight = useIsLight();
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-xs font-medium uppercase tracking-wide text-stone-400">
+        <h3 className={`text-xs font-medium uppercase tracking-wide ${isLight ? "text-stone-600" : "text-stone-400"}`}>
           {title}
         </h3>
         {hint && <p className="mt-0.5 text-xs text-stone-600">{hint}</p>}
@@ -483,10 +501,11 @@ function Field({
   placeholder?: string;
   horizontal?: boolean;
 }) {
+  const isLight = useIsLight();
   if (horizontal) {
     return (
       <label className="flex items-center justify-between gap-6">
-        <span className="w-32 shrink-0 text-sm text-stone-300">{label}</span>
+        <span className={`w-32 shrink-0 text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
         <Input
           variant="compact"
           className="flex-1"
@@ -500,7 +519,7 @@ function Field({
 
   return (
     <label className="block space-y-1">
-      <span className="text-xs text-stone-400">{label}</span>
+      <span className={`text-xs ${isLight ? "text-stone-600" : "text-stone-400"}`}>{label}</span>
       <Input
         value={value}
         placeholder={placeholder}
@@ -519,9 +538,10 @@ function BoolField({
   checked: boolean;
   onChange: (value: boolean) => void;
 }) {
+  const isLight = useIsLight();
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm text-stone-300">{label}</span>
+      <span className={`text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
       <ToggleSwitch
         checked={checked}
         onChange={onChange}

@@ -83,13 +83,13 @@ struct TokenSpan {
 struct SentenceSpan {
     span: Span,
     words: usize,
-    terminal: bool,
 }
 
 #[derive(Debug, Clone)]
 struct ParsedNumberedList {
     prefix: String,
     items: Vec<String>,
+    #[allow(dead_code)] // read in `#[cfg(test)]` parsing tests
     consumed_end: usize,
 }
 
@@ -937,7 +937,6 @@ fn sentence_spans(text: &str) -> Vec<SentenceSpan> {
             spans.push(SentenceSpan {
                 span,
                 words: span_text(text, span).split_whitespace().count(),
-                terminal: true,
             });
         }
 
@@ -958,7 +957,6 @@ fn sentence_spans(text: &str) -> Vec<SentenceSpan> {
             spans.push(SentenceSpan {
                 span,
                 words: span_text(text, span).split_whitespace().count(),
-                terminal: false,
             });
         }
     }

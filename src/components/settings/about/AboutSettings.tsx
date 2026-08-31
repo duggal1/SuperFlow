@@ -11,9 +11,11 @@ import { ShowWhatsNewOnUpdate } from "../ShowWhatsNewOnUpdate";
 import { ThemeSelector } from "../ThemeSelector";
 import { LogDirectory } from "../debug";
 import { Badge } from "../../ui/Badge";
+import { useIsLight } from "@/lib/utils/theme";
 
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
+  const isLight = useIsLight();
   const [version, setVersion] = useState("");
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export const AboutSettings: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line i18next/no-literal-string */}
-            <span className="font-mono text-sm">
+            <span className={`font-mono text-sm ${isLight ? "text-stone-900" : ""}`}>
               v{version === "1.0.0" ? "1.0" : version}
             </span>
             {/* eslint-disable-next-line i18next/no-literal-string */}
@@ -97,7 +99,7 @@ export const AboutSettings: React.FC = () => {
           grouped={true}
           layout="stacked"
         >
-          <div className="text-sm text-mid-gray">
+          <div className={`text-sm ${isLight ? "text-stone-600" : "text-mid-gray"}`}>
             {t("settings.about.acknowledgments.ggml.details")}
           </div>
         </SettingContainer>

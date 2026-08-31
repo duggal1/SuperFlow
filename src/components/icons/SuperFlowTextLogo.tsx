@@ -26,7 +26,7 @@ const SuperFlowLogo = ({
         />
       </svg>
       {/* eslint-disable-next-line i18next/no-literal-string */}
-      <span className="text-[15px] font-medium leading-none tracking-tight text-stone-50">
+      <span className="text-[15px] font-semibold leading-none tracking-tight text-inherit">
         SuperFlow
       </span>
     </div>

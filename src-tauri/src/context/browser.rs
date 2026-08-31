@@ -27,7 +27,6 @@ const AX_SUCCESS: AxError = 0;
 const K_CF_STRING_ENCODING_UTF8: u32 = 0x0800_0100;
 
 extern "C" {
-    fn AXUIElementCreateSystemWide() -> AXUIElementRef;
     fn AXUIElementCreateApplication(pid: i32) -> AXUIElementRef;
     fn AXUIElementCopyAttributeValue(
         element: AXUIElementRef,
