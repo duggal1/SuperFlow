@@ -8,6 +8,7 @@ use crate::settings::{AiCleanupThinkingLevel, AppSettings};
 pub const MODELS: &[&str] = &[
     "gemini-3.5-flash-lite",
     "gemini-3.5-flash",
+    "gemini-3.6-flash",
     "gemini-3.7-flash",
     "gemini-3.1-pro-preview",
 ];
@@ -94,6 +95,21 @@ pub async fn generate(
         )
         .await
     }
+}
+
+/// Dedicated Gemini entry point for features with a fixed model contract.
+/// It deliberately ignores the user's AI-cleanup model, thinking level, and
+/// local-LLM override while reusing only the securely stored Gemini API key.
+pub(crate) async fn generate_with_gemini_model(
+    model: &str,
+    thinking_level: AiCleanupThinkingLevel,
+    system_prompt: &str,
+    user_content: &str,
+    settings: &AppSettings,
+) -> Result<String, String> {
+    validate_model_and_thinking(model, thinking_level)?;
+    let api_key = credentials::load(settings)?;
+    client::generate(&api_key, model, thinking_level, system_prompt, user_content).await
 }
 
 pub async fn clean(input: &str, settings: &AppSettings) -> Result<String, String> {

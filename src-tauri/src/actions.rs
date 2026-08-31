@@ -67,6 +67,7 @@ struct TranscribeAction {
     /// treated as an AI instruction without needing "Hey Superflow" prefix.
     /// Same as voice hook, but via hotkey.
     ai_hotkey: bool,
+    meeting: bool,
 }
 
 /// Field name for structured output JSON schema
@@ -1108,6 +1109,54 @@ async fn run_voice_command(
         return;
     }
 
+    // Native Calendar action (strict JSON -> Rust validate -> Swift/EventKit)
+    // Try calendar first before generic Hey Superflow. This handles professional
+    // scheduling like "Schedule my month-end finance review tomorrow at 9:30…"
+    // with deterministic native execution, not generic AI prose.
+    match crate::calendar::handle_calendar_transcript(&instruction, &settings, Some(app)).await {
+        crate::calendar::CalendarHandleResult::NotCalendar => {
+            // Not a calendar request — continue to generic AI (which will show say_this)
+        }
+        crate::calendar::CalendarHandleResult::Success(result) => {
+            crate::overlay::show_calendar_success_overlay(app, &result);
+            if wav_saved {
+                let _ = history.save_entry(
+                    file_name,
+                    raw_transcription,
+                    true,
+                    Some(format!("Calendar: {} @ {}", result.title, result.start)),
+                    None,
+                    sample_count as f64 / 16_000.0,
+                );
+            }
+            let ah2 = app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(3500)).await;
+                crate::overlay::hide_recording_overlay(&ah2);
+                change_tray_icon(&ah2, TrayIconState::Idle);
+            });
+            return;
+        }
+        crate::calendar::CalendarHandleResult::NeedsClarification(clarify) => {
+            crate::overlay::show_calendar_clarify_overlay(app, clarify.clarification_message);
+            // Keep the input pill visible until user answers — no auto-hide.
+            // User can type the missing date/time and press Enter / arrow to submit.
+            // Also keep tray in recording state until clarified.
+            return;
+        }
+        crate::calendar::CalendarHandleResult::Failure(err) => {
+            crate::overlay::show_calendar_failure_overlay(app, err.message.clone());
+            log::warn!("Calendar action failed: {} - {}", err.error, err.message);
+            let ah2 = app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+                crate::overlay::hide_recording_overlay(&ah2);
+                change_tray_icon(&ah2, TrayIconState::Idle);
+            });
+            return;
+        }
+    }
+
     if AI_CLEANUP_IN_FLIGHT.swap(true, Ordering::AcqRel) {
         crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Error);
         crate::overlay::show_ai_cleanup_notice(
@@ -1272,6 +1321,7 @@ impl ShortcutAction for TranscribeAction {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
         let is_hands_free = binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID;
+        let is_meeting = binding_id == crate::transcription_coordinator::MEETING_BINDING_ID;
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -1340,7 +1390,9 @@ impl ShortcutAction for TranscribeAction {
         // (recording waveform) with the exact same visuals and start sound
         // as normal transcription — even if the global overlay is None.
         // This is the "start zone" the user expects for the AI pill.
-        if self.ai_hotkey {
+        if is_meeting {
+            crate::overlay::show_meeting_overlay(app);
+        } else if self.ai_hotkey {
             if model_supports_streaming && settings.show_live_streaming {
                 // Use forced variant to bypass overlay_style == None gate
                 crate::overlay::show_streaming_overlay_forced(app);
@@ -1385,6 +1437,9 @@ impl ShortcutAction for TranscribeAction {
 
         match rm.try_start_recording(&binding_id, vad_policy, Some(journal_path)) {
             Ok(readiness) => {
+                if is_meeting && !crate::meeting::audio::start_system_audio() {
+                    warn!("Meeting system audio was unavailable; microphone capture continues");
+                }
                 rm.begin_context_capture(
                     settings.smart_file_references_enabled
                         || settings.intelligence_awareness_enabled,
@@ -1433,7 +1488,7 @@ impl ShortcutAction for TranscribeAction {
                     if rm_clone.is_recording_readiness_current(generation) {
                         play_feedback_sound_blocking(&app_clone, SoundType::Start);
                     }
-                    if rm_clone.is_recording_readiness_current(generation) {
+                    if !is_meeting && rm_clone.is_recording_readiness_current(generation) {
                         rm_clone.apply_mute();
                     }
                 });
@@ -1494,6 +1549,7 @@ impl ShortcutAction for TranscribeAction {
         let rm = Arc::clone(&app.state::<Arc<AudioRecordingManager>>());
         let tm = Arc::clone(&app.state::<Arc<TranscriptionManager>>());
         let hm = Arc::clone(&app.state::<Arc<HistoryManager>>());
+        let is_meeting = self.meeting;
 
         change_tray_icon(app, TrayIconState::Transcribing);
         // Stop should give immediate visual feedback. Live streaming can keep
@@ -1505,10 +1561,13 @@ impl ShortcutAction for TranscribeAction {
         // Capture this before finalizing the stream so every later working state
         // targets the same overlay that was shown for this transcription.
         let is_hands_free = binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID
+            || binding_id == crate::transcription_coordinator::MEETING_BINDING_ID
             || shortcut_str == crate::transcription_coordinator::HANDS_FREE_BINDING_ID;
         let use_streaming_overlay =
             !is_hands_free && should_use_streaming_overlay(style, tm.is_streaming()) && show_live;
-        if use_streaming_overlay {
+        if is_meeting {
+            crate::overlay::show_meeting_transcribing_overlay(app);
+        } else if use_streaming_overlay {
             tm.emit_stream_working(StreamWorkKind::Transcribing);
         } else {
             show_transcribing_overlay(app);
@@ -1533,7 +1592,11 @@ impl ShortcutAction for TranscribeAction {
             );
 
             let stop_recording_time = Instant::now();
-            if let Some(samples) = rm.stop_recording(&binding_id, cancel_generation) {
+            let recorded_samples = rm.stop_recording(&binding_id, cancel_generation);
+            if is_meeting {
+                crate::meeting::audio::stop_system_audio();
+            }
+            if let Some(samples) = recorded_samples {
                 let recording_context = rm.take_recording_context();
                 debug!(
                     "Recording stopped and samples retrieved in {:?}, sample count: {}",
@@ -1599,6 +1662,23 @@ impl ShortcutAction for TranscribeAction {
                         Ok(_) => tm.transcribe(samples),
                         Err(err) => Err(err),
                     };
+                    let system_transcription = if is_meeting {
+                        let system_samples = crate::meeting::audio::take_system_samples();
+                        if system_samples.is_empty() {
+                            None
+                        } else {
+                            match tm.transcribe(system_samples) {
+                                Ok(text) if !text.trim().is_empty() => Some(text),
+                                Ok(_) => None,
+                                Err(error) => {
+                                    warn!("Meeting system-audio transcription failed: {error}");
+                                    None
+                                }
+                            }
+                        }
+                    } else {
+                        None
+                    };
 
                     // Await WAV save and verify
                     let wav_saved = match wav_handle.await {
@@ -1646,6 +1726,89 @@ impl ShortcutAction for TranscribeAction {
                                 transcription_time.elapsed(),
                                 transcription.len()
                             );
+
+                            if is_meeting {
+                                let ended_at = chrono::Utc::now().timestamp_millis();
+                                let duration_ms =
+                                    ((sample_count as f64 / 16_000.0) * 1_000.0) as i64;
+                                let settings = get_settings(&ah);
+                                let speaker = crate::meeting::audio::resolve_you_name(&settings);
+                                let id = format!("meeting-{ended_at}");
+                                let transcript_text = transcription.trim().to_string();
+                                // One coherent timeline: each speaker's sentences
+                                // interpolate across a slice of the meeting
+                                // proportional to how much they said. Without
+                                // this both streams interpolate over the full
+                                // duration and every segment reports 00:00.
+                                let remote_text = system_transcription
+                                    .map(|text| text.trim().to_string())
+                                    .filter(|text| !text.is_empty());
+                                let mic_chars = transcript_text.chars().count() as i64;
+                                let remote_chars = remote_text
+                                    .as_deref()
+                                    .map(|text| text.chars().count())
+                                    .unwrap_or(0)
+                                    as i64;
+                                let mic_span =
+                                    (duration_ms * mic_chars) / (mic_chars + remote_chars).max(1);
+                                let remote_span = duration_ms - mic_span;
+
+                                let mut segments = crate::meeting::audio::timestamped_segments(
+                                    &speaker,
+                                    &transcript_text,
+                                    mic_span,
+                                );
+                                if let Some(remote_text) = remote_text {
+                                    segments.extend(
+                                        crate::meeting::audio::timestamped_segments(
+                                            "Speaker 1",
+                                            &remote_text,
+                                            remote_span,
+                                        )
+                                        .into_iter()
+                                        .map(
+                                            |mut segment| {
+                                                segment.start_ms += mic_span;
+                                                segment.end_ms += mic_span;
+                                                segment
+                                            },
+                                        ),
+                                    );
+                                }
+                                segments.sort_by_key(|segment| segment.start_ms);
+                                let record = crate::meeting::MeetingRecord {
+                                    id: id.clone(),
+                                    title: crate::meeting::intelligence::derive_title(
+                                        &transcript_text,
+                                    ),
+                                    started_at: ended_at.saturating_sub(duration_ms),
+                                    ended_at,
+                                    duration_ms,
+                                    transcript: segments,
+                                    created_at: ended_at,
+                                    intelligence: None,
+                                };
+                                match crate::meeting::MeetingManager::new(&ah).and_then(|manager| {
+                                    manager.save_meeting(&record).map(|_| manager)
+                                }) {
+                                    Ok(_manager) => {
+                                        let _ = ah.emit("meeting-saved", id.clone());
+                                        crate::overlay::show_meeting_saved_overlay(&ah);
+                                        let hide_app = ah.clone();
+                                        tauri::async_runtime::spawn(async move {
+                                            tokio::time::sleep(Duration::from_millis(1_800)).await;
+                                            utils::hide_recording_overlay(&hide_app);
+                                        });
+                                    }
+                                    Err(error) => {
+                                        error!("Failed to persist meeting transcript: {error}");
+                                        let _ = ah.emit("transcription-error", error.to_string());
+                                    }
+                                }
+                                rm.clear_edit_selection_capture();
+                                change_tray_icon(&ah, TrayIconState::Idle);
+                                return;
+                            }
 
                             if crate::secure_input::is_enabled_now() {
                                 rm.clear_edit_selection_capture();
@@ -2157,6 +2320,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: false,
             ai_hotkey: false,
+            meeting: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -2164,6 +2328,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: true,
             ai_hotkey: false,
+            meeting: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -2171,6 +2336,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: false,
             ai_hotkey: true,
+            meeting: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -2178,6 +2344,15 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: false,
             ai_hotkey: false,
+            meeting: false,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        crate::transcription_coordinator::MEETING_BINDING_ID.to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            ai_hotkey: false,
+            meeting: true,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(

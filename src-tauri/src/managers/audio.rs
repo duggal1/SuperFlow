@@ -198,24 +198,6 @@ fn get_mute() -> Option<bool> {
     None
 }
 
-#[cfg(target_os = "macos")]
-fn get_mute() -> Option<bool> {
-    use std::process::Command;
-
-    let out = Command::new("osascript")
-        .args(["-e", "output muted of (get volume settings)"])
-        .output()
-        .ok()?;
-    if !out.status.success() {
-        return None;
-    }
-    match String::from_utf8_lossy(&out.stdout).trim() {
-        "true" => Some(true),
-        "false" => Some(false),
-        _ => None,
-    }
-}
-
 #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
 fn get_mute() -> Option<bool> {
     None
@@ -567,25 +549,33 @@ impl AudioRecordingManager {
     /// Snapshots the system's prior mute state first so `remove_mute` can
     /// restore it instead of unconditionally unmuting.
     pub fn apply_mute(&self) {
-        let settings = get_settings(&self.app_handle);
-        if !settings.mute_while_recording {
-            return;
-        }
+        // Capturing speech must never alter macOS playback. Muting the global
+        // output made videos and calls appear broken while dictation was active.
+        #[cfg(target_os = "macos")]
+        return;
 
-        // Lock order: is_open before mute_state (matches stop_microphone_stream).
-        let is_open = self.is_open.lock().unwrap();
-        let mut mute_guard = self.mute_state.lock().unwrap();
-        // Already muted this session — don't re-snapshot, or a duplicate/late
-        // apply would overwrite prev_muted with our own forced-muted state and
-        // strand audio muted on stop.
-        if mute_guard.did_mute {
-            return;
-        }
-        if *is_open {
-            mute_guard.prev_muted = get_mute();
-            set_mute(true);
-            mute_guard.did_mute = true;
-            debug!("Mute applied (prev_muted={:?})", mute_guard.prev_muted);
+        #[cfg(not(target_os = "macos"))]
+        {
+            let settings = get_settings(&self.app_handle);
+            if !settings.mute_while_recording {
+                return;
+            }
+
+            // Lock order: is_open before mute_state (matches stop_microphone_stream).
+            let is_open = self.is_open.lock().unwrap();
+            let mut mute_guard = self.mute_state.lock().unwrap();
+            // Already muted this session — don't re-snapshot, or a duplicate/late
+            // apply would overwrite prev_muted with our own forced-muted state and
+            // strand audio muted on stop.
+            if mute_guard.did_mute {
+                return;
+            }
+            if *is_open {
+                mute_guard.prev_muted = get_mute();
+                set_mute(true);
+                mute_guard.did_mute = true;
+                debug!("Mute applied (prev_muted={:?})", mute_guard.prev_muted);
+            }
         }
     }
 

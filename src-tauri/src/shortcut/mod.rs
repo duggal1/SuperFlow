@@ -146,6 +146,22 @@ pub struct BindingResponse {
 
 const STANDARD_TRANSCRIBE_BINDING_ID: &str = "transcribe";
 const HANDS_FREE_TRANSCRIBE_BINDING_ID: &str = "hands_free_transcribe";
+const MEETING_TRANSCRIBE_BINDING_ID: &str = "meeting_transcribe";
+
+fn ensure_meeting_shortcut_is_distinct(
+    meeting: &str,
+    standard: &str,
+    hands_free: &str,
+) -> Result<(), String> {
+    let meeting = shortcut_parts(meeting);
+    if meeting == shortcut_parts(standard) || meeting == shortcut_parts(hands_free) {
+        return Err(
+            "Meeting shortcut must be different from Transcribe and Hands-Free Transcription"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
 
 fn canonical_shortcut_part(part: &str) -> String {
     match part.trim().to_ascii_lowercase().as_str() {
@@ -204,6 +220,13 @@ fn change_standard_transcribe_binding(
         &previous_hands_free.current_binding,
     )?;
     let new_hands_free = crate::settings::compose_hands_free_binding(&new_standard, &secondary);
+    if let Some(meeting) = settings.bindings.get(MEETING_TRANSCRIBE_BINDING_ID) {
+        ensure_meeting_shortcut_is_distinct(
+            &meeting.current_binding,
+            &new_standard,
+            &new_hands_free,
+        )?;
+    }
 
     validate_shortcut_for_implementation(&new_standard, settings.keyboard_implementation)?;
     validate_shortcut_for_implementation(&new_hands_free, settings.keyboard_implementation)?;
@@ -310,6 +333,29 @@ pub fn change_binding(
             .get(STANDARD_TRANSCRIBE_BINDING_ID)
             .ok_or_else(|| "Standard transcription shortcut is missing".to_string())?;
         hands_free_secondary_key(&standard.current_binding, &binding)?;
+        if let Some(meeting) = settings.bindings.get(MEETING_TRANSCRIBE_BINDING_ID) {
+            ensure_meeting_shortcut_is_distinct(
+                &meeting.current_binding,
+                &standard.current_binding,
+                &binding,
+            )?;
+        }
+    }
+
+    if id == MEETING_TRANSCRIBE_BINDING_ID {
+        let standard = settings
+            .bindings
+            .get(STANDARD_TRANSCRIBE_BINDING_ID)
+            .ok_or_else(|| "Standard transcription shortcut is missing".to_string())?;
+        let hands_free = settings
+            .bindings
+            .get(HANDS_FREE_TRANSCRIBE_BINDING_ID)
+            .ok_or_else(|| "Hands-free transcription shortcut is missing".to_string())?;
+        ensure_meeting_shortcut_is_distinct(
+            &binding,
+            &standard.current_binding,
+            &hands_free.current_binding,
+        )?;
     }
 
     // If this is the cancel binding, just update the settings and return
@@ -1169,7 +1215,7 @@ pub fn change_auto_submit_key_setting(app: AppHandle, key: String) -> Result<(),
 
 #[cfg(test)]
 mod hands_free_tests {
-    use super::hands_free_secondary_key;
+    use super::{ensure_meeting_shortcut_is_distinct, hands_free_secondary_key};
 
     #[test]
     fn hands_free_shortcut_requires_the_standard_shortcut_plus_one_key() {
@@ -1185,6 +1231,28 @@ mod hands_free_tests {
         assert!(hands_free_secondary_key("fn", "fn").is_err());
         assert!(hands_free_secondary_key("fn", "option+space").is_err());
         assert!(hands_free_secondary_key("option+space", "option+ctrl+shift+space").is_err());
+    }
+
+    #[test]
+    fn meeting_shortcut_cannot_duplicate_transcription_shortcuts() {
+        assert!(ensure_meeting_shortcut_is_distinct(
+            "option_right",
+            "option+space",
+            "option+ctrl+space"
+        )
+        .is_ok());
+        assert!(ensure_meeting_shortcut_is_distinct(
+            "option+space",
+            "option+space",
+            "option+ctrl+space"
+        )
+        .is_err());
+        assert!(ensure_meeting_shortcut_is_distinct(
+            "ctrl+option+space",
+            "option+space",
+            "option+ctrl+space"
+        )
+        .is_err());
     }
 
     #[test]

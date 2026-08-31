@@ -1,6 +1,8 @@
 pub mod ai_cleanup;
 pub mod audio;
+pub mod calendar;
 pub mod history;
+pub mod meeting;
 pub mod models;
 pub mod transcription;
 

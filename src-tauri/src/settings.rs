@@ -1245,6 +1245,18 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_ai_hotkey.to_string(),
         },
     );
+    // Meeting Intelligence — Right Option only, toggle-based, hands-free reuse
+    bindings.insert(
+        "meeting_transcribe".to_string(),
+        ShortcutBinding {
+            id: "meeting_transcribe".to_string(),
+            name: "Meeting".to_string(),
+            description: "Toggle meeting recording — captures mic + system audio, never pastes."
+                .to_string(),
+            default_binding: "option_right".to_string(),
+            current_binding: "option_right".to_string(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),

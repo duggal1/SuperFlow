@@ -81,7 +81,12 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
         "result" => (OVERLAY_RESULT_WIDTH, OVERLAY_RESULT_HEIGHT),
         "cancel" => (OVERLAY_CANCEL_WIDTH, OVERLAY_CANCEL_HEIGHT),
         "prompting" | "ai_notice" => (OVERLAY_AI_NOTICE_WIDTH, OVERLAY_AI_NOTICE_HEIGHT),
-        "editing" | "say_this" => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
+        "editing"
+        | "say_this"
+        | "calendar_success"
+        | "calendar_processing"
+        | "calendar_clarify"
+        | "calendar_failure" => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
         _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
@@ -645,6 +650,18 @@ pub fn show_hands_free_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "hands_free");
 }
 
+pub fn show_meeting_overlay(app_handle: &AppHandle) {
+    show_overlay_state_forced(app_handle, "meeting");
+}
+
+pub fn show_meeting_transcribing_overlay(app_handle: &AppHandle) {
+    show_overlay_state_forced(app_handle, "meeting_transcribing");
+}
+
+pub fn show_meeting_saved_overlay(app_handle: &AppHandle) {
+    show_overlay_state_forced(app_handle, "meeting_saved");
+}
+
 /// Shows the larger streaming overlay that displays live transcription text
 pub fn show_streaming_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "streaming");
@@ -674,6 +691,43 @@ pub fn show_editing_overlay(app_handle: &AppHandle) {
 
 pub fn show_say_this_overlay(app_handle: &AppHandle) {
     show_overlay_state_forced(app_handle, "say_this");
+}
+
+pub fn show_calendar_processing_overlay(app_handle: &AppHandle, title: &str) {
+    show_overlay_state_forced(app_handle, "calendar_processing");
+    let handle = app_handle.clone();
+    let title = title.to_string();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "calendar-processing", title);
+    });
+}
+
+pub fn show_calendar_success_overlay(
+    app_handle: &AppHandle,
+    result: &crate::calendar::CalendarSuccessResult,
+) {
+    show_overlay_state_forced(app_handle, "calendar_success");
+    let handle = app_handle.clone();
+    let payload = serde_json::to_value(result).unwrap_or(serde_json::Value::Null);
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "calendar-success", payload);
+    });
+}
+
+pub fn show_calendar_clarify_overlay(app_handle: &AppHandle, message: String) {
+    show_overlay_state_forced(app_handle, "calendar_clarify");
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "calendar-clarify", message);
+    });
+}
+
+pub fn show_calendar_failure_overlay(app_handle: &AppHandle, message: String) {
+    show_overlay_state_forced(app_handle, "calendar_failure");
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "calendar-failure", message);
+    });
 }
 
 pub fn show_ai_cleanup_notice(

@@ -8,6 +8,7 @@ import {
   ComputerIcon,
   HistoryIcon,
   Home01Icon,
+  Note01Icon,
   Settings01Icon,
   ZapIcon,
 } from "@hugeicons/core-free-icons";
@@ -15,6 +16,7 @@ import SuperFlowLogo from "./icons/SuperFlowTextLogo";
 import SidebarToggleIcon from "./icons/SidebarToggleIcon";
 import { HomePage } from "./home";
 import { AICleanupSettings } from "./ai-cleanup";
+import { MeetingPage } from "./meeting";
 import { useSettings } from "../hooks/useSettings";
 import { useIsLight } from "../lib/utils/theme";
 import {
@@ -60,6 +62,12 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.history",
     icon: HistoryIcon,
     component: HistorySettings,
+    enabled: () => true,
+  },
+  meeting: {
+    labelKey: "sidebar.meeting",
+    icon: Note01Icon,
+    component: MeetingPage,
     enabled: () => true,
   },
   aiCleanup: {

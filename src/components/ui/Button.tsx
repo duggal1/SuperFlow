@@ -66,8 +66,9 @@ export function Button({
   const variants: Record<ButtonVariant, string> = {
     primary:
       "border-blue-600 bg-blue-600 hover:border-blue-700 hover:bg-blue-700/[0.85]",
-    secondary:
-      "border-stone-800 bg-surface hover:border-stone-700 hover:bg-surface-hover",
+    secondary: isLight
+      ? "border-stone-300 bg-white hover:border-stone-400 hover:bg-stone-50"
+      : "border-stone-600 bg-stone-700 hover:border-stone-500 hover:bg-[#3F3B37]",
     ghost: isLight
       ? "border-transparent bg-transparent text-stone-900/70 hover:bg-stone-200 hover:text-stone-900"
       : "border-transparent bg-transparent text-stone-50/70 hover:bg-surface-hover hover:text-stone-50",

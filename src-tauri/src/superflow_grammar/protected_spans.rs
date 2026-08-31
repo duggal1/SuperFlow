@@ -150,10 +150,7 @@ mod tests {
         let text = "the file src-tauri/src/transcript/cleanup.rs contains function";
         let spans = find_protected_spans(text);
         assert!(!spans.is_empty());
-        // cleanup.rs should be inside a protected span
-        let rs_start =
-            text.chars().count() - text.chars().rev().take_while(|c| *c != '/').count() - 11; // rough
-                                                                                              // Simpler: check that "cleanup.rs" is protected by checking substring
+        // cleanup.rs should be inside a protected span.
         let has = spans.iter().any(|s| {
             let substr: String = text.chars().skip(s.start).take(s.end - s.start).collect();
             substr.contains("cleanup.rs")

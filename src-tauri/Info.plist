@@ -4,5 +4,11 @@
 <dict>
   <key>NSMicrophoneUsageDescription</key>
   <string>Request microphone access to transcribe audio locally</string>
+  <key>NSAudioCaptureUsageDescription</key>
+  <string>SuperFlow captures meeting audio so both sides of a conversation can be transcribed.</string>
+  <key>NSCalendarsUsageDescription</key>
+  <string>SuperFlow needs calendar access to schedule your professional meetings and reviews</string>
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>SuperFlow needs calendar access to create events for your interviews, client calls, and finance reviews</string>
 </dict>
 </plist>

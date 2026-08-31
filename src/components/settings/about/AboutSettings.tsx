@@ -17,6 +17,7 @@ export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
   const isLight = useIsLight();
   const [version, setVersion] = useState("");
+  const versionDisplay = `v${version === "1.0.0" ? "1.0" : version}`;
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -51,11 +52,10 @@ export const AboutSettings: React.FC = () => {
           grouped={true}
         >
           <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line i18next/no-literal-string */}
             <span
               className={`font-mono text-sm ${isLight ? "text-stone-900" : ""}`}
             >
-              v{version === "1.0.0" ? "1.0" : version}
+              {versionDisplay}
             </span>
             {/* eslint-disable-next-line i18next/no-literal-string */}
             <Badge variant="violet" className="px-1.5 py-0 text-[11px]">

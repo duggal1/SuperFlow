@@ -3,6 +3,7 @@ mod ai_cleanup;
 mod audio_feedback;
 pub mod audio_toolkit;
 mod autostart;
+mod calendar;
 mod catalog;
 pub mod cli;
 mod clipboard;
@@ -19,6 +20,7 @@ mod input;
 mod intelligence;
 mod llm_client;
 mod managers;
+mod meeting;
 mod memory;
 mod overlay;
 mod paste_tx;
@@ -804,6 +806,13 @@ pub fn run(cli_args: CliArgs) {
             commands::history::update_recording_retention_period,
             commands::history::export_transcripts,
             commands::history::update_export_format,
+            commands::meeting::list_meetings,
+            commands::meeting::get_meeting,
+            commands::meeting::delete_meeting,
+            commands::meeting::export_meeting_markdown,
+            commands::meeting::generate_meeting_intelligence,
+            commands::meeting::ask_meeting,
+            commands::calendar::submit_calendar_clarification,
             helpers::clamshell::is_laptop,
         ])
         .events(collect_events![

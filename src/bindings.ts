@@ -1089,6 +1089,62 @@ async updateExportFormat(format: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async listMeetings(limit: number | null, offset: number | null) : Promise<Result<MeetingListEntry[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_meetings", { limit, offset }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getMeeting(id: string) : Promise<Result<MeetingRecord | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_meeting", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deleteMeeting(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_meeting", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async exportMeetingMarkdown(id: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("export_meeting_markdown", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async generateMeetingIntelligence(id: string) : Promise<Result<MeetingRecord, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("generate_meeting_intelligence", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async askMeeting(id: string, question: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("ask_meeting", { id, question }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async submitCalendarClarification(transcript: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submit_calendar_clarification", { transcript }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Checks if the Mac is a laptop by detecting battery presence
  * 
@@ -1316,6 +1372,7 @@ export type ImplementationChangeResult = { success: boolean;
  * List of binding IDs that were reset to defaults due to incompatibility
  */
 reset_bindings: string[] }
+export type IntelligenceItem = { issue: string; timestamp: string | null; evidence: string | null; why_it_matters: string | null; better_approach: string | null }
 export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_pid: number | null; culprit_name: string | null; 
 /**
  * Counts only — key identity is deliberately never captured.
@@ -1324,6 +1381,10 @@ key_down: number; key_up: number; flags_changed: number; mouse: number; duration
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
+export type MeetingIntelligence = { meeting_type: string; outcome: string; what_went_well?: IntelligenceItem[]; mistakes?: IntelligenceItem[]; missed_opportunities?: IntelligenceItem[]; communication_issues?: IntelligenceItem[]; important_decisions?: string[]; action_items?: string[]; risks?: string[]; lessons?: string[]; next_time?: string[] }
+export type MeetingListEntry = { id: string; title: string; started_at: number; duration_ms: number; has_intelligence: boolean }
+export type MeetingRecord = { id: string; title: string; started_at: number; ended_at: number; duration_ms: number; transcript: MeetingSegment[]; created_at: number; intelligence: MeetingIntelligence | null }
+export type MeetingSegment = { speaker: string; start_ms: number; end_ms: number; text: string }
 export type MlxRuntimeInfo = { available: boolean; status: string; python_path: string | null; script_path: string | null; python_candidates: string[]; script_candidates: string[]; instructions: string; probe: PyProbe | null }
 /**
  * Which MLX family a descriptor seeds. Drives id naming and the subprocess

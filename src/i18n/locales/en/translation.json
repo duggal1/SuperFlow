@@ -17,6 +17,7 @@
     "postProcessing": "Post Process",
     "aiCleanup": "Prompt Engineering",
     "history": "History",
+    "meeting": "Meeting",
     "debug": "Debug",
     "about": "About"
   },
@@ -176,6 +177,10 @@
           "transcribe": {
             "name": "Transcribe Shortcut",
             "description": "The keyboard shortcut to record and transcribe your voice."
+          },
+          "meeting_transcribe": {
+            "name": "Meeting",
+            "description": "Toggle Meeting Mode. This shortcut must be different from Transcribe and Hands-Free Transcription."
           },
           "cancel": {
             "name": "Cancel Shortcut",
@@ -790,7 +795,45 @@
     "copied": "Copied",
     "transcriptionCanceled": "Transcription canceled",
     "canceled": "Canceled",
-    "undo": "Undo"
+    "undo": "Undo",
+    "meetingRecorded": "Meeting recorded",
+    "saved": "Saved",
+    "meetingStatus": "Meeting status",
+    "meetingRecordedSuccessfully": "Successfully recorded",
+    "transcribingMeeting": "Transcribing meeting",
+    "calendarBooked": "Calendar booked",
+    "booked": "Booked"
+  },
+  "meeting": {
+    "title": "Meeting Intelligence",
+    "subtitle": "Local transcripts with analysis when you need it.",
+    "emptyTitle": "No meetings yet",
+    "emptyDescription": "Tap the right Option key to start a meeting. Tap it again to finish and save.",
+    "intelligenceReady": "Intelligence ready",
+    "generateIntelligence": "Generate AI report",
+    "back": "Back",
+    "export": "Export",
+    "transcriptMeta": "{{speakers}} speakers · {{segments}} segments",
+    "intelligenceUnavailable": "Intelligence is available when Gemini is configured.",
+    "tryAgain": "Try again",
+    "askEmpty": "Ask about decisions, disagreements, action items, or exact moments.",
+    "tabs": {
+      "transcript": "Transcript",
+      "intelligence": "Meeting Intelligence",
+      "ask": "Ask Anything"
+    },
+    "sections": {
+      "outcome": "Outcome",
+      "whatWorked": "What worked",
+      "lostGround": "Where you lost ground",
+      "missedOpportunities": "Missed opportunities",
+      "communication": "Communication",
+      "decisions": "Key decisions",
+      "actions": "Action items",
+      "risks": "Risks",
+      "lessons": "Lessons",
+      "nextMeeting": "Next meeting"
+    }
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} may be blocking 1 shortcut",

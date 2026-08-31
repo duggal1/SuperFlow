@@ -11,6 +11,7 @@ const DEBOUNCE: Duration = Duration::from_millis(30);
 const RELEASE_GRACE: Duration = Duration::from_millis(50);
 const FN_DOUBLE_TAP_WINDOW: Duration = Duration::from_millis(350);
 pub const HANDS_FREE_BINDING_ID: &str = "hands_free_transcribe";
+pub const MEETING_BINDING_ID: &str = "meeting_transcribe";
 const STANDARD_BINDING_ID: &str = "transcribe";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,6 +120,7 @@ pub fn is_transcribe_binding(id: &str) -> bool {
         || id == "transcribe_with_post_process"
         || id == "transcribe_with_ai"
         || id == HANDS_FREE_BINDING_ID
+        || id == MEETING_BINDING_ID
 }
 
 impl TranscriptionCoordinator {
@@ -166,8 +168,11 @@ impl TranscriptionCoordinator {
                             binding_id,
                             hotkey_string,
                             is_pressed,
-                            push_to_talk,
+                            mut push_to_talk,
                         } => {
+                            if binding_id == MEETING_BINDING_ID {
+                                push_to_talk = false;
+                            }
                             let pending_release_binding = pending_release
                                 .as_ref()
                                 .map(|pending| pending.binding_id.as_str());
@@ -480,7 +485,7 @@ fn start(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &s
     {
         *stage = Stage::Recording {
             binding_id: binding_id.to_string(),
-            hands_free: binding_id == HANDS_FREE_BINDING_ID,
+            hands_free: binding_id == HANDS_FREE_BINDING_ID || binding_id == MEETING_BINDING_ID,
         };
     } else {
         debug!("Start for '{binding_id}' did not begin recording; staying idle");
@@ -1020,6 +1025,7 @@ mod tests {
             r.promotes, 1,
             "second press within window should promote to hands-free"
         );
+        assert_eq!(r.stops, 0, "promotion must not stop the recording");
         assert_eq!(r.stage, HandsFreeSimStage::Recording { hands_free: true });
     }
 

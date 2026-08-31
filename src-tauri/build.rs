@@ -48,6 +48,8 @@ fn build_native_page_context() {
     let sources = [
         manifest.join("native/PageContext.swift"),
         manifest.join("native/SendKey.swift"),
+        manifest.join("native/Calendar.swift"),
+        manifest.join("native/MeetingAudio.swift"),
     ];
     let output_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let archive = output_dir.join("libsuperflow_page_context.a");
@@ -115,6 +117,9 @@ fn build_native_page_context() {
     println!("cargo:rustc-link-lib=static=superflow_page_context");
     println!("cargo:rustc-link-lib=framework=ApplicationServices");
     println!("cargo:rustc-link-lib=framework=Foundation");
+    println!("cargo:rustc-link-lib=framework=EventKit");
+    println!("cargo:rustc-link-lib=framework=CoreAudio");
+    println!("cargo:rustc-link-lib=framework=AVFoundation");
 }
 
 /// Stage the MSVC runtime DLLs into `transcribe-libs/` for app-local deployment.

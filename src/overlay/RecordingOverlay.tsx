@@ -2,7 +2,9 @@ import { listen } from "@tauri-apps/api/event";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Copy } from "@phosphor-icons/react";
+import { ArrowUp, Check, Copy } from "@phosphor-icons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { SquareIcon } from "@hugeicons/core-free-icons";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import "./RecordingOverlay.css";
 import { commands, events } from "@/bindings";
@@ -22,13 +24,31 @@ import { IOSSpinner } from "@/components/shared/global-spinner";
 type OverlayState =
   | "recording"
   | "hands_free"
+  | "meeting"
+  | "meeting_transcribing"
+  | "meeting_saved"
   | "streaming"
   | "transcribing"
   | "processing"
   | "prompting"
   | "editing"
   | "say_this"
+  | "calendar_processing"
+  | "calendar_success"
+  | "calendar_clarify"
+  | "calendar_failure"
   | "ai_notice";
+
+interface CalendarSuccessPayload {
+  ok: boolean;
+  action: string;
+  title: string;
+  start: string;
+  end: string;
+  calendar: string;
+  event_id: string;
+  success_message: string;
+}
 
 export const LOADING_STATES: readonly string[] = [
   "Recombobulating",
@@ -163,8 +183,24 @@ const RecordingOverlay: React.FC = () => {
   const [aiCleanupNotice, setAiCleanupNotice] =
     useState<AiCleanupNotice | null>(null);
   // Dedicated AI "Say this" pill: random loading state per invocation,
-  // stays fixed for that run (not animating cycle).
+  // stays fixed for that run (not animating cycle). Single spinner left only — extremely clean.
   const [sayThisLabel, setSayThisLabel] = useState<string>(LOADING_STATES[0]);
+  // Standard (non-AI) loading also uses random LOADING_STATES, not "Transcribing..."
+  const [standardLoadingLabel, setStandardLoadingLabel] = useState<string>(
+    LOADING_STATES[0],
+  );
+  // Calendar result states (reuse pill architecture, backend is source of truth)
+  const [calendarSuccess, setCalendarSuccess] =
+    useState<CalendarSuccessPayload | null>(null);
+  const [calendarClarify, setCalendarClarify] = useState<string | null>(null);
+  const [calendarFailure, setCalendarFailure] = useState<string | null>(null);
+  const [calendarProcessingTitle, setCalendarProcessingTitle] =
+    useState<string>("");
+  // Clarification input — when AI asks "What date do you want me to set?" we render an input
+  const [clarifyInput, setClarifyInput] = useState("");
+  const [pendingCalendarTranscript, setPendingCalendarTranscript] = useState<
+    string | null
+  >(null);
   // Auto-dismiss safety net so the floating card can never linger forever.
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Delayed close after the "Copied" confirmation plays.
@@ -321,6 +357,7 @@ const RecordingOverlay: React.FC = () => {
         if (
           overlayState === "recording" ||
           overlayState === "hands_free" ||
+          overlayState === "meeting" ||
           overlayState === "streaming"
         ) {
           setCaptureReady(false);
@@ -348,10 +385,17 @@ const RecordingOverlay: React.FC = () => {
         }
         // For AI "Say this" pill, pick one random LOADING_STATES per invocation
         // and keep it fixed for that run (not cycling). Each click gets a new random.
+        // Single spinner left only — extremely clean.
         if (overlayState === "say_this") {
           const pick =
             LOADING_STATES[Math.floor(Math.random() * LOADING_STATES.length)];
           setSayThisLabel(pick);
+        }
+        // Standard loading (non-AI) also uses random LOADING_STATES, not "Transcribing..."
+        if (overlayState === "transcribing" || overlayState === "processing") {
+          const pick =
+            LOADING_STATES[Math.floor(Math.random() * LOADING_STATES.length)];
+          setStandardLoadingLabel(pick);
         }
         setState(overlayState);
         if (overlayState === "streaming") {
@@ -461,6 +505,44 @@ const RecordingOverlay: React.FC = () => {
         if (payload.kind) setWorkKind(payload.kind);
       });
 
+      const unlistenCalendarProcessing = await listen<string>(
+        "calendar-processing",
+        (event) => {
+          setCalendarProcessingTitle(event.payload);
+          setPendingCalendarTranscript(event.payload);
+        },
+      );
+      const unlistenCalendarSuccess = await listen<CalendarSuccessPayload>(
+        "calendar-success",
+        (event) => {
+          setCalendarSuccess(event.payload);
+          setCalendarClarify(null);
+          setCalendarFailure(null);
+          setPendingCalendarTranscript(null);
+          setClarifyInput("");
+        },
+      );
+      const unlistenCalendarClarify = await listen<string>(
+        "calendar-clarify",
+        (event) => {
+          setCalendarClarify(event.payload);
+          setCalendarSuccess(null);
+          setCalendarFailure(null);
+          // Keep pending transcript for when user answers; if not set, use the clarify question's context
+          // The processing title already holds the original transcript
+        },
+      );
+      const unlistenCalendarFailure = await listen<string>(
+        "calendar-failure",
+        (event) => {
+          setCalendarFailure(event.payload);
+          setCalendarSuccess(null);
+          setCalendarClarify(null);
+          setPendingCalendarTranscript(null);
+          setClarifyInput("");
+        },
+      );
+
       return () => {
         unlistenShow();
         unlistenHide();
@@ -468,6 +550,10 @@ const RecordingOverlay: React.FC = () => {
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
+        unlistenCalendarProcessing();
+        unlistenCalendarSuccess();
+        unlistenCalendarClarify();
+        unlistenCalendarFailure();
         unlistenResult();
         unlistenCancelToast();
         unlistenAiNotice();
@@ -486,6 +572,7 @@ const RecordingOverlay: React.FC = () => {
     if (
       (state !== "streaming" &&
         state !== "hands_free" &&
+        state !== "meeting" &&
         state !== "recording") ||
       !isVisible ||
       !captureReady
@@ -780,6 +867,16 @@ const RecordingOverlay: React.FC = () => {
     </button>
   );
 
+  const meetingCompleteBtn = (
+    <button
+      className="scomplete meeting-stop"
+      aria-label="Finish meeting"
+      onClick={() => commands.completeHandsFreeTranscription()}
+    >
+      <HugeiconsIcon icon={SquareIcon} size={11} aria-hidden="true" />
+    </button>
+  );
+
   // logo (left) | waveform (center) | timer + cancel (right) — same structure for
   // pill & panel, so the Live morph is a pure width change.
   const listeningRow = (showTimer: boolean, showCancel: boolean) => (
@@ -807,19 +904,16 @@ const RecordingOverlay: React.FC = () => {
     </div>
   );
 
-  // AI "Say this" pill: dual spinners (left + right) with a random LOADING_STATES
-  // label that is picked once per invocation and stays fixed for that run.
-  // Editing ("Editing") and Transcribing ("Transcribing...") remain reserved for
-  // edit mode (Fn + selection) — AI control key never shows them.
+  // AI "Say this" pill: single spinner left only — extremely clean.
+  // Random LOADING_STATES label picked once per invocation and stays fixed.
+  // Editing remains for edit mode only; AI never shows "Transcription"/"Editing".
   const sayThisRow = (label: string) => (
     <div className="sbase">
       <div className="sbase-l">
         <IOSSpinner size={13} color="var(--s-accent)" speed={1.0} />
       </div>
       <span className="swork-label">{label}...</span>
-      <div className="sbase-r">
-        <IOSSpinner size={13} color="var(--s-accent)" speed={1.0} />
-      </div>
+      <div className="sbase-r" />
     </div>
   );
 
@@ -832,6 +926,38 @@ const RecordingOverlay: React.FC = () => {
     </div>
   );
 
+  const meetingRow = (
+    <div className="sbase shandsfree smeeting">
+      {waveform}
+      <span className="stimer">{fmtTime(elapsed)}</span>
+      {meetingCompleteBtn}
+    </div>
+  );
+
+  if (state === "meeting") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact meeting">{meetingRow}</div>
+      </div>
+    );
+  }
+
+  if (state === "meeting_transcribing") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact meeting working">
+          {workingRow(t("overlay.transcribingMeeting"), false)}
+        </div>
+      </div>
+    );
+  }
+
   if (state === "hands_free") {
     return (
       <div
@@ -839,6 +965,24 @@ const RecordingOverlay: React.FC = () => {
         className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
       >
         <div className="scard compact hands-free">{handsFreeRow}</div>
+      </div>
+    );
+  }
+
+  if (state === "meeting_saved") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className="scard compact meeting-success">
+          <div className="sbase">
+            <span className="swork-label">{t("overlay.meetingStatus")}</span>
+            <Badge variant="green" className="sbase-r text-[11px]">
+              {t("overlay.meetingRecordedSuccessfully")}
+            </Badge>
+          </div>
+        </div>
       </div>
     );
   }
@@ -916,10 +1060,267 @@ const RecordingOverlay: React.FC = () => {
     );
   }
 
+  // ---- Calendar states: reuse pill architecture, backend is source of truth ----
+  // Only render success after native EventKit save. No fake success.
+  const formatCalendarMeta = (
+    startStr: string,
+    endStr: string,
+    calendarName: string,
+  ) => {
+    try {
+      const start = new Date(startStr);
+      const end = new Date(endStr);
+      const now = new Date();
+      const startDay = new Date(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate(),
+      );
+      const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const diffDays = Math.round(
+        (startDay.getTime() - nowDay.getTime()) / 86400000,
+      );
+      const timeFmt = new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      const dateFmt = new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+      });
+      const startTime = timeFmt.format(start);
+      const endTime = timeFmt.format(end);
+      const timeRange =
+        startTime === endTime ? startTime : `${startTime}–${endTime}`;
+      let dayLabel: string;
+      if (diffDays === 0) dayLabel = "Today";
+      else if (diffDays === 1) dayLabel = "Tomorrow";
+      else dayLabel = dateFmt.format(start);
+      const cal =
+        calendarName && calendarName !== "Calendar" ? ` · ${calendarName}` : "";
+      return `${dayLabel} · ${timeRange}${cal}`;
+    } catch {
+      return calendarName || "";
+    }
+  };
+
+  if (state === "calendar_processing") {
+    const label = calendarProcessingTitle
+      ? `Scheduling ${calendarProcessingTitle.slice(0, 40)}…`
+      : "Scheduling…";
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className={`scard compact cworking ${isVisible ? "" : "leaving"}`}>
+          {sayThisRow(label.replace("...", ""))}
+        </div>
+      </div>
+    );
+  }
+
+  if (state === "calendar_success" && calendarSuccess) {
+    // Extremely clean deterministic success — same bg/rounded as cancel toast (scancel)
+    // Left two words "Calendar booked", right green Badge, pill dynamically extends with horizontal padding
+    // Not bloated with title/meta — AI success_message is 2-5 words and already validated, but we keep UI deterministic
+    const driftY = position === "top" ? -10 : 10;
+    return (
+      <div dir={direction} className={`ov-stage ${position}`}>
+        <motion.div
+          className="scard scancel"
+          style={{
+            width: "fit-content",
+            minWidth: 180,
+            maxWidth: 380,
+            paddingLeft: 16,
+            paddingRight: 12,
+            gap: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderRadius: 9999,
+            background: "var(--color-background)",
+          }}
+          initial={dialogEnter(driftY)}
+          animate={{ ...dialogShown, transition: dialogTransition }}
+        >
+          <span
+            className="scancel-label"
+            style={{ whiteSpace: "nowrap", fontWeight: 500 }}
+          >
+            {t("overlay.calendarBooked")}
+          </span>
+          <div className="scancel-actions">
+            <Badge
+              variant="green"
+              className="rounded-full text-[12px] px-2.5 py-1"
+            >
+              {t("overlay.booked")}
+            </Badge>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (state === "calendar_clarify" && calendarClarify) {
+    const handleClarifySubmit = async () => {
+      const answer = clarifyInput.trim();
+      if (!answer) return;
+      const original = pendingCalendarTranscript || "";
+      const combined = original ? `${original} - Answer: ${answer}` : answer;
+      // Clear input immediately for clean UX
+      setClarifyInput("");
+      // Keep pill visible while we re-process — switch to say_this spinner
+      setState("say_this");
+      setSayThisLabel("Scheduling");
+      try {
+        // Use the generated command via Tauri invoke (fallback to direct if not in bindings)
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("submit_calendar_clarification", { transcript: combined });
+      } catch (err) {
+        console.error("Failed to submit calendar clarification:", err);
+        // Fallback: show failure locally
+        setState("calendar_failure");
+        setCalendarFailure("Couldn't update calendar.");
+      }
+    };
+
+    const driftY = position === "top" ? -10 : 10;
+    return (
+      <div dir={direction} className={`ov-stage ${position}`}>
+        <motion.div
+          className="scard"
+          style={{
+            width: "fit-content",
+            minWidth: 320,
+            maxWidth: 480,
+            background: "#f5f5f4", // stone-100
+            border: "none",
+            borderRadius: 24, // rounded large
+            padding: "16px 20px", // padding Y extended, X slightly extended
+            boxShadow:
+              "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+          initial={dialogEnter(driftY)}
+          animate={{ ...dialogShown, transition: dialogTransition }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Badge
+              variant="orange"
+              className="rounded-full text-[11px] px-2.5 py-1"
+            >
+              ?
+            </Badge>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#44403c",
+                lineHeight: 1.3,
+              }}
+            >
+              {calendarClarify}
+            </span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "white",
+              borderRadius: 9999,
+              padding: "8px 8px 8px 16px",
+              border: "1px solid #e7e5e4",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+            }}
+          >
+            <input
+              value={clarifyInput}
+              onChange={(e) => setClarifyInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleClarifySubmit();
+                }
+                if (e.key === "Escape") {
+                  void commands.hideResultOverlay();
+                }
+              }}
+              placeholder="Type date/time..."
+              autoFocus
+              style={{
+                flex: 1,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                fontSize: 14,
+                fontWeight: 400,
+                color: "#1c1917",
+                minWidth: 0,
+              }}
+            />
+            <button
+              onClick={() => void handleClarifySubmit()}
+              disabled={!clarifyInput.trim()}
+              aria-label="Send"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9999,
+                background: clarifyInput.trim() ? "#1c1917" : "#e7e5e4",
+                color: clarifyInput.trim() ? "white" : "#a8a29e",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: clarifyInput.trim() ? "pointer" : "not-allowed",
+                transition: "all 0.15s ease",
+                flexShrink: 0,
+              }}
+            >
+              <ArrowUp size={16} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (state === "calendar_failure" && calendarFailure) {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className={`scard compact cworking ${isVisible ? "" : "leaving"}`}>
+          <div className="sbase">
+            <div className="sbase-l">
+              <IOSSpinner size={13} color="#dc2626" speed={1.0} />
+            </div>
+            <span className="swork-label" style={{ color: "#dc2626" }}>
+              {calendarFailure}
+            </span>
+            <div className="sbase-r">
+              <Badge variant="rose" className="rounded-[7px] text-[11px]">
+                !
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ---- Minimal overlay: exactly one row at a time — waveform (recording), or a
   // spinner + label (transcribing / processing). Never both. The pill animates its
   // width between them; the cancel button is in both rows so it stays put.
-  // "editing" / "transcribing" are kept only for edit mode (Fn + selection).
+  // "editing" remains for edit mode only. Standard transcribing/processing now
+  // uses random LOADING_STATES (not "Transcribing...") — single spinner left, extremely clean.
   const working =
     state === "transcribing" ||
     state === "processing" ||
@@ -930,8 +1331,8 @@ const RecordingOverlay: React.FC = () => {
       ? t("overlay.editing", { defaultValue: "Editing" })
       : state === "prompting"
         ? t("overlay.prompting", { defaultValue: "Prompting" })
-        : state === "processing"
-          ? t("overlay.processing")
+        : state === "transcribing" || state === "processing"
+          ? `${standardLoadingLabel}...`
           : t("overlay.transcribing");
 
   return (
