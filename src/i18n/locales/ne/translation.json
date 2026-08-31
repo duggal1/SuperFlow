@@ -30,7 +30,8 @@
     "customModelDescription": "आधिकारिक रूपमा समर्थित छैन",
     "modelCard": {
       "accuracy": "शुद्धता",
-      "speed": "गति"
+      "speed": "गति",
+      "accuracyPercent": "Accuracy {{percent}}%"
     },
     "models": {
       "small": {
@@ -155,7 +156,8 @@
       "translate": "अनुवाद",
       "streaming": "बोल्दै गर्दा लाइभ ट्रान्सक्रिप्सन देखाउँछ",
       "autoDetect": "Auto-detect"
-    }
+    },
+    "modelDownloaded": "{{modelName}} downloaded"
   },
   "settings": {
     "modelSettings": {
@@ -200,6 +202,40 @@
       "pushToTalk": {
         "label": "पुश टु टक",
         "description": "रेकर्ड गर्न थिचिराख्नुहोस्, रोक्न छोड्नुहोस्"
+      },
+      "shortcuts": {
+        "title": "Dictation shortcuts",
+        "description": "Say a shortcut's name while dictating and its content is pasted in place. Works with markdown, links, emails, phone numbers.",
+        "name": "Name",
+        "namePlaceholder": "e.g. design prompt",
+        "content": "Content",
+        "contentPlaceholder": "Paste your prompt, email, link… (markdown supported)",
+        "add": "Add shortcut",
+        "save": "Save",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "delete": "Delete",
+        "empty": "No shortcuts yet. Add one, then say its name while dictating.",
+        "duplicateName": "A shortcut with this name already exists.",
+        "nameTooLong": "Name is too long (max 40 characters).",
+        "required": "Both name and content are required.",
+        "titleField": "Title",
+        "replacementField": "Replacement"
+      },
+      "superWhisper": {
+        "title": "Super Whisper",
+        "description": "Start your dictation with the hook — Gemini creates instead of transcribing. Hold the key, say the hook then what you want, release. Same model and tone as Prompt Engineering.",
+        "hookLabel": "Voice hook",
+        "hookDescription": "Say the hook, then your request, then release.",
+        "emptyBadge": "Set a hook",
+        "emptyError": "Voice hook cannot be empty",
+        "tooLongError": "Voice hook is too long (max 80 characters)",
+        "helper": "Hold your Transcribe key, say the hook, then your request, then release.",
+        "exampleLabel": "Try saying",
+        "exampleText": "Draft a concise follow-up email to the design team recapping today's review and listing the three revisions we agreed on.",
+        "usesModelHint": "Uses your Prompt Engineering Gemini model and tone. Set your API key and style there.",
+        "toneLabel": "Output tone",
+        "toneDescription": "Applied to every Hey Superflow output — email, Slack, or generated prompt. Switch to “Keep my voice” to disable tone shaping."
       }
     },
     "models": {
@@ -214,13 +250,22 @@
       "filters": {
         "allLanguages": "सबै भाषाहरू",
         "streaming": "लाइभ ट्रान्सक्रिप्सन समर्थन गर्ने मोडेलहरू फिल्टर गर्नुहोस्",
-        "translation": "अङ्ग्रेजीमा अनुवाद समर्थन गर्ने मोडेलहरू फिल्टर गर्नुहोस्"
+        "translation": "अङ्ग्रेजीमा अनुवाद समर्थन गर्ने मोडेलहरू फिल्टर गर्नुहोस्",
+        "sort": "Filter",
+        "sortDefault": "Default order",
+        "sortAccurate": "Most Accurate",
+        "sortFastest": "Fastest",
+        "sortRatio": "Best Acc/Speed"
       },
       "rescan": {
         "label": "फेरि स्क्यान गर्नुहोस्",
         "tooltip": "SuperFlow बाहिरबाट मोडेल फोल्डर वा Hugging Face क्यासमा थपिएका मोडेलहरू फेरि स्क्यान गर्नुहोस्"
       },
-      "noModelsMatch": "यो फिल्टरसँग कुनै मोडेल मिल्दैन।"
+      "noModelsMatch": "यो फिल्टरसँग कुनै मोडेल मिल्दैन।",
+      "mlxBadge": "MLX",
+      "mlxSectionTitle": "Apple MLX (Experimental)",
+      "mlxSectionDescription": "On-device Metal inference via mlx-audio. Runs out-of-process; weights are pulled from Hugging Face on first use.",
+      "mlxRuntimeChecking": "Checking MLX runtime…"
     },
     "sound": {
       "title": "साउन्ड",
@@ -403,6 +448,25 @@
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
         "description": "Uses bounded visible context to compose messages in Gmail and Slack and execution-ready prompts in terminals and code editors."
+      },
+      "mlxToggle": {
+        "label": "Apple MLX Engine (Experimental)",
+        "description": "Opt in to native Apple-Silicon MLX models run out-of-process via mlx-audio on Metal."
+      },
+      "mlxCard": {
+        "title": "Apple MLX Engine",
+        "warmIdle": "Environment idle — toggling on pre-warms Python + Metal for zero cold start.",
+        "warming": "Pre-warming Python + Metal environment…",
+        "warmToastOk": "MLX environment ready — zero cold start",
+        "warmToastFail": "MLX environment warm-up failed"
+      },
+      "mlxCleanupToggle": {
+        "label": "MLX Local Cleanup LLM",
+        "description": "After an MLX transcription, polish the raw text with a small local mlx-lm model on this Mac. Falls back to raw output if the local LLM fails."
+      },
+      "gmailVoice": {
+        "label": "Gmail Voice Drafting",
+        "description": "Draft Gmail replies and new messages from spoken instructions. Automatic Send works only after the same Gmail draft, recipient, and generated body are verified."
       }
     },
     "postProcessing": {
@@ -469,7 +533,14 @@
       "retranscribe": "फेरि ट्रान्सक्राइब गर्नुहोस्",
       "retranscribeError": "फेरि ट्रान्सक्राइब गर्न सकिएन। कृपया फेरि प्रयास गर्नुहोस्।",
       "transcribing": "ट्रान्सक्राइब गरिँदैछ...",
-      "transcriptionFailed": "ट्रान्सक्रिप्सन असफल भयो। कृपया पुनः ट्रान्सक्राइब गर्नुहोस्।"
+      "transcriptionFailed": "ट्रान्सक्रिप्सन असफल भयो। कृपया पुनः ट्रान्सक्राइब गर्नुहोस्।",
+      "exportFormat": {
+        "title": "Export format",
+        "description": "File format used when exporting all transcripts from the journal",
+        "markdown": "Markdown (.md)",
+        "plainText": "Plain text (.txt)",
+        "placeholder": "Choose format"
+      }
     },
     "debug": {
       "title": "डिबग",
@@ -625,6 +696,13 @@
           "details": "SuperFlow को स्थानीय स्पिच-टु-टेक्स्ट transcribe.cpp र ggml मा आधारित छ। Georgi Gerganov र योगदानकर्ताहरूको उत्कृष्ट कामका लागि धन्यवाद।"
         }
       }
+    },
+    "aiModels": {
+      "title": "AI Model",
+      "cleanupModel": "AI Cleanup Model",
+      "installing": "Installing",
+      "loading": "Loading",
+      "unavailable": "Unavailable"
     }
   },
   "footer": {
@@ -640,7 +718,19 @@
     "portableUpdateMessage": "पोर्टेबल इन्स्टलहरू स्वतः अपडेट गर्न सकिँदैन। तलबाट आफ्नो प्रणालीका लागि इन्स्टलर डाउनलोड गर्नुहोस्, चलाउनुहोस् र उही फोल्डरमा इन्स्टल गर्नुहोस् — तपाईंको Data/ फोल्डर (सेटिङ, मोडेल, रेकर्डिङ) जस्ताको तस्तै रहन्छ।",
     "portableUpdateButton": "इन्स्टलर डाउनलोड गर्नुहोस्",
     "portableUpdateBrowseMessage": "पोर्टेबल इन्स्टलहरू स्वतः अपडेट गर्न सकिँदैन। GitHub Releases बाट आफ्नो प्रणालीका लागि पछिल्लो संस्करण डाउनलोड गर्नुहोस् र उही फोल्डरमा इन्स्टल गर्नुहोस् — तपाईंको Data/ फोल्डर (सेटिङ, मोडेल, रेकर्डिङ) जस्ताको तस्तै रहन्छ।",
-    "portableUpdateBrowseButton": "GitHub Releases खोल्नुहोस्"
+    "portableUpdateBrowseButton": "GitHub Releases खोल्नुहोस्",
+    "downloadManager": {
+      "title": "Downloads",
+      "active": "{{count}} downloading · {{progress}}%",
+      "backgroundActive": "{{count}} active in background",
+      "backgroundIdle": "No background transfers",
+      "stopAll": "Stop all",
+      "empty": "No downloads in this session",
+      "progress": "{{progress}}% downloaded",
+      "downloaded": "Downloaded",
+      "stopped": "Stopped",
+      "download": "Download {{modelName}}"
+    }
   },
   "whatsNew": {
     "title": "SuperFlow v{{version}} मा नयाँ"
@@ -674,7 +764,9 @@
     "modelLoadFailedUnknown": "अज्ञात मोडेल",
     "pasteFailedTitle": "टेक्स्ट पेस्ट गर्न सकिएन",
     "pasteFailed": "सक्रिय एपमा टेक्स्ट पेस्ट गर्न सकिएन।",
-    "transcriptionFailedTitle": "ट्रान्सक्रिप्सन गर्न सकिएन"
+    "transcriptionFailedTitle": "ट्रान्सक्रिप्सन गर्न सकिएन",
+    "cleanupModelNotReadyTitle": "Clean-up model is installing",
+    "cleanupModelNotReady": "Dictation unlocks the moment it finishes. Hang tight."
   },
   "appLanguage": {
     "title": "एपको भाषा",
@@ -696,7 +788,9 @@
     "copy": "प्रतिलिपि",
     "copied": "प्रतिलिपि गरियो",
     "transcriptionCanceled": "ट्रान्सक्रिप्ट रद्द भयो",
-    "undo": "पूर्ववत गर्नुहोस्"
+    "undo": "पूर्ववत गर्नुहोस्",
+    "editing": "Editing",
+    "canceled": "Canceled"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} ले 1 सर्टकट रोकिरहेको हुन सक्छ",
@@ -726,6 +820,74 @@
     },
     "savedLinePrefix": "That's",
     "savedLineSuffix": "saved versus typing at 40 WPM.",
-    "savedLineEmpty": "Start transcribing to measure time saved versus typing."
+    "savedLineEmpty": "Start transcribing to measure time saved versus typing.",
+    "export": "Export",
+    "exportSuccess": "Exported {{count}} transcripts",
+    "exportError": "Export failed. Please try again."
+  },
+  "introduction": {
+    "title": "Hi, Welcome to SuperFlow",
+    "description": "A free, powerful, context-aware AI speech-to-text tool for Vibe Coding and everyday workflows.",
+    "getStarted": "Get started"
+  },
+  "cleanupToast": {
+    "downloading": "Downloading clean-up model…",
+    "success": "Clean-up model ready",
+    "speed": "{{speed}} MB/s"
+  },
+  "specifications": {
+    "title": "Specifications",
+    "description": "Give Super Flow your specification so it learns your voice and outputs higher-quality results with rich context.",
+    "useFor": "Use specifications for {{surface}}",
+    "useHint": "Give SuperFlow your specification. Get a polished, context-rich result.",
+    "toggleLabel": "Use specifications",
+    "toggleDescription": "Enable local specification for this surface.",
+    "identity": {
+      "title": "Identity",
+      "hint": "Your own identity. Never the recipient's.",
+      "preferredName": "Preferred name",
+      "fullName": "Full name",
+      "jobTitle": "Job title",
+      "company": "Company",
+      "timezone": "Timezone"
+    },
+    "email": {
+      "title": "Email",
+      "hint": "Drives greeting, sign-off and signature. Address is stored but never auto-appended.",
+      "signatureName": "Signature name",
+      "signoff": "Sign-off",
+      "tone": "Tone",
+      "toneFormal": "Formal",
+      "toneSemiFormal": "Semi-formal",
+      "toneCasual": "Casual",
+      "includeJobTitle": "Include job title in signature",
+      "includeCompany": "Include company in signature",
+      "phone": "Phone (optional)",
+      "website": "Website (optional)",
+      "address": "Address (optional, never auto-appended)"
+    },
+    "slack": {
+      "title": "Slack",
+      "hint": "Influences formatting and style, not an email signature.",
+      "displayName": "Display name",
+      "tone": "Tone",
+      "toneFormal": "Formal",
+      "toneCasualProfessional": "Casual-professional",
+      "toneCasual": "Casual",
+      "paragraphStyle": "Paragraph style",
+      "styleShort": "Short",
+      "styleCompact": "Compact",
+      "preferBullets": "Prefer bullets",
+      "useEmoji": "Use emoji"
+    },
+    "custom": {
+      "title": "Custom",
+      "hint": "Anything else. First-class keys above are not here.",
+      "empty": "No custom keys yet.",
+      "add": "Add custom key",
+      "remove": "Remove custom key",
+      "keyPlaceholder": "github",
+      "valuePlaceholder": "mrduggal"
+    }
   }
 }

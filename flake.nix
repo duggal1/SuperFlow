@@ -26,6 +26,19 @@
         "aarch64-linux"
       ];
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+      # crates.io rejects curl's default user agent on its API download endpoint.
+      # The locked nixpkgs revision still uses that endpoint for importCargoLock,
+      # so identify these fixed-output fetches until the lock advances past the
+      # upstream static.crates.io fix.
+      cratesIoFetchOverlay = final: prev: {
+        fetchurl = args:
+          prev.fetchurl (args // {
+            curlOptsList = (args.curlOptsList or [ ]) ++ [
+              "--user-agent"
+              "nixpkgs-fetchCargoVendor/2 (https://github.com/NixOS/nixpkgs)"
+            ];
+          });
+      };
       # Read version from Cargo.toml
       cargoToml = fromTOML (builtins.readFile ./src-tauri/Cargo.toml);
       version = cargoToml.package.version;
@@ -73,6 +86,7 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [
+              cratesIoFetchOverlay
               bun2nix.overlays.default
             ];
           };

@@ -30,7 +30,8 @@
     "customModelDescription": "官方不支援",
     "modelCard": {
       "accuracy": "準確度",
-      "speed": "速度"
+      "speed": "速度",
+      "accuracyPercent": "Accuracy {{percent}}%"
     },
     "models": {
       "small": {
@@ -155,7 +156,8 @@
       "streaming": "在您說話時即時顯示轉錄",
       "autoDetect": "Auto-detect"
     },
-    "legacy": "舊版"
+    "legacy": "舊版",
+    "modelDownloaded": "{{modelName}} downloaded"
   },
   "settings": {
     "modelSettings": {
@@ -200,6 +202,40 @@
       "pushToTalk": {
         "label": "按住說話",
         "description": "按住錄製，放開停止"
+      },
+      "shortcuts": {
+        "title": "Dictation shortcuts",
+        "description": "Say a shortcut's name while dictating and its content is pasted in place. Works with markdown, links, emails, phone numbers.",
+        "name": "Name",
+        "namePlaceholder": "e.g. design prompt",
+        "content": "Content",
+        "contentPlaceholder": "Paste your prompt, email, link… (markdown supported)",
+        "add": "Add shortcut",
+        "save": "Save",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "delete": "Delete",
+        "empty": "No shortcuts yet. Add one, then say its name while dictating.",
+        "duplicateName": "A shortcut with this name already exists.",
+        "nameTooLong": "Name is too long (max 40 characters).",
+        "required": "Both name and content are required.",
+        "titleField": "Title",
+        "replacementField": "Replacement"
+      },
+      "superWhisper": {
+        "title": "Super Whisper",
+        "description": "Start your dictation with the hook — Gemini creates instead of transcribing. Hold the key, say the hook then what you want, release. Same model and tone as Prompt Engineering.",
+        "hookLabel": "Voice hook",
+        "hookDescription": "Say the hook, then your request, then release.",
+        "emptyBadge": "Set a hook",
+        "emptyError": "Voice hook cannot be empty",
+        "tooLongError": "Voice hook is too long (max 80 characters)",
+        "helper": "Hold your Transcribe key, say the hook, then your request, then release.",
+        "exampleLabel": "Try saying",
+        "exampleText": "Draft a concise follow-up email to the design team recapping today's review and listing the three revisions we agreed on.",
+        "usesModelHint": "Uses your Prompt Engineering Gemini model and tone. Set your API key and style there.",
+        "toneLabel": "Output tone",
+        "toneDescription": "Applied to every Hey Superflow output — email, Slack, or generated prompt. Switch to “Keep my voice” to disable tone shaping."
       }
     },
     "models": {
@@ -213,14 +249,23 @@
       "filters": {
         "allLanguages": "所有語言",
         "streaming": "篩選支援即時轉錄的模型",
-        "translation": "篩選支援翻譯為英語的模型"
+        "translation": "篩選支援翻譯為英語的模型",
+        "sort": "Filter",
+        "sortDefault": "Default order",
+        "sortAccurate": "Most Accurate",
+        "sortFastest": "Fastest",
+        "sortRatio": "Best Acc/Speed"
       },
       "noModelsMatch": "沒有符合此篩選條件的模型",
       "searchPlaceholder": "依名稱搜尋模型…",
       "rescan": {
         "label": "重新掃描",
         "tooltip": "重新掃描在 SuperFlow 之外新增到模型資料夾或 Hugging Face 快取中的模型"
-      }
+      },
+      "mlxBadge": "MLX",
+      "mlxSectionTitle": "Apple MLX (Experimental)",
+      "mlxSectionDescription": "On-device Metal inference via mlx-audio. Runs out-of-process; weights are pulled from Hugging Face on first use.",
+      "mlxRuntimeChecking": "Checking MLX runtime…"
     },
     "sound": {
       "title": "聲音",
@@ -403,6 +448,25 @@
       "intelligenceAwareness": {
         "title": "Intelligence Awareness",
         "description": "Uses bounded visible context to compose messages in Gmail and Slack and execution-ready prompts in terminals and code editors."
+      },
+      "mlxToggle": {
+        "label": "Apple MLX Engine (Experimental)",
+        "description": "Opt in to native Apple-Silicon MLX models run out-of-process via mlx-audio on Metal."
+      },
+      "mlxCard": {
+        "title": "Apple MLX Engine",
+        "warmIdle": "Environment idle — toggling on pre-warms Python + Metal for zero cold start.",
+        "warming": "Pre-warming Python + Metal environment…",
+        "warmToastOk": "MLX environment ready — zero cold start",
+        "warmToastFail": "MLX environment warm-up failed"
+      },
+      "mlxCleanupToggle": {
+        "label": "MLX Local Cleanup LLM",
+        "description": "After an MLX transcription, polish the raw text with a small local mlx-lm model on this Mac. Falls back to raw output if the local LLM fails."
+      },
+      "gmailVoice": {
+        "label": "Gmail Voice Drafting",
+        "description": "Draft Gmail replies and new messages from spoken instructions. Automatic Send works only after the same Gmail draft, recipient, and generated body are verified."
       }
     },
     "postProcessing": {
@@ -469,7 +533,14 @@
       "retranscribe": "重新轉錄",
       "retranscribeError": "重新轉錄失敗，請重試。",
       "transcribing": "轉錄中...",
-      "transcriptionFailed": "轉錄失敗。請重新轉錄。"
+      "transcriptionFailed": "轉錄失敗。請重新轉錄。",
+      "exportFormat": {
+        "title": "Export format",
+        "description": "File format used when exporting all transcripts from the journal",
+        "markdown": "Markdown (.md)",
+        "plainText": "Plain text (.txt)",
+        "placeholder": "Choose format"
+      }
     },
     "debug": {
       "title": "偵錯",
@@ -625,6 +696,13 @@
         "label": "顯示新功能",
         "description": "SuperFlow 更新後顯示版本資訊"
       }
+    },
+    "aiModels": {
+      "title": "AI Model",
+      "cleanupModel": "AI Cleanup Model",
+      "installing": "Installing",
+      "loading": "Loading",
+      "unavailable": "Unavailable"
     }
   },
   "footer": {
@@ -640,7 +718,19 @@
     "portableUpdateMessage": "可攜式安裝無法自動更新。請透過下方按鈕下載適用於你的系統的安裝程式，執行後安裝到相同資料夾，你的 Data/ 資料夾（設定、模型、錄音）會保留在原處。",
     "portableUpdateButton": "下載安裝程式",
     "portableUpdateBrowseMessage": "可攜式安裝無法自動更新。請從 GitHub Releases 下載適用於你的系統的最新版本，並安裝到相同資料夾，你的 Data/ 資料夾（設定、模型、錄音）會保留在原處。",
-    "portableUpdateBrowseButton": "開啟 GitHub Releases"
+    "portableUpdateBrowseButton": "開啟 GitHub Releases",
+    "downloadManager": {
+      "title": "Downloads",
+      "active": "{{count}} downloading · {{progress}}%",
+      "backgroundActive": "{{count}} active in background",
+      "backgroundIdle": "No background transfers",
+      "stopAll": "Stop all",
+      "empty": "No downloads in this session",
+      "progress": "{{progress}}% downloaded",
+      "downloaded": "Downloaded",
+      "stopped": "Stopped",
+      "download": "Download {{modelName}}"
+    }
   },
   "common": {
     "loading": "載入中...",
@@ -671,7 +761,9 @@
     "modelLoadFailedUnknown": "未知模型",
     "pasteFailedTitle": "貼上文字失敗",
     "pasteFailed": "無法將文字貼上至目前作用中的應用程式。",
-    "transcriptionFailedTitle": "轉錄失敗"
+    "transcriptionFailedTitle": "轉錄失敗",
+    "cleanupModelNotReadyTitle": "Clean-up model is installing",
+    "cleanupModelNotReady": "Dictation unlocks the moment it finishes. Hang tight."
   },
   "appLanguage": {
     "title": "應用程式語言",
@@ -693,7 +785,9 @@
     "copy": "複製",
     "copied": "已複製",
     "transcriptionCanceled": "轉錄已取消",
-    "undo": "復原"
+    "undo": "復原",
+    "editing": "Editing",
+    "canceled": "Canceled"
   },
   "whatsNew": {
     "title": "SuperFlow v{{version}} 新功能"
@@ -726,6 +820,74 @@
     },
     "savedLinePrefix": "That's",
     "savedLineSuffix": "saved versus typing at 40 WPM.",
-    "savedLineEmpty": "Start transcribing to measure time saved versus typing."
+    "savedLineEmpty": "Start transcribing to measure time saved versus typing.",
+    "export": "Export",
+    "exportSuccess": "Exported {{count}} transcripts",
+    "exportError": "Export failed. Please try again."
+  },
+  "introduction": {
+    "title": "Hi, Welcome to SuperFlow",
+    "description": "A free, powerful, context-aware AI speech-to-text tool for Vibe Coding and everyday workflows.",
+    "getStarted": "Get started"
+  },
+  "cleanupToast": {
+    "downloading": "Downloading clean-up model…",
+    "success": "Clean-up model ready",
+    "speed": "{{speed}} MB/s"
+  },
+  "specifications": {
+    "title": "Specifications",
+    "description": "Give Super Flow your specification so it learns your voice and outputs higher-quality results with rich context.",
+    "useFor": "Use specifications for {{surface}}",
+    "useHint": "Give SuperFlow your specification. Get a polished, context-rich result.",
+    "toggleLabel": "Use specifications",
+    "toggleDescription": "Enable local specification for this surface.",
+    "identity": {
+      "title": "Identity",
+      "hint": "Your own identity. Never the recipient's.",
+      "preferredName": "Preferred name",
+      "fullName": "Full name",
+      "jobTitle": "Job title",
+      "company": "Company",
+      "timezone": "Timezone"
+    },
+    "email": {
+      "title": "Email",
+      "hint": "Drives greeting, sign-off and signature. Address is stored but never auto-appended.",
+      "signatureName": "Signature name",
+      "signoff": "Sign-off",
+      "tone": "Tone",
+      "toneFormal": "Formal",
+      "toneSemiFormal": "Semi-formal",
+      "toneCasual": "Casual",
+      "includeJobTitle": "Include job title in signature",
+      "includeCompany": "Include company in signature",
+      "phone": "Phone (optional)",
+      "website": "Website (optional)",
+      "address": "Address (optional, never auto-appended)"
+    },
+    "slack": {
+      "title": "Slack",
+      "hint": "Influences formatting and style, not an email signature.",
+      "displayName": "Display name",
+      "tone": "Tone",
+      "toneFormal": "Formal",
+      "toneCasualProfessional": "Casual-professional",
+      "toneCasual": "Casual",
+      "paragraphStyle": "Paragraph style",
+      "styleShort": "Short",
+      "styleCompact": "Compact",
+      "preferBullets": "Prefer bullets",
+      "useEmoji": "Use emoji"
+    },
+    "custom": {
+      "title": "Custom",
+      "hint": "Anything else. First-class keys above are not here.",
+      "empty": "No custom keys yet.",
+      "add": "Add custom key",
+      "remove": "Remove custom key",
+      "keyPlaceholder": "github",
+      "valuePlaceholder": "mrduggal"
+    }
   }
 }
