@@ -17,7 +17,10 @@ fn load_wav(path: &Path) -> Result<Vec<f32>, String> {
     }
     reader
         .samples::<i16>()
-        .map(|s| s.map(|v| v as f32 / i16::MAX as f32).map_err(|e| e.to_string()))
+        .map(|s| {
+            s.map(|v| v as f32 / i16::MAX as f32)
+                .map_err(|e| e.to_string())
+        })
         .collect()
 }
 
@@ -67,8 +70,12 @@ fn bench_offline(model: &Model, audio: &[f32]) -> Result<(f64, String), String> 
 
 fn main() -> Result<(), String> {
     let mut args = env::args_os().skip(1);
-    let model_path = args.next().ok_or("usage: geom_benchmark MODEL.gguf AUDIO.wav")?;
-    let audio_path = args.next().ok_or("usage: geom_benchmark MODEL.gguf AUDIO.wav")?;
+    let model_path = args
+        .next()
+        .ok_or("usage: geom_benchmark MODEL.gguf AUDIO.wav")?;
+    let audio_path = args
+        .next()
+        .ok_or("usage: geom_benchmark MODEL.gguf AUDIO.wav")?;
 
     transcribe_cpp::init_logging();
     transcribe_cpp::init_backends_default().map_err(|e| e.to_string())?;
@@ -151,7 +158,11 @@ fn main() -> Result<(), String> {
             None => (5600, 1040, 1040),
             Some(v) => v,
         };
-        let label = if geom.is_none() { "default".to_string() } else { format!("{},{},{}", l, c, r) };
+        let label = if geom.is_none() {
+            "default".to_string()
+        } else {
+            format!("{},{},{}", l, c, r)
+        };
         let window = l + c + r;
         match bench_stream(&model, sweep_audio, 30, geom) {
             Ok((ms, text)) => {
@@ -159,13 +170,27 @@ fn main() -> Result<(), String> {
                 let sim = strsim::normalized_levenshtein(&default_text, &text);
                 println!(
                     "{},{},{},{},{:.1},{:.4},{},{:.4},\"{}\"",
-                    l, c, r, window, ms, rtf, text.chars().count(), sim,
+                    l,
+                    c,
+                    r,
+                    window,
+                    ms,
+                    rtf,
+                    text.chars().count(),
+                    sim,
                     text.chars().take(60).collect::<String>().replace('"', "'")
                 );
                 eprintln!("  {} => {:.1}ms RTF {:.3} sim {:.4}", label, ms, rtf, sim);
             }
             Err(e) => {
-                println!("{},{},{},{},ERROR,0,0,0,\"{}\"", l, c, r, window, e.replace('"', "'"));
+                println!(
+                    "{},{},{},{},ERROR,0,0,0,\"{}\"",
+                    l,
+                    c,
+                    r,
+                    window,
+                    e.replace('"', "'")
+                );
                 eprintln!("  {} => ERROR: {}", label, e);
             }
         }
@@ -176,13 +201,27 @@ fn main() -> Result<(), String> {
     // To avoid hardcoding, just test default vs the fastest small-window vs fastest large-window
     let validate_geoms = [None, Some((5600, 1040, 0)), Some((5600, 560, 0))];
     for geom in validate_geoms {
-        let (l,c,r) = match geom { None => (5600,1040,1040), Some(v)=>v };
-        let label = if geom.is_none() { "default".to_string() } else { format!("{},{},{}",l,c,r)};
+        let (l, c, r) = match geom {
+            None => (5600, 1040, 1040),
+            Some(v) => v,
+        };
+        let label = if geom.is_none() {
+            "default".to_string()
+        } else {
+            format!("{},{},{}", l, c, r)
+        };
         match bench_stream(&model, &audio, 30, geom) {
             Ok((ms, text)) => {
                 let rtf = ms / (audio_secs * 1000.0);
                 let sim = strsim::normalized_levenshtein(&default_text, &text);
-                println!("FULL {} => {:.1}ms RTF {:.4} chars {} sim {:.4}", label, ms, rtf, text.chars().count(), sim);
+                println!(
+                    "FULL {} => {:.1}ms RTF {:.4} chars {} sim {:.4}",
+                    label,
+                    ms,
+                    rtf,
+                    text.chars().count(),
+                    sim
+                );
             }
             Err(e) => println!("FULL {} => ERROR {}", label, e),
         }
@@ -204,10 +243,7 @@ fn main() -> Result<(), String> {
         batch_ms / (audio_secs * 1000.0),
         batch_text.chars().count()
     );
-    println!(
-        "batch speedup vs streaming: {:.2}x",
-        stream_ms / batch_ms
-    );
+    println!("batch speedup vs streaming: {:.2}x", stream_ms / batch_ms);
     let sim = strsim::normalized_levenshtein(&batch_text, &stream_text);
     println!("stream vs batch similarity: {:.4}", sim);
 
@@ -228,7 +264,10 @@ fn main() -> Result<(), String> {
         match s2.stream(&RunOptions::default(), &StreamOptions::default()) {
             Ok(mut st2) => {
                 let r2 = st2.feed(chunk);
-                println!("second stream creation: OK, feed: {:?}", r2.map(|_| "ok").unwrap_or("err"));
+                println!(
+                    "second stream creation: OK, feed: {:?}",
+                    r2.map(|_| "ok").unwrap_or("err")
+                );
                 println!("NOTE: sessions can be created sequentially, but concurrent compute is serialized by per-model mutex. See threaded test next.");
             }
             Err(e) => {
@@ -243,7 +282,9 @@ fn main() -> Result<(), String> {
         let t1 = std::thread::spawn(move || {
             let start = Instant::now();
             let mut sess = model_clone.session().unwrap();
-            let mut st = sess.stream(&RunOptions::default(), &StreamOptions::default()).unwrap();
+            let mut st = sess
+                .stream(&RunOptions::default(), &StreamOptions::default())
+                .unwrap();
             st.feed(&audio_clone).unwrap();
             st.finalize().unwrap();
             let elapsed = start.elapsed().as_millis();
@@ -264,7 +305,10 @@ fn main() -> Result<(), String> {
             elapsed2
         );
         let (elapsed1, _) = t1.join().unwrap();
-        println!("first thread elapsed: {}ms, second thread waited (serialized, not parallel)", elapsed1);
+        println!(
+            "first thread elapsed: {}ms, second thread waited (serialized, not parallel)",
+            elapsed1
+        );
         println!("CONCLUSION: transcribe-cpp enforces per-model single in-flight compute (compute_lock). Parallel GPU streams on same model serialize, not accelerate.");
     }
 

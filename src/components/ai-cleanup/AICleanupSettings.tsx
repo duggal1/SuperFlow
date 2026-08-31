@@ -241,7 +241,9 @@ export function AICleanupSettings() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8 pb-10">
       <header className="px-4 pt-2">
-        <h1 className={`text-[28px] font-normal tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}>
+        <h1
+          className={`text-[28px] font-normal tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}
+        >
           AI clean up
         </h1>
       </header>
@@ -342,7 +344,9 @@ export function AICleanupSettings() {
         </SettingContainer>
         {configuration.style === "custom" && (
           <div className="px-4 py-3">
-            <div className={`rounded-[14px] p-4 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-800"}`}>
+            <div
+              className={`rounded-[14px] p-4 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-800"}`}
+            >
               <Textarea
                 variant="inset"
                 value={configuration.style_tone}
@@ -357,7 +361,9 @@ export function AICleanupSettings() {
         <div className="px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className={`text-sm font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}>
+              <p
+                className={`text-sm font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}
+              >
                 Gemini API key
               </p>
               <p className="mt-1 text-xs leading-5 text-stone-500">
@@ -421,7 +427,9 @@ export function AICleanupSettings() {
         className="space-y-3"
         description="Add preferences without changing the protected system prompt."
       >
-        <div className={`rounded-[14px] p-4 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-800"}`}>
+        <div
+          className={`rounded-[14px] p-4 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-800"}`}
+        >
           <Textarea
             variant="inset"
             value={configuration.custom_instruction}
@@ -440,9 +448,14 @@ export function AICleanupSettings() {
         description="Add writing samples or Markdown references Gemini should consider."
       >
         {configuration.contexts.map((context, index) => (
-          <div key={index} className={`px-3 py-3 ${isLight ? "bg-stone-100 border-b border-stone-200" : "bg-stone-800"}`}>
+          <div
+            key={index}
+            className={`px-3 py-3 ${isLight ? "bg-stone-100 border-b border-stone-200" : "bg-stone-800"}`}
+          >
             <div className="mb-2 flex items-center justify-between">
-              <span className={`flex items-center gap-2 text-xs ${isLight ? "text-stone-600" : "text-stone-400"}`}>
+              <span
+                className={`flex items-center gap-2 text-xs ${isLight ? "text-stone-600" : "text-stone-400"}`}
+              >
                 <FileText size={14} /> Context {index + 1}
               </span>
               <button
@@ -516,7 +529,9 @@ export function AICleanupSettings() {
           history.map((entry) => (
             <details key={entry.id} className="group px-4 py-3">
               <summary className="flex list-none items-center justify-between gap-4">
-                <span className={`truncate text-sm ${isLight ? "text-stone-900" : "text-stone-200"}`}>
+                <span
+                  className={`truncate text-sm ${isLight ? "text-stone-900" : "text-stone-200"}`}
+                >
                   {entry.output_text}
                 </span>
                 <span className="shrink-0 text-xs text-stone-500">
@@ -526,7 +541,9 @@ export function AICleanupSettings() {
               <div className="mt-3 grid gap-3 text-sm leading-6">
                 <div>
                   <p className="mb-1 text-xs text-stone-500">Original</p>
-                  <p className={`whitespace-pre-wrap ${isLight ? "text-stone-600" : "text-stone-400"}`}>
+                  <p
+                    className={`whitespace-pre-wrap ${isLight ? "text-stone-600" : "text-stone-400"}`}
+                  >
                     {entry.input_text}
                   </p>
                 </div>
@@ -543,7 +560,9 @@ export function AICleanupSettings() {
                       <Copy size={14} />
                     </button>
                   </div>
-                  <p className={`whitespace-pre-wrap ${isLight ? "text-stone-900" : "text-stone-100"}`}>
+                  <p
+                    className={`whitespace-pre-wrap ${isLight ? "text-stone-900" : "text-stone-100"}`}
+                  >
                     {entry.output_text}
                   </p>
                 </div>

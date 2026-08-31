@@ -74,7 +74,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   }, [models, hardware]);
 
   const recommendedModel = useMemo(
-    () => pickRecommendedModel(models.filter((m: ModelInfo) => !isMlxModel(m)), hardware),
+    () =>
+      pickRecommendedModel(
+        models.filter((m: ModelInfo) => !isMlxModel(m)),
+        hardware,
+      ),
     [models, hardware],
   );
 

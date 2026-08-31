@@ -27,7 +27,21 @@ type OverlayState =
   | "processing"
   | "prompting"
   | "editing"
+  | "say_this"
   | "ai_notice";
+
+export const LOADING_STATES: readonly string[] = [
+  "Recombobulating",
+  "Cooking",
+  "Percolating",
+  "Tinkering",
+  "Orchestrating",
+  "Brewing",
+  "Synthesizing",
+  "Noodling",
+  "Wrangling",
+  "Whirring",
+] as const;
 
 interface AiCleanupNotice {
   message: string;
@@ -148,6 +162,9 @@ const RecordingOverlay: React.FC = () => {
   const [cancelToastExiting, setCancelToastExiting] = useState(false);
   const [aiCleanupNotice, setAiCleanupNotice] =
     useState<AiCleanupNotice | null>(null);
+  // Dedicated AI "Say this" pill: random loading state per invocation,
+  // stays fixed for that run (not animating cycle).
+  const [sayThisLabel, setSayThisLabel] = useState<string>(LOADING_STATES[0]);
   // Auto-dismiss safety net so the floating card can never linger forever.
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Delayed close after the "Copied" confirmation plays.
@@ -328,6 +345,13 @@ const RecordingOverlay: React.FC = () => {
           }
         } catch {
           // Keep the previous/default placement if settings can't be read.
+        }
+        // For AI "Say this" pill, pick one random LOADING_STATES per invocation
+        // and keep it fixed for that run (not cycling). Each click gets a new random.
+        if (overlayState === "say_this") {
+          const pick =
+            LOADING_STATES[Math.floor(Math.random() * LOADING_STATES.length)];
+          setSayThisLabel(pick);
         }
         setState(overlayState);
         if (overlayState === "streaming") {
@@ -783,6 +807,22 @@ const RecordingOverlay: React.FC = () => {
     </div>
   );
 
+  // AI "Say this" pill: dual spinners (left + right) with a random LOADING_STATES
+  // label that is picked once per invocation and stays fixed for that run.
+  // Editing ("Editing") and Transcribing ("Transcribing...") remain reserved for
+  // edit mode (Fn + selection) — AI control key never shows them.
+  const sayThisRow = (label: string) => (
+    <div className="sbase">
+      <div className="sbase-l">
+        <IOSSpinner size={13} color="var(--s-accent)" speed={1.0} />
+      </div>
+      <span className="swork-label">{label}...</span>
+      <div className="sbase-r">
+        <IOSSpinner size={13} color="var(--s-accent)" speed={1.0} />
+      </div>
+    </div>
+  );
+
   const handsFreeRow = (
     <div className="sbase shandsfree">
       {cancelBtn}
@@ -857,9 +897,29 @@ const RecordingOverlay: React.FC = () => {
     );
   }
 
+  // ---- AI "Say this" pill: dedicated dialogue for control-key AI transcription.
+  // Uses dual spinners (left + right) and a per-invocation random LOADING_STATES
+  // pick that stays fixed for that run. Never shows "Transcription"/"Editing"
+  // — those remain reserved for edit mode (Fn + selection via run_edit_mode).
+  if (state === "say_this") {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div
+          className={`scard compact cworking ai-prompting ${isVisible ? "" : "leaving"}`}
+        >
+          {sayThisRow(sayThisLabel)}
+        </div>
+      </div>
+    );
+  }
+
   // ---- Minimal overlay: exactly one row at a time — waveform (recording), or a
   // spinner + label (transcribing / processing). Never both. The pill animates its
   // width between them; the cancel button is in both rows so it stays put.
+  // "editing" / "transcribing" are kept only for edit mode (Fn + selection).
   const working =
     state === "transcribing" ||
     state === "processing" ||

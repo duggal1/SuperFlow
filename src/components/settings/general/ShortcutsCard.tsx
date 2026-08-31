@@ -26,23 +26,27 @@ const sanitizeName = (name: string) =>
 /** Linkify bare emails and http(s) URLs (skip ones already inside markdown links). */
 const linkify = (text: string) =>
   text
-    .replace(
-      /([\w.+-]+@[\w-]+\.[\w.-]+[\w])/g,
-      (m, _1, off, full: string) =>
-        off > 0 && (full[off - 1] === "(" || full.slice(0, off).endsWith("]("))
-          ? m
-          : `[${m}](mailto:${m})`,
+    .replace(/([\w.+-]+@[\w-]+\.[\w.-]+[\w])/g, (m, _1, off, full: string) =>
+      off > 0 && (full[off - 1] === "(" || full.slice(0, off).endsWith("]("))
+        ? m
+        : `[${m}](mailto:${m})`,
     )
-    .replace(
-      /(https?:\/\/[^\s<>()[\]]+)/g,
-      (m, _1, off, full: string) =>
-        off > 0 && (full[off - 1] === "(" || full.slice(0, off).endsWith("]("))
-          ? m
-          : `[${m}](${m})`,
+    .replace(/(https?:\/\/[^\s<>()[\]]+)/g, (m, _1, off, full: string) =>
+      off > 0 && (full[off - 1] === "(" || full.slice(0, off).endsWith("]("))
+        ? m
+        : `[${m}](${m})`,
     );
 
-const Markdown = ({ children, isLight }: { children: string; isLight?: boolean }) => (
-  <div className={`text-sm font-normal leading-6 tracking-tight antialiased [&_a]:font-normal [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600 [&_a]:decoration-dotted [&_a]:underline-offset-2 hover:[&_a]:text-blue-500 [&_blockquote]:pl-3 [&_code]:rounded-[3px] [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px] [&_h1]:mt-4 [&_h1]:text-lg [&_h1]:font-medium [&_h1]:tracking-tight [&_h1:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-medium [&_h2]:tracking-tight [&_h2:first-child]:mt-0 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:tracking-tight [&_hr]:border-stone-800 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:p-3 [&_ul]:mt-2 [&_ul]:list-none [&_ul]:space-y-1 [&_ul>li]:relative [&_ul>li]:pl-4 [&_ul>li]:before:absolute [&_ul>li]:before:left-0 [&_ul>li]:before:top-[0.55em] [&_ul>li]:before:h-[5px] [&_ul>li]:before:w-[5px] [&_ul>li]:before:rounded-[1px] [&_ul>li]:before:bg-blue-600 ${isLight ? "text-stone-900 [&_blockquote]:border-stone-200 [&_blockquote]:text-stone-500 [&_code]:bg-stone-100 [&_h1]:text-stone-900 [&_h2]:text-stone-900 [&_h3]:text-stone-900 [&_pre]:bg-stone-100 [&_strong]:text-stone-900" : "text-stone-100 [&_blockquote]:border-stone-700 [&_blockquote]:text-stone-400 [&_code]:bg-stone-900 [&_h1]:text-stone-50 [&_h2]:text-stone-100 [&_h3]:text-stone-100 [&_pre]:bg-stone-900 [&_strong]:text-stone-50"}`}>
+const Markdown = ({
+  children,
+  isLight,
+}: {
+  children: string;
+  isLight?: boolean;
+}) => (
+  <div
+    className={`text-sm font-normal leading-6 tracking-tight antialiased [&_a]:font-normal [&_a]:text-blue-600 [&_a]:underline [&_a]:decoration-blue-600 [&_a]:decoration-dotted [&_a]:underline-offset-2 hover:[&_a]:text-blue-500 [&_blockquote]:pl-3 [&_code]:rounded-[3px] [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px] [&_h1]:mt-4 [&_h1]:text-lg [&_h1]:font-medium [&_h1]:tracking-tight [&_h1:first-child]:mt-0 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-medium [&_h2]:tracking-tight [&_h2:first-child]:mt-0 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-medium [&_h3]:tracking-tight [&_hr]:border-stone-800 [&_ol]:mt-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5 [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:p-3 [&_ul]:mt-2 [&_ul]:list-none [&_ul]:space-y-1 [&_ul>li]:relative [&_ul>li]:pl-4 [&_ul>li]:before:absolute [&_ul>li]:before:left-0 [&_ul>li]:before:top-[0.55em] [&_ul>li]:before:h-[5px] [&_ul>li]:before:w-[5px] [&_ul>li]:before:rounded-[1px] [&_ul>li]:before:bg-blue-600 ${isLight ? "text-stone-900 [&_blockquote]:border-stone-200 [&_blockquote]:text-stone-500 [&_code]:bg-stone-100 [&_h1]:text-stone-900 [&_h2]:text-stone-900 [&_h3]:text-stone-900 [&_pre]:bg-stone-100 [&_strong]:text-stone-900" : "text-stone-100 [&_blockquote]:border-stone-700 [&_blockquote]:text-stone-400 [&_code]:bg-stone-900 [&_h1]:text-stone-50 [&_h2]:text-stone-100 [&_h3]:text-stone-100 [&_pre]:bg-stone-900 [&_strong]:text-stone-50"}`}
+  >
     <ReactMarkdown
       components={{
         a: (props) => <a {...props} target="_blank" rel="noreferrer" />,
@@ -69,15 +73,20 @@ const Markdown = ({ children, isLight }: { children: string; isLight?: boolean }
 );
 
 /** Scrollable viewport with a bottom mask fade ONLY when content overflows. */
-const OverflowFade = ({ children, isLight }: { children: React.ReactNode; isLight?: boolean }) => {
+const OverflowFade = ({
+  children,
+  isLight,
+}: {
+  children: React.ReactNode;
+  isLight?: boolean;
+}) => {
   const ref = useRef<HTMLDivElement>(null);
   const [overflows, setOverflows] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const check = () =>
-      setOverflows(el.scrollHeight > el.clientHeight + 2);
+    const check = () => setOverflows(el.scrollHeight > el.clientHeight + 2);
     check();
     const ro = new ResizeObserver(check);
     ro.observe(el);
@@ -199,7 +208,9 @@ export const ShortcutsCard: React.FC = React.memo(() => {
           if (e.target === e.currentTarget) closeDialog();
         }}
       >
-        <div className={`relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl p-5 shadow-none ${isLight ? "bg-white border border-stone-200" : "bg-[#221f1d] border-none"}`}>
+        <div
+          className={`relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl p-5 shadow-none ${isLight ? "bg-white border border-stone-200" : "bg-[#221f1d] border-none"}`}
+        >
           {/* Close — top right, borderless */}
           <button
             type="button"
@@ -212,7 +223,9 @@ export const ShortcutsCard: React.FC = React.memo(() => {
 
           {/* Title section — blue badge label */}
           <div className="flex flex-col items-start gap-2 pr-10">
-            <Badge variant="neutral">{t("settings.general.shortcuts.titleField")}</Badge>
+            <Badge variant="neutral">
+              {t("settings.general.shortcuts.titleField")}
+            </Badge>
             {editingView && draft ? (
               <Input
                 type="text"
@@ -224,7 +237,9 @@ export const ShortcutsCard: React.FC = React.memo(() => {
                 disabled={busy}
               />
             ) : (
-              <p className={`text-base font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}>
+              <p
+                className={`text-base font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}
+              >
                 {viewing.name}
               </p>
             )}
@@ -232,11 +247,15 @@ export const ShortcutsCard: React.FC = React.memo(() => {
 
           {/* Replacement section — neutral badge label */}
           <div className="mt-4 flex min-h-0 flex-1 flex-col items-start gap-2">
-            <Badge variant="blue">{t("settings.general.shortcuts.replacementField")}</Badge>
+            <Badge variant="blue">
+              {t("settings.general.shortcuts.replacementField")}
+            </Badge>
             {editingView && draft ? (
               <Textarea
                 value={draft.content}
-                onChange={(e) => setDraft({ ...draft, content: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, content: e.target.value })
+                }
                 rows={10}
                 maxLength={MAX_CONTENT}
                 className="w-full resize-y leading-6"
@@ -316,7 +335,9 @@ export const ShortcutsCard: React.FC = React.memo(() => {
         </h2>
       </div>
 
-      <div className={`rounded-[10px] bg-surface p-4 ${isLight ? "border border-stone-200/80" : ""}`}>
+      <div
+        className={`rounded-[10px] bg-surface p-4 ${isLight ? "border border-stone-200/80" : ""}`}
+      >
         {/* Badge cloud — system Badge primitive */}
         <div className="flex flex-wrap items-center gap-2">
           {shortcuts.map((s) => (
@@ -336,7 +357,6 @@ export const ShortcutsCard: React.FC = React.memo(() => {
               >
                 {s.name}
               </button>
-
             </span>
           ))}
         </div>
@@ -396,7 +416,12 @@ export const ShortcutsCard: React.FC = React.memo(() => {
               t("settings.general.shortcuts.empty")}
           </p>
           {!draft && (
-            <Button variant="secondary" size="md" onClick={() => setDraft({ id: null, name: "", content: "" })} disabled={busy}>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setDraft({ id: null, name: "", content: "" })}
+              disabled={busy}
+            >
               {t("settings.general.shortcuts.add")}
             </Button>
           )}

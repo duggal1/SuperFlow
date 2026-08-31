@@ -46,7 +46,9 @@ export const SettingsGroup: React.FC<SettingsGroupProps> = ({
           )}
         </div>
       )}
-      <div className={`rounded-[10px] bg-surface overflow-visible ${cardBorder}`}>
+      <div
+        className={`rounded-[10px] bg-surface overflow-visible ${cardBorder}`}
+      >
         <div className={`${divider}`}>{children}</div>
       </div>
     </div>

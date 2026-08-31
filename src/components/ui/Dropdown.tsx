@@ -431,7 +431,9 @@ export function Dropdown({
           <div
             className={cn(
               "mb-1 px-1 pb-1",
-              isLight ? "border-b border-stone-200" : "border-b border-stone-600",
+              isLight
+                ? "border-b border-stone-200"
+                : "border-b border-stone-600",
             )}
           >
             <input

@@ -52,7 +52,9 @@ export const AboutSettings: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line i18next/no-literal-string */}
-            <span className={`font-mono text-sm ${isLight ? "text-stone-900" : ""}`}>
+            <span
+              className={`font-mono text-sm ${isLight ? "text-stone-900" : ""}`}
+            >
               v{version === "1.0.0" ? "1.0" : version}
             </span>
             {/* eslint-disable-next-line i18next/no-literal-string */}
@@ -99,7 +101,9 @@ export const AboutSettings: React.FC = () => {
           grouped={true}
           layout="stacked"
         >
-          <div className={`text-sm ${isLight ? "text-stone-600" : "text-mid-gray"}`}>
+          <div
+            className={`text-sm ${isLight ? "text-stone-600" : "text-mid-gray"}`}
+          >
             {t("settings.about.acknowledgments.ggml.details")}
           </div>
         </SettingContainer>

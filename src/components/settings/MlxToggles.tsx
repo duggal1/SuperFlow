@@ -87,8 +87,7 @@ export const MlxExperimentalCard: React.FC = React.memo(() => {
           }`}
         >
           {warm.phase === "idle" && t("settings.advanced.mlxCard.warmIdle")}
-          {warm.phase === "warming" &&
-            t("settings.advanced.mlxCard.warming")}
+          {warm.phase === "warming" && t("settings.advanced.mlxCard.warming")}
           {warm.phase === "ok" && warm.detail}
           {warm.phase === "fail" && warm.detail}
         </p>

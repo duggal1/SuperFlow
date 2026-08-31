@@ -19,8 +19,8 @@ Every feature below maps to a real module in this repo and to a real pain point.
 - GPU acceleration when available; works on CPU-only hardware.
 
 **Pain point it kills:** every mainstream dictation tool phones your voice to a
-remote server. SuperFlow's entire reason to exist is *"your voice stays on your
-computer"* (`README.md`). No transcripts, audio, or context ever leave the device.
+remote server. SuperFlow's entire reason to exist is _"your voice stays on your
+computer"_ (`README.md`). No transcripts, audio, or context ever leave the device.
 
 ---
 
@@ -87,7 +87,7 @@ human rewrite pass.
 - `compose_aware_reply` returns an `AwarenessOutcome` with validation; unbounded context is refused.
 
 **Pain point it kills:** raw transcripts need a full rewrite before they're
-usable. Awareness composes the right output *for the surface you're in*, locally.
+usable. Awareness composes the right output _for the surface you're in_, locally.
 
 ---
 
@@ -109,7 +109,7 @@ inspectable surface.
 
 **Code:** `src-tauri/src/voice_terminal/` (`grammar.rs`, `tmux.rs`, `ghostty.rs`, `prompts.rs`)
 
-- Speak a command like *"open four Claude Code terminals to fix the auth bug"*.
+- Speak a command like _"open four Claude Code terminals to fix the auth bug"_.
 - A deterministic grammar (`AgentKind`: `Claude | Codex | OpenCode`, optional count + mission) parses it; otherwise normal dictation is never hijacked.
 - Launches a **local tmux-backed agent team**: N worker panes (batched 8 per Ghostty tab), plus one **BRAIN supervisor** pane when a count was spoken. Each pane boots the agent CLI through the user's login shell; workers get the faithful mission, the brain gets the mission + worker roster.
 - Mechanism ported from the proven Terminal-kit (`sp`) tmux surface: real tmux splits + buffer pastes instead of fragile Cmd+D keystrokes.
@@ -169,18 +169,18 @@ architecture" the default, not a setting.
 
 ## Feature → Pain-point matrix
 
-| # | Feature | Real pain point |
-|---|---------|-----------------|
-| 1 | Offline STT | Cloud dictation leaks your voice |
-| 2 | Commands / remote control | Voice tools trapped in their own window |
-| 3 | Gmail Voice | Emails are slow to type, ugly to dictate |
-| 4 | Slack auto-format | Dictated Slack = unreadable wall of text |
-| 5 | Intelligence Awareness | Raw transcripts need a full rewrite |
-| 6 | Editor / Edit Mode | Dictated code/edits land wrong or as gibberish |
-| 7 | Voice Terminal Orchestration | Manual multi-agent tab setup is error-prone |
-| 8 | Sapphire (`sp`) | No supervision, durability, or conflict control for agent teams |
-| 9 | Local / AI Cleanup | "Smart" cleanup means shipping text to a 3rd party |
-| 10 | Privacy & Locality | Category-wide fear of data harvesting |
+| #   | Feature                      | Real pain point                                                 |
+| --- | ---------------------------- | --------------------------------------------------------------- |
+| 1   | Offline STT                  | Cloud dictation leaks your voice                                |
+| 2   | Commands / remote control    | Voice tools trapped in their own window                         |
+| 3   | Gmail Voice                  | Emails are slow to type, ugly to dictate                        |
+| 4   | Slack auto-format            | Dictated Slack = unreadable wall of text                        |
+| 5   | Intelligence Awareness       | Raw transcripts need a full rewrite                             |
+| 6   | Editor / Edit Mode           | Dictated code/edits land wrong or as gibberish                  |
+| 7   | Voice Terminal Orchestration | Manual multi-agent tab setup is error-prone                     |
+| 8   | Sapphire (`sp`)              | No supervision, durability, or conflict control for agent teams |
+| 9   | Local / AI Cleanup           | "Smart" cleanup means shipping text to a 3rd party              |
+| 10  | Privacy & Locality           | Category-wide fear of data harvesting                           |
 
 ---
 

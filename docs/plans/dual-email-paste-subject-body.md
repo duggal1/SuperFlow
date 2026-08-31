@@ -7,6 +7,7 @@
 ## Brutal Truth: Current Logic Is Broken
 
 **Current `clipboard.rs:779` `paste_with_email_subject`:**
+
 ```rust
 paste_exact(subject) // assumes focus is in Subject
 sleep 150
@@ -15,8 +16,9 @@ sleep 150
 paste(body)
 ```
 
-*If focus is already in body (user clicked body, or Gmail opened compose with body focused), `paste_exact(subject)` types subject **into body** — that's your bug: "subject data in the body text area instead of the subject input box".*
-* It also hallucinates when user says `Subject X Hey Mike ...` in one flow — `extract_email_subject` `formatter.rs:1055` correctly strips subject from body, but paste still needs Subject-field focus.*
+_If focus is already in body (user clicked body, or Gmail opened compose with body focused), `paste_exact(subject)` types subject **into body** — that's your bug: "subject data in the body text area instead of the subject input box"._
+
+- It also hallucinates when user says `Subject X Hey Mike ...` in one flow — `extract_email_subject` `formatter.rs:1055` correctly strips subject from body, but paste still needs Subject-field focus.\*
 
 **Why it "works" when you say only `subject whatever`:** Gmail compose opens with Subject focused by default, so Tab path accidentally works for single-field dictation. Multi-field one-flow exposes the race.
 
@@ -41,8 +43,8 @@ This is **exactly** what `gmail_voice` already does for AI compose: `gmail_voice
 
 ## Difficulty: 6/10
 
-* **Not 0-2 dead simple:** Need to wire `RecordingContext` (`context::capture::RecordingContext` `actions.rs:511` `process_transcription_output_with_context`) into paste path to get `compose_container`/`pid` for AX. Current dictation paste `actions.rs:1891` only has `AppHandle`, not AX container. Need to plumb `context` through to `paste_with_email_subject` or re-derive via `AXUIElementCreateApplication` + `AXFocusedWindow` + `descendants` search (as `gmail_voice/ax.rs:475` does for reply). Handle timing (Gmail subject chip async), permissions, multiple compose windows, non-Chrome browsers, not-Gmail surfaces.
-* **Not 9-10 impossible:** The AX helpers already exist, tested, and handle `set_string_value` + read-back verification `ax.rs:420`. `paste_with_email_subject` can be replaced with `try_ax_dual_paste` → fallback to legacy Tab → fallback to body-only. No new Rust crate needed, no LLM.
+- **Not 0-2 dead simple:** Need to wire `RecordingContext` (`context::capture::RecordingContext` `actions.rs:511` `process_transcription_output_with_context`) into paste path to get `compose_container`/`pid` for AX. Current dictation paste `actions.rs:1891` only has `AppHandle`, not AX container. Need to plumb `context` through to `paste_with_email_subject` or re-derive via `AXUIElementCreateApplication` + `AXFocusedWindow` + `descendants` search (as `gmail_voice/ax.rs:475` does for reply). Handle timing (Gmail subject chip async), permissions, multiple compose windows, non-Chrome browsers, not-Gmail surfaces.
+- **Not 9-10 impossible:** The AX helpers already exist, tested, and handle `set_string_value` + read-back verification `ax.rs:420`. `paste_with_email_subject` can be replaced with `try_ax_dual_paste` → fallback to legacy Tab → fallback to body-only. No new Rust crate needed, no LLM.
 
 **If we can't find Subject field (not Gmail, no AX permission, Outlook/Apple Mail):** fail-closed → paste body only (subject already removed from body, so no duplication). Never hallucinate subject into body.
 
@@ -82,7 +84,7 @@ fn try_ax_subject_then_body(subject, body, app) -> Result<(), String> {
 }
 ```
 
-*Reuse `gmail_voice/ax.rs:458` `find_compose_field` for `subject` and `to` (already handles `AXTextField`/`AXComboBox` label `subject`). Add `find_compose_body` similarly if needed, but body paste via `paste` is fine — Gmail body is already focused after subject set.*
+_Reuse `gmail_voice/ax.rs:458` `find_compose_field` for `subject` and `to` (already handles `AXTextField`/`AXComboBox` label `subject`). Add `find_compose_body` similarly if needed, but body paste via `paste` is fine — Gmail body is already focused after subject set._
 
 ### 4. Context Plumbing
 
@@ -90,16 +92,16 @@ fn try_ax_subject_then_body(subject, body, app) -> Result<(), String> {
 
 ### 5. Tests (deterministic, no Gmail needed)
 
-* Unit: `formatter.rs:3184` `subject_midflow_after_greeting_is_extracted` already passes; add `paste_with_email_subject` mock test that asserts `subject` not in `body` after `format_email_for_surface`.
-* Integration: `cargo test --lib formatter::email_format_tests` + manual: `Subject updated rollout timeline Hey Mike, the email formatting doesn't work Thanks` → verify `subject` field in Gmail UI (AX read-back `element_text == subject`).
+- Unit: `formatter.rs:3184` `subject_midflow_after_greeting_is_extracted` already passes; add `paste_with_email_subject` mock test that asserts `subject` not in `body` after `format_email_for_surface`.
+- Integration: `cargo test --lib formatter::email_format_tests` + manual: `Subject updated rollout timeline Hey Mike, the email formatting doesn't work Thanks` → verify `subject` field in Gmail UI (AX read-back `element_text == subject`).
 
 ### 6. Failure Modes (fail-closed, never hallucinate)
 
-* `subject` empty after trim → `paste(body)` only.
-* `find_compose_field` `None` → fallback Tab or body-only.
-* `set_string_value` read-back mismatch → fallback Tab.
-* Not Gmail surface → `paste(body)` only (subject already stripped, so no duplication).
-* AX permission denied → fallback.
+- `subject` empty after trim → `paste(body)` only.
+- `find_compose_field` `None` → fallback Tab or body-only.
+- `set_string_value` read-back mismatch → fallback Tab.
+- Not Gmail surface → `paste(body)` only (subject already stripped, so no duplication).
+- AX permission denied → fallback.
 
 ## Why Not Just Keep Tab?
 
@@ -109,6 +111,6 @@ Tab is `2/10` simple but `8/10` fragile — depends on focus, 150ms sleeps, Gmai
 
 ## Out of Scope
 
-* No frontend toggle — backend always.
-* No LLM — `LanguageTool` as oracle only.
-* Not for non-Gmail clients — fallback to body-only.
+- No frontend toggle — backend always.
+- No LLM — `LanguageTool` as oracle only.
+- Not for non-Gmail clients — fallback to body-only.

@@ -303,13 +303,17 @@ export const ModelsSettings: React.FC = () => {
   return (
     <div className="max-w-3xl w-full mx-auto space-y-4">
       <div className="mb-4">
-        <h1 className={`text-xl font-semibold mb-2 ${isLight ? "text-stone-900" : ""}`}>
+        <h1
+          className={`text-xl font-semibold mb-2 ${isLight ? "text-stone-900" : ""}`}
+        >
           {t("settings.models.title")}
         </h1>
       </div>
 
       {/* Search bar — filter the catalog by name or description */}
-      <label className={`group flex w-full items-center gap-2 rounded-lg px-3 transition-colors duration-150 ${isLight ? "bg-white border border-stone-200 text-stone-500 hover:text-stone-700 focus-within:text-stone-900" : "bg-stone-800 text-stone-400 hover:bg-stone-800 hover:text-stone-100 focus-within:bg-stone-800 focus-within:text-stone-100"}`}>
+      <label
+        className={`group flex w-full items-center gap-2 rounded-lg px-3 transition-colors duration-150 ${isLight ? "bg-white border border-stone-200 text-stone-500 hover:text-stone-700 focus-within:text-stone-900" : "bg-stone-800 text-stone-400 hover:bg-stone-800 hover:text-stone-100 focus-within:bg-stone-800 focus-within:text-stone-100"}`}
+      >
         <HugeiconsIcon
           icon={MagnifyingGlassIcon}
           size={18}
@@ -328,7 +332,9 @@ export const ModelsSettings: React.FC = () => {
         {/* Downloaded Models Section — header always visible so filter stays accessible */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className={`text-sm font-medium ${isLight ? "text-stone-600" : "text-text/60"}`}>
+            <h2
+              className={`text-sm font-medium ${isLight ? "text-stone-600" : "text-text/60"}`}
+            >
               {t("settings.models.yourModels")}
             </h2>
             <div className="flex items-center gap-2">
@@ -340,7 +346,9 @@ export const ModelsSettings: React.FC = () => {
                 title={t("settings.models.rescan.tooltip")}
                 aria-label={t("settings.models.rescan.tooltip")}
                 className={`flex items-center justify-center size-8 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isLight ? "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50" : "bg-stone-900 text-text/60 hover:bg-stone-800"
+                  isLight
+                    ? "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50"
+                    : "bg-stone-900 text-text/60 hover:bg-stone-800"
                 } ${isRescanning ? "animate-spin" : ""}`}
               >
                 <ClockCounterClockwise size={16} />
@@ -355,7 +363,9 @@ export const ModelsSettings: React.FC = () => {
                 className={`flex items-center justify-center size-8 rounded-lg transition-colors ${
                   filterStreaming
                     ? "bg-blue-600/20 text-blue-500 hover:bg-blue-600/30"
-                    : isLight ? "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50" : "bg-stone-900 text-text/60 hover:bg-stone-800"
+                    : isLight
+                      ? "bg-white border border-stone-200 text-stone-500 hover:bg-stone-50"
+                      : "bg-stone-900 text-text/60 hover:bg-stone-800"
                 }`}
               >
                 <Equalizer size={16} />
@@ -392,7 +402,10 @@ export const ModelsSettings: React.FC = () => {
             >
               <Funnel size={16} />
               <span>{t("settings.models.filters.sort")}</span>
-              <CaretDown size={12} className={isLight ? "text-stone-400" : "text-text/40"} />
+              <CaretDown
+                size={12}
+                className={isLight ? "text-stone-400" : "text-text/40"}
+              />
             </MenuTrigger>
             <MenuPopup
               align="start"
@@ -473,7 +486,9 @@ export const ModelsSettings: React.FC = () => {
         {/* Available Models Section */}
         {availableModels.length > 0 && (
           <div className="space-y-3">
-            <h2 className={`text-sm font-medium ${isLight ? "text-stone-600" : "text-text/60"}`}>
+            <h2
+              className={`text-sm font-medium ${isLight ? "text-stone-600" : "text-text/60"}`}
+            >
               {t("settings.models.availableModels")}
             </h2>
             {availableModels.map((model: ModelInfo) => (
@@ -493,7 +508,9 @@ export const ModelsSettings: React.FC = () => {
           </div>
         )}
         {filteredModels.length === 0 && (
-          <div className={`text-center py-8 ${isLight ? "text-stone-500" : "text-text/50"}`}>
+          <div
+            className={`text-center py-8 ${isLight ? "text-stone-500" : "text-text/50"}`}
+          >
             {t("settings.models.noModelsMatch")}
           </div>
         )}

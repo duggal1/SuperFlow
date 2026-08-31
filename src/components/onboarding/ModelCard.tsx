@@ -207,7 +207,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
             )}
           </div>
           {!isMlxModel(model) && (
-            <p className={`text-sm leading-relaxed ${isLight ? "text-stone-500" : "text-text/60"}`}>
+            <p
+              className={`text-sm leading-relaxed ${isLight ? "text-stone-500" : "text-text/60"}`}
+            >
               {displayDescription}
             </p>
           )}
@@ -217,10 +219,14 @@ const ModelCard: React.FC<ModelCardProps> = ({
             <div className="space-y-1">
               {model.accuracy_score > 0 && (
                 <div className="flex items-center gap-2">
-                  <p className={`text-xs w-24 text-end ${isLight ? "text-stone-500" : "text-text/60"}`}>
+                  <p
+                    className={`text-xs w-24 text-end ${isLight ? "text-stone-500" : "text-text/60"}`}
+                  >
                     {t("onboarding.modelCard.accuracy")}
                   </p>
-                  <div className={`w-16 h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
+                  <div
+                    className={`w-16 h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}
+                  >
                     <div
                       className="h-full bg-blue-600 rounded-full"
                       style={{ width: `${model.accuracy_score * 100}%` }}
@@ -230,10 +236,14 @@ const ModelCard: React.FC<ModelCardProps> = ({
               )}
               {model.speed_score > 0 && (
                 <div className="flex items-center gap-2">
-                  <p className={`text-xs w-24 text-end ${isLight ? "text-stone-500" : "text-text/60"}`}>
+                  <p
+                    className={`text-xs w-24 text-end ${isLight ? "text-stone-500" : "text-text/60"}`}
+                  >
                     {t("onboarding.modelCard.speed")}
                   </p>
-                  <div className={`w-16 h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
+                  <div
+                    className={`w-16 h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}
+                  >
                     <div
                       className="h-full bg-blue-600 rounded-full"
                       style={{ width: `${model.speed_score * 100}%` }}
@@ -246,7 +256,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
       </div>
 
-      <hr className={`w-full ${isLight ? "border-stone-200" : "border-stone-700"}`} />
+      <hr
+        className={`w-full ${isLight ? "border-stone-200" : "border-stone-700"}`}
+      />
 
       {/* Bottom row: tags + action buttons (full width) */}
       <div className="flex items-center gap-3 w-full -mb-0.5 mt-0.5 h-5">
@@ -282,7 +294,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
           </div>
         )}
         {showModelSize && (
-          <span className={`flex items-center gap-1.5 ms-auto text-xs ${isLight ? "text-stone-500" : "text-text/50"}`}>
+          <span
+            className={`flex items-center gap-1.5 ms-auto text-xs ${isLight ? "text-stone-500" : "text-text/50"}`}
+          >
             <HardDrives className="w-3.5 h-3.5" />
             <span>{formattedModelSize}</span>
           </span>
@@ -303,7 +317,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
       {/* Download/extract progress */}
       {status === "downloading" && downloadProgress !== undefined && (
         <div className="w-full mt-3">
-          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
+          <div
+            className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}
+          >
             <div
               className="h-full bg-blue-600 rounded-full transition-all duration-300"
               style={{ width: `${downloadProgress}%` }}
@@ -317,7 +333,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
             </span>
             <div className="flex items-center gap-2">
               {downloadSpeed !== undefined && downloadSpeed > 0 && (
-                <span className={`tabular-nums ${isLight ? "text-stone-500" : "text-text/50"}`}>
+                <span
+                  className={`tabular-nums ${isLight ? "text-stone-500" : "text-text/50"}`}
+                >
                   {t("modelSelector.downloadSpeed", {
                     speed: downloadSpeed.toFixed(1),
                   })}
@@ -343,20 +361,28 @@ const ModelCard: React.FC<ModelCardProps> = ({
       )}
       {status === "verifying" && (
         <div className="w-full mt-3">
-          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
+          <div
+            className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}
+          >
             <div className="h-full bg-blue-600 rounded-full animate-pulse w-full" />
           </div>
-          <p className={`text-xs mt-1 ${isLight ? "text-stone-500" : "text-text/50"}`}>
+          <p
+            className={`text-xs mt-1 ${isLight ? "text-stone-500" : "text-text/50"}`}
+          >
             {t("modelSelector.verifyingGeneric")}
           </p>
         </div>
       )}
       {status === "extracting" && (
         <div className="w-full mt-3">
-          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}>
+          <div
+            className={`w-full h-1.5 rounded-full overflow-hidden ${isLight ? "bg-stone-200" : "bg-stone-800"}`}
+          >
             <div className="h-full bg-blue-600 rounded-full animate-pulse w-full" />
           </div>
-          <p className={`text-xs mt-1 ${isLight ? "text-stone-500" : "text-text/50"}`}>
+          <p
+            className={`text-xs mt-1 ${isLight ? "text-stone-500" : "text-text/50"}`}
+          >
             {t("modelSelector.extractingGeneric")}
           </p>
         </div>

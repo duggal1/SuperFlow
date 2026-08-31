@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
-import {
-  CaretUp,
-  DownloadSimple,
-  Stop,
-  Trash,
-} from "@phosphor-icons/react";
+import { CaretUp, DownloadSimple, Stop, Trash } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
 import { getTranslatedModelName } from "@/lib/utils/modelTranslation";
 import { useModelStore } from "@/stores/modelStore";
@@ -123,15 +118,21 @@ export default function ModelDownloadManager() {
       {open && (
         <div
           className={`absolute bottom-full left-0 z-50 mb-2 w-[360px] overflow-hidden rounded-[8px] p-1.5 shadow-none ${
-            isLight ? "bg-white border border-stone-200/80 text-stone-900" : "bg-stone-850 text-text"
+            isLight
+              ? "bg-white border border-stone-200/80 text-stone-900"
+              : "bg-stone-850 text-text"
           }`}
         >
           <div className="flex items-center justify-between px-3 pb-2 pt-2.5">
             <div>
-              <p className={`text-[13px] font-medium ${isLight ? "text-stone-900" : ""}`}>
+              <p
+                className={`text-[13px] font-medium ${isLight ? "text-stone-900" : ""}`}
+              >
                 {t("footer.downloadManager.title")}
               </p>
-              <p className={`text-[11px] ${isLight ? "text-stone-500" : "text-text/50"}`}>
+              <p
+                className={`text-[11px] ${isLight ? "text-stone-500" : "text-text/50"}`}
+              >
                 {activeIds.length > 0
                   ? t("footer.downloadManager.backgroundActive", {
                       count: activeIds.length,
@@ -152,12 +153,16 @@ export default function ModelDownloadManager() {
 
           <div className="max-h-72 space-y-0.5 overflow-y-auto">
             {visibleIds.length === 0 ? (
-              <div className={`px-3 py-5 text-center text-xs ${isLight ? "text-stone-500" : "text-text/45"}`}>
+              <div
+                className={`px-3 py-5 text-center text-xs ${isLight ? "text-stone-500" : "text-text/45"}`}
+              >
                 {t("footer.downloadManager.empty")}
               </div>
             ) : (
               visibleIds.map((modelId) => {
-                const model = models.find((candidate) => candidate.id === modelId);
+                const model = models.find(
+                  (candidate) => candidate.id === modelId,
+                );
                 const active = modelId in downloadingModels;
                 const pending = pendingIds.includes(modelId);
                 const progress = clampPercentage(
@@ -175,10 +180,14 @@ export default function ModelDownloadManager() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className={`truncate text-xs ${isLight ? "text-stone-900" : "text-text/90"}`}>
+                        <p
+                          className={`truncate text-xs ${isLight ? "text-stone-900" : "text-text/90"}`}
+                        >
                           {modelName}
                         </p>
-                        <div className={`mt-0.5 flex items-center gap-2 text-[11px] ${isLight ? "text-stone-500" : "text-text/45"}`}>
+                        <div
+                          className={`mt-0.5 flex items-center gap-2 text-[11px] ${isLight ? "text-stone-500" : "text-text/45"}`}
+                        >
                           <span>
                             {active
                               ? t("footer.downloadManager.progress", {
@@ -240,7 +249,9 @@ export default function ModelDownloadManager() {
                     </div>
 
                     {active && (
-                      <div className={`mt-2 h-1 overflow-hidden rounded-full ${isLight ? "bg-stone-200" : "bg-stone-700"}`}>
+                      <div
+                        className={`mt-2 h-1 overflow-hidden rounded-full ${isLight ? "bg-stone-200" : "bg-stone-700"}`}
+                      >
                         <div
                           className="h-full rounded-full bg-blue-500 transition-[width] duration-200"
                           style={{ width: `${progress}%` }}

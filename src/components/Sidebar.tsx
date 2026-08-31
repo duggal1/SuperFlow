@@ -156,7 +156,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex min-h-0 flex-1 flex-col">
           {/* Sidebar content starts below the native titlebar controls. */}
           <div className="mb-3 flex h-8 shrink-0 items-center pl-1.5 pr-0.5">
-            <SuperFlowLogo className={isLight ? "text-stone-950" : "text-stone-100"} />
+            <SuperFlowLogo
+              className={isLight ? "text-stone-950" : "text-stone-100"}
+            />
           </div>
 
           <div className="flex w-full flex-col gap-0.5">

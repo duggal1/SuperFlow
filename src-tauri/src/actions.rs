@@ -1121,8 +1121,12 @@ async fn run_voice_command(
     }
     let flight_guard = AiCleanupFlightGuard;
 
-    crate::audio_feedback::play_ai_cleanup_sound(app, AiCleanupSound::Trigger);
-    crate::overlay::show_editing_overlay(app);
+    // AI transcription uses the exact same start sound as normal transcription
+    // (Start theme sound, not a separate AI trigger). Also shows the dedicated
+    // "Say this" pill (random LOADING_STATES, dual spinners) — not
+    // "Transcription"/"Editing" which are reserved for edit mode (Fn + selection).
+    crate::audio_feedback::play_feedback_sound(app, crate::audio_feedback::SoundType::Start);
+    crate::overlay::show_say_this_overlay(app);
     let output_result = complete_unless_cancelled(
         crate::ai_cleanup::execute_with_page_context(
             &instruction,
@@ -1332,15 +1336,28 @@ impl ShortcutAction for TranscribeAction {
         // show_live_streaming only hides the frontend component — backend streaming
         // still runs for speed (tm.start_stream() above).
         let overlay_started = Instant::now();
-        match settings.overlay_style {
-            OverlayStyle::Live | OverlayStyle::Minimal if is_hands_free => {
-                crate::overlay::show_hands_free_overlay(app)
+        // AI transcription (control key) always renders the start zone
+        // (recording waveform) with the exact same visuals and start sound
+        // as normal transcription — even if the global overlay is None.
+        // This is the "start zone" the user expects for the AI pill.
+        if self.ai_hotkey {
+            if model_supports_streaming && settings.show_live_streaming {
+                // Use forced variant to bypass overlay_style == None gate
+                crate::overlay::show_streaming_overlay_forced(app);
+            } else {
+                crate::overlay::show_recording_overlay_forced(app);
             }
-            OverlayStyle::Live if model_supports_streaming && settings.show_live_streaming => {
-                utils::show_streaming_overlay(app)
+        } else {
+            match settings.overlay_style {
+                OverlayStyle::Live | OverlayStyle::Minimal if is_hands_free => {
+                    crate::overlay::show_hands_free_overlay(app)
+                }
+                OverlayStyle::Live if model_supports_streaming && settings.show_live_streaming => {
+                    utils::show_streaming_overlay(app)
+                }
+                OverlayStyle::Live | OverlayStyle::Minimal => show_recording_overlay(app),
+                OverlayStyle::None => {}
             }
-            OverlayStyle::Live | OverlayStyle::Minimal => show_recording_overlay(app),
-            OverlayStyle::None => {}
         }
         // Everything above runs before capture can begin, so each span here is
         // added keypress->capture latency.

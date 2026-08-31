@@ -60,6 +60,20 @@ const OVERLAY_CANCEL_HEIGHT: f64 = 64.0;
 const OVERLAY_AI_NOTICE_WIDTH: f64 = 360.0;
 const OVERLAY_AI_NOTICE_HEIGHT: f64 = 64.0;
 
+#[allow(dead_code)]
+pub const LOADING_STATES: &[&str] = &[
+    "Recombobulating",
+    "Cooking",
+    "Percolating",
+    "Tinkering",
+    "Orchestrating",
+    "Brewing",
+    "Synthesizing",
+    "Noodling",
+    "Wrangling",
+    "Whirring",
+];
+
 /// Overlay window size (logical) for a given UI state.
 fn overlay_dimensions(state: &str) -> (f64, f64) {
     match state {
@@ -67,7 +81,7 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
         "result" => (OVERLAY_RESULT_WIDTH, OVERLAY_RESULT_HEIGHT),
         "cancel" => (OVERLAY_CANCEL_WIDTH, OVERLAY_CANCEL_HEIGHT),
         "prompting" | "ai_notice" => (OVERLAY_AI_NOTICE_WIDTH, OVERLAY_AI_NOTICE_HEIGHT),
-        "editing" => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
+        "editing" | "say_this" => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
         _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
@@ -623,6 +637,10 @@ pub fn show_recording_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "recording");
 }
 
+pub fn show_recording_overlay_forced(app_handle: &AppHandle) {
+    show_overlay_state_forced(app_handle, "recording");
+}
+
 pub fn show_hands_free_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "hands_free");
 }
@@ -630,6 +648,10 @@ pub fn show_hands_free_overlay(app_handle: &AppHandle) {
 /// Shows the larger streaming overlay that displays live transcription text
 pub fn show_streaming_overlay(app_handle: &AppHandle) {
     show_overlay_state(app_handle, "streaming");
+}
+
+pub fn show_streaming_overlay_forced(app_handle: &AppHandle) {
+    show_overlay_state_forced(app_handle, "streaming");
 }
 
 /// Shows the transcribing overlay window
@@ -648,6 +670,10 @@ pub fn show_ai_prompting_overlay(app_handle: &AppHandle) {
 
 pub fn show_editing_overlay(app_handle: &AppHandle) {
     show_overlay_state_forced(app_handle, "editing");
+}
+
+pub fn show_say_this_overlay(app_handle: &AppHandle) {
+    show_overlay_state_forced(app_handle, "say_this");
 }
 
 pub fn show_ai_cleanup_notice(
@@ -831,6 +857,14 @@ mod tests {
     fn editing_overlay_uses_the_compact_window() {
         assert_eq!(
             overlay_dimensions("editing"),
+            (OVERLAY_WIDTH, OVERLAY_HEIGHT)
+        );
+    }
+
+    #[test]
+    fn say_this_overlay_uses_the_compact_window() {
+        assert_eq!(
+            overlay_dimensions("say_this"),
             (OVERLAY_WIDTH, OVERLAY_HEIGHT)
         );
     }

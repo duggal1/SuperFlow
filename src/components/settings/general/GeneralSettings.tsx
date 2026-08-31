@@ -43,7 +43,9 @@ export const GeneralSettings: React.FC = () => {
             {t("specifications.title")}
           </h2>
         </div>
-        <div className={`mt-3 rounded-[10px] bg-surface px-4 py-4 ${isLight ? "border border-stone-200/80" : ""}`}>
+        <div
+          className={`mt-3 rounded-[10px] bg-surface px-4 py-4 ${isLight ? "border border-stone-200/80" : ""}`}
+        >
           <SpecificationPanel />
         </div>
       </div>

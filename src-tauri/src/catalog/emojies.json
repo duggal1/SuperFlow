@@ -1,7 +1,12 @@
 [
   {
     "emoji": "😀",
-    "aliases": ["happy emoji", "smiley face emoji", "smiley emoji", "happy face emoji"]
+    "aliases": [
+      "happy emoji",
+      "smiley face emoji",
+      "smiley emoji",
+      "happy face emoji"
+    ]
   },
   {
     "emoji": "😃",
@@ -29,7 +34,11 @@
   },
   {
     "emoji": "🙃",
-    "aliases": ["upside down emoji", "sarcastic smile emoji", "upside down face emoji"]
+    "aliases": [
+      "upside down emoji",
+      "sarcastic smile emoji",
+      "upside down face emoji"
+    ]
   },
   {
     "emoji": "😉",
@@ -41,7 +50,11 @@
   },
   {
     "emoji": "🥰",
-    "aliases": ["love face emoji", "hearts around face emoji", "feeling loved emoji"]
+    "aliases": [
+      "love face emoji",
+      "hearts around face emoji",
+      "feeling loved emoji"
+    ]
   },
   {
     "emoji": "😘",
@@ -77,7 +90,11 @@
   },
   {
     "emoji": "😑",
-    "aliases": ["annoyed blank face emoji", "expressionless emoji", "done with this emoji"]
+    "aliases": [
+      "annoyed blank face emoji",
+      "expressionless emoji",
+      "done with this emoji"
+    ]
   },
   {
     "emoji": "😒",
@@ -105,7 +122,11 @@
   },
   {
     "emoji": "😞",
-    "aliases": ["disappointed emoji", "disappointed face emoji", "sad disappointed emoji"]
+    "aliases": [
+      "disappointed emoji",
+      "disappointed face emoji",
+      "sad disappointed emoji"
+    ]
   },
   {
     "emoji": "😩",
@@ -117,7 +138,11 @@
   },
   {
     "emoji": "😤",
-    "aliases": ["angry breathing emoji", "frustrated face emoji", "steam nose emoji"]
+    "aliases": [
+      "angry breathing emoji",
+      "frustrated face emoji",
+      "steam nose emoji"
+    ]
   },
   {
     "emoji": "😡",
@@ -137,7 +162,11 @@
   },
   {
     "emoji": "😳",
-    "aliases": ["embarrassed emoji", "blushing shocked emoji", "wide eyes face emoji"]
+    "aliases": [
+      "embarrassed emoji",
+      "blushing shocked emoji",
+      "wide eyes face emoji"
+    ]
   },
   {
     "emoji": "🥺",
@@ -149,7 +178,11 @@
   },
   {
     "emoji": "🤯",
-    "aliases": ["mind blown emoji", "exploding head emoji", "mind blown face emoji"]
+    "aliases": [
+      "mind blown emoji",
+      "exploding head emoji",
+      "mind blown face emoji"
+    ]
   },
   {
     "emoji": "🥳",
@@ -205,15 +238,27 @@
   },
   {
     "emoji": "🧡",
-    "aliases": ["orange heart emoji", "orange love emoji", "orange heart love emoji"]
+    "aliases": [
+      "orange heart emoji",
+      "orange love emoji",
+      "orange heart love emoji"
+    ]
   },
   {
     "emoji": "💛",
-    "aliases": ["yellow heart emoji", "yellow love emoji", "yellow heart love emoji"]
+    "aliases": [
+      "yellow heart emoji",
+      "yellow love emoji",
+      "yellow heart love emoji"
+    ]
   },
   {
     "emoji": "💚",
-    "aliases": ["green heart emoji", "green love emoji", "green heart love emoji"]
+    "aliases": [
+      "green heart emoji",
+      "green love emoji",
+      "green heart love emoji"
+    ]
   },
   {
     "emoji": "💙",
@@ -221,7 +266,11 @@
   },
   {
     "emoji": "💜",
-    "aliases": ["purple heart emoji", "purple love emoji", "purple heart love emoji"]
+    "aliases": [
+      "purple heart emoji",
+      "purple love emoji",
+      "purple heart love emoji"
+    ]
   },
   {
     "emoji": "🖤",
@@ -229,7 +278,11 @@
   },
   {
     "emoji": "🤍",
-    "aliases": ["white heart emoji", "white love emoji", "white heart love emoji"]
+    "aliases": [
+      "white heart emoji",
+      "white love emoji",
+      "white heart love emoji"
+    ]
   },
   {
     "emoji": "💔",
@@ -241,7 +294,11 @@
   },
   {
     "emoji": "💖",
-    "aliases": ["sparkling heart emoji", "sparkle heart emoji", "shiny heart emoji"]
+    "aliases": [
+      "sparkling heart emoji",
+      "sparkle heart emoji",
+      "shiny heart emoji"
+    ]
   },
   {
     "emoji": "🔥",
@@ -269,7 +326,11 @@
   },
   {
     "emoji": "🎊",
-    "aliases": ["confetti emoji", "celebration confetti emoji", "party confetti emoji"]
+    "aliases": [
+      "confetti emoji",
+      "celebration confetti emoji",
+      "party confetti emoji"
+    ]
   },
   {
     "emoji": "👍",
@@ -289,7 +350,11 @@
   },
   {
     "emoji": "🤞",
-    "aliases": ["fingers crossed emoji", "good luck emoji", "crossed fingers emoji"]
+    "aliases": [
+      "fingers crossed emoji",
+      "good luck emoji",
+      "crossed fingers emoji"
+    ]
   },
   {
     "emoji": "🙏",
@@ -321,11 +386,19 @@
   },
   {
     "emoji": "👉",
-    "aliases": ["point right emoji", "right pointing finger emoji", "pointing right emoji"]
+    "aliases": [
+      "point right emoji",
+      "right pointing finger emoji",
+      "pointing right emoji"
+    ]
   },
   {
     "emoji": "👈",
-    "aliases": ["point left emoji", "left pointing finger emoji", "pointing left emoji"]
+    "aliases": [
+      "point left emoji",
+      "left pointing finger emoji",
+      "pointing left emoji"
+    ]
   },
   {
     "emoji": "☝️",
@@ -333,7 +406,11 @@
   },
   {
     "emoji": "👇",
-    "aliases": ["point down emoji", "down pointing finger emoji", "pointing below emoji"]
+    "aliases": [
+      "point down emoji",
+      "down pointing finger emoji",
+      "pointing below emoji"
+    ]
   },
   {
     "emoji": "✅",
@@ -353,7 +430,11 @@
   },
   {
     "emoji": "❓",
-    "aliases": ["question emoji", "question mark emoji", "red question mark emoji"]
+    "aliases": [
+      "question emoji",
+      "question mark emoji",
+      "red question mark emoji"
+    ]
   },
   {
     "emoji": "🚀",

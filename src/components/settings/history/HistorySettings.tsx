@@ -264,7 +264,13 @@ export const HistorySettings: React.FC = () => {
     content = (
       <>
         <AudioPlayerGroup>
-          <div className={isLight ? "divide-y divide-stone-200/60" : "divide-y divide-stone-700"}>
+          <div
+            className={
+              isLight
+                ? "divide-y divide-stone-200/60"
+                : "divide-y divide-stone-700"
+            }
+          >
             {entries.map((entry) => (
               <HistoryEntryComponent
                 key={entry.id}
@@ -298,7 +304,9 @@ export const HistorySettings: React.FC = () => {
             label={t("settings.history.openFolder")}
           />
         </div>
-        <div className={`rounded-[10px] bg-surface overflow-visible ${isLight ? "border border-stone-200/80" : ""}`}>
+        <div
+          className={`rounded-[10px] bg-surface overflow-visible ${isLight ? "border border-stone-200/80" : ""}`}
+        >
           {content}
         </div>
       </div>
@@ -376,7 +384,9 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
       <div className="flex items-center justify-between gap-3">
         <span className="flex min-w-0 flex-col items-start gap-1.5">
           <span className="flex items-center gap-2">
-            <span className={`shrink-0 text-sm font-medium tracking-tight ${isLightRow ? "text-stone-900" : "text-stone-100"}`}>
+            <span
+              className={`shrink-0 text-sm font-medium tracking-tight ${isLightRow ? "text-stone-900" : "text-stone-100"}`}
+            >
               {formattedDate}
             </span>
             {busy && (
@@ -426,8 +436,12 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
         <p
           className={`pb-2 text-sm leading-6 ${
             busy
-              ? isLightRow ? "text-stone-600" : "text-stone-500"
-              : isLightRow ? "select-text whitespace-pre-wrap break-words text-stone-800" : "select-text whitespace-pre-wrap break-words text-stone-200"
+              ? isLightRow
+                ? "text-stone-600"
+                : "text-stone-500"
+              : isLightRow
+                ? "select-text whitespace-pre-wrap break-words text-stone-800"
+                : "select-text whitespace-pre-wrap break-words text-stone-200"
           }`}
           style={
             busy

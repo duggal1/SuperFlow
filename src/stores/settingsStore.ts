@@ -8,7 +8,7 @@ import type {
   OrtAcceleratorSetting,
   PunctuationStyle,
 } from "@/bindings";
-import { commands , type Shortcut } from "@/bindings";
+import { commands, type Shortcut } from "@/bindings";
 
 interface SettingsStore {
   settings: Settings | null;
@@ -128,8 +128,7 @@ const settingUpdaters: {
     commands.changeOverlayPositionSetting(value as string),
   debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),
   custom_words: (value) => commands.updateCustomWords(value as string[]),
-  shortcuts: (value) =>
-    commands.updateShortcuts(value as Shortcut[]),
+  shortcuts: (value) => commands.updateShortcuts(value as Shortcut[]),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>

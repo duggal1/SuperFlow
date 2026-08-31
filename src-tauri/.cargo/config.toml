@@ -4,3 +4,23 @@
 # fallback it was explicitly told to take.
 [env]
 SUPERFLOW_FORCE_AI_STUB = "1"
+# transcribe-cpp's ggml-metal backend (ggml-metal-device.m) emits
+# `___isPlatformVersionAtLeast` availability checks that are only provided by
+# libSystem on macOS 12.0+. The aarch64/x86_64 rust targets default to a lower
+# `-mmacosx-version-min`, which makes the linker fail with
+# "Undefined symbols ... ___isPlatformVersionAtLeast". Pin the deployment target
+# to 12.0 so the symbol resolves at link time and the bundled app won't run on
+# an OS older than where the helper exists.
+MACOSX_DEPLOYMENT_TARGET = "12.0"
+
+# Belt-and-suspenders for the above: some SDKs (e.g. Command Line Tools) do not
+# export `___isPlatformVersionAtLeast` from libSystem.tbd, so even with the
+# raised deployment target the final `-nodefaultlibs` link can fail. Allow this
+# one symbol to be resolved lazily at load time (it is always present in
+# libSystem on macOS 12.0+). `dynamic_lookup` is intentionally scoped to the
+# single symbol via `-U` rather than applied globally.
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-Wl,-U,___isPlatformVersionAtLeast"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-Wl,-U,___isPlatformVersionAtLeast"]

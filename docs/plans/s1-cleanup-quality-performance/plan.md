@@ -84,20 +84,20 @@ add latency and change the product contract.
 
 These are repository and runtime facts, not guesses.
 
-| Finding | Evidence | Consequence |
-|---|---|---|
-| S1 is installed, loaded, and used | `superflow.log` records the model loaded with 99 Metal layers and multiple completed cleanup jobs | The primary failure is not “the model never loads.” |
-| Some outputs are silently discarded | The same log records `output failed fidelity validation; failing open` | A user can receive pre-S1 text after waiting for S1 generation and cannot tell that happened. |
-| A real 2,584-character job took 8.46 seconds and was discarded | Runtime log entry immediately pairs rejection with the 8.46-second completion | Current architecture pays latency and receives no quality benefit on rejected runs. |
-| Long text is processed only after final ASR text exists | `actions.rs` calls `local_cleanup::normalize` after transcription finalization | A 10–30 minute recording necessarily accumulates a large stop-time cleanup bill. |
-| Current cleanup worker is serial | `local_cleanup.rs` owns one receiver, one context, and a sequential loop over chunks | Chunk count increases wall time linearly at stop. |
-| Current chunking is estimated by 500 whitespace words | `MAX_CHUNK_WORDS` and `chunk_transcript` | It is not bounded by the model tokenizer and raw ASR without punctuation often hard-splits at arbitrary word positions. |
-| One invalid chunk rejects the complete job | `failed = true` returns `None` for the whole request | Good S1 chunks are lost and raw pre-S1 text becomes final. |
-| Global programming syntax rewrites plain English | `programming-syntax.json` contains `and → AND`, `right → RIGHT`, `today → TODAY`, and `now → NOW`; the harvester applies them globally | The exact reported random uppercase output has a deterministic upstream cause. |
-| `get request → GET` is phrase-scoped | The catalog does not define bare `get → GET` in that API entry | `GET` still requires collision testing, but it is not the same confirmed bare-word alias as `AND` or `TODAY`. |
-| The speech accelerator is independent from S1 | Speech logs alternate between CPU and `MTL0`; S1 startup remains 99 Metal layers | Keep the independence and add a regression test; do not build a second cleanup accelerator dropdown. |
-| The UI already derives active from installed plus ready | `CleanupModelStatus.active` and `AIModelsStatusCard.tsx` | Extend real state; do not replace it with a static label. |
-| `llama-cpp-2` supports sequence-aware scheduling primitives | Installed 0.1.154 exposes `n_seq_max`, batch sequence IDs, KV sequence operations, `n_batch`, and `n_ubatch` | Multi-sequence batching is feasible to benchmark, not automatically correct to ship. |
+| Finding                                                        | Evidence                                                                                                                               | Consequence                                                                                                             |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| S1 is installed, loaded, and used                              | `superflow.log` records the model loaded with 99 Metal layers and multiple completed cleanup jobs                                      | The primary failure is not “the model never loads.”                                                                     |
+| Some outputs are silently discarded                            | The same log records `output failed fidelity validation; failing open`                                                                 | A user can receive pre-S1 text after waiting for S1 generation and cannot tell that happened.                           |
+| A real 2,584-character job took 8.46 seconds and was discarded | Runtime log entry immediately pairs rejection with the 8.46-second completion                                                          | Current architecture pays latency and receives no quality benefit on rejected runs.                                     |
+| Long text is processed only after final ASR text exists        | `actions.rs` calls `local_cleanup::normalize` after transcription finalization                                                         | A 10–30 minute recording necessarily accumulates a large stop-time cleanup bill.                                        |
+| Current cleanup worker is serial                               | `local_cleanup.rs` owns one receiver, one context, and a sequential loop over chunks                                                   | Chunk count increases wall time linearly at stop.                                                                       |
+| Current chunking is estimated by 500 whitespace words          | `MAX_CHUNK_WORDS` and `chunk_transcript`                                                                                               | It is not bounded by the model tokenizer and raw ASR without punctuation often hard-splits at arbitrary word positions. |
+| One invalid chunk rejects the complete job                     | `failed = true` returns `None` for the whole request                                                                                   | Good S1 chunks are lost and raw pre-S1 text becomes final.                                                              |
+| Global programming syntax rewrites plain English               | `programming-syntax.json` contains `and → AND`, `right → RIGHT`, `today → TODAY`, and `now → NOW`; the harvester applies them globally | The exact reported random uppercase output has a deterministic upstream cause.                                          |
+| `get request → GET` is phrase-scoped                           | The catalog does not define bare `get → GET` in that API entry                                                                         | `GET` still requires collision testing, but it is not the same confirmed bare-word alias as `AND` or `TODAY`.           |
+| The speech accelerator is independent from S1                  | Speech logs alternate between CPU and `MTL0`; S1 startup remains 99 Metal layers                                                       | Keep the independence and add a regression test; do not build a second cleanup accelerator dropdown.                    |
+| The UI already derives active from installed plus ready        | `CleanupModelStatus.active` and `AIModelsStatusCard.tsx`                                                                               | Extend real state; do not replace it with a static label.                                                               |
+| `llama-cpp-2` supports sequence-aware scheduling primitives    | Installed 0.1.154 exposes `n_seq_max`, batch sequence IDs, KV sequence operations, `n_batch`, and `n_ubatch`                           | Multi-sequence batching is feasible to benchmark, not automatically correct to ship.                                    |
 
 ## 5. Root-cause model
 
@@ -165,14 +165,14 @@ final ASR snapshot -> cleanup session reconciler -> stable segment assembler
 
 ### 6.2 Stage ownership
 
-| Stage | Owns | Must not own |
-|---|---|---|
-| ASR | speech decoding and committed/tentative hypotheses | grammar cleanup or Markdown |
-| S1-mini | English fillers, self-correction, grammar, punctuation, casing, paragraphs, conservative lists | rich Markdown or arbitrary instructions |
+| Stage                    | Owns                                                                                            | Must not own                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| ASR                      | speech decoding and committed/tentative hypotheses                                              | grammar cleanup or Markdown                                                            |
+| S1-mini                  | English fillers, self-correction, grammar, punctuation, casing, paragraphs, conservative lists  | rich Markdown or arbitrary instructions                                                |
 | Post-S1 token normalizer | explicit technical terms, paths, extensions, exact values, and high-confidence canonical tokens | prose grammar, sentence casing, punctuation, paragraphing, headings, or list inference |
-| Validator | meaning-preservation invariants and precise rejection reasons | rewriting the candidate to make it pass |
-| Assembler | sequence ordering and original boundary whitespace | grammar or content transformation |
-| Frontend | truthful lifecycle and outcome rendering | guessing backend state |
+| Validator                | meaning-preservation invariants and precise rejection reasons                                   | rewriting the candidate to make it pass                                                |
+| Assembler                | sequence ordering and original boundary whitespace                                              | grammar or content transformation                                                      |
+| Frontend                 | truthful lifecycle and outcome rendering                                                        | guessing backend state                                                                 |
 
 ### 6.3 Cleanup session contract
 
@@ -305,16 +305,16 @@ and 80 model tokens.
 Bare common English words default to prose. A technical rewrite requires
 strong local evidence.
 
-| Source phrase | Expected |
-|---|---|
-| `what I did today` | `what I did today` before S1 casing |
-| `and right now` | `and right now` |
-| `send a GET request` | preserve or normalize `GET` |
-| `use a RIGHT JOIN` | preserve or normalize `RIGHT JOIN` |
-| `use SQL A AND B` | preserve SQL `AND` only inside the explicit SQL span |
-| `call TODAY open paren` | normalize `TODAY()` only with formula evidence |
-| `set database URL env var` | normalize `DATABASE_URL` |
-| `use bg stone 700` | normalize `bg-stone-700` |
+| Source phrase              | Expected                                             |
+| -------------------------- | ---------------------------------------------------- |
+| `what I did today`         | `what I did today` before S1 casing                  |
+| `and right now`            | `and right now`                                      |
+| `send a GET request`       | preserve or normalize `GET`                          |
+| `use a RIGHT JOIN`         | preserve or normalize `RIGHT JOIN`                   |
+| `use SQL A AND B`          | preserve SQL `AND` only inside the explicit SQL span |
+| `call TODAY open paren`    | normalize `TODAY()` only with formula evidence       |
+| `set database URL env var` | normalize `DATABASE_URL`                             |
+| `use bg stone 700`         | normalize `bg-stone-700`                             |
 
 This policy must be encoded in tests, not left as a comment.
 
@@ -384,10 +384,10 @@ Measure:
 
 For normal streaming recordings where cleanup runs throughout capture:
 
-| Duration | Stop-to-paste p50 | Stop-to-paste p95 |
-|---|---:|---:|
-| 10 minutes | <= 1.5 s | <= 3.0 s |
-| 30 minutes | <= 2.5 s | <= 5.0 s |
+| Duration   | Stop-to-paste p50 | Stop-to-paste p95 |
+| ---------- | ----------------: | ----------------: |
+| 10 minutes |          <= 1.5 s |          <= 3.0 s |
+| 30 minutes |          <= 2.5 s |          <= 5.0 s |
 
 Additional gates:
 
@@ -477,16 +477,16 @@ semantics. The backend supplies the state.
 
 ## 13. Ordered implementation plan
 
-| Order | Task | Serves | Depends on | Estimated LOC |
-|---:|---|---|---|---:|
-| 1 | T1 — Make every cleanup stage and fallback measurable | c1, c3, c7 | — | 360 |
-| 2 | T2 — Remove deterministic prose rewriting and unsafe global catalog aliases | c2, c3, c6 | T1 | 390 |
-| 3 | T3 — Make the S1 contract exact and fallback chunk-local | c1, c3, c6 | T1 | 350 |
-| 4 | T4 — Clean stable ASR commits during recording | c3, c4, c6 | T2, T3 | 400 |
-| 5 | T5 — Benchmark bounded llama.cpp scheduling on the target M1 | c1, c5, c8 | T1, T3 | 300 |
-| 6 | T6 — Integrate the measured Metal scheduler with backpressure | c4, c5, c6 | T4, T5 | 400 |
-| 7 | T7 — Finalize ordered text and expose truthful cleanup progress | c6, c7 | T4, T6 | 380 |
-| 8 | T8 — Prove quality, latency, memory, and rollout safety | all | T2, T3, T6, T7 | 300 |
+| Order | Task                                                                        | Serves     | Depends on     | Estimated LOC |
+| ----: | --------------------------------------------------------------------------- | ---------- | -------------- | ------------: |
+|     1 | T1 — Make every cleanup stage and fallback measurable                       | c1, c3, c7 | —              |           360 |
+|     2 | T2 — Remove deterministic prose rewriting and unsafe global catalog aliases | c2, c3, c6 | T1             |           390 |
+|     3 | T3 — Make the S1 contract exact and fallback chunk-local                    | c1, c3, c6 | T1             |           350 |
+|     4 | T4 — Clean stable ASR commits during recording                              | c3, c4, c6 | T2, T3         |           400 |
+|     5 | T5 — Benchmark bounded llama.cpp scheduling on the target M1                | c1, c5, c8 | T1, T3         |           300 |
+|     6 | T6 — Integrate the measured Metal scheduler with backpressure               | c4, c5, c6 | T4, T5         |           400 |
+|     7 | T7 — Finalize ordered text and expose truthful cleanup progress             | c6, c7     | T4, T6         |           380 |
+|     8 | T8 — Prove quality, latency, memory, and rollout safety                     | all        | T2, T3, T6, T7 |           300 |
 
 Each task's exact files, types, atomic subtasks, tests, acceptance criteria, and
 suggested execution skills are defined in [`tasks.json`](./tasks.json).
@@ -509,18 +509,18 @@ suggested execution skills are defined in [`tasks.json`](./tasks.json).
 
 ## 15. Risks and mitigations
 
-| Risk | Failure mode | Mitigation |
-|---|---|---|
-| Streaming cleanup seals text too early | Later self-correction becomes inconsistent | Retained provisional tail plus final divergence reconciliation |
-| Lists span chunks | First and second items become prose before third arrives | Keep enumeration-bearing tail provisional and test three-item boundary traces |
-| Parallel Metal decode starves ASR | Live transcript lags or drops commits | Benchmark with live Parakeet, hard cap concurrency, ASR RTF gate |
-| Extra contexts exhaust unified memory | Swap and severe latency spikes | One model load, measure KV memory, reject red pressure or any swap |
-| Validation rejects legitimate cleanup | User waits and receives raw text | Precise reasons, chunk-local fallback, corpus-driven threshold changes |
-| Normalizer still corrupts prose | ALL-CAPS or code tokens survive after S1 | Post-S1 safe tier, technical span gating, deny ambiguous global aliases |
-| Final ASR snapshot diverges from commits | Missing, duplicated, or stale chunks | Source spans, revision IDs, first-divergence invalidation, ordered assembler |
-| Engine failure leaves pending callers | Frozen overlay or stuck paste | Fail every waiter exactly once, READY false, failure event, recovery test |
-| Formal style changes voice too much | Clean but unnatural output | Blind quality corpus; any meaning or voice regression blocks release |
-| S1 cannot create desired rich Markdown | Product expectation remains impossible | Explicit scope: conservative lists only; separate real LLM required later |
+| Risk                                     | Failure mode                                             | Mitigation                                                                    |
+| ---------------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Streaming cleanup seals text too early   | Later self-correction becomes inconsistent               | Retained provisional tail plus final divergence reconciliation                |
+| Lists span chunks                        | First and second items become prose before third arrives | Keep enumeration-bearing tail provisional and test three-item boundary traces |
+| Parallel Metal decode starves ASR        | Live transcript lags or drops commits                    | Benchmark with live Parakeet, hard cap concurrency, ASR RTF gate              |
+| Extra contexts exhaust unified memory    | Swap and severe latency spikes                           | One model load, measure KV memory, reject red pressure or any swap            |
+| Validation rejects legitimate cleanup    | User waits and receives raw text                         | Precise reasons, chunk-local fallback, corpus-driven threshold changes        |
+| Normalizer still corrupts prose          | ALL-CAPS or code tokens survive after S1                 | Post-S1 safe tier, technical span gating, deny ambiguous global aliases       |
+| Final ASR snapshot diverges from commits | Missing, duplicated, or stale chunks                     | Source spans, revision IDs, first-divergence invalidation, ordered assembler  |
+| Engine failure leaves pending callers    | Frozen overlay or stuck paste                            | Fail every waiter exactly once, READY false, failure event, recovery test     |
+| Formal style changes voice too much      | Clean but unnatural output                               | Blind quality corpus; any meaning or voice regression blocks release          |
+| S1 cannot create desired rich Markdown   | Product expectation remains impossible                   | Explicit scope: conservative lists only; separate real LLM required later     |
 
 ## 16. Rollout and rollback
 

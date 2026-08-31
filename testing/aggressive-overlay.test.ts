@@ -1,7 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
 // Pure extraction of the promote logic from RecordingOverlay.tsx:279
-type OverlayState = "recording" | "hands_free" | "streaming" | "transcribing" | "processing" | "prompting" | "editing" | "ai_notice";
+type OverlayState =
+  | "recording"
+  | "hands_free"
+  | "streaming"
+  | "transcribing"
+  | "processing"
+  | "prompting"
+  | "editing"
+  | "ai_notice";
 
 function isHandsFreePromote(
   overlayState: string,
@@ -92,12 +100,23 @@ describe("formatter — ensure_terminal & recapitalize (JS mirror)", () => {
     const firstEnd = rest.search(/\s/);
     const end = firstEnd === -1 ? text.length : firstStart + firstEnd;
     const firstToken = text.slice(firstStart, end);
-    const mixed = firstToken.slice(1).split("").some((c) => c !== c.toLowerCase() && c === c.toUpperCase());
-    const tech = firstToken.includes("_") || firstToken.includes("/") || firstToken.includes("::") || firstToken.startsWith("#");
+    const mixed = firstToken
+      .slice(1)
+      .split("")
+      .some((c) => c !== c.toLowerCase() && c === c.toUpperCase());
+    const tech =
+      firstToken.includes("_") ||
+      firstToken.includes("/") ||
+      firstToken.includes("::") ||
+      firstToken.startsWith("#");
     if (mixed || tech) return text;
     const firstChar = text[firstStart];
     if (firstChar.toUpperCase() === firstChar) return text;
-    return text.slice(0, firstStart) + firstChar.toUpperCase() + text.slice(firstStart + 1);
+    return (
+      text.slice(0, firstStart) +
+      firstChar.toUpperCase() +
+      text.slice(firstStart + 1)
+    );
   }
 
   test("ensureTerminal adds period only when missing", () => {
@@ -115,9 +134,15 @@ describe("formatter — ensure_terminal & recapitalize (JS mirror)", () => {
     expect(ensureTerminal("hello José")).toBe("hello José.");
   });
   test("recapitalize respects technical tokens", () => {
-    expect(recapitalize("fix the MY_CONSTANT value")).toBe("Fix the MY_CONSTANT value");
-    expect(recapitalize("myFunction should stay")).toBe("myFunction should stay");
-    expect(recapitalize("src/file.rs should stay")).toBe("src/file.rs should stay");
+    expect(recapitalize("fix the MY_CONSTANT value")).toBe(
+      "Fix the MY_CONSTANT value",
+    );
+    expect(recapitalize("myFunction should stay")).toBe(
+      "myFunction should stay",
+    );
+    expect(recapitalize("src/file.rs should stay")).toBe(
+      "src/file.rs should stay",
+    );
     expect(recapitalize("hello world")).toBe("Hello world");
     expect(recapitalize("already Hello")).toBe("Already Hello");
   });
@@ -136,16 +161,22 @@ describe("formatter — layout edge cases (JS mirror of Rust expectations)", () 
     function parseColonListSim(text: string) {
       const colonIdx = text.indexOf(":");
       const after = text.slice(colonIdx + 1).trim();
-      const sentences = after.split(".").map((s) => s.trim()).filter(Boolean);
+      const sentences = after
+        .split(".")
+        .map((s) => s.trim())
+        .filter(Boolean);
       // If last sentence has no terminal (original had no "."), it was from split on "." so last is without dot
       // Our fix requires all sentences to be terminal to be bullet
-      const hasNonTerminalTail = !after.trim().endsWith(".") && sentences[sentences.length - 1] === "final-tail-token";
+      const hasNonTerminalTail =
+        !after.trim().endsWith(".") &&
+        sentences[sentences.length - 1] === "final-tail-token";
       return {
         isBulletTail: hasNonTerminalTail,
         wouldBeBulletCount: sentences.length,
       };
     }
-    const text = "We need React, TypeScript, Tailwind CSS, and Tauri. quick status: dashboards shipped. login resolved. api patched. payments pending. final-tail-token";
+    const text =
+      "We need React, TypeScript, Tailwind CSS, and Tauri. quick status: dashboards shipped. login resolved. api patched. payments pending. final-tail-token";
     const sim = parseColonListSim(text);
     expect(sim.isBulletTail).toBe(true); // it IS a non-terminal tail
     // Our Rust fix now breaks on non-terminal, so it will NOT include it as bullet

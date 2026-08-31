@@ -297,7 +297,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       </button>
 
       <div className="flex-1 flex items-center gap-2">
-        <span className={`text-xs min-w-[30px] tabular-nums ${isLight ? "text-stone-500" : "text-text/60"}`}>
+        <span
+          className={`text-xs min-w-[30px] tabular-nums ${isLight ? "text-stone-500" : "text-text/60"}`}
+        >
           {formatTime(currentTime)}
         </span>
 
@@ -316,7 +318,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           }}
         />
 
-        <span className={`text-xs min-w-[30px] tabular-nums ${isLight ? "text-stone-500" : "text-text/60"}`}>
+        <span
+          className={`text-xs min-w-[30px] tabular-nums ${isLight ? "text-stone-500" : "text-text/60"}`}
+        >
           {formatTime(duration)}
         </span>
       </div>

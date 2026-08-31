@@ -268,11 +268,15 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
            duration and every action aligned horizontally on the right. */}
       <div className="flex items-center justify-between gap-3">
         <span className="flex min-w-0 items-center gap-2">
-          <span className={`shrink-0 text-sm font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-100"}`}>
+          <span
+            className={`shrink-0 text-sm font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-100"}`}
+          >
             {formatTimeOfDay(entry.timestamp, i18n.language)}
           </span>
           {busy && (
-            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] tracking-wide ${isLight ? "bg-blue-500/15 text-blue-600" : "bg-blue-500/10 text-blue-300"}`}>
+            <span
+              className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] tracking-wide ${isLight ? "bg-blue-500/15 text-blue-600" : "bg-blue-500/10 text-blue-300"}`}
+            >
               <CircleNotch size={12} className="animate-spin" />
               {t("settings.history.transcribing")}
             </span>
@@ -280,7 +284,9 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
           {/* Failed transcriptions stay compact: an inline chip next to the
               time instead of a full placeholder line padding the row out. */}
           {!hasText && !busy && (
-            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] tracking-wide ${isLight ? "bg-rose-500/15 text-rose-600" : "bg-rose-500/10 text-rose-300"}`}>
+            <span
+              className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] tracking-wide ${isLight ? "bg-rose-500/15 text-rose-600" : "bg-rose-500/10 text-rose-300"}`}
+            >
               {t("settings.history.transcriptionFailed")}
             </span>
           )}
@@ -288,11 +294,15 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
         <span className="flex shrink-0 items-center gap-1">
           {!busy && hasText && (
             <>
-              <span className={`inline-flex items-center rounded-[3.5px] px-1.5 py-0.5 text-[11px] font-medium leading-none tracking-tight ${isLight ? "bg-blue-500/15 text-blue-600" : "bg-blue-500/[0.11] text-blue-300"}`}>
+              <span
+                className={`inline-flex items-center rounded-[3.5px] px-1.5 py-0.5 text-[11px] font-medium leading-none tracking-tight ${isLight ? "bg-blue-500/15 text-blue-600" : "bg-blue-500/[0.11] text-blue-300"}`}
+              >
                 {t("home.words", { count: words })}
               </span>
               {duration !== undefined && (
-                <span className={`px-1 text-xs tabular-nums tracking-wide ${isLight ? "text-stone-500" : "text-mid-gray"}`}>
+                <span
+                  className={`px-1 text-xs tabular-nums tracking-wide ${isLight ? "text-stone-500" : "text-mid-gray"}`}
+                >
                   {formatClock(duration)}
                 </span>
               )}
@@ -342,7 +352,9 @@ const TranscriptRowComponent: React.FC<TranscriptRowProps> = ({
           {t("settings.history.transcribing")}
         </p>
       ) : hasText ? (
-        <div className={`mt-2 select-text whitespace-pre-wrap break-words text-sm leading-6 ${isLight ? "text-stone-800" : "text-stone-200"}`}>
+        <div
+          className={`mt-2 select-text whitespace-pre-wrap break-words text-sm leading-6 ${isLight ? "text-stone-800" : "text-stone-200"}`}
+        >
           <TranscriptText text={finalText} />
         </div>
       ) : null}
@@ -606,8 +618,12 @@ export const HomePage: React.FC = () => {
         {/* Stats — quiet surface, vertical hairlines between cells, and a
             single bottom hairline separating the saved-time footer. No outer
             border, no shadows, no colored icon chips. */}
-        <section className={`rounded-[10px] bg-surface ${isLight ? "border border-stone-200/60" : ""}`}>
-          <div className={`grid grid-cols-2 sm:grid-cols-4 sm:divide-x ${isLight ? "sm:divide-stone-200/60" : "sm:divide-divider"}`}>
+        <section
+          className={`rounded-[10px] bg-surface ${isLight ? "border border-stone-200/60" : ""}`}
+        >
+          <div
+            className={`grid grid-cols-2 sm:grid-cols-4 sm:divide-x ${isLight ? "sm:divide-stone-200/60" : "sm:divide-divider"}`}
+          >
             {statCells.map((cell) => (
               <div
                 key={cell.key}
@@ -618,20 +634,28 @@ export const HomePage: React.FC = () => {
                   weight="light"
                   className={isLight ? "text-stone-500" : "text-stone-400"}
                 />
-                <span className={`truncate text-xl font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}>
+                <span
+                  className={`truncate text-xl font-medium tracking-tight ${isLight ? "text-stone-900" : "text-stone-50"}`}
+                >
                   {cell.value}
                 </span>
-                <span className={`text-xs tracking-wide ${isLight ? "text-stone-500" : "text-mid-gray"}`}>
+                <span
+                  className={`text-xs tracking-wide ${isLight ? "text-stone-500" : "text-mid-gray"}`}
+                >
                   {cell.label}
                 </span>
               </div>
             ))}
           </div>
-          <div className={`border-t px-4 py-3 text-center text-sm ${isLight ? "border-stone-200/60 text-stone-600" : "border-divider text-stone-400"}`}>
+          <div
+            className={`border-t px-4 py-3 text-center text-sm ${isLight ? "border-stone-200/60 text-stone-600" : "border-divider text-stone-400"}`}
+          >
             {stats.savedSeconds !== null && stats.savedSeconds > 0 ? (
               <>
                 {t("home.savedLinePrefix")}{" "}
-                <span className={`font-medium ${isLight ? "text-stone-900" : "text-stone-200"}`}>
+                <span
+                  className={`font-medium ${isLight ? "text-stone-900" : "text-stone-200"}`}
+                >
                   {formatDuration(stats.savedSeconds)}
                 </span>{" "}
                 {t("home.savedLineSuffix")}
@@ -664,11 +688,15 @@ export const HomePage: React.FC = () => {
 
         {/* Transcripts — grouped Today / Yesterday / Earlier */}
         {loading ? (
-          <div className={`rounded-[10px] bg-surface px-4 py-8 text-center text-sm ${isLight ? "border border-stone-200/60 text-stone-500" : "text-mid-gray"}`}>
+          <div
+            className={`rounded-[10px] bg-surface px-4 py-8 text-center text-sm ${isLight ? "border border-stone-200/60 text-stone-500" : "text-mid-gray"}`}
+          >
             {t("settings.history.loading")}
           </div>
         ) : entries.length === 0 ? (
-          <div className={`rounded-[10px] bg-surface px-4 py-8 text-center text-sm ${isLight ? "border border-stone-200/60 text-stone-500" : "text-mid-gray"}`}>
+          <div
+            className={`rounded-[10px] bg-surface px-4 py-8 text-center text-sm ${isLight ? "border border-stone-200/60 text-stone-500" : "text-mid-gray"}`}
+          >
             {t("home.empty")}
           </div>
         ) : (
@@ -677,7 +705,9 @@ export const HomePage: React.FC = () => {
               key={group.key}
               className={`overflow-hidden rounded-[10px] bg-surface ${isLight ? "border border-stone-200/60" : ""}`}
             >
-              <header className={`flex items-center justify-between border-b px-4 py-2.5 ${isLight ? "border-stone-200/60" : "border-divider"}`}>
+              <header
+                className={`flex items-center justify-between border-b px-4 py-2.5 ${isLight ? "border-stone-200/60" : "border-divider"}`}
+              >
                 <h3 className="text-xs font-medium uppercase tracking-wide text-mid-gray">
                   {group.label}
                 </h3>
@@ -685,7 +715,13 @@ export const HomePage: React.FC = () => {
                   {group.rows.length}
                 </span>
               </header>
-              <div className={isLight ? "divide-y divide-stone-200/60" : "divide-y divide-divider/60"}>
+              <div
+                className={
+                  isLight
+                    ? "divide-y divide-stone-200/60"
+                    : "divide-y divide-divider/60"
+                }
+              >
                 {group.rows.map((entry) => (
                   <TranscriptRow
                     key={entry.id}

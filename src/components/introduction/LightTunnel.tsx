@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { Renderer, Program, Mesh, Triangle } from 'ogl';
+import React, { useEffect, useRef } from "react";
+import { Renderer, Program, Mesh, Triangle } from "ogl";
 
-export type FlowDirection = 'inward' | 'outward';
+export type FlowDirection = "inward" | "outward";
 
 export interface LightTunnelProps {
   cableColor?: string;
@@ -38,7 +38,11 @@ export interface LightTunnelProps {
 const hexToRgb = (hex: string): [number, number, number] => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return [1, 1, 1];
-  return [parseInt(result[1], 16) / 255, parseInt(result[2], 16) / 255, parseInt(result[3], 16) / 255];
+  return [
+    parseInt(result[1], 16) / 255,
+    parseInt(result[2], 16) / 255,
+    parseInt(result[3], 16) / 255,
+  ];
 };
 
 const vertex = `#version 300 es
@@ -171,12 +175,12 @@ type LightTunnelCtx = {
 const ctxMap = new WeakMap<HTMLDivElement, LightTunnelCtx>();
 
 const LightTunnel: React.FC<LightTunnelProps> = ({
-  cableColor = '#A855F7',
-  pulseColor = '#A855F7',
-  tunnelColor = '#5227FF',
+  cableColor = "#A855F7",
+  pulseColor = "#A855F7",
+  tunnelColor = "#5227FF",
   tunnelOpacity = 0,
   speed = 0.1,
-  flowDirection = 'outward',
+  flowDirection = "outward",
   pulseSpeed = 2,
   pulseLength = 0.28,
   pulseBlend = 1,
@@ -199,7 +203,7 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
   opacity = 1.0,
   mouseInteraction = true,
   mouseStrength = 0.1,
-  className = ''
+  className = "",
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mouseEnabledRef = useRef<boolean>(mouseInteraction);
@@ -214,15 +218,15 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
       alpha: true,
       premultipliedAlpha: true,
       antialias: false,
-      dpr: Math.min(window.devicePixelRatio || 1, 2)
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
     });
 
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 0);
     const canvas = gl.canvas as HTMLCanvasElement;
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.display = "block";
     container.appendChild(canvas);
 
     const geometry = new Triangle(gl);
@@ -252,13 +256,17 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
         uBrightness: { value: 1.0 },
         uColorVariance: { value: 1.0 },
         uOpacity: { value: 1.0 },
-        uCableColor: { value: new Float32Array([0.65882353, 0.33333333, 0.96862745]) },
-        uPulseColor: { value: new Float32Array([0.65882353, 0.33333333, 0.96862745]) },
+        uCableColor: {
+          value: new Float32Array([0.65882353, 0.33333333, 0.96862745]),
+        },
+        uPulseColor: {
+          value: new Float32Array([0.65882353, 0.33333333, 0.96862745]),
+        },
         uTunnelColor: { value: new Float32Array([0.32156863, 0.15294118, 1]) },
         uTunnelOpacity: { value: 0.0 },
         uGrain: { value: 1.0 },
-        uGrainIntensity: { value: 0.05 }
-      }
+        uGrainIntensity: { value: 0.05 },
+      },
     });
 
     const mesh = new Mesh(gl, { geometry, program });
@@ -269,7 +277,8 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
       const w = Math.max(1, Math.floor(rect.width));
       const h = Math.max(1, Math.floor(rect.height));
       renderer.setSize(w, h);
-      const res = (program.uniforms.iResolution as { value: Float32Array }).value;
+      const res = (program.uniforms.iResolution as { value: Float32Array })
+        .value;
       res[0] = gl.drawingBufferWidth;
       res[1] = gl.drawingBufferHeight;
       renderer.render({ scene: mesh });
@@ -284,13 +293,16 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      targetMouse = [(e.clientX - rect.left) / rect.width, 1.0 - (e.clientY - rect.top) / rect.height];
+      targetMouse = [
+        (e.clientX - rect.left) / rect.width,
+        1.0 - (e.clientY - rect.top) / rect.height,
+      ];
     };
     const handleMouseLeave = () => {
       targetMouse = [0.5, 0.5];
     };
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseleave', handleMouseLeave);
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseleave", handleMouseLeave);
 
     let raf = 0;
     let isVisible = true;
@@ -307,7 +319,8 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
         currentMouse[0] += 0.05 * (0.5 - currentMouse[0]);
         currentMouse[1] += 0.05 * (0.5 - currentMouse[1]);
       }
-      const off = (program.uniforms.uMouseOffset as { value: Float32Array }).value;
+      const off = (program.uniforms.uMouseOffset as { value: Float32Array })
+        .value;
       off[0] = (currentMouse[0] - 0.5) * mouseStrengthRef.current;
       off[1] = (currentMouse[1] - 0.5) * mouseStrengthRef.current;
 
@@ -316,7 +329,8 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
     };
 
     const tryStart = () => {
-      if (isVisible && isPageVisible && raf === 0) raf = requestAnimationFrame(loop);
+      if (isVisible && isPageVisible && raf === 0)
+        raf = requestAnimationFrame(loop);
     };
     const tryStop = () => {
       if (raf !== 0) {
@@ -330,7 +344,7 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
         isVisible = entry.isIntersecting;
         isVisible ? tryStart() : tryStop();
       },
-      { threshold: 0 }
+      { threshold: 0 },
     );
     io.observe(container);
 
@@ -338,7 +352,7 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
       isPageVisible = !document.hidden;
       isPageVisible ? tryStart() : tryStop();
     };
-    document.addEventListener('visibilitychange', onVisibility);
+    document.addEventListener("visibilitychange", onVisibility);
 
     tryStart();
 
@@ -346,14 +360,14 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
       tryStop();
       ro.disconnect();
       io.disconnect();
-      document.removeEventListener('visibilitychange', onVisibility);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener("visibilitychange", onVisibility);
+      canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mouseleave", handleMouseLeave);
       ctxMap.delete(container);
       try {
         container.removeChild(canvas);
       } catch {}
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, []);
 
@@ -369,7 +383,7 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
     const u = program.uniforms as Record<string, { value: any }>;
 
     u.uSpeed.value = speed;
-    u.uFlowDir.value = flowDirection === 'outward' ? -1.0 : 1.0;
+    u.uFlowDir.value = flowDirection === "outward" ? -1.0 : 1.0;
     u.uPulseSpeed.value = pulseSpeed;
     u.uPulseLength.value = pulseLength;
     u.uPulseBlend.value = pulseBlend;
@@ -435,10 +449,15 @@ const LightTunnel: React.FC<LightTunnelProps> = ({
     grainIntensity,
     opacity,
     mouseInteraction,
-    mouseStrength
+    mouseStrength,
   ]);
 
-  return <div ref={containerRef} className={`relative h-full w-full overflow-hidden ${className}`.trim()} />;
+  return (
+    <div
+      ref={containerRef}
+      className={`relative h-full w-full overflow-hidden ${className}`.trim()}
+    />
+  );
 };
 
 export default LightTunnel;

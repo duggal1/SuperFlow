@@ -52,12 +52,7 @@ if (!existsSync(avif)) {
 }
 
 const pngsPresent = macPngs.every((f) => existsSync(join(iconsDir, f)));
-if (
-  !force &&
-  pngsPresent &&
-  existsSync(iconIcns) &&
-  newerThan(iconPng, avif)
-) {
+if (!force && pngsPresent && existsSync(iconIcns) && newerThan(iconPng, avif)) {
   console.log("[gen-macos-icon] macOS icon set up to date, skipping");
   process.exit(0);
 }
@@ -84,4 +79,6 @@ await $`magick ${sourcePng} -resize 256x256 -background none -flatten ${join(ico
 rmSync(iconset, { recursive: true, force: true });
 rmSync(sourcePng, { force: true });
 
-console.log("[gen-macos-icon] done — macOS app icon now sourced from public/logo.avif");
+console.log(
+  "[gen-macos-icon] done — macOS app icon now sourced from public/logo.avif",
+);

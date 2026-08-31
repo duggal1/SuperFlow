@@ -191,7 +191,9 @@ export default function Page() {
   return (
     <div className="space-y-5">
       {/* Tabs — keep the icon rail exactly as designed */}
-      <div className={`flex items-center gap-1 rounded-2xl p-1.5 ring-1 ${isLight ? "bg-stone-100 ring-stone-200" : "bg-white/[0.06] ring-white/[0.05]"}`}>
+      <div
+        className={`flex items-center gap-1 rounded-2xl p-1.5 ring-1 ${isLight ? "bg-stone-100 ring-stone-200" : "bg-white/[0.06] ring-white/[0.05]"}`}
+      >
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
           return (
@@ -205,7 +207,9 @@ export default function Page() {
                 "group relative flex h-14 w-14 items-center cursor-pointer justify-center",
                 "rounded-xl outline-none",
                 "transition-[background-color,opacity,transform,filter,box-shadow] duration-200",
-                isLight ? "focus-visible:ring-2 focus-visible:ring-stone-300" : "focus-visible:ring-2 focus-visible:ring-white/20",
+                isLight
+                  ? "focus-visible:ring-2 focus-visible:ring-stone-300"
+                  : "focus-visible:ring-2 focus-visible:ring-white/20",
                 isActive
                   ? isLight
                     ? [
@@ -265,10 +269,14 @@ export default function Page() {
       {/* Master toggle */}
       <div className="flex items-center justify-between px-1">
         <div>
-          <p className={`text-sm font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}>
+          <p
+            className={`text-sm font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}
+          >
             {t("specifications.useFor", { surface: active.label })}
           </p>
-          <p className="text-xs text-stone-500">{t("specifications.useHint")}</p>
+          <p className="text-xs text-stone-500">
+            {t("specifications.useHint")}
+          </p>
         </div>
         <ToggleSwitch
           checked={spec.enabled}
@@ -281,7 +289,9 @@ export default function Page() {
       </div>
 
       {spec.enabled && (
-        <div className={`space-y-6 rounded-[12px] p-4 ring-1 ${isLight ? "bg-white ring-stone-200" : "bg-stone-900/40 ring-white/[0.05]"}`}>
+        <div
+          className={`space-y-6 rounded-[12px] p-4 ring-1 ${isLight ? "bg-white ring-stone-200" : "bg-stone-900/40 ring-white/[0.05]"}`}
+        >
           {/* Identity — first-class, shared across surfaces */}
           <Section title={t("specifications.identity.title")}>
             <Field
@@ -306,7 +316,9 @@ export default function Page() {
               placeholder={t("specifications.identity.company")}
             />
             <div className="flex items-center justify-between gap-6">
-              <span className={`w-32 shrink-0 text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}>
+              <span
+                className={`w-32 shrink-0 text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}
+              >
                 {t("specifications.identity.timezone")}
               </span>
               <Dropdown
@@ -478,7 +490,9 @@ function Section({
   return (
     <div className="space-y-3">
       <div>
-        <h3 className={`text-xs font-medium uppercase tracking-wide ${isLight ? "text-stone-600" : "text-stone-400"}`}>
+        <h3
+          className={`text-xs font-medium uppercase tracking-wide ${isLight ? "text-stone-600" : "text-stone-400"}`}
+        >
           {title}
         </h3>
         {hint && <p className="mt-0.5 text-xs text-stone-600">{hint}</p>}
@@ -505,7 +519,11 @@ function Field({
   if (horizontal) {
     return (
       <label className="flex items-center justify-between gap-6">
-        <span className={`w-32 shrink-0 text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
+        <span
+          className={`w-32 shrink-0 text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}
+        >
+          {label}
+        </span>
         <Input
           variant="compact"
           className="flex-1"
@@ -519,7 +537,11 @@ function Field({
 
   return (
     <label className="block space-y-1">
-      <span className={`text-xs ${isLight ? "text-stone-600" : "text-stone-400"}`}>{label}</span>
+      <span
+        className={`text-xs ${isLight ? "text-stone-600" : "text-stone-400"}`}
+      >
+        {label}
+      </span>
       <Input
         value={value}
         placeholder={placeholder}
@@ -541,7 +563,11 @@ function BoolField({
   const isLight = useIsLight();
   return (
     <div className="flex items-center justify-between">
-      <span className={`text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}>{label}</span>
+      <span
+        className={`text-sm ${isLight ? "text-stone-700" : "text-stone-300"}`}
+      >
+        {label}
+      </span>
       <ToggleSwitch
         checked={checked}
         onChange={onChange}

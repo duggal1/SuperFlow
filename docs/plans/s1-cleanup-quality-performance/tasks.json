@@ -64,7 +64,11 @@
         "Longest-common-prefix final reconciler",
         "Existing CleanupResult and chunk-local fallback"
       ],
-      "tools": ["git diff", "Rust unit and integration tests", "synthetic stream update replay"],
+      "tools": [
+        "git diff",
+        "Rust unit and integration tests",
+        "synthetic stream update replay"
+      ],
       "packages": ["existing std, tokio, transcribe-cpp, and llama-cpp-2 only"],
       "files": [
         {
@@ -155,7 +159,11 @@
       ],
       "depends_on": [],
       "estimated_loc": 400,
-      "suggested_skills": ["engineeringkit-backend-discipline", "anomaly-investigation", "blue-team"]
+      "suggested_skills": [
+        "engineeringkit-backend-discipline",
+        "anomaly-investigation",
+        "blue-team"
+      ]
     },
     {
       "id": "T5",
@@ -170,7 +178,12 @@
         "Warm p50, p95, and p99 distributions",
         "Exact SchedulerConfig selection rules"
       ],
-      "tools": ["ignored Cargo tests", "powermetrics or Activity Monitor", "stream performance logs", "fixed fixture hashes"],
+      "tools": [
+        "ignored Cargo tests",
+        "powermetrics or Activity Monitor",
+        "stream performance logs",
+        "fixed fixture hashes"
+      ],
       "packages": ["no new runtime packages"],
       "files": [
         {
@@ -252,7 +265,10 @@
         "Per-session cancellation and deadline tokens",
         "Existing source-span ordered CleanupResult"
       ],
-      "tools": ["Rust concurrency and failure tests", "target-hardware profiler"],
+      "tools": [
+        "Rust concurrency and failure tests",
+        "target-hardware profiler"
+      ],
       "packages": ["existing llama-cpp-2 and tokio only"],
       "files": [
         {
@@ -320,7 +336,11 @@
       ],
       "depends_on": ["T4", "T5"],
       "estimated_loc": 400,
-      "suggested_skills": ["engineeringkit-backend-discipline", "elite-backend-engineering", "optimize-loop"]
+      "suggested_skills": [
+        "engineeringkit-backend-discipline",
+        "elite-backend-engineering",
+        "optimize-loop"
+      ]
     },
     {
       "id": "T7",
@@ -332,7 +352,11 @@
         "Existing StreamPhaseEvent and StreamWorkKind",
         "Existing useCleanupModel, RecordingOverlay, AIModelsStatusCard, StatusPing, and Badge"
       ],
-      "tools": ["TypeScript build and lint", "translation checker", "Tauri UI smoke"],
+      "tools": [
+        "TypeScript build and lint",
+        "translation checker",
+        "Tauri UI smoke"
+      ],
       "packages": ["no new packages"],
       "files": [
         {
@@ -405,7 +429,10 @@
       ],
       "depends_on": ["T4", "T6"],
       "estimated_loc": 260,
-      "suggested_skills": ["engineeringkit-frontend-skills", "engineeringkit-backend-discipline"]
+      "suggested_skills": [
+        "engineeringkit-frontend-skills",
+        "engineeringkit-backend-discipline"
+      ]
     },
     {
       "id": "T8",
@@ -419,7 +446,13 @@
         "Quality corpus and blind A/B rubric",
         "Long-session and failure-injection report"
       ],
-      "tools": ["Cargo", "Bun", "Tauri app", "target-hardware benchmark harness", "git diff"],
+      "tools": [
+        "Cargo",
+        "Bun",
+        "Tauri app",
+        "target-hardware benchmark harness",
+        "git diff"
+      ],
       "packages": ["no new packages"],
       "files": [
         {
@@ -500,7 +533,11 @@
       ],
       "depends_on": ["T4", "T5", "T6", "T7"],
       "estimated_loc": 300,
-      "suggested_skills": ["blue-team", "optimize-loop", "engineeringkit-backend-discipline"]
+      "suggested_skills": [
+        "blue-team",
+        "optimize-loop",
+        "engineeringkit-backend-discipline"
+      ]
     }
   ],
   "order": ["T4", "T5", "T6", "T7", "T8"]

@@ -16,6 +16,7 @@ cargo run --release 2>&1 | tee output.txt
 ```
 
 Uses public API from `harper-core/README.md`:
+
 ```rust
 use harper_core::{Document, Dialect, parsers::PlainEnglish, spell::FstDictionary, linting::{LintGroup, Linter}};
 let dict = FstDictionary::curated();
@@ -35,6 +36,7 @@ Suggestion apply: `harper_core::linting::Suggestion::ReplaceWith/Remove/InsertAf
 **What we threw:** `testing/harper-playground/src/main.rs:156` — 10 cases including `getUserById`, `src/utils/parse_transcript.rs`, `useEffect`, `Zustand`, `SuperflowPanel`, `Alicks`, `hello   there\twith  weird   spacing`.
 
 **Findings:**
+
 - `SpellCheck` **will** flag tech tokens: `getUserById` (`src/main.rs:180` reported `SpellCheck ∅`), `Zustand → Custard/Husband` (`src/main.rs:185`), `Superflow → Superfood` (`src/main.rs:191`), `useEffect → effect` / `use Effect` split (`src/main.rs:185`).
 - `SplitWords` wants to split `handlePaste → handle Paste`, `parseTranscript → parse Transcript` (`src/main.rs:186`).
 - `SentenceCapitalization` fires on `the → The` correctly, but also **mis-fires on file extensions**: `cleanup.rs` → `cleanup.Rs` because `PlainEnglish` treats `.` + `rs` as sentence boundary (`src/main.rs:215` → `4.1` `rs → Rs`). This is a **real Superflow killer** for file paths if you whitelist `SentenceCapitalization`.
@@ -51,6 +53,7 @@ Suggestion apply: `harper_core::linting::Suggestion::ReplaceWith/Remove/InsertAf
 **What we threw:** `src/main.rs:174` — 20 cases from `This are a test.` to 65-word dictation paragraph.
 
 **Hit rate (observed):**
+
 - ✅ `he have went → has gone` (`PronounVerbAgreement` + `SimplePastToPastParticiple`, `src/main.rs:204` `2.2`)
 - ✅ `RepeatedWords: the the → the`, `and and → and` (`src/main.rs:213` `2.6`)
 - ✅ `AnA: an test → a test`, `a apple → an apple` (`src/main.rs:237` `2.18`)
@@ -88,18 +91,19 @@ Suggestion apply: `harper_core::linting::Suggestion::ReplaceWith/Remove/InsertAf
 
 **What we threw:** `src/main.rs:290` — 8 cases with `src-tauri/src/transcript/cleanup.rs`, `getContextForFileName`, `flate2`, `myVarName`, `0.6B`, etc. Checked token-preservation via `extract_tech_tokens` (`src/main.rs:654`).
 
-| Case | SAFE preserves all tech? | DANGEROUS preserves? |
-|------|--------------------------|----------------------|
-| 4.1 `cleanup.rs` file path | ❌ fails (`cleanup.rs → cleanup.Rs`) | ❌ |
-| 4.2 `.env.local`, `/api/parse` | ❌ fails (`.env.local → .env.Local`, `api → API`) | ❌ |
-| 4.3 React stack | ✅ | ❌ (`useEffect → use Effect`) |
-| 4.4 `track.ts` + `fileName` | ❌ (`fileName → filename`, `track.ts → track.Ts`) | ❌ |
-| 4.5 `foobar bazqux flate2` | ✅ | ❌ (`bazqux → basque`) |
-| 4.6 `harperCore` | ✅ | ❌ |
-| 4.7 `clipboard_manager.rs` | ❌ | ❌ |
-| 4.8 `VAD/Silero/ONNX/0.6B` | ✅ | ❌ (`0.6B → 0.6 bytes`) |
+| Case                           | SAFE preserves all tech?                          | DANGEROUS preserves?          |
+| ------------------------------ | ------------------------------------------------- | ----------------------------- |
+| 4.1 `cleanup.rs` file path     | ❌ fails (`cleanup.rs → cleanup.Rs`)              | ❌                            |
+| 4.2 `.env.local`, `/api/parse` | ❌ fails (`.env.local → .env.Local`, `api → API`) | ❌                            |
+| 4.3 React stack                | ✅                                                | ❌ (`useEffect → use Effect`) |
+| 4.4 `track.ts` + `fileName`    | ❌ (`fileName → filename`, `track.ts → track.Ts`) | ❌                            |
+| 4.5 `foobar bazqux flate2`     | ✅                                                | ❌ (`bazqux → basque`)        |
+| 4.6 `harperCore`               | ✅                                                | ❌                            |
+| 4.7 `clipboard_manager.rs`     | ❌                                                | ❌                            |
+| 4.8 `VAD/Silero/ONNX/0.6B`     | ✅                                                | ❌ (`0.6B → 0.6 bytes`)       |
 
 **Root causes in SAFE:**
+
 - `SentenceCapitalization` on `rs/ts/api/local` after `.` — treat dot-files as sentence boundary.
 - `OrthographicConsistency` on `fileName → filename` — needs masking.
 - These are SAFE-whitelisted rules; they need **code-span masking** to avoid.
@@ -113,6 +117,7 @@ Suggestion apply: `harper_core::linting::Suggestion::ReplaceWith/Remove/InsertAf
 ### 5. Reliable & brutally tested — **EXCELLENT (with caveats)**
 
 **Latency** (`src/main.rs:380`):
+
 ```
 tiny 16c    0.20ms  ✅ <10ms
 small 288c  2.54ms  ✅
@@ -121,6 +126,7 @@ large 5.1kc 11.4ms  ⚠️ >10ms
 30min 12.3kc 23.2ms ⚠️  (but 10-100× vs LLM)
 45min 18.4kc 23.7ms ⚠️
 ```
+
 First cold lint 878ms (cache warmup, `src/main.rs:150`) then steady-state <10ms for normal docs, ~23ms for 30-45min — confirms Harper's `under 10ms` claim (`https://writewithharper.com`) for docs, and still negligible vs 2-8s for 8B LLM. Zero GPU, deterministic.
 
 **Determinism:** 10/10 identical runs (`src/main.rs:440`).
