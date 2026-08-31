@@ -434,6 +434,38 @@ export function MeetingPage() {
     }, 0);
   };
 
+  // Deterministic per-meeting speaker colors: first speaker (you) neutral,
+  // second orange, remaining speakers cycle a multi-color palette. Must run
+  // before the no-selection early return so the hook order stays stable.
+  const speakerVariants = useMemo(() => {
+    const transcript = selected?.transcript ?? [];
+    const palette: BadgeVariant[] = [
+      "blue",
+      "violet",
+      "cyan",
+      "purple",
+      "sky",
+      "fuchsia",
+      "indigo",
+      "pink",
+      "yellow",
+      "rose",
+    ];
+    const order = Array.from(
+      new Set(transcript.map((segment) => segment.speaker)),
+    );
+    return new Map(
+      order.map((speaker, index): [string, BadgeVariant] => [
+        speaker,
+        index === 0
+          ? "neutral"
+          : index === 1
+            ? "orange"
+            : palette[(index - 2) % palette.length],
+      ]),
+    );
+  }, [selected]);
+
   if (!selected) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 pb-16 pt-3">
@@ -534,35 +566,6 @@ export function MeetingPage() {
   const speakers = new Set(
     selected.transcript.map((segment) => segment.speaker),
   ).size;
-  // Deterministic per-meeting speaker colors: first speaker (you) neutral,
-  // second orange, remaining speakers cycle a multi-color palette.
-  const speakerVariants = useMemo(() => {
-    const palette: BadgeVariant[] = [
-      "blue",
-      "violet",
-      "cyan",
-      "purple",
-      "sky",
-      "fuchsia",
-      "indigo",
-      "pink",
-      "yellow",
-      "rose",
-    ];
-    const order = Array.from(
-      new Set(selected.transcript.map((segment) => segment.speaker)),
-    );
-    return new Map(
-      order.map((speaker, index): [string, BadgeVariant] => [
-        speaker,
-        index === 0
-          ? "neutral"
-          : index === 1
-            ? "orange"
-            : palette[(index - 2) % palette.length],
-      ]),
-    );
-  }, [selected]);
 
   return (
     <main className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-6 pb-16 pt-3">
