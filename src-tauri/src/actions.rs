@@ -816,7 +816,11 @@ async fn process_transcription_output_with_context(
             }
         }
     };
-    if post_processed_text.is_some() && shaped != final_text {
+    // `shaped` is the actual user-visible output for every dictation mode.
+    // Persist it even when no AI/post-process step ran; otherwise History
+    // displays the pre-layout transcript for normal hands-free sessions while
+    // the paste path receives the correctly formatted version.
+    if shaped != final_text {
         post_processed_text = Some(shaped.clone());
     }
 
@@ -1437,8 +1441,13 @@ impl ShortcutAction for TranscribeAction {
 
         match rm.try_start_recording(&binding_id, vad_policy, Some(journal_path)) {
             Ok(readiness) => {
-                if is_meeting && !crate::meeting::audio::start_system_audio() {
-                    warn!("Meeting system audio was unavailable; microphone capture continues");
+                if is_meeting {
+                    crate::meeting::audio::begin_meeting_timeline(
+                        chrono::Utc::now().timestamp_millis(),
+                    );
+                    if !crate::meeting::audio::start_system_audio() {
+                        warn!("Meeting system audio was unavailable; microphone capture continues");
+                    }
                 }
                 rm.begin_context_capture(
                     settings.smart_file_references_enabled
@@ -1583,6 +1592,7 @@ impl ShortcutAction for TranscribeAction {
         let post_process = self.post_process;
         let ai_hotkey = self.ai_hotkey;
         let cancel_generation = rm.cancel_generation();
+        let meeting_ended_at = is_meeting.then(|| chrono::Utc::now().timestamp_millis());
 
         tauri::async_runtime::spawn(async move {
             let _guard = FinishGuard(ah.clone());
@@ -1662,13 +1672,16 @@ impl ShortcutAction for TranscribeAction {
                         Ok(_) => tm.transcribe(samples),
                         Err(err) => Err(err),
                     };
+                    let mic_timed_spans = tm.take_last_timed_spans();
                     let system_transcription = if is_meeting {
                         let system_samples = crate::meeting::audio::take_system_samples();
                         if system_samples.is_empty() {
                             None
                         } else {
                             match tm.transcribe(system_samples) {
-                                Ok(text) if !text.trim().is_empty() => Some(text),
+                                Ok(text) if !text.trim().is_empty() => {
+                                    Some((text, tm.take_last_timed_spans()))
+                                }
                                 Ok(_) => None,
                                 Err(error) => {
                                     warn!("Meeting system-audio transcription failed: {error}");
@@ -1728,50 +1741,40 @@ impl ShortcutAction for TranscribeAction {
                             );
 
                             if is_meeting {
-                                let ended_at = chrono::Utc::now().timestamp_millis();
-                                let duration_ms =
+                                let ended_at = meeting_ended_at
+                                    .unwrap_or_else(|| chrono::Utc::now().timestamp_millis());
+                                let recorded_duration_ms =
                                     ((sample_count as f64 / 16_000.0) * 1_000.0) as i64;
+                                let (started_at, duration_ms) =
+                                    crate::meeting::audio::finish_meeting_timeline(
+                                        ended_at,
+                                        recorded_duration_ms,
+                                    );
                                 let settings = get_settings(&ah);
                                 let speaker = crate::meeting::audio::resolve_you_name(&settings);
                                 let id = format!("meeting-{ended_at}");
                                 let transcript_text = transcription.trim().to_string();
-                                // One coherent timeline: each speaker's sentences
-                                // interpolate across a slice of the meeting
-                                // proportional to how much they said. Without
-                                // this both streams interpolate over the full
-                                // duration and every segment reports 00:00.
+                                // Both sources exist for the full meeting. Never
+                                // serialize the microphone before system audio:
+                                // that creates a false timeline where every remote
+                                // speaker appears only after the local speaker.
                                 let remote_text = system_transcription
-                                    .map(|text| text.trim().to_string())
-                                    .filter(|text| !text.is_empty());
-                                let mic_chars = transcript_text.chars().count() as i64;
-                                let remote_chars = remote_text
-                                    .as_deref()
-                                    .map(|text| text.chars().count())
-                                    .unwrap_or(0)
-                                    as i64;
-                                let mic_span =
-                                    (duration_ms * mic_chars) / (mic_chars + remote_chars).max(1);
-                                let remote_span = duration_ms - mic_span;
-
-                                let mut segments = crate::meeting::audio::timestamped_segments(
-                                    &speaker,
-                                    &transcript_text,
-                                    mic_span,
-                                );
-                                if let Some(remote_text) = remote_text {
+                                    .map(|(text, spans)| (text.trim().to_string(), spans))
+                                    .filter(|(text, _)| !text.is_empty());
+                                let mut segments =
+                                    crate::meeting::audio::timestamped_segments_with_spans(
+                                        &speaker,
+                                        &transcript_text,
+                                        duration_ms,
+                                        &mic_timed_spans,
+                                    );
+                                if let Some((remote_text, remote_timed_spans)) = remote_text {
                                     segments.extend(
-                                        crate::meeting::audio::timestamped_segments(
+                                        crate::meeting::audio::timestamped_segments_with_spans(
                                             "Speaker 1",
                                             &remote_text,
-                                            remote_span,
-                                        )
-                                        .into_iter()
-                                        .map(
-                                            |mut segment| {
-                                                segment.start_ms += mic_span;
-                                                segment.end_ms += mic_span;
-                                                segment
-                                            },
+                                            duration_ms,
+                                            &remote_timed_spans,
                                         ),
                                     );
                                 }
@@ -1781,7 +1784,7 @@ impl ShortcutAction for TranscribeAction {
                                     title: crate::meeting::intelligence::derive_title(
                                         &transcript_text,
                                     ),
-                                    started_at: ended_at.saturating_sub(duration_ms),
+                                    started_at,
                                     ended_at,
                                     duration_ms,
                                     transcript: segments,

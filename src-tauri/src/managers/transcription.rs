@@ -295,6 +295,9 @@ pub struct TranscriptionManager {
     /// `is_model_loaded()` consults this so the model still reports "loaded"
     /// while the worker holds it.
     active_engine_lease: Arc<AtomicU64>,
+    /// Timing spans from the most recently finalized transcription. Meeting
+    /// mode consumes these immediately; normal dictation ignores them.
+    last_timed_spans: Arc<Mutex<Vec<(i64, i64)>>>,
 }
 
 impl TranscriptionManager {
@@ -315,6 +318,7 @@ impl TranscriptionManager {
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
             active_stream_worker: Arc::new(AtomicU64::new(0)),
             active_engine_lease: Arc::new(AtomicU64::new(0)),
+            last_timed_spans: Arc::new(Mutex::new(Vec::new())),
         };
 
         // Start the idle watcher
@@ -906,6 +910,7 @@ impl TranscriptionManager {
     /// `None` so the caller falls back to batch transcription. Frames sent
     /// before the stream begins queue on the channel and are not lost.
     pub fn start_stream(&self) {
+        self.last_timed_spans.lock().unwrap().clear();
         if self.router.is_open() || self.active_stream_worker.load(Ordering::Acquire) != 0 {
             warn!("start_stream called while a stream worker is already active");
             return;
@@ -1287,11 +1292,17 @@ impl TranscriptionManager {
                                 // In auto mode the model's own LID is the best
                                 // remaining evidence; the snapshot is only
                                 // materialized when it can change the outcome.
+                                let snapshot = stream.snapshot();
+                                *self.last_timed_spans.lock().unwrap() = snapshot
+                                    .segments
+                                    .iter()
+                                    .map(|segment| (segment.t0_ms, segment.t1_ms))
+                                    .collect();
                                 let output_language = match &output_language {
                                     OutputLanguageEvidence::Unknown => {
                                         with_model_detected_language(
                                             OutputLanguageEvidence::Unknown,
-                                            stream.snapshot().language,
+                                            snapshot.language,
                                         )
                                     }
                                     resolved => resolved.clone(),
@@ -1438,6 +1449,10 @@ impl TranscriptionManager {
         Ok(Some(filtered))
     }
 
+    pub fn take_last_timed_spans(&self) -> Vec<(i64, i64)> {
+        std::mem::take(&mut *self.last_timed_spans.lock().unwrap())
+    }
+
     /// Abandon any active stream without producing text (e.g. on cancel).
     pub fn cancel_stream(&self) {
         if let Some(tx) = self.router.take() {
@@ -1464,6 +1479,7 @@ impl TranscriptionManager {
     }
 
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
+        self.last_timed_spans.lock().unwrap().clear();
         #[cfg(debug_assertions)]
         if std::env::var("SUPERFLOW_FORCE_TRANSCRIPTION_FAILURE").is_ok() {
             return Err(anyhow::anyhow!(
@@ -1497,12 +1513,22 @@ impl TranscriptionManager {
                 LONG_AUDIO_CHUNK_TARGET as f64 / 16_000.0
             );
             let mut parts: Vec<String> = Vec::new();
+            let mut timed_spans = Vec::new();
+            let mut offset_ms = 0_i64;
             for chunk in split_at_silences(&audio, LONG_AUDIO_CHUNK_TARGET) {
                 if chunk.is_empty() {
                     continue;
                 }
+                let chunk_duration_ms = ((chunk.len() as f64 / 16_000.0) * 1_000.0).round() as i64;
                 parts.push(self.transcribe(chunk)?);
+                timed_spans.extend(
+                    self.take_last_timed_spans()
+                        .into_iter()
+                        .map(|(start, end)| (start + offset_ms, end + offset_ms)),
+                );
+                offset_ms += chunk_duration_ms;
             }
+            *self.last_timed_spans.lock().unwrap() = timed_spans;
             return Ok(parts.join(" "));
         }
 
@@ -1609,6 +1635,7 @@ impl TranscriptionManager {
                 );
             }
 
+            let mut timed_spans = Vec::new();
             let transcribe_result = catch_unwind(AssertUnwindSafe(|| -> Result<String> {
                 match &mut engine {
                     LoadedEngine::TranscribeCpp(session) => {
@@ -1667,6 +1694,11 @@ impl TranscriptionManager {
                                 // Whisper's audio-based LID (auto mode only;
                                 // `None` when a language hint was passed).
                                 model_detected_language = t.language;
+                                timed_spans = t
+                                    .segments
+                                    .iter()
+                                    .map(|segment| (segment.t0_ms, segment.t1_ms))
+                                    .collect();
                                 t.text
                             })
                             .map_err(|e| {
@@ -1680,7 +1712,20 @@ impl TranscriptionManager {
                         };
                         parakeet_engine
                             .transcribe_with(&audio, &params)
-                            .map(|r| r.text)
+                            .map(|r| {
+                                timed_spans = r
+                                    .segments
+                                    .unwrap_or_default()
+                                    .into_iter()
+                                    .map(|segment| {
+                                        (
+                                            (segment.start * 1_000.0).round() as i64,
+                                            (segment.end * 1_000.0).round() as i64,
+                                        )
+                                    })
+                                    .collect();
+                                r.text
+                            })
                             .map_err(|e| anyhow::anyhow!("Parakeet transcription failed: {}", e))
                     }
                     LoadedEngine::Moonshine(moonshine_engine) => moonshine_engine
@@ -1811,6 +1856,8 @@ impl TranscriptionManager {
                     ));
                 }
             };
+
+            *self.last_timed_spans.lock().unwrap() = timed_spans;
 
             let output_language = with_model_detected_language(
                 resolve_output_language_evidence(
@@ -2225,6 +2272,7 @@ fn post_process_transcription_text(
     supported_languages: &[String],
 ) -> String {
     fail_open_text_transform(raw, |raw| {
+        let original_raw = raw.clone();
         // ------------------------------------------------------------------
         // SUPERFLOW GRAMMAR — deterministic, offline, no toggle.
         // Parakeet → immutable-span masking → normalization/cleanup → Harper
@@ -2318,6 +2366,12 @@ fn post_process_transcription_text(
         } else {
             joined
         };
+        // 9.9 invariant: any newly introduced high-entropy identifier must exist in raw or be approved canonical.
+        // This is the hard safety boundary for context contamination (file paths, URLs, code tokens, Vercel hallucination).
+        // Fail-open: if hallucination detected, strip only the hallucinated spans, not the whole transcript.
+        let cleaned = crate::superflow_grammar::invariant::enforce_no_hallucinated_identifiers(&original_raw, cleaned);
+        // Measurement: for 9.9, every transformation should be traceable in tests (see transcript_cleanup tests)
+        // The invariant above is Tier A (mechanically safe) — it only removes hallucinated identifiers, never rewrites meaning.
         cleaned
     })
 }
@@ -2824,6 +2878,62 @@ mod tests {
         assert_eq!(
             output,
             crate::audio_toolkit::slack_formatting::format_for_slack(&normalized)
+        );
+    }
+
+    #[test]
+    fn long_hands_free_text_uses_the_same_cleanup_and_layout_contract() {
+        let settings = AppSettings {
+            selected_language: "en".to_string(),
+            ..Default::default()
+        };
+        let raw = concat!(
+            "GMK Tech shipped the Evil X3 with AMD Strix halo and an Oculink PORT. ",
+            "The RTX 5,080 has 16 gigs of memory and runs the 32,000,000,000 parameter model at 33, 34 tokens per second. ",
+            "The Pro 6,000 uses almost 600 watts while Q4 Quantization stays at 76.5 GB on disk. ",
+            "This final sentence contains enough ordinary words to make the paragraph formatter choose a natural sentence boundary near its thirty word target."
+        );
+        let evidence = OutputLanguageEvidence::UserSelected("en".to_string());
+        let supported = languages(&["en"]);
+
+        // Streaming/hands-free and batch/press-and-hold both finish through
+        // this exact function. The mode never selects a reduced cleanup path.
+        let hands_free = post_process_transcription_text(
+            raw.to_string(),
+            &settings,
+            false,
+            &evidence,
+            &supported,
+        );
+        let standard = post_process_transcription_text(
+            raw.to_string(),
+            &settings,
+            false,
+            &evidence,
+            &supported,
+        );
+        assert_eq!(hands_free, standard);
+
+        let shaped = crate::audio_toolkit::formatter::format_layout(&hands_free);
+        for expected in [
+            "GMKtec",
+            "EVO-X3",
+            "Strix Halo",
+            "OCuLink port",
+            "RTX 5080",
+            "16 GB",
+            "32B model",
+            "33–34 tok/s",
+            "RTX PRO 6000",
+            "600 W",
+            "Q4 quantization",
+            "76.5 GB",
+        ] {
+            assert!(shaped.contains(expected), "missing {expected:?}: {shaped}");
+        }
+        assert!(
+            shaped.contains("\n\n"),
+            "missing paragraph breaks: {shaped}"
         );
     }
 

@@ -108,6 +108,14 @@ fn classify_ptt_event(
     }
 }
 
+fn release_grace(binding_id: &str, hotkey_string: &str) -> Duration {
+    if binding_id == STANDARD_BINDING_ID && hotkey_string.eq_ignore_ascii_case("fn") {
+        FN_DOUBLE_TAP_WINDOW
+    } else {
+        RELEASE_GRACE
+    }
+}
+
 /// Serialises all transcription lifecycle events through a single thread
 /// to eliminate race conditions between keyboard shortcuts, signals, and
 /// the async transcribe-paste pipeline.
@@ -287,9 +295,10 @@ impl TranscriptionCoordinator {
                                 }
                                 PttAction::DeferRelease => {
                                     pending_release = Some(PendingRelease {
+                                        deadline: Instant::now()
+                                            + release_grace(&binding_id, &hotkey_string),
                                         binding_id,
                                         hotkey_string,
-                                        deadline: Instant::now() + RELEASE_GRACE,
                                     });
                                     continue;
                                 }
@@ -575,6 +584,27 @@ mod tests {
             classify_ptt_event(None, false, true, "transcribe", Some("transcribe")),
             PttAction::DeferRelease
         );
+    }
+
+    #[test]
+    fn bare_fn_release_waits_for_the_double_tap_window() {
+        assert_eq!(
+            release_grace(STANDARD_BINDING_ID, "fn"),
+            FN_DOUBLE_TAP_WINDOW
+        );
+        assert_eq!(
+            release_grace(STANDARD_BINDING_ID, "FN"),
+            FN_DOUBLE_TAP_WINDOW
+        );
+    }
+
+    #[test]
+    fn other_shortcuts_keep_the_short_release_grace() {
+        assert_eq!(
+            release_grace(STANDARD_BINDING_ID, "option+space"),
+            RELEASE_GRACE
+        );
+        assert_eq!(release_grace("transcribe_with_ai", "fn"), RELEASE_GRACE);
     }
 
     #[test]

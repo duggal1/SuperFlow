@@ -257,11 +257,9 @@
   width: 184px;
 }
 .scard.compact.meeting {
-  width: 184px;
-  border: 1px solid #1d4ed8;
-}
-:root[data-theme="light"] .scard.compact.meeting {
-  border-color: #2563eb;
+  width: fit-content;
+  min-width: 0;
+  border: none;
 }
 .scard.compact.ai-prompting {
   background: var(--color-background);
@@ -415,7 +413,12 @@
   padding-inline: 9px;
 }
 .scard.compact .sbase.smeeting {
-  gap: 12px;
+  height: 34px;
+  gap: 8px;
+  padding-inline: 16px;
+}
+.smeeting .stimer {
+  font-size: 13px;
 }
 
 /* Shared canvas waveform. Both standard and hands-free overlays feed it the
@@ -483,17 +486,52 @@
 .scomplete:active {
   transform: scale(0.95);
 }
-.meeting-stop {
-  border-radius: 6px;
+.hands-free-complete {
   background: #f5f5f4;
   color: #1c1917;
 }
-.meeting-stop:hover {
+.hands-free-complete:hover {
   background: #e7e5e4;
 }
+.meeting-stop {
+  border-radius: 7px;
+  background: #292524;
+  color: #f5f5f4;
+}
+.meeting-stop:hover {
+  background: #44403c;
+}
+.scard.compact.meeting-success {
+  box-sizing: border-box;
+  width: fit-content;
+  min-width: 0;
+  border: none;
+  background: var(--color-background);
+}
 .meeting-success .sbase {
-  grid-template-columns: auto auto;
-  gap: 10px;
+  display: flex;
+  width: auto;
+  height: 38px;
+  gap: 8px;
+  padding: 0 18px;
+}
+.meeting-success .swork-label {
+  padding: 0;
+  font-size: 13px;
+}
+.meeting-success-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  white-space: nowrap;
+  border-radius: 4px;
+  padding: 4px 7px;
+  background: color-mix(in srgb, #22c55e 11%, transparent);
+  color: #22c55e;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.01em;
 }
 
 /* working state (transcribing / polishing) — spinner + label */

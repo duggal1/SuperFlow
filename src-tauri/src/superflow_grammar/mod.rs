@@ -37,6 +37,7 @@
 //! - AMBIGUOUS CORRECTION: do nothing (e.g. `rolling out but afternoon` stays broken)
 
 pub mod harper_engine;
+pub mod invariant;
 pub mod protected_spans;
 
 #[allow(unused_imports)]

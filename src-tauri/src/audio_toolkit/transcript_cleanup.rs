@@ -263,6 +263,62 @@ fn remove_fillers(tokens: Vec<Token>) -> Vec<Token> {
     result
 }
 
+fn repair_tell_me_asr(tokens: Vec<Token>) -> Vec<Token> {
+    const REQUEST_FOLLOWERS: &[&str] = &[
+        "what",
+        "which",
+        "who",
+        "why",
+        "when",
+        "where",
+        "how",
+        "whether",
+        "if",
+        "about",
+        "the",
+        "a",
+        "an",
+        "your",
+        "my",
+        "more",
+        "everything",
+        "something",
+        "exactly",
+    ];
+
+    let mut output = Vec::with_capacity(tokens.len() + 1);
+    let mut index = 0usize;
+    while index < tokens.len() {
+        let token = &tokens[index];
+        let at_sentence_start = index == 0 || tokens[index - 1].sentence_boundary;
+        let next_is_request = tokens
+            .get(index + 1)
+            .is_some_and(|next| REQUEST_FOLLOWERS.contains(&next.normalized.as_str()));
+
+        // Parakeet frequently collapses the imperative "tell me" into the
+        // name "Tommy". Repair only an unpunctuated sentence-opening request;
+        // "Tommy works here" and direct address such as "Tommy, wait" remain
+        // genuine names.
+        if token.normalized == "tommy"
+            && at_sentence_start
+            && next_is_request
+            && !token.clause_boundary
+        {
+            let tell = if token.raw.chars().next().is_some_and(char::is_uppercase) {
+                "Tell"
+            } else {
+                "tell"
+            };
+            output.push(Token::new(tell.to_string()));
+            output.push(Token::new("me".to_string()));
+        } else {
+            output.push(token.clone());
+        }
+        index += 1;
+    }
+    output
+}
+
 fn can_collapse_duplicate_run(tokens: &[Token], start: usize, end: usize) -> bool {
     if end <= start + 1 {
         return false;
@@ -610,6 +666,7 @@ fn normalize_spacing_and_punctuation(tokens: Vec<Token>) -> String {
 }
 
 fn cleanup_final_tokens(tokens: Vec<Token>) -> Vec<Token> {
+    let tokens = repair_tell_me_asr(tokens);
     let tokens = remove_fillers(tokens);
     let tokens = collapse_duplicate_tokens(tokens);
     let tokens = collapse_repeated_phrases_with_limit(tokens, MAX_REPEAT_NGRAM);
@@ -814,6 +871,7 @@ fn collapse_modifier_stacking(tokens: Vec<Token>) -> Vec<Token> {
 }
 
 fn cleanup_streaming_tokens(tokens: Vec<Token>) -> Vec<Token> {
+    let tokens = repair_tell_me_asr(tokens);
     let tokens = remove_fillers(tokens);
     let tokens = collapse_duplicate_tokens(tokens);
     collapse_repeated_phrases_with_limit(tokens, STREAMING_MAX_REPEAT_NGRAM)
@@ -854,6 +912,30 @@ mod tests {
         check("I I want this", "I want this");
         check("buddy buddy buddy you good", "buddy you good");
         check("really really really really miss you", "really miss you");
+    }
+
+    #[test]
+    fn repairs_tommy_only_when_it_is_a_tell_me_request() {
+        check("Tommy what happened here?", "Tell me what happened here?");
+        check("Tommy how this works", "Tell me how this works");
+        check("tommy about the benchmark", "tell me about the benchmark");
+        check("Tommy your preferred model", "Tell me your preferred model");
+
+        check("Tommy works on the backend", "Tommy works on the backend");
+        check(
+            "I spoke with Tommy yesterday",
+            "I spoke with Tommy yesterday",
+        );
+        check("Tommy, what happened here?", "Tommy, what happened here?");
+        check("Hey Tommy what happened?", "Hey Tommy what happened?");
+    }
+
+    #[test]
+    fn streaming_preview_uses_the_same_tell_me_repair() {
+        assert_eq!(
+            normalize_streaming_preview("Tommy what is the result"),
+            "Tell me what is the result"
+        );
     }
 
     #[test]

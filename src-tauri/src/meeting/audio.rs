@@ -87,6 +87,29 @@ pub fn timestamped_segments(
         .collect()
 }
 
+pub fn timestamped_segments_with_spans(
+    speaker: &str,
+    transcript: &str,
+    duration_ms: i64,
+    spans: &[(i64, i64)],
+) -> Vec<crate::meeting::manager::MeetingSegment> {
+    let mut segments = timestamped_segments(speaker, transcript, duration_ms);
+    if spans.is_empty() || segments.is_empty() {
+        return segments;
+    }
+
+    let segment_count = segments.len();
+    for (index, segment) in segments.iter_mut().enumerate() {
+        let span_index = index.saturating_mul(spans.len()) / segment_count;
+        let (start_ms, end_ms) = spans[span_index.min(spans.len() - 1)];
+        segment.start_ms = start_ms.clamp(0, duration_ms);
+        segment.end_ms = end_ms
+            .max(start_ms + 1)
+            .clamp(segment.start_ms, duration_ms);
+    }
+    segments
+}
+
 #[cfg(target_os = "macos")]
 unsafe extern "C" {
     fn meeting_system_audio_start() -> bool;
@@ -160,7 +183,10 @@ pub fn is_system_audio_capturing() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_you_name, timestamped_segments};
+    use super::{
+        begin_meeting_timeline, finish_meeting_timeline, resolve_you_name, timestamped_segments,
+        timestamped_segments_with_spans,
+    };
 
     #[test]
     fn always_returns_a_non_empty_local_speaker_label() {
@@ -189,8 +215,42 @@ mod tests {
         assert!(segments[2].start_ms > segments[1].start_ms);
         assert_eq!(segments[2].end_ms, 90_000);
     }
+
+    #[test]
+    fn meeting_duration_uses_the_real_session_clock() {
+        begin_meeting_timeline(10_000);
+        assert_eq!(finish_meeting_timeline(85_000, 12_000), (10_000, 75_000));
+    }
+
+    #[test]
+    fn model_timing_spans_replace_character_length_estimates() {
+        let segments = timestamped_segments_with_spans(
+            "You",
+            "Short. A much longer second sentence.",
+            60_000,
+            &[(12_000, 14_000), (41_000, 48_000)],
+        );
+        assert_eq!((segments[0].start_ms, segments[0].end_ms), (12_000, 14_000));
+        assert_eq!((segments[1].start_ms, segments[1].end_ms), (41_000, 48_000));
+    }
 }
 use once_cell::sync::Lazy;
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Mutex;
 
 static SYSTEM_SAMPLES: Lazy<Mutex<Vec<f32>>> = Lazy::new(|| Mutex::new(Vec::new()));
+static MEETING_STARTED_AT: AtomicI64 = AtomicI64::new(0);
+
+pub fn begin_meeting_timeline(started_at: i64) {
+    MEETING_STARTED_AT.store(started_at, Ordering::Release);
+}
+
+pub fn finish_meeting_timeline(ended_at: i64, fallback_duration_ms: i64) -> (i64, i64) {
+    let started_at = MEETING_STARTED_AT.swap(0, Ordering::AcqRel);
+    if started_at > 0 && ended_at > started_at {
+        (started_at, ended_at - started_at)
+    } else {
+        let duration_ms = fallback_duration_ms.max(1);
+        (ended_at.saturating_sub(duration_ms), duration_ms)
+    }
+}

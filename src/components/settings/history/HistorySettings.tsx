@@ -25,6 +25,7 @@ import { Button } from "../../ui/Button";
 import { Badge } from "../../ui/Badge";
 import { ExportFormatSelector } from "../ExportFormatSelector";
 import { useIsLight } from "@/lib/utils/theme";
+import { getFinalTranscriptionText } from "@/lib/utils/journalStats";
 
 const IconButton: React.FC<{
   onClick: () => void;
@@ -276,7 +277,7 @@ export const HistorySettings: React.FC = () => {
                 key={entry.id}
                 entry={entry}
                 restoring={restoringIds.has(entry.id)}
-                onCopyText={() => copyToClipboard(entry.transcription_text)}
+                onCopyText={() => copyToClipboard(getFinalTranscriptionText(entry))}
                 getAudioUrl={getAudioUrl}
                 deleteAudio={deleteAudioEntry}
                 retryTranscription={retryHistoryEntry}
@@ -338,7 +339,8 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   // True while a transcription (manual retry or background restore) is running.
   const busy = retrying || restoring;
 
-  const hasTranscription = entry.transcription_text.trim().length > 0;
+  const finalText = getFinalTranscriptionText(entry);
+  const hasTranscription = finalText.trim().length > 0;
 
   const handleLoadAudio = useCallback(
     () => getAudioUrl(entry.file_name),
@@ -449,7 +451,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
               : undefined
           }
         >
-          {busy ? t("settings.history.transcribing") : entry.transcription_text}
+          {busy ? t("settings.history.transcribing") : finalText}
         </p>
       )}
 

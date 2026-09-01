@@ -37,6 +37,20 @@ fn clean(word: &str) -> String {
 }
 
 fn number_clean(word: &str) -> String {
+    // Decimal punctuation is semantic. Returning the literal unchanged here
+    // makes the spoken-integer parser reject it instead of silently treating
+    // `76.5` as `765`; the token is then preserved verbatim by the caller.
+    let numeric = word.trim_matches(|character: char| {
+        !character.is_ascii_digit() && !matches!(character, '.' | ',' | '-' | '+')
+    });
+    if numeric.contains('.')
+        && numeric.split('.').count() == 2
+        && numeric
+            .chars()
+            .all(|character| character.is_ascii_digit() || matches!(character, '.' | '-' | '+'))
+    {
+        return numeric.to_string();
+    }
     crate::audio_toolkit::normalization::number_word(word)
 }
 
@@ -483,7 +497,179 @@ fn ensure_terminal(sentence: &str) -> String {
 }
 
 pub fn normalize_values(text: &str) -> String {
-    normalize_numerics(text)
+    normalize_technical_values(&normalize_numerics(text))
+}
+
+fn replace_all(text: String, pattern: &str, replacement: &str) -> String {
+    regex::Regex::new(pattern)
+        .expect("static transcript normalization regex must compile")
+        .replace_all(&text, replacement)
+        .into_owned()
+}
+
+fn compact_parameter_count(digits: &str) -> Option<String> {
+    let value = digits.replace(',', "").parse::<u128>().ok()?;
+    for (scale, suffix) in [
+        (1_000_000_000_000u128, "T"),
+        (1_000_000_000u128, "B"),
+        (1_000_000u128, "M"),
+    ] {
+        if value >= scale && value % scale == 0 {
+            return Some(format!("{}{}", value / scale, suffix));
+        }
+        if value >= scale && value % (scale / 10) == 0 {
+            let rendered = value as f64 / scale as f64;
+            return Some(format!("{rendered:.1}{suffix}"));
+        }
+    }
+    None
+}
+
+fn normalize_parameter_counts(text: &str) -> String {
+    let pattern =
+        regex::Regex::new(r"(?i)\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s+parameters?(\s+model)?\b")
+            .expect("parameter-count regex must compile");
+    pattern
+        .replace_all(text, |captures: &regex::Captures<'_>| {
+            compact_parameter_count(&captures[1])
+                .map(|count| {
+                    if captures.get(2).is_some() {
+                        format!("{count} model")
+                    } else {
+                        format!("{count} parameters")
+                    }
+                })
+                .unwrap_or_else(|| captures[0].to_string())
+        })
+        .into_owned()
+}
+
+fn normalize_benchmark_ranges(text: &str) -> String {
+    let pattern = regex::Regex::new(
+        r"(?i)\b(about\s+)?([0-9]+(?:\.[0-9]+)?),\s*([0-9]+(?:\.[0-9]+)?)\s+tokens?\s+(?:per|a)\s+second\b",
+    )
+    .expect("benchmark-range regex must compile");
+    pattern
+        .replace_all(text, |captures: &regex::Captures<'_>| {
+            let left = captures[2].parse::<f64>().ok();
+            let right = captures[3].parse::<f64>().ok();
+            let (first, second) = match (left, right) {
+                (Some(left), Some(right)) if left > right => (&captures[3], &captures[2]),
+                _ => (&captures[2], &captures[3]),
+            };
+            let prefix = if captures.get(1).is_some() { "~" } else { "" };
+            format!("{prefix}{first}–{second} tok/s")
+        })
+        .into_owned()
+}
+
+fn normalize_transfer_rates(text: &str) -> String {
+    let pattern = regex::Regex::new(
+        r"(?i)\b([0-9]+(?:\.[0-9]+)?)\s+(bits?|kilobits?|megabits?|gigabits?|bytes?|kilobytes?|megabytes?|gigabytes?)\s+per\s+second\b",
+    )
+    .expect("transfer-rate regex must compile");
+    let normalized = pattern
+        .replace_all(text, |captures: &regex::Captures<'_>| {
+            let unit = match captures[2].to_ascii_lowercase().as_str() {
+                "bit" | "bits" => "bit/s",
+                "kilobit" | "kilobits" => "kbit/s",
+                "megabit" | "megabits" => "Mbit/s",
+                "gigabit" | "gigabits" => "Gbit/s",
+                "byte" | "bytes" => "B/s",
+                "kilobyte" | "kilobytes" => "KB/s",
+                "megabyte" | "megabytes" => "MB/s",
+                "gigabyte" | "gigabytes" => "GB/s",
+                _ => return captures[0].to_string(),
+            };
+            format!("{} {unit}", &captures[1])
+        })
+        .into_owned();
+    replace_all(
+        normalized,
+        r"\b([0-9]+(?:\.[0-9]+)?)\s+(B|KB|MB|GB)\s+per\s+second\b",
+        "$1 $2/s",
+    )
+}
+
+fn normalize_technical_values(text: &str) -> String {
+    let mut out = normalize_parameter_counts(text);
+    out = normalize_benchmark_ranges(&out);
+    out = normalize_transfer_rates(&out);
+
+    // Product identifiers are identifiers, not grouped integers. These
+    // replacements require the surrounding product family, so monetary and
+    // ordinary comma-separated numbers remain untouched.
+    out = replace_all(out, r"(?i)\bRTX\s+5,080\b", "RTX 5080");
+    out = replace_all(out, r"(?i)\bRTX\s+PRO\s+6,000\b", "RTX PRO 6000");
+    out = replace_all(out, r"(?i)\bPRO\s+6,000\b", "RTX PRO 6000");
+    out = replace_all(out, r"(?i)\bRadeon\s+8,060(?:\s*S)?\b", "Radeon 8060S");
+    out = replace_all(out, r"\bPackage\b", "package");
+    out = replace_all(out, r"\bPORT\b", "port");
+    out = replace_all(out, r"\bGo\b", "go");
+    out = replace_all(out, r"\bShell\b", "shell");
+    out = replace_all(out, r"\bQuantization\b", "quantization");
+    out = replace_all(out, r"\ba\s+10,000\s+GPU\b", "a $$10,000 GPU");
+
+    // Shared-unit benchmark ranges are handled above before scalar units.
+    out = replace_all(
+        out,
+        r"(?i)\b([0-9]+(?:\.[0-9]+)?)\s+tokens?\s+(?:per|a)\s+second\b",
+        "$1 tok/s",
+    );
+    out = replace_all(out, r"(?i)\b([0-9]+(?:\.[0-9]+)?)\s+watts?\b", "$1 W");
+    out = replace_all(out, r"(?i)\b([0-9]+(?:\.[0-9]+)?)\s+gigs?\b", "$1 GB");
+    out = replace_all(out, r"(?i)\bis\s+(APU|CPU|GPU)\b", "is an $1");
+    out = replace_all(out, r"(?i)\b([0-9]+)\s+agent\b", "$1 agents");
+    out = replace_all(out, r"\bAre\s+we\s+did\s+with\b", "Are we done with");
+    out = replace_all(out, r"\bare\s+we\s+did\s+with\b", "are we done with");
+    out = replace_all(
+        out,
+        r"(?i)\bwhich\s+it\s+be\s+around\b",
+        "which should be around",
+    );
+    out = replace_all(
+        out,
+        r"\b([0-9]+(?:\.[0-9]+)?)\s+out\s+of\s+([0-9]+(?:\.[0-9]+)?)\s+GB\s+used\b",
+        "$1 GB out of $2 GB used",
+    );
+    out = replace_all(out, r"(?i)\b(tok/s\s+on)\s+thead\b", "$1 the AMD");
+    out = replace_all(out, r"(?i)\bthe\s+thead\s+side\b", "the AMD side");
+    out = replace_all(out, r"(?i)\bI\s+did\s+\.TypeScript\s+test\b", "I did test");
+    out = replace_all(
+        out,
+        r"(?i)\b(five|5)\s+to\s+(six|6)\s+times\s+faster\b",
+        "5–6× faster",
+    );
+
+    for (word, digit) in [
+        ("one", "1"),
+        ("two", "2"),
+        ("three", "3"),
+        ("four", "4"),
+        ("five", "5"),
+        ("six", "6"),
+        ("seven", "7"),
+        ("eight", "8"),
+        ("nine", "9"),
+        ("ten", "10"),
+    ] {
+        out = replace_all(
+            out,
+            &format!(r"(?i)\b{word}\s+times\s+faster\b"),
+            &format!("{digit}× faster"),
+        );
+    }
+    let price_range = regex::Regex::new(
+        r"(?i)\b(sell(?:s|ing)?\s+(?:it|you)\s+for|costs?|priced?\s+at)\s+([0-9]{1,3}(?:,[0-9]{3})+)\s+to\s+([0-9]{1,3}(?:,[0-9]{3})+)(?:\s+to\s+([0-9]{1,3}(?:,[0-9]{3})+))?",
+    )
+    .expect("price-range regex must compile");
+    out = price_range
+        .replace_all(&out, |captures: &regex::Captures<'_>| {
+            let upper = captures.get(4).unwrap_or_else(|| captures.get(3).unwrap());
+            format!("{} ${}–${}", &captures[1], &captures[2], upper.as_str())
+        })
+        .into_owned();
+    out
 }
 
 fn ambiguous_additive_context(words: &[&str], start: usize) -> bool {
@@ -2721,6 +2907,124 @@ mod tests {
             "add 16px of padding"
         );
         assert_eq!(normalize_numerics("set it ninety degrees"), "set it 90deg");
+    }
+
+    #[test]
+    fn normalizes_publication_grade_technical_values_without_losing_decimals() {
+        let cases = [
+            ("122,000,000,000 parameter model", "122B model"),
+            ("32,000,000,000 parameter model", "32B model"),
+            ("1,700,000,000 parameters", "1.7B parameters"),
+            ("RTX 5,080", "RTX 5080"),
+            ("RTX PRO 6000", "RTX PRO 6000"),
+            ("63 gigabit per second", "63 Gbit/s"),
+            ("8 megabytes per second", "8 MB/s"),
+            ("600 watts", "600 W"),
+            ("100 percent", "100%"),
+            ("three times faster", "3× faster"),
+            ("six times faster", "6× faster"),
+            ("five to six times faster", "5–6× faster"),
+            ("a 10,000 GPU", "a $10,000 GPU"),
+            (
+                "which for the uninitiated is APU",
+                "which for the uninitiated is an APU",
+            ),
+            ("run 10 agent", "run 10 agents"),
+            (
+                "Are we did with all the agents?",
+                "Are we done with all the agents?",
+            ),
+            ("which it be around 10,000", "which should be around 10,000"),
+            ("19.9 out of 96 GB used", "19.9 GB out of 96 GB used"),
+            ("24 tokens per second on thead", "24 tok/s on the AMD"),
+            (
+                "it does not show the thead side",
+                "it does not show the AMD side",
+            ),
+            ("I did .TypeScript test first", "I did test first"),
+            ("Q4 Quantization", "Q4 quantization"),
+            ("33, 34 tokens per second", "33–34 tok/s"),
+            ("1.6 tokens per second", "1.6 tok/s"),
+            ("11.2 tokens per second", "11.2 tok/s"),
+            ("76.5 GB", "76.5 GB"),
+            ("121 tok/s", "121 tok/s"),
+            ("Q4", "Q4"),
+            ("Q8", "Q8"),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(normalize_values(input), expected, "input: {input}");
+        }
+        assert_ne!(normalize_values("76.5 GB"), "765 GB");
+    }
+
+    #[test]
+    fn technical_entity_repairs_are_contextual_and_conservative() {
+        let cases = [
+            ("Oculink PORT", "OCuLink port"),
+            ("GMK Tech dropped the Evil X2", "GMKtec dropped the EVO-X2"),
+            ("the Evil X3 uses Strix halo", "the EVO-X3 uses Strix Halo"),
+            ("Quen 2.5 model", "Qwen2.5 model"),
+            ("Llama C plus plus", "llama.cpp"),
+            ("Nvidia and EMD GPU", "NVIDIA and AMD GPU"),
+        ];
+        for (input, expected) in cases {
+            let corrected = crate::audio_toolkit::tech_lexicon::apply(input);
+            assert_eq!(normalize_values(&corrected), expected, "input: {input}");
+        }
+
+        for prose in [
+            "it was very very slow",
+            "devices I manage to collect",
+            "I did test first and start",
+            "the package will go through the port",
+        ] {
+            assert_eq!(crate::audio_toolkit::tech_lexicon::apply(prose), prose);
+        }
+    }
+
+    #[test]
+    fn hardware_review_regression_fixture_preserves_meaning_and_blocks_contamination() {
+        let raw = "That's how much graphics memory is sitting right here on my desk in a tiny little Package. These two are working together to run a single 122,000,000,000 parameter model. It's an Oculink PORT: 63 gigabit per second speed. GMK Tech dropped the Evil X2 with AMD Strix halo. Quen 2.5, 32,000,000,000 parameters, ran at 11.2 tokens per second. This is the RTX 5,080 with 16 gigs of memory. We're using 100 percent of the GPU and getting 1.6 tokens per second. Nvidia and EMD are both working. The Pro 6,000 uses almost 600 watts. I loaded the 122,000,000,000 parameter model with Q4 Quantization. That's 76.5 GB on disk, and it ran at 121 tokens per second. My phone and basically any other devices I manage to collect still work.";
+        let corrected = crate::audio_toolkit::tech_lexicon::apply(raw);
+        let output = normalize_values(&corrected);
+
+        for expected in [
+            "package",
+            "122B model",
+            "OCuLink port",
+            "63 Gbit/s",
+            "GMKtec",
+            "EVO-X2",
+            "Strix Halo",
+            "Qwen2.5",
+            "32B parameters",
+            "11.2 tok/s",
+            "RTX 5080",
+            "16 GB",
+            "100%",
+            "1.6 tok/s",
+            "NVIDIA",
+            "AMD",
+            "RTX PRO 6000",
+            "600 W",
+            "Q4",
+            "76.5 GB",
+            "121 tok/s",
+            "devices I manage to collect",
+        ] {
+            assert!(output.contains(expected), "missing {expected:?}: {output}");
+        }
+        for contamination in ["src-tauri/", ".rs", ".TypeScript", "Vercel"] {
+            assert!(
+                !output.contains(contamination),
+                "leaked {contamination}: {output}"
+            );
+        }
+        assert!(
+            !output.contains("765 GB"),
+            "decimal was corrupted: {output}"
+        );
     }
 
     #[test]

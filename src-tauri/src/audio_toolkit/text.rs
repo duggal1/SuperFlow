@@ -584,6 +584,22 @@ fn preserve_case_pattern(original: &str, replacement: &str) -> String {
 
 /// Extracts punctuation prefix and suffix from a word
 fn extract_punctuation(word: &str) -> (&str, &str) {
+    // Special case: "C++" is a technical token where "++" is part of the core,
+    // not trailing punctuation. Preserve it so "Llama C++" -> "llama.cpp" doesn't
+    // become "llama.cpp++".
+    let lower = word.to_ascii_lowercase();
+    if lower == "c++" || lower.starts_with("c++") && word[3..].chars().all(|c| ",.;:!?()[]{}<>\"'".contains(c)) {
+        // Find where "C++" ends and trailing punctuation begins
+        if lower == "c++" {
+            return ("", "");
+        }
+        if let Some(rest) = word.get(3..) {
+            // Check if rest is only punctuation
+            if !rest.is_empty() && rest.chars().all(|c| ",.;:!?()[]{}<>\"'".contains(c)) {
+                return ("", rest);
+            }
+        }
+    }
     // String slices use byte offsets. Derive both boundaries from char_indices
     // so multibyte punctuation such as `。` and `「」` can never be split.
     let prefix_end = word

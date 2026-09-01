@@ -5,10 +5,10 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   AiBeautifyIcon,
   BadgeInfoIcon,
+  CoPresentIcon,
   ComputerIcon,
   HistoryIcon,
   Home01Icon,
-  Note01Icon,
   Settings01Icon,
   ZapIcon,
 } from "@hugeicons/core-free-icons";
@@ -58,15 +58,9 @@ export const SECTIONS_CONFIG = {
     component: ModelsSettings,
     enabled: () => true,
   },
-  history: {
-    labelKey: "sidebar.history",
-    icon: HistoryIcon,
-    component: HistorySettings,
-    enabled: () => true,
-  },
   meeting: {
     labelKey: "sidebar.meeting",
-    icon: Note01Icon,
+    icon: CoPresentIcon,
     component: MeetingPage,
     enabled: () => true,
   },
@@ -74,6 +68,12 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.aiCleanup",
     icon: AiBeautifyIcon,
     component: AICleanupSettings,
+    enabled: () => true,
+  },
+  history: {
+    labelKey: "sidebar.history",
+    icon: HistoryIcon,
+    component: HistorySettings,
     enabled: () => true,
   },
   advanced: {
@@ -135,8 +135,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         className={`flex h-full w-[176px] flex-col px-2 pb-2 pt-3 ${
           opaque
             ? isLight
-              ? "bg-white"
-              : "bg-stone-950"
+              ? "bg-stone-50"
+              : "bg-stone-900"
             : isLight
               ? "sidebar-material border-r border-stone-200"
               : "sidebar-material border-r border-white/[0.045]"

@@ -98,6 +98,14 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "A large, slower, but very accurate multilingual model."
+      },
+      "granite-speech-5-0-470m-turboctc-nc": {
+        "name": "Granite Speech 5.0 470M TurboCTC",
+        "description": "IBM's newest streaming model — tiny, low-latency, 5.00% WER"
+      },
+      "granite-speech-5-0-470m-turboctc-coreml-q8": {
+        "name": "Granite Speech 5.0 470M TurboCTC CoreML Q8",
+        "description": "Apple Silicon CoreML — 8-bit, streaming, ultra low-latency"
       }
     },
     "errors": {
@@ -798,7 +806,7 @@
     "undo": "Undo",
     "meetingRecorded": "Meeting recorded",
     "saved": "Saved",
-    "meetingStatus": "Meeting status",
+    "meetingStatus": "Meeting",
     "meetingRecordedSuccessfully": "Successfully recorded",
     "transcribingMeeting": "Transcribing meeting",
     "calendarBooked": "Calendar booked",

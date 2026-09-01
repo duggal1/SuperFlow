@@ -6,7 +6,6 @@ import { writeTextFile } from "@tauri-apps/plugin-fs";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft01Icon,
-  ArrowUp02Icon,
   Download01Icon,
   File02Icon,
   Search01Icon,
@@ -16,6 +15,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { IOSSpinner } from "@/components/shared/global-spinner";
 import { useIsLight } from "@/lib/utils/theme";
 
 interface MeetingSegment {
@@ -170,7 +170,7 @@ const TextSection = ({ title, items }: { title: string; items: string[] }) => {
           >
             <span
               aria-hidden="true"
-              className="mt-2 size-1 shrink-0 rounded-[1px] bg-blue-600"
+              className="mt-2 size-[5px] shrink-0 rounded-[1px] bg-blue-600"
             />
             <span>{item}</span>
           </li>
@@ -224,7 +224,7 @@ const MeetingAnswer = ({
         ),
         p: ({ children }) => <p className="my-3 first:mt-0">{children}</p>,
         ul: ({ children }) => (
-          <ul className="my-3 space-y-2 [&>li]:relative [&>li]:pl-4 [&>li]:before:absolute [&>li]:before:left-0 [&>li]:before:top-[0.62em] [&>li]:before:size-1 [&>li]:before:rounded-[1px] [&>li]:before:bg-blue-600">
+          <ul className="my-3 space-y-2 [&>li]:relative [&>li]:pl-4 [&>li]:before:absolute [&>li]:before:left-0 [&>li]:before:top-[0.58em] [&>li]:before:size-[5px] [&>li]:before:rounded-[1px] [&>li]:before:bg-blue-600">
             {children}
           </ul>
         ),
@@ -392,12 +392,14 @@ export function MeetingPage() {
 
   const ask = async () => {
     if (!selected || !question.trim() || asking) return;
+    const submittedQuestion = question.trim();
+    setQuestion("");
     setAsking(true);
     try {
       setAnswer(
         await invoke<string>("ask_meeting", {
           id: selected.id,
-          question: question.trim(),
+          question: submittedQuestion,
         }),
       );
     } catch (error) {
@@ -457,11 +459,11 @@ export function MeetingPage() {
     return new Map(
       order.map((speaker, index): [string, BadgeVariant] => [
         speaker,
-        index === 0
-          ? "neutral"
-          : index === 1
-            ? "orange"
-            : palette[(index - 2) % palette.length],
+        speaker === "Speaker 1"
+          ? "orange"
+          : index === 0
+            ? "neutral"
+            : palette[(index - 1) % palette.length],
       ]),
     );
   }, [selected]);
@@ -474,7 +476,7 @@ export function MeetingPage() {
             {t("meeting.title")}
           </h1>
           <label
-            className={`mt-5 flex h-10 w-full items-center gap-2.5 rounded-[8px] px-3 text-stone-500 transition-colors duration-150 ${isLight ? "bg-stone-100 hover:bg-stone-200 focus-within:bg-stone-200" : "bg-[#363230] hover:bg-[#3F3B37] focus-within:bg-[#3F3B37]"}`}
+            className={`mt-5 flex h-10 w-full items-center gap-2.5 rounded-[8px] border px-3 text-stone-500 transition-colors duration-150 ${isLight ? "border-stone-200 bg-white hover:bg-stone-100 focus-within:bg-stone-100" : "border-stone-800 bg-[#231F1E] hover:bg-[#262221] focus-within:bg-[#262221]"}`}
           >
             <HugeiconsIcon icon={Search01Icon} size={16} aria-hidden="true" />
             <input
@@ -517,7 +519,7 @@ export function MeetingPage() {
             {visibleMeetings.map((meeting, index) => (
               <div
                 key={meeting.id}
-                className={`group flex items-center pr-3 transition-colors duration-150 ${isLight ? "hover:bg-surface-hover" : "hover:bg-[#363230]"} ${index > 0 ? "border-t border-divider/50" : ""}`}
+                className={`group flex items-center pr-3 transition-colors duration-150 ${isLight ? "hover:bg-stone-100" : "hover:bg-[#363230]"} ${index > 0 ? "border-t border-divider/50" : ""}`}
               >
                 <button
                   type="button"
@@ -593,6 +595,7 @@ export function MeetingPage() {
             tabIndex={0}
             variant="secondary"
             size="sm"
+            className="shadow-none hover:shadow-none"
             onClick={() => void exportMeeting()}
             icon={
               <HugeiconsIcon
@@ -606,7 +609,7 @@ export function MeetingPage() {
           </Button>
         </div>
         <div
-          className="mt-7 flex w-fit items-center gap-1 overflow-x-auto border-b border-divider/60"
+          className={`mt-7 flex w-fit items-center gap-0.5 overflow-x-auto rounded-[9px] p-1 ${isLight ? "border border-stone-200/70 bg-white" : "bg-[#231F1E]"}`}
           role="tablist"
         >
           {tabs.map((item) => (
@@ -616,7 +619,7 @@ export function MeetingPage() {
               role="tab"
               aria-selected={tab === item.id}
               onClick={() => setTab(item.id)}
-              className={`cursor-pointer rounded-[6px] px-3 py-1.5 text-[13px] font-medium transition-colors duration-150 ${tab === item.id ? (isLight ? "bg-stone-200 text-stone-900" : "bg-[#393532] text-stone-50") : isLight ? "text-stone-500 hover:bg-stone-100 hover:text-stone-900" : "text-stone-400 hover:bg-[#363230] hover:text-stone-50"}`}
+              className={`cursor-pointer rounded-[7px] px-2.5 py-1 text-[13px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 ${tab === item.id ? (isLight ? "bg-stone-50 text-stone-900" : "bg-stone-800 text-stone-50") : isLight ? "text-stone-500 hover:bg-stone-100 hover:text-stone-900" : "text-stone-400 hover:bg-[#262221] hover:text-stone-50"}`}
             >
               {item.label}
             </button>
@@ -634,7 +637,7 @@ export function MeetingPage() {
               })}
             </p>
             <label
-              className={`flex h-9 w-60 items-center gap-2 rounded-[8px] px-3 text-stone-500 transition-colors duration-150 focus-within:text-text ${isLight ? "bg-stone-100 hover:bg-stone-200 focus-within:bg-stone-200" : "bg-[#363230] hover:bg-[#3F3B37] focus-within:bg-[#3F3B37]"}`}
+              className={`flex h-9 w-60 items-center gap-2 rounded-[8px] border px-3 text-stone-500 transition-colors duration-150 focus-within:text-text ${isLight ? "border-stone-200 bg-white hover:bg-stone-100 focus-within:bg-stone-100" : "border-stone-800 bg-[#231F1E] hover:bg-[#262221] focus-within:bg-[#262221]"}`}
             >
               <HugeiconsIcon icon={Search01Icon} size={14} aria-hidden="true" />
               <input
@@ -825,7 +828,7 @@ export function MeetingPage() {
               event.preventDefault();
               void ask();
             }}
-            className={`mt-5 flex items-end gap-2 rounded-[10px] border border-transparent p-2 transition-colors duration-150 ${isLight ? "bg-stone-100 hover:border-stone-300 focus-within:border-transparent focus-within:bg-stone-200" : "bg-[#363230] hover:border-stone-700 focus-within:border-transparent focus-within:bg-[#393532]"}`}
+            className={`mt-5 flex items-center gap-1.5 rounded-[13px] px-2.5 py-1 transition-colors duration-150 ${isLight ? "bg-white hover:bg-white focus-within:bg-white" : "bg-[#262221] hover:bg-stone-800 focus-within:bg-stone-800"}`}
           >
             <textarea
               value={question}
@@ -838,19 +841,21 @@ export function MeetingPage() {
               }}
               rows={1}
               placeholder="Ask anything about this meeting…"
-              className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-2 py-2 text-[13px] leading-5 text-text outline-none placeholder:text-stone-500"
+              className="max-h-28 min-h-8 flex-1 resize-none bg-transparent px-2 py-1.5 text-[13px] leading-5 text-text outline-none placeholder:text-stone-500"
             />
             <button
               type="submit"
               disabled={!question.trim() || asking}
               aria-label="Ask meeting"
-              className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-[6px] bg-blue-600 text-white transition-colors duration-150 hover:bg-blue-700 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+              className={`flex h-7 shrink-0 cursor-pointer items-center justify-center rounded-[9px] bg-stone-100 px-3 text-stone-900 transition-colors duration-150 hover:bg-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-400 disabled:cursor-not-allowed ${asking ? "disabled:opacity-100" : "disabled:opacity-40"}`}
             >
-              <HugeiconsIcon
-                icon={ArrowUp02Icon}
-                size={15}
-                aria-hidden="true"
-              />
+              {asking ? (
+                <IOSSpinner size={13} color="#1c1917" speed={1} />
+              ) : (
+                <span aria-hidden="true" className="text-[17px] leading-none">
+                  ↵
+                </span>
+              )}
             </button>
           </form>
         </section>

@@ -1015,15 +1015,6 @@
           "qwen coder",
           "qwen coding model",
           "qwen code",
-          "qwen2",
-          "qwen 2",
-          "qwen two",
-          "qwen2.5",
-          "qwen 2.5",
-          "qwen two point five",
-          "qwen3",
-          "qwen 3",
-          "qwen three",
           "qwen coder model",
           "qwen code model",
           "kwen model",
@@ -5679,6 +5670,118 @@
     {
       "canonical": "GLM-5.1",
       "aliases": ["glm 5.1", "glm five point one", "g l m five point one"]
+    },
+    {
+      "canonical": "OCuLink",
+      "aliases": ["oculink", "ocu link", "o c u link"]
+    },
+    {
+      "canonical": "GMKtec",
+      "aliases": ["gmk tech", "g m k tech", "gmk tec"]
+    },
+    {
+      "canonical": "EVO-X2",
+      "aliases": ["evo x2", "evo x 2", "evil x2", "evil x 2"]
+    },
+    {
+      "canonical": "EVO-X3",
+      "aliases": ["evo x3", "evo x 3", "evil x3", "evil x 3"]
+    },
+    {
+      "canonical": "Strix Halo",
+      "aliases": ["strix halo", "strips halo"]
+    },
+    {
+      "canonical": "Qwen2.5",
+      "aliases": ["qwen 2.5", "qwen two point five", "quen 2.5", "quen two point five", "queen 2.5"]
+    },
+    {
+      "canonical": "llama.cpp",
+      "aliases": ["llama c plus plus", "llama c++", "llama cpp", "llama dot cpp", "llama c plus plus project"]
+    },
+    {
+      "canonical": "NVIDIA",
+      "aliases": ["nvidia", "n vidia", "n vid ee uh"]
+    },
+    {
+      "canonical": "AMD",
+      "aliases": ["a m d", "emd", "e m d"]
+    },
+    {
+      "canonical": "PCIe",
+      "aliases": ["pcie", "pci e", "p c i e", "pci express"]
+    },
+    {
+      "canonical": "AES-256",
+      "aliases": ["aes256", "aes 256", "a e s 256"]
+    },
+    {
+      "canonical": "VRAM",
+      "aliases": ["v ram", "v r a m", "video ram"]
+    },
+    {
+      "canonical": "Q4",
+      "aliases": ["q four", "q 4"]
+    },
+    {
+      "canonical": "Q8",
+      "aliases": ["q eight", "q 8"]
+    },
+    {
+      "canonical": "RTX 5080",
+      "aliases": ["rtx 5080", "rtx 5,080", "r t x 5080", "r t x 5,080"]
+    },
+    {
+      "canonical": "RTX PRO 6000",
+      "aliases": ["rtx pro 6000", "rtx pro 6,000", "pro 6000", "pro 6,000"]
+    },
+    {
+      "canonical": "Radeon 8060S",
+      "aliases": ["radeon 8060s", "radeon 8060 s", "radeon 8,060", "8060s gpu", "8,060 gpu"]
+    },
+    {
+      "canonical": "nvtop",
+      "aliases": ["nvtop", "n v top"]
+    },
+    {
+      "canonical": "ROCm",
+      "aliases": ["rocm", "rock m", "r o c m"]
+    },
+    {
+      "canonical": "CUDA",
+      "aliases": ["cuda", "c u d a"]
+    },
+    {
+      "canonical": "Vulkan",
+      "aliases": ["vulkan", "vulcan api"]
+    },
+    {
+      "canonical": "Windows",
+      "aliases": ["windows", "windows os", "microsoft windows"]
+    },
+    {
+      "canonical": "GPU",
+      "aliases": ["gpu", "g p u", "graphics processing unit"]
+    },
+    {
+      "canonical": "CPU",
+      "aliases": ["cpu", "c p u", "central processing unit"]
+    },
+    {
+      "canonical": "APU",
+      "aliases": ["apu", "a p u", "accelerated processing unit"]
+    },
+    {
+      "canonical": "RAM",
+      "aliases": ["ram", "r a m", "system memory"]
+    },
+    {
+      "canonical": "MoE",
+      "aliases": ["moe", "m o e", "mixture of experts", "mixture-of-experts"]
+    },
+    {
+      "canonical": "GGUF",
+      "aliases": ["gguf", "g g u f"]
     }
   ]
 }

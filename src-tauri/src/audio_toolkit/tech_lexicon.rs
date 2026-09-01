@@ -62,6 +62,22 @@ fn safe_alias(canonical: &str, alias: &str) -> bool {
     if canonical == "OpenSearch" && normalized == "open search" {
         return false;
     }
+    if canonical == "Package" && normalized == "package" {
+        return false;
+    }
+    if canonical == "Quantization" && normalized == "quantization" {
+        return false;
+    }
+    // Split phonetic aliases for Vercel turn ordinary phrases such as
+    // "very slow" into a product name. Keep exact one-token variants and
+    // explicit deployment/hosting phrases; uncertainty must preserve speech.
+    if canonical == "Vercel"
+        && normalized.split_whitespace().count() > 1
+        && !normalized.contains("deploy")
+        && !normalized.contains("hosting")
+    {
+        return false;
+    }
     true
 }
 

@@ -63,7 +63,15 @@
       "canonical": "km",
       "spacing": "space",
       "aliases": ["kilometer", "kilometers", "kilometre", "kilometres", "km"]
-    }
+    },
+    { "canonical": "W", "spacing": "space", "aliases": ["watt", "watts"] },
+    { "canonical": "V", "spacing": "space", "aliases": ["volt", "volts"] },
+    { "canonical": "kHz", "spacing": "space", "aliases": ["kilohertz"] },
+    { "canonical": "MHz", "spacing": "space", "aliases": ["megahertz"] },
+    { "canonical": "GHz", "spacing": "space", "aliases": ["gigahertz"] },
+    { "canonical": "TOPS", "spacing": "space", "aliases": ["tops"] },
+    { "canonical": "TFLOPS", "spacing": "space", "aliases": ["teraflop", "teraflops"] },
+    { "canonical": "MT/s", "spacing": "space", "aliases": ["mega transfers"] }
   ],
   "safe_contractions": [
     { "canonical": "don't", "aliases": ["dont"] },

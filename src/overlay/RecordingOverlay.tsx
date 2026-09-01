@@ -182,13 +182,12 @@ const RecordingOverlay: React.FC = () => {
   const [cancelToastExiting, setCancelToastExiting] = useState(false);
   const [aiCleanupNotice, setAiCleanupNotice] =
     useState<AiCleanupNotice | null>(null);
-  // Dedicated AI "Say this" pill: random loading state per invocation,
-  // stays fixed for that run (not animating cycle). Single spinner left only — extremely clean.
-  const [sayThisLabel, setSayThisLabel] = useState<string>(LOADING_STATES[0]);
-  // Standard (non-AI) loading also uses random LOADING_STATES, not "Transcribing..."
-  const [standardLoadingLabel, setStandardLoadingLabel] = useState<string>(
+  // Meeting finalization keeps the varied note-recording status vocabulary.
+  // Dictation, editing, and AI modes use stable labels that name the work.
+  const [meetingLoadingLabel, setMeetingLoadingLabel] = useState<string>(
     LOADING_STATES[0],
   );
+  const [sayThisLabel, setSayThisLabel] = useState("Thinking");
   // Calendar result states (reuse pill architecture, backend is source of truth)
   const [calendarSuccess, setCalendarSuccess] =
     useState<CalendarSuccessPayload | null>(null);
@@ -383,19 +382,13 @@ const RecordingOverlay: React.FC = () => {
         } catch {
           // Keep the previous/default placement if settings can't be read.
         }
-        // For AI "Say this" pill, pick one random LOADING_STATES per invocation
-        // and keep it fixed for that run (not cycling). Each click gets a new random.
-        // Single spinner left only — extremely clean.
-        if (overlayState === "say_this") {
+        if (overlayState === "meeting_transcribing") {
           const pick =
             LOADING_STATES[Math.floor(Math.random() * LOADING_STATES.length)];
-          setSayThisLabel(pick);
+          setMeetingLoadingLabel(pick);
         }
-        // Standard loading (non-AI) also uses random LOADING_STATES, not "Transcribing..."
-        if (overlayState === "transcribing" || overlayState === "processing") {
-          const pick =
-            LOADING_STATES[Math.floor(Math.random() * LOADING_STATES.length)];
-          setStandardLoadingLabel(pick);
+        if (overlayState === "say_this") {
+          setSayThisLabel("Thinking");
         }
         setState(overlayState);
         if (overlayState === "streaming") {
@@ -839,7 +832,6 @@ const RecordingOverlay: React.FC = () => {
       mode="static"
     />
   );
-
   const cancelBtn = (
     <button
       className="sx"
@@ -859,7 +851,7 @@ const RecordingOverlay: React.FC = () => {
 
   const completeBtn = (
     <button
-      className="scomplete"
+      className="scomplete hands-free-complete"
       aria-label="Finish transcription"
       onClick={() => commands.completeHandsFreeTranscription()}
     >
@@ -869,7 +861,7 @@ const RecordingOverlay: React.FC = () => {
 
   const meetingCompleteBtn = (
     <button
-      className="scomplete meeting-stop"
+      className="scomplete meeting-stop cursor-pointer"
       aria-label="Finish meeting"
       onClick={() => commands.completeHandsFreeTranscription()}
     >
@@ -952,7 +944,7 @@ const RecordingOverlay: React.FC = () => {
         className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
       >
         <div className="scard compact meeting working">
-          {workingRow(t("overlay.transcribingMeeting"), false)}
+          {workingRow(`${meetingLoadingLabel}...`, false)}
         </div>
       </div>
     );
@@ -978,9 +970,9 @@ const RecordingOverlay: React.FC = () => {
         <div className="scard compact meeting-success">
           <div className="sbase">
             <span className="swork-label">{t("overlay.meetingStatus")}</span>
-            <Badge variant="green" className="sbase-r text-[11px]">
+            <span className="meeting-success-badge">
               {t("overlay.meetingRecordedSuccessfully")}
-            </Badge>
+            </span>
           </div>
         </div>
       </div>
@@ -1041,10 +1033,7 @@ const RecordingOverlay: React.FC = () => {
     );
   }
 
-  // ---- AI "Say this" pill: dedicated dialogue for control-key AI transcription.
-  // Uses dual spinners (left + right) and a per-invocation random LOADING_STATES
-  // pick that stays fixed for that run. Never shows "Transcription"/"Editing"
-  // — those remain reserved for edit mode (Fn + selection via run_edit_mode).
+  // ---- Control-key AI transcription: stable, direct working state.
   if (state === "say_this") {
     return (
       <div
@@ -1319,8 +1308,7 @@ const RecordingOverlay: React.FC = () => {
   // ---- Minimal overlay: exactly one row at a time — waveform (recording), or a
   // spinner + label (transcribing / processing). Never both. The pill animates its
   // width between them; the cancel button is in both rows so it stays put.
-  // "editing" remains for edit mode only. Standard transcribing/processing now
-  // uses random LOADING_STATES (not "Transcribing...") — single spinner left, extremely clean.
+  // Each mode names the work it is actually doing.
   const working =
     state === "transcribing" ||
     state === "processing" ||
@@ -1331,9 +1319,9 @@ const RecordingOverlay: React.FC = () => {
       ? t("overlay.editing", { defaultValue: "Editing" })
       : state === "prompting"
         ? t("overlay.prompting", { defaultValue: "Prompting" })
-        : state === "transcribing" || state === "processing"
-          ? `${standardLoadingLabel}...`
-          : t("overlay.transcribing");
+        : state === "processing"
+          ? t("overlay.processing", { defaultValue: "Processing..." })
+          : t("overlay.transcribing", { defaultValue: "Transcribing..." });
 
   return (
     <div

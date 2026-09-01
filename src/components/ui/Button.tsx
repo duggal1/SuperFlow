@@ -67,8 +67,8 @@ export function Button({
     primary:
       "border-blue-600 bg-blue-600 hover:border-blue-700 hover:bg-blue-700/[0.85]",
     secondary: isLight
-      ? "border-stone-300 bg-white hover:border-stone-400 hover:bg-stone-50"
-      : "border-stone-600 bg-stone-700 hover:border-stone-500 hover:bg-[#3F3B37]",
+      ? "border-stone-300 bg-white hover:border-stone-400 hover:bg-stone-100"
+      : "border-stone-700 bg-stone-800 hover:border-stone-600 hover:bg-[#262221]",
     ghost: isLight
       ? "border-transparent bg-transparent text-stone-900/70 hover:bg-stone-200 hover:text-stone-900"
       : "border-transparent bg-transparent text-stone-50/70 hover:bg-surface-hover hover:text-stone-50",

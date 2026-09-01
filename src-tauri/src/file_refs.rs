@@ -926,6 +926,15 @@ fn detect_reference(
     }
 
     let max_stem = 3.min(words.len() - start - 1);
+    let has_file_intent = words[start.saturating_sub(3)..start]
+        .iter()
+        .map(|word| clean_token(word))
+        .any(|word| {
+            matches!(
+                word.as_str(),
+                "open" | "edit" | "fix" | "check" | "update" | "read" | "run" | "file"
+            )
+        });
     for stem_words in 1..=max_stem {
         let stem_start = start;
         let after_stem = stem_start + stem_words;
@@ -1031,7 +1040,7 @@ fn detect_reference(
                     let span = (cursor - start) + ext_span;
                     return Some((span, rel));
                 }
-            } else if ext.len() == 1 {
+            } else if ext.len() == 1 && (has_dot_word || has_file_intent) {
                 // Truncated single-char ext (e.g. "t" from "actions.t") - try via stem-unique fallback
                 let filename = format!("{stem_base}.{}", ext);
                 if let Some(rel) = best_match(index, &filename, root) {
@@ -1165,6 +1174,24 @@ mod tests {
         assert!(resolve_in(&dir, text).is_none());
         // Unknown stem stays untouched.
         assert!(resolve_in(&dir, "open ghost dot tsx").is_none());
+    }
+
+    #[test]
+    fn ordinary_prose_cannot_become_an_active_source_file() {
+        let dir = temp_project();
+        std::fs::create_dir_all(dir.join("src-tauri/src/audio_toolkit/audio")).unwrap();
+        std::fs::write(dir.join("src-tauri/src/audio_toolkit/audio/device.rs"), "").unwrap();
+
+        for prose in [
+            "basically any other devices I manage to collect",
+            "I did test first and start",
+            "this was very slow on the other side",
+        ] {
+            assert_eq!(resolve_in(&dir, prose), None);
+        }
+        assert!(
+            resolve_in(&dir, "open device dot rs").is_some_and(|text| text.contains("device.rs"))
+        );
     }
 
     #[test]
