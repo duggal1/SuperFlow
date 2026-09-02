@@ -7,6 +7,7 @@ import { ResetButton } from "../ui/ResetButton";
 import { SettingContainer } from "../ui/SettingContainer";
 import { useSettings } from "../../hooks/useSettings";
 import { useOsType } from "../../hooks/useOsType";
+import { useIsLight } from "../../lib/utils/theme";
 import { commands } from "@/bindings";
 import { toast } from "sonner";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -33,6 +34,7 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
+  const isLight = useIsLight();
   const { getSetting, updateBinding, resetBinding, isUpdating, isLoading } =
     useSettings();
   const [isRecording, setIsRecording] = useState(false);
@@ -328,15 +330,25 @@ export const HandyKeysShortcutInput: React.FC<HandyKeysShortcutInputProps> = ({
         {isRecording ? (
           <div
             ref={shortcutRef}
-            className="px-2 py-1 text-sm font-semibold bg-blue-600/30 rounded-md"
+            className={`rounded-md px-1.5 py-0.5 text-sm font-semibold ${
+              isLight ? "bg-blue-600/80 text-blue-700" : "bg-blue-600/30"
+            }`}
           >
             {formatCurrentKeys()}
           </div>
         ) : (
           <motion.div
-            whileHover={{ backgroundColor: "rgba(37, 99, 235, 0.15)" }}
+            whileHover={{
+              backgroundColor: isLight
+                ? "rgba(59, 130, 246, 0.2)"
+                : "rgba(37, 99, 235, 0.15)",
+            }}
             whileTap={{ scale: 0.97 }}
-            className="cursor-pointer rounded-md bg-blue-600/10 px-2 py-1 text-sm font-semibold text-blue-500"
+            className={`cursor-pointer rounded-md px-1.5 py-0.5 text-sm font-semibold ${
+              isLight
+                ? "bg-blue-500/15 text-blue-600"
+                : "bg-blue-600/10 px-2 py-1 text-blue-500"
+            }`}
             onClick={startRecording}
           >
             {formatKeyCombination(binding.current_binding, osType)}

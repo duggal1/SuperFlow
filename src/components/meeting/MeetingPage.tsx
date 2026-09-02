@@ -514,7 +514,7 @@ export function MeetingPage() {
           </div>
         ) : (
           <div
-            className={`overflow-hidden rounded-[10px] bg-surface ${isLight ? "border border-stone-200/60" : ""}`}
+            className={`overflow-hidden rounded-[10px] bg-surface ${isLight ? "border border-stone-200/80" : ""}`}
           >
             {visibleMeetings.map((meeting, index) => (
               <div

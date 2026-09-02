@@ -85,34 +85,32 @@ html[data-platform="macos"] .sidebar-material {
   -webkit-backdrop-filter: none;
 }
 
-/* White-mode sidebar — Apple-native: lighter blur than dark, white glass */
+/* White-mode sidebar — follows the dark-mode trail: on macOS the native
+   material owns the blur (no CSS backdrop-filter, faint tint only); off
+   macOS, the same blur stack as dark with a lighter tint. */
 html[data-theme="light"] .sidebar-material {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(32px) saturate(128%);
+  -webkit-backdrop-filter: blur(32px) saturate(128%);
 }
 
 html[data-platform="macos"][data-theme="light"] .sidebar-material {
-  background: rgba(255, 255, 255, 0.62);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) .sidebar-material {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(32px) saturate(128%);
+    -webkit-backdrop-filter: blur(32px) saturate(128%);
   }
 
   :root:not([data-theme])[data-platform="macos"] .sidebar-material {
-    background: rgba(255, 255, 255, 0.62);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 

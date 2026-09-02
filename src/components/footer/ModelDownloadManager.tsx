@@ -94,7 +94,7 @@ export default function ModelDownloadManager() {
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        className={`group flex h-7 items-center gap-2 rounded-[6px] px-2 transition-colors duration-150 ${isLight ? "text-stone-500 hover:bg-stone-100 hover:text-stone-900" : "text-text/60 hover:bg-surface hover:text-text"}`}
+        className={`group flex h-7 items-center gap-2 rounded-[6px] px-2 transition-colors duration-150 hover:underline hover:decoration-dotted hover:underline-offset-4 ${isLight ? "text-stone-500 decoration-stone-400 hover:text-stone-900" : "text-text/60 decoration-stone-500 hover:text-text"}`}
       >
         <span className="relative flex size-4 items-center justify-center">
           <DownloadSimple className="size-4" />
@@ -215,7 +215,7 @@ export default function ModelDownloadManager() {
                             runForId(modelId, () => cancelDownload(modelId))
                           }
                           aria-label={t("modelSelector.cancelDownload")}
-                          className={`flex size-7 shrink-0 items-center justify-center rounded-[4px] transition-colors disabled:opacity-40 ${isLight ? "text-stone-500 hover:bg-rose-50 hover:text-rose-600" : "text-text/55 hover:bg-rose-600 hover:text-white"}`}
+                          className={`flex size-7 shrink-0 items-center justify-center rounded-[4px] transition-colors disabled:opacity-40 ${isLight ? "text-stone-500 hover:bg-rose-400 hover:text-white" : "text-text/55 hover:bg-rose-700 hover:text-white"}`}
                         >
                           <Stop className="size-3.5" weight="fill" />
                         </button>
