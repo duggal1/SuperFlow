@@ -329,9 +329,15 @@ function App() {
         classNames: {
           toast:
             "bg-surface text-text border-0 rounded-[7px] shadow-none px-3 py-3 flex items-center gap-2 text-sm",
-          error: "!bg-[#241010] !text-[#FFD3D3]",
-          warning: "!bg-[#241708] !text-[#FFDCC0]",
-          success: "!bg-[#0D1E16] !text-[#C8F5DA]",
+          error: isLight
+            ? "!bg-[#FEF2F2] !text-[#991B1B]"
+            : "!bg-[#241010] !text-[#FFD3D3]",
+          warning: isLight
+            ? "!bg-[#FFF7ED] !text-[#9A3412]"
+            : "!bg-[#241708] !text-[#FFDCC0]",
+          success: isLight
+            ? "!bg-[#F0FDF4] !text-[#166534]"
+            : "!bg-[#0D1E16] !text-[#C8F5DA]",
           title: "font-normal text-current",
           description: "text-current opacity-75",
           actionButton:

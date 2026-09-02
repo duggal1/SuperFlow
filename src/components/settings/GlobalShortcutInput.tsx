@@ -283,7 +283,7 @@ export const GlobalShortcutInput: React.FC<GlobalShortcutInputProps> = ({
           <div
             ref={(ref) => setShortcutRef(shortcutId, ref)}
             className={`rounded-md px-1.5 py-0.5 text-sm font-semibold ${
-              isLight ? "bg-blue-600/80 text-blue-700" : "bg-blue-600/30"
+              isLight ? "bg-blue-600/15 text-blue-700" : "bg-blue-600/30"
             }`}
           >
             {formatCurrentKeys()}
