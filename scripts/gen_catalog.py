@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from huggingface_hub import HfApi, HfFileSystem
 
 ORG = "handy-computer"
+EXTRA_REPOS = ["superflow-hq/granite-speech-5.0-470m-turboctc-nc-Q8_0-GGUF"]
 CATALOG_VERSION = 2
 
 # Download sources tried in order after Hugging Face itself. Each entry is a
@@ -43,17 +44,28 @@ def acc_from_wer(wer):
 # badge / onboarding subset — independent of rank, so a model can rank high
 # without carrying the recommended tag.
 CURATION = {
+    "granite-speech-5.0-470m-turboctc-nc-Q8_0": {
+        "rank": 1,
+        "rec": True,
+        "desc": "Native Q8_0 English transcription with audio.cpp",
+        "default_quant": "Q8_0",
+        "name": "Granite Speech 5.0 470M TurboCTC",
+        "parameters": "470M",
+        "engine": "audio_cpp",
+        "family": "granite5asr",
+    },
     "parakeet-unified-en-0.6b":        {"rank": 1, "rec": True, "desc": "Fast, accurate live English transcription"},
     "nemotron-3.5-asr-streaming-0.6b": {"rank": 2, "rec": True, "desc": "Live multilingual transcription across 28 languages"},
     "canary-180m-flash":               {"rank": 3, "rec": True, "desc": "Tiny and instant, runs well on any hardware"},
     "cohere-transcribe-03-2026":       {"rank": 4, "rec": True, "desc": "Highest accuracy, 14 languages, slower"},
     "whisper-medium":                  {"rank": 5, "rec": True, "desc": "Broadest language, but may run a bit slow"},
     # ranked (sorted high) but NOT tagged recommended
-    "Voxtral-Mini-4B-Realtime-2602":   {"rank": 6, "desc": "Live multilingual, excellent on powerful machines"},
+    "Voxtral-Mini-4B-Realtime-2602":   {"rank": 6, "desc": "Live multilingual, excellent on powerful machines", "default_quant": "Q4_K_M"},
     "parakeet-tdt-0.6b-v3":            {"rank": 7, "desc": "Fast and accurate. Supports 25 European languages"},
     "parakeet-tdt-0.6b-v2":            {"rank": 8, "desc": "English only. The best model for English speakers"},
-    "Qwen3-ASR-0.6B":                  {"rank": 9, "desc": "Excellent multilingual model"},
+    "Qwen3-ASR-0.6B":                  {"rank": 9, "desc": "Excellent multilingual model", "default_quant": "Q8_0"},
     "Fun-ASR-MLT-Nano-2512":           {"rank": 10, "desc": "A tiny multilingual model"},
+    "Qwen3-ASR-1.7B":                  {"rank": 11, "desc": "Larger, more accurate multilingual model", "default_quant": "Q4_K_M"},
     # description-only (unranked, not recommended) — carried over from the legacy .bin entry
     "Breeze-ASR-25":                   {"desc": "Optimized for Taiwanese Mandarin. Code-switching support."},
     # Sortformer emits speaker segments only; SuperFlow's catalog is for models
@@ -62,8 +74,16 @@ CURATION = {
 }
 # temporary capability corrections pending a card re-push (remove once cards fixed)
 OVERRIDES = {
+    "granite-speech-5.0-470m-turboctc-nc-Q8_0": {
+        "streaming": True,
+        "translate": False,
+        "lang_detect": False,
+        "timestamps": "none",
+    },
     "granite-4.0-1b-speech": {"timestamps": "none"},
     "granite-speech-4.1-2b": {"timestamps": "none"},
+    "Qwen3-ASR-0.6B": {"streaming": True},
+    "Qwen3-ASR-1.7B": {"streaming": True},
 }
 
 # ───────────────────────── helpers ──────────────────────────────────────────
@@ -74,7 +94,7 @@ ACR = {"asr":"ASR","ctc":"CTC","rnnt":"RNNT","tdt":"TDT","nar":"NAR","mlt":"MLT"
 SCALAR = {0:("<B",1),1:("<b",1),2:("<H",2),3:("<h",2),4:("<I",4),5:("<i",4),
           6:("<f",4),7:("<?",1),10:("<Q",8),11:("<q",8),12:("<d",8)}
 
-def slug(repo): return repo.split("/")[1].replace("-gguf", "")
+def slug(repo): return re.sub(r"-gguf$", "", repo.split("/")[1], flags=re.I)
 def family(s, tags):
     for f in ARCH:
         if f in s.lower(): return "moonshine" if f.startswith("moonshine") else f.split("-")[0]
@@ -86,7 +106,8 @@ def pretty(s):
     return " ".join(ACR.get(p.lower(), p if (p.isupper() or any(c.isdigit() for c in p)) else p.capitalize())
                     for p in s.split("-"))
 def quant_of(fn):
-    m = re.search(r"-(F32|F16|BF16|Q\d[\w_]*?)\.gguf$", fn);  return m.group(1) if m else "?"
+    m = re.search(r"-(F32|F16|BF16|Q\d[\w_]*?)\.gguf$", fn, re.I)
+    return m.group(1).upper() if m else "?"
 def parse_params(size_label):
     """`general.size_label` ("0.6B" / "1.7B" / "62M") -> count in billions, or None."""
     m = re.match(r"([\d.]+)\s*([BM])", str(size_label or "").strip(), re.I)
@@ -241,10 +262,11 @@ def build(repo):
         # stays repo+filename; the pin only scopes acquisition.
         "revision": info.sha,
         "slug": s,
-        "name": gg.get("general.name") or pretty(s),         # friendly name (from GGUF)
+        "name": cur.get("name") or gg.get("general.name") or pretty(s),
         "architecture": gg.get("general.architecture"),
-        "family": family(s, info.tags),
-        "parameters": gg.get("general.size_label"),          # "0.6B" / "1.7B" / "62M"
+        "engine": cur.get("engine", "transcribe_cpp"),
+        "family": cur.get("family") or family(s, info.tags),
+        "parameters": cur.get("parameters") or gg.get("general.size_label"),
         "description": cur.get("desc") or auto_desc(langs, caps),
         "base_model": cd.get("base_model"),
         "license": cd.get("license"),
@@ -260,7 +282,7 @@ def build(repo):
     }
 
 def main():
-    repos = [m.id for m in api.list_models(author=ORG, limit=500)]
+    repos = [m.id for m in api.list_models(author=ORG, limit=500)] + EXTRA_REPOS
     models = []
     failures = []
     with ThreadPoolExecutor(max_workers=10) as ex:
