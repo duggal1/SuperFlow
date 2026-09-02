@@ -28,7 +28,7 @@
 //! via Tauri's event system.
 
 use handy_keys::{Hotkey, HotkeyId, HotkeyManager, HotkeyState, KeyboardListener};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use serde::Serialize;
 use specta::Type;
 use std::collections::HashMap;
@@ -202,6 +202,26 @@ impl HandyKeysState {
         binding_to_hotkey.insert(binding_id.to_string(), id);
         hotkey_to_binding.insert(id, (binding_id.to_string(), hotkey_string.to_string()));
 
+        // The hands-free trigger keeps a second chord: fn+space works exactly
+        // like the configured hands-free shortcut (e.g. fn+control), so either
+        // chord starts or promotes a hands-free session. Registered alongside
+        // the binding's own hotkey; dropped together on unregister.
+        if binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID {
+            let alt = "fn+space"
+                .parse::<Hotkey>()
+                .map_err(|e| e.to_string())
+                .and_then(|hotkey| manager.register(hotkey).map_err(|e| e.to_string()));
+            match alt {
+                Ok(alt_id) => {
+                    binding_to_hotkey.insert(format!("{binding_id}:fn_space"), alt_id);
+                    hotkey_to_binding
+                        .insert(alt_id, (binding_id.to_string(), "fn+space".to_string()));
+                    debug!("Registered handy-keys fn+space hands-free alt trigger");
+                }
+                Err(e) => warn!("Failed to register fn+space hands-free alt trigger: {e}"),
+            }
+        }
+
         debug!(
             "Registered handy-keys shortcut: {} -> {:?}",
             binding_id, hotkey
@@ -222,6 +242,11 @@ impl HandyKeysState {
                 .map_err(|e| format!("Failed to unregister hotkey: {}", e))?;
             hotkey_to_binding.remove(&id);
             debug!("Unregistered handy-keys shortcut: {}", binding_id);
+        }
+        // Drop the hands-free fn+space alt chord together with its binding.
+        if let Some(id) = binding_to_hotkey.remove(&format!("{binding_id}:fn_space")) {
+            let _ = manager.unregister(id);
+            hotkey_to_binding.remove(&id);
         }
         Ok(())
     }
