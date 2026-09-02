@@ -89,28 +89,48 @@ html[data-platform="macos"] .sidebar-material {
    material owns the blur (no CSS backdrop-filter, faint tint only); off
    macOS, the same blur stack as dark with a lighter tint. */
 html[data-theme="light"] .sidebar-material {
-  background: rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(32px) saturate(128%);
-  -webkit-backdrop-filter: blur(32px) saturate(128%);
+  background: rgba(
+    231,
+    229,
+    228,
+    0.6
+  ); /* stone-200 @ 60% — glass stays alive */
+  backdrop-filter: blur(10px) saturate(95%);
+  -webkit-backdrop-filter: blur(10px) saturate(95%);
 }
 
 html[data-platform="macos"][data-theme="light"] .sidebar-material {
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(12px) saturate(120%);
-  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  background: rgba(
+    231,
+    229,
+    228,
+    0.6
+  ); /* stone-200 @ 60% — glass stays alive */
+  backdrop-filter: blur(10px) saturate(95%);
+  -webkit-backdrop-filter: blur(10px) saturate(95%);
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) .sidebar-material {
-    background: rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(32px) saturate(128%);
-    -webkit-backdrop-filter: blur(32px) saturate(128%);
+    background: rgba(
+      231,
+      229,
+      228,
+      0.6
+    ); /* stone-200 @ 60% — glass stays alive */
+    backdrop-filter: blur(10px) saturate(95%);
+    -webkit-backdrop-filter: blur(10px) saturate(95%);
   }
 
   :root:not([data-theme])[data-platform="macos"] .sidebar-material {
-    background: rgba(255, 255, 255, 0.35);
-    backdrop-filter: blur(12px) saturate(120%);
-    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    background: rgba(
+      231,
+      229,
+      228,
+      0.6
+    ); /* stone-200 @ 60% — glass stays alive */
+    backdrop-filter: blur(10px) saturate(95%);
+    -webkit-backdrop-filter: blur(10px) saturate(95%);
   }
 }
 
