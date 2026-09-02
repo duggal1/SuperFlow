@@ -144,12 +144,26 @@ impl HandyKeysState {
                         hotkey_string,
                         response,
                     } => {
+                        // The hands-free alt chord (standard trigger + Space) is
+                        // resolved here where the app handle is in scope.
+                        let alt_hotkey = if binding_id
+                            == crate::transcription_coordinator::HANDS_FREE_BINDING_ID
+                        {
+                            get_settings(&app)
+                                .bindings
+                                .get("transcribe")
+                                .map(|binding| binding.current_binding.clone())
+                                .and_then(|ref standard| Self::hands_free_alt_hotkey(standard))
+                        } else {
+                            None
+                        };
                         let result = Self::do_register(
                             &manager,
                             &mut binding_to_hotkey,
                             &mut hotkey_to_binding,
                             &binding_id,
                             &hotkey_string,
+                            alt_hotkey.as_deref(),
                         );
                         let _ = response.send(result);
                     }
@@ -183,6 +197,21 @@ impl HandyKeysState {
         info!("handy-keys manager thread stopped");
     }
 
+    /// The hands-free alt chord: the standard transcribe trigger plus Space
+    /// (e.g. fn → fn+space, command → command+space). None when the standard
+    /// chord already contains Space, so it never duplicates the trigger itself.
+    fn hands_free_alt_hotkey(standard: &str) -> Option<String> {
+        let parts: Vec<&str> = standard
+            .split('+')
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .collect();
+        if parts.is_empty() || parts.iter().any(|part| part.eq_ignore_ascii_case("space")) {
+            return None;
+        }
+        Some(format!("{}+space", parts.join("+")))
+    }
+
     /// Register a hotkey
     fn do_register(
         manager: &HotkeyManager,
@@ -190,6 +219,7 @@ impl HandyKeysState {
         hotkey_to_binding: &mut HashMap<HotkeyId, (String, String)>,
         binding_id: &str,
         hotkey_string: &str,
+        alt_hotkey_string: Option<&str>,
     ) -> Result<(), String> {
         let hotkey: Hotkey = hotkey_string
             .parse()
@@ -202,23 +232,27 @@ impl HandyKeysState {
         binding_to_hotkey.insert(binding_id.to_string(), id);
         hotkey_to_binding.insert(id, (binding_id.to_string(), hotkey_string.to_string()));
 
-        // The hands-free trigger keeps a second chord: fn+space works exactly
-        // like the configured hands-free shortcut (e.g. fn+control), so either
-        // chord starts or promotes a hands-free session. Registered alongside
-        // the binding's own hotkey; dropped together on unregister.
+        // The hands-free trigger keeps a second chord: the standard transcribe
+        // trigger plus Space (fn+space by default) works exactly like the
+        // configured hands-free shortcut, so either chord starts or promotes a
+        // hands-free session. Dropped together with the binding on unregister.
         if binding_id == crate::transcription_coordinator::HANDS_FREE_BINDING_ID {
-            let alt = "fn+space"
-                .parse::<Hotkey>()
-                .map_err(|e| e.to_string())
-                .and_then(|hotkey| manager.register(hotkey).map_err(|e| e.to_string()));
+            let alt = alt_hotkey_string.map(|alt_string| {
+                alt_string
+                    .parse::<Hotkey>()
+                    .map_err(|e| e.to_string())
+                    .and_then(|hotkey| manager.register(hotkey).map_err(|e| e.to_string()))
+                    .map(|alt_id| (alt_id, alt_string))
+            });
             match alt {
-                Ok(alt_id) => {
-                    binding_to_hotkey.insert(format!("{binding_id}:fn_space"), alt_id);
+                Some(Ok((alt_id, alt_string))) => {
+                    binding_to_hotkey.insert(format!("{binding_id}:alt"), alt_id);
                     hotkey_to_binding
-                        .insert(alt_id, (binding_id.to_string(), "fn+space".to_string()));
-                    debug!("Registered handy-keys fn+space hands-free alt trigger");
+                        .insert(alt_id, (binding_id.to_string(), alt_string.to_string()));
+                    debug!("Registered handy-keys hands-free alt trigger: {alt_string}");
                 }
-                Err(e) => warn!("Failed to register fn+space hands-free alt trigger: {e}"),
+                Some(Err(e)) => warn!("Failed to register hands-free alt trigger: {e}"),
+                None => {}
             }
         }
 
@@ -243,8 +277,8 @@ impl HandyKeysState {
             hotkey_to_binding.remove(&id);
             debug!("Unregistered handy-keys shortcut: {}", binding_id);
         }
-        // Drop the hands-free fn+space alt chord together with its binding.
-        if let Some(id) = binding_to_hotkey.remove(&format!("{binding_id}:fn_space")) {
+        // Drop the hands-free alt chord together with its binding.
+        if let Some(id) = binding_to_hotkey.remove(&format!("{binding_id}:alt")) {
             let _ = manager.unregister(id);
             hotkey_to_binding.remove(&id);
         }
