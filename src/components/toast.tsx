@@ -134,8 +134,8 @@ function SonnerToast({
 	return (
 		<div
 			className={cn(
-				"pointer-events-none fixed bottom-6 left-1/2 z-[60]",
-				"w-[calc(100%-2rem)] max-w-[360px] -translate-x-1/2",
+				"pointer-events-none fixed bottom-4 right-4 z-[60]",
+				"w-[calc(100%-2rem)] max-w-[360px]",
 				className,
 			)}
 		>
@@ -167,8 +167,8 @@ function SonnerToast({
 					ease: smoothEase,
 				}}
 				className={cn(
-					"flex min-h-11 w-full items-center gap-2.5",
-					"rounded-[8px] border px-3.5 py-2.5",
+					"flex min-h-9 w-full items-center gap-2.5",
+					"rounded-[8px] border px-3.5 py-2 shadow-none",
 					"text-[13px] font-normal leading-5 tracking-tight antialiased",
 
 					isLight

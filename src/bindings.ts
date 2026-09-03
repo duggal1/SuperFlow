@@ -1190,6 +1190,148 @@ async isLaptop() : Promise<Result<boolean, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async googleConnect() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("google_connect") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async googleDisconnect() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("google_disconnect") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async googleStatus() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("google_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async microsoftConnect() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("microsoft_connect") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async microsoftDisconnect() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("microsoft_disconnect") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async microsoftStatus() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("microsoft_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Reports which providers have usable OAuth client credentials (settings
+ * first, then env vars) so the UI can show a setup form for the rest.
+ */
+async integrationsCredentialsStatus() : Promise<IntegrationsCredentials> {
+    return await TAURI_INVOKE("integrations_credentials_status");
+},
+/**
+ * Persists Google OAuth client credentials (bring-your-own) and rebuilds the
+ * integration clients. Tokens already in the Keychain are untouched.
+ */
+async integrationsSaveGoogleCredentials(clientId: string, clientSecret: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("integrations_save_google_credentials", { clientId, clientSecret }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Persists the Microsoft OAuth client ID (bring-your-own) and rebuilds the
+ * integration clients. Tokens already in the Keychain are untouched.
+ */
+async integrationsSaveMicrosoftCredentials(clientId: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("integrations_save_microsoft_credentials", { clientId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async ttsStatus() : Promise<Result<TtsStatus, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_status") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async ttsDownloadModel() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_download_model") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async ttsSynthesize(text: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_synthesize", { text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Pocket-TTS preset voices (Kyutai catalog) pulled from the real backend.
+ */
+async ttsVoices() : Promise<Result<TtsVoice[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_voices") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Currently selected Pocket-TTS voice id (persisted locally).
+ */
+async ttsSelectedVoice() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_selected_voice") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Persist the selected Pocket-TTS voice. Synthesis uses it from here.
+ */
+async ttsSetVoice(voice: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("tts_set_voice", { voice }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Expose the progress event name for specta generation (frontend can listen to it)
+ */
+async ttsDownloadProgressEvent() : Promise<string> {
+    return await TAURI_INVOKE("tts_download_progress_event");
 }
 }
 
@@ -1354,7 +1496,21 @@ overlay_style?: OverlayStyle;
  * Whether the Live streaming panel is rendered. Backend streaming still runs
  * for speed; this only hides the frontend component.
  */
-show_live_streaming?: boolean }
+show_live_streaming?: boolean; 
+/**
+ * Bring-your-own OAuth client credentials for the Agents integrations
+ * (Google / Microsoft). The user creates their own cloud OAuth app and
+ * pastes its client IDs here, so the consent screen shows *their* app —
+ * no SuperFlow-owned credentials or verification are required. These are
+ * app credentials, not user tokens: access/refresh tokens stay in the OS
+ * Keychain (see `tori-integrations::storage`).
+ */
+google_oauth_client_id?: string | null; 
+/**
+ * Google OAuth client secret. For "Desktop app" type clients Google
+ * documents this as non-confidential; it is still kept out of the UI.
+ */
+google_oauth_client_secret?: string | null; microsoft_oauth_client_id?: string | null }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1414,6 +1570,11 @@ export type ImplementationChangeResult = { success: boolean;
  * List of binding IDs that were reset to defaults due to incompatibility
  */
 reset_bindings: string[] }
+/**
+ * Which providers currently have OAuth client credentials available. A
+ * provider without credentials shows a setup form instead of Connect.
+ */
+export type IntegrationsCredentials = { google: boolean; microsoft: boolean }
 export type IntelligenceItem = { issue: string; timestamp: string | null; evidence: string | null; why_it_matters: string | null; better_approach: string | null }
 export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_pid: number | null; culprit_name: string | null; 
 /**
@@ -1590,6 +1751,15 @@ export type StreamWorkKind = "transcribing" | "polishing" | "finalizing"
  */
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
+export type TtsStatus = { engine_available: boolean; model_downloaded: boolean; model_size_bytes: number; downloading: boolean }
+/**
+ * One Pocket-TTS preset voice (Kyutai catalog). The `novc` checkpoint ships
+ * a single default voice; these eight presets are the selection layer.
+ * Selection persists locally; the engine receives `--voice` only when it
+ * resolves to a real GGUF pack / reference WAV on disk, otherwise the
+ * default-voice path runs unchanged.
+ */
+export type TtsVoice = { id: string; name: string }
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 /**
  * Report returned by the toggle-driven environment pre-warm. Surfaced on the

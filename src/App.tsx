@@ -351,20 +351,21 @@ function App() {
           <WhatsNewGate />
         </ErrorBoundary>
         {/* Main content area that takes remaining space */}
-        <div className="flex-1 flex overflow-hidden">
-          <Sidebar
-            activeSection={currentSection}
-            onSectionChange={setCurrentSection}
-            open={sidebarOpen}
-            onToggle={() => setSidebarOpen((open) => !open)}
-            opaque={windowFullPage}
-          />
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
-            <div
-              dir="ltr"
-              data-tauri-drag-region
-              className="app-titlebar flex h-11 shrink-0 items-center px-2"
-            >
+        <ErrorBoundary context="Main">
+          <div className="flex-1 flex overflow-hidden">
+            <Sidebar
+              activeSection={currentSection}
+              onSectionChange={setCurrentSection}
+              open={sidebarOpen}
+              onToggle={() => setSidebarOpen((open) => !open)}
+              opaque={windowFullPage}
+            />
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
+              <div
+                dir="ltr"
+                data-tauri-drag-region
+                className="app-titlebar flex h-11 shrink-0 items-center px-2"
+              >
               {!sidebarOpen && (
                 <button
                   type="button"
@@ -391,6 +392,7 @@ function App() {
             <Footer />
           </div>
         </div>
+        </ErrorBoundary>
       </div>
     );
   }

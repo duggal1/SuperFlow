@@ -30,7 +30,23 @@
     "connect": "Connect",
     "disconnect": "Disconnect",
     "connected": "Connected",
-    "notConnected": "Not connected"
+    "notConnected": "Not connected",
+    "setup": "Set up",
+    "setupSectionTitle": "Bring your own app",
+    "setupGoogleTitle": "Connect your own Google app",
+    "setupMicrosoftTitle": "Connect your own Microsoft app",
+    "googleStep1": "Open console.cloud.google.com and create an OAuth client of type \"Desktop app\".",
+    "googleStep2": "Enable the Gmail, Google Calendar, and Drive APIs for the project.",
+    "googleStep3": "Add com.superflow.app:/oauth2redirect as an authorized redirect URI.",
+    "microsoftStep1": "Open entra.microsoft.com and register a new application.",
+    "microsoftStep2": "Copy its Application (client) ID.",
+    "microsoftStep3": "Add http://localhost under Mobile and desktop applications redirect URIs.",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "saveCredentials": "Save credentials",
+    "saving": "Saving…",
+    "credentialsSaved": "Credentials saved — you can now connect.",
+    "setupIntro": "Create your own OAuth app and paste its client ID below. The consent screen will show your app name, and your data never touches SuperFlow-owned credentials."
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -704,8 +720,8 @@
         "button": "View on GitHub"
       },
       "supportDevelopment": {
-        "title": "Support Development",
-        "description": "Help us continue building SuperFlow",
+        "title": "Support Us",
+        "description": "Please help us continue to maintain and build SuperFlow for you to make it better.",
         "button": "Donate"
       },
       "acknowledgments": {

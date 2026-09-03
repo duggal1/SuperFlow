@@ -693,6 +693,20 @@ pub struct AppSettings {
     /// for speed; this only hides the frontend component.
     #[serde(default = "default_show_live_streaming")]
     pub show_live_streaming: bool,
+    /// Bring-your-own OAuth client credentials for the Agents integrations
+    /// (Google / Microsoft). The user creates their own cloud OAuth app and
+    /// pastes its client IDs here, so the consent screen shows *their* app —
+    /// no SuperFlow-owned credentials or verification are required. These are
+    /// app credentials, not user tokens: access/refresh tokens stay in the OS
+    /// Keychain (see `tori-integrations::storage`).
+    #[serde(default)]
+    pub google_oauth_client_id: Option<String>,
+    /// Google OAuth client secret. For "Desktop app" type clients Google
+    /// documents this as non-confidential; it is still kept out of the UI.
+    #[serde(default)]
+    pub google_oauth_client_secret: Option<String>,
+    #[serde(default)]
+    pub microsoft_oauth_client_id: Option<String>,
 }
 
 fn default_model() -> String {
@@ -1353,6 +1367,9 @@ pub fn get_default_settings() -> AppSettings {
         audio_enhancement_enabled: default_audio_enhancement_enabled(),
         overlay_style: default_overlay_style(),
         show_live_streaming: default_show_live_streaming(),
+        google_oauth_client_id: None,
+        google_oauth_client_secret: None,
+        microsoft_oauth_client_id: None,
     }
 }
 

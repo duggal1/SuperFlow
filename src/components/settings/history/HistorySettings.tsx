@@ -60,6 +60,7 @@ const OpenRecordingsButton: React.FC<OpenRecordingsButtonProps> = ({
   <Button
     onClick={onClick}
     size="sm"
+    variant="secondary"
     icon={<FolderOpen className="size-3.5" />}
     title={label}
   >

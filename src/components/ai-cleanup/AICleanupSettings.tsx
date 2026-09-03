@@ -428,17 +428,13 @@ export function AICleanupSettings() {
         className="space-y-3"
         description="Add preferences without changing the protected system prompt."
       >
-        <div
-          className={`rounded-[14px] p-4 ${isLight ? "bg-stone-100 border border-stone-200" : "bg-stone-800"}`}
-        >
+        <div className={`rounded-lg p-4 !shadow-none ${isLight ? "bg-white border border-stone-200/70" : "bg-stone-800"}`}>
           <Textarea
             variant="inset"
             value={configuration.custom_instruction}
-            onChange={(event) =>
-              update("custom_instruction", event.target.value)
-            }
+            onChange={(event) => update("custom_instruction", event.target.value)}
             maxLength={4000}
-            className={`w-full !rounded-[12px] !text-[15px] ${isLight ? "!text-stone-900" : "!text-stone-100"}`}
+            className={`w-full !rounded-lg !text-[15px] placeholder:text-stone-500 !shadow-none ${isLight ? "!bg-stone-100/80 !text-stone-900 !border-0" : "!text-stone-100"}`}
             placeholder="For example: Keep my tone direct and preserve code paths exactly."
           />
         </div>

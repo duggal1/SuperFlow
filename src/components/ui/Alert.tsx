@@ -62,6 +62,7 @@ export const Alert: React.FC<AlertProps> = ({
     <div
       className={`flex items-center gap-2 border-0 px-3 py-2.5 shadow-none ${styles.container} ${contained ? "" : "rounded-[7px]"} ${className}`}
     >
+      {/* @ts-ignore phosphor icon type mismatch with React 19 */}
       <Icon className={`size-4 shrink-0 ${styles.icon}`} />
       <p className={`text-sm font-normal leading-5 ${styles.text}`}>
         {children}

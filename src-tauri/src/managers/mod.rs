@@ -7,3 +7,4 @@ pub mod mlx_llm;
 pub mod model;
 pub mod model_capabilities;
 pub mod transcription;
+pub mod tts;

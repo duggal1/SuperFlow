@@ -28,8 +28,20 @@ export class ErrorBoundary extends Component<
     );
   }
 
+  componentDidUpdate(prevProps: ErrorBoundaryProps): void {
+    if (prevProps.context !== this.props.context && this.state.failed) {
+      this.setState({ failed: false });
+    }
+  }
+
   render(): ReactNode {
-    if (this.state.failed) return null;
+    if (this.state.failed) {
+      return (
+        <div className="p-4 text-sm text-stone-500">
+          Unable to load {this.props.context}. Check logs or retry.
+        </div>
+      );
+    }
     return this.props.children;
   }
 }

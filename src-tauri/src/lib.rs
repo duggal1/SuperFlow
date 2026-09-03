@@ -171,6 +171,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // after onboarding completes. This avoids triggering permission dialogs
     // on macOS before the user is ready.
 
+    // The settings store is ready here — layer user-saved OAuth client
+    // credentials (bring-your-own) over the env-var boot defaults.
+    use tauri::Manager;
+    app_handle
+        .state::<commands::integrations::IntegrationsState>()
+        .refresh_from_settings(app_handle);
+
     // Initialize the managers. The audio recorder receives the streaming router
     // explicitly, so always-on microphone startup can wire live-preview frames
     // even before Tauri state is populated.
@@ -186,6 +193,8 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
+    let tts_manager =
+        Arc::new(crate::managers::tts::TtsManager::new(app_handle).expect("Failed to initialize TTS manager"));
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
@@ -211,6 +220,7 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(model_manager.clone());
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
+    app_handle.manage(tts_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
 
     // Note: Shortcuts are NOT initialized here.
@@ -825,6 +835,16 @@ pub fn run(cli_args: CliArgs) {
             commands::integrations::microsoft_connect,
             commands::integrations::microsoft_disconnect,
             commands::integrations::microsoft_status,
+            commands::integrations::integrations_credentials_status,
+            commands::integrations::integrations_save_google_credentials,
+            commands::integrations::integrations_save_microsoft_credentials,
+            commands::tts::tts_status,
+            commands::tts::tts_download_model,
+            commands::tts::tts_synthesize,
+            commands::tts::tts_voices,
+            commands::tts::tts_selected_voice,
+            commands::tts::tts_set_voice,
+            commands::tts::tts_download_progress_event,
         ])
         .events(collect_events![
             managers::history::HistoryUpdatePayload,
@@ -843,18 +863,11 @@ pub fn run(cli_args: CliArgs) {
     let invoke_handler = specta_builder.invoke_handler();
 
     // Integration clients (Google + Microsoft). Tokens persist only in the OS
-    // Keychain. `new_unchecked` lets the app boot and report status without
-    // OAuth client IDs configured; connect fails with a clear error instead.
-    let integrations = tori_integrations::Integrations::new_unchecked(
-        "com.superflow.app",
-        tori_integrations::google::GoogleConfig::workspace(
-            std::env::var("TORI_GOOGLE_CLIENT_ID").unwrap_or_default(),
-            std::env::var("TORI_GOOGLE_CLIENT_SECRET").ok(),
-        ),
-        tori_integrations::microsoft::MicrosoftConfig::graph(
-            std::env::var("TORI_MICROSOFT_CLIENT_ID").unwrap_or_default(),
-        ),
-    );
+    // Keychain. Booted from env vars; `IntegrationsState::refresh_from_settings`
+    // layers user-saved (bring-your-own) credentials on top in the setup hook
+    // once the settings store is ready. Without any credentials the app boots
+    // and reports status; connect fails with a clear configuration error.
+    let integrations = commands::integrations::IntegrationsState::from_env();
 
     // The headless path must run as its own instance (see the single-instance
     // note below), not forward to an already-running app.

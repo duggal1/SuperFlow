@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useSettings } from "../../hooks/useSettings";
 import { Input } from "../ui/Input";
 import { SettingContainer } from "../ui/SettingContainer";
+import { useIsLight } from "../../lib/utils/theme";
 
 interface HistoryLimitProps {
   descriptionMode?: "tooltip" | "inline";
@@ -16,6 +17,7 @@ export const HistoryLimit: React.FC<HistoryLimitProps> = ({
 }) => {
   const { t } = useTranslation();
   const { getSetting, updateSetting, isUpdating } = useSettings();
+  const isLight = useIsLight();
 
   const historyLimit = getSetting("history_limit") ?? 5;
 
@@ -56,7 +58,7 @@ export const HistoryLimit: React.FC<HistoryLimitProps> = ({
               onClick={() => updateHistoryLimit(1)}
               disabled={isUpdating("history_limit") || historyLimit >= 1000}
               aria-label="Increase history limit"
-              className="flex flex-1 items-center justify-center text-stone-100 transition-colors hover:bg-stone-700 disabled:text-stone-600"
+              className={`flex flex-1 items-center justify-center py-0.5 transition-colors ${isLight ? "bg-white text-stone-600 hover:bg-stone-100 disabled:text-stone-300" : "bg-stone-800 text-stone-100 hover:bg-stone-700 disabled:text-stone-600"}`}
             >
               <CaretUp size={10} weight="bold" />
             </button>
@@ -65,7 +67,7 @@ export const HistoryLimit: React.FC<HistoryLimitProps> = ({
               onClick={() => updateHistoryLimit(-1)}
               disabled={isUpdating("history_limit") || historyLimit <= 0}
               aria-label="Decrease history limit"
-              className="flex flex-1 items-center justify-center text-stone-100 transition-colors hover:bg-stone-700 disabled:text-stone-600"
+              className={`flex flex-1 items-center justify-center py-0.5 transition-colors ${isLight ? "bg-white text-stone-600 hover:bg-stone-100 disabled:text-stone-300" : "bg-stone-800 text-stone-100 hover:bg-stone-700 disabled:text-stone-600"}`}
             >
               <CaretDown size={10} weight="bold" />
             </button>
