@@ -864,7 +864,7 @@
     },
     {
       "canonical": "pr",
-      "aliases": ["pr", "padding right"]
+      "aliases": ["padding right"]
     },
     {
       "canonical": "pb",

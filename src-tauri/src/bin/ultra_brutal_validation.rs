@@ -31,12 +31,11 @@ fn run_pipeline_stages(raw: &str) -> (String, String, String, String) {
     let protected = superflow_grammar::ProtectedText::new(raw);
     // Stage 1: Normalization — tech_lexicon + transcript_cleanup (simplified, English)
     // We replicate post_process_transcription_text without AppHandle:
-    // Apply tech_lexicon, styling, programming_syntax, emoji (tech_lexicon gate enabled)
+    // Apply the conservative technical/styling catalogs and explicit emoji rules.
     let mut normalized = protected.masked().to_string();
     // Tech lexicon — apply built-in vocabulary
     normalized = superflow_app_lib::audio_toolkit::tech_lexicon::apply(&normalized);
     normalized = superflow_app_lib::audio_toolkit::styling::apply(&normalized);
-    normalized = superflow_app_lib::audio_toolkit::programming_syntax::apply(&normalized);
     normalized = superflow_app_lib::audio_toolkit::emoji::apply(&normalized);
     // Remove filler words — English, so "um" gated but "uh" universal
     // For validation we use English evidence
@@ -85,7 +84,6 @@ fn benchmark_breakdown(text: &str) {
     let started = Instant::now();
     let mut normalized = superflow_app_lib::audio_toolkit::tech_lexicon::apply(protected.masked());
     normalized = superflow_app_lib::audio_toolkit::styling::apply(&normalized);
-    normalized = superflow_app_lib::audio_toolkit::programming_syntax::apply(&normalized);
     normalized = superflow_app_lib::audio_toolkit::emoji::apply(&normalized);
     let catalogs_ms = started.elapsed().as_secs_f64() * 1000.0;
 

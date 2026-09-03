@@ -1,4 +1,4 @@
-use superflow_app_lib::audio_toolkit::{tech_lexicon, styling, programming_syntax};
+use superflow_app_lib::audio_toolkit::{styling, tech_lexicon};
 
 fn main() {
     let tests = vec![
@@ -24,9 +24,5 @@ fn main() {
     println!("--- styling ---");
     for t in vec!["bg-stone-600", "white"] {
         println!("styling: {:?} -> {:?}", t, styling::apply(t));
-    }
-    println!("--- programming_syntax ---");
-    for t in vec!["Llama C++", "C++"] {
-        println!("prog: {:?} -> {:?}", t, programming_syntax::apply(t));
     }
 }

@@ -10,6 +10,7 @@ import {
   File02Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
+import { MeetingIcon } from "../icons/MeetingIcon";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -499,12 +500,7 @@ export function MeetingPage() {
           </div>
         ) : meetings.length === 0 ? (
           <div className="flex min-h-72 flex-col items-center justify-center text-center">
-            <HugeiconsIcon
-              icon={File02Icon}
-              size={24}
-              className="text-stone-500"
-              aria-hidden="true"
-            />
+            <MeetingIcon className="size-8 text-stone-500" />
             <h2 className="mt-4 text-[15px] font-medium text-text">
               {t("meeting.emptyTitle")}
             </h2>

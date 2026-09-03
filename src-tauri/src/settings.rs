@@ -625,6 +625,11 @@ pub struct AppSettings {
     pub experimental_gmail_voice_enabled: bool,
     #[serde(default)]
     pub lazy_stream_close: bool,
+    /// RNNoise denoising + AGC on the dictation stream. Boosts quiet/far-mic
+    /// voices and removes background noise before VAD/ASR. On by default;
+    /// applies from the next recording after a change.
+    #[serde(default = "default_audio_enhancement_enabled")]
+    pub audio_enhancement_enabled: bool,
     #[serde(default)]
     pub keyboard_implementation: KeyboardImplementation,
     #[serde(default = "default_show_tray_icon")]
@@ -760,6 +765,10 @@ fn default_show_live_streaming() -> bool {
 }
 
 fn default_vad_enabled() -> bool {
+    true
+}
+
+fn default_audio_enhancement_enabled() -> bool {
     true
 }
 
@@ -1341,6 +1350,7 @@ pub fn get_default_settings() -> AppSettings {
         transcribe_gpu_device: default_transcribe_gpu_device(),
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
+        audio_enhancement_enabled: default_audio_enhancement_enabled(),
         overlay_style: default_overlay_style(),
         show_live_streaming: default_show_live_streaming(),
     }
@@ -1744,6 +1754,7 @@ mod tests {
             "transcribe_gpu_device": 0,
             "extra_recording_buffer_ms": 0,
             "vad_enabled": true,
+            "audio_enhancement_enabled": true,
             "overlay_style": "live"
         }"##,
         )

@@ -26,13 +26,13 @@ const SidebarToggleIcon = ({
       aria-hidden="true"
       className={`overflow-visible ${className ?? ""}`}
     >
-      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <rect x="3" y="5" width="18" height="14" rx="0.5" />
       <motion.rect
         x="5.25"
         y="7.25"
         width="7.25"
         height="9.5"
-        rx="1"
+        rx="0.5"
         fill="currentColor"
         stroke="none"
         initial={false}

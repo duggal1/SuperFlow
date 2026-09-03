@@ -184,6 +184,11 @@ mod tests {
             "right now use the normal model"
         );
         assert_eq!(apply("set right position zero"), "set right-0");
+        assert_eq!(
+            apply("PR means permanent residence"),
+            "PR means permanent residence"
+        );
+        assert_eq!(apply("use padding right"), "use pr");
     }
 }
 

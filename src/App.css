@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "./styles/theme.css";
 
-/* Register the shared color tokens (src/styles/theme.css) as Tailwind
-   utilities */
 @theme inline {
   --color-text: var(--color-text);
   --color-background: var(--color-background);
@@ -19,25 +17,26 @@
   --color-warning: var(--color-warning);
   --color-error: var(--color-error);
 
-  /* Custom step between stone-800 and stone-700 for hover surfaces */
   --color-stone-850: #34302c;
 }
 
 :root {
-  /* Typography */
   font-size: 15px;
   line-height: 24px;
   font-weight: 400;
 
-  /* Typography settings */
   font-family:
     ui-sans-serif,
     system-ui,
     -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Text",
+    "SF Pro Display",
     "Segoe UI",
     Roboto,
     "Helvetica Neue",
     sans-serif;
+
   letter-spacing: -0.011em;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -45,17 +44,26 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
-  /* Scrollbars — stone-750 thumb (between stone-700 #44403c and stone-800
-     #292524), no border, no ring. Hover lightens to stone-700. */
-  --scrollbar-thumb: #37332f; /* stone-750 */
-  --scrollbar-thumb-hover: #44403c; /* stone-700 */
+  --scrollbar-thumb: #37332f;
+  --scrollbar-thumb-hover: #44403c;
 
-  /* Log console surface — a subtle shade off the app background so the live log
-     viewer reads as a distinct console. In light mode this is a faint gray code
-     block (matching other surfaces); the dark theme overrides it below. */
-  --color-log-surface: color-mix(in srgb, var(--color-background), black 6%);
+  --color-log-surface: color-mix(
+    in srgb,
+    var(--color-background),
+    black 6%
+  );
 
-  /* Apply colors */
+  --sidebar-dark: rgba(36, 36, 38, 0.58);
+  --sidebar-dark-macos: rgba(34, 34, 36, 0.46);
+
+  --sidebar-light: rgba(248, 248, 249, 0.76);
+  --sidebar-light-macos: rgba(248, 248, 249, 0.5);
+
+  --sidebar-light-divider: rgba(28, 25, 23, 0.075);
+
+  --sidebar-solid-dark: #1c1917;
+  --sidebar-solid-light: #ffffff;
+
   color: var(--color-text);
   background-color: transparent;
 }
@@ -74,63 +82,159 @@ html:not([data-platform="macos"]) {
 }
 
 .sidebar-material {
-  background: rgba(20, 20, 19, 0.3);
-  backdrop-filter: blur(32px) saturate(128%);
-  -webkit-backdrop-filter: blur(32px) saturate(128%);
+  position: relative;
+  isolation: isolate;
+
+  background: var(--sidebar-dark);
+
+  backdrop-filter:
+    blur(60px)
+    saturate(165%)
+    contrast(101%)
+    brightness(0.96);
+
+  -webkit-backdrop-filter:
+    blur(60px)
+    saturate(165%)
+    contrast(101%)
+    brightness(0.96);
+
+  border: 0;
+  box-shadow: none;
 }
 
 html[data-platform="macos"] .sidebar-material {
-  background: rgba(20, 20, 21, 0.18);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  background: var(--sidebar-dark-macos);
+
+  backdrop-filter:
+    saturate(145%)
+    contrast(101%);
+
+  -webkit-backdrop-filter:
+    saturate(145%)
+    contrast(101%);
+
+  border: 0;
+  box-shadow: none;
 }
 
-/* White-mode sidebar — follows the dark-mode trail: on macOS the native
-   material owns the blur (no CSS backdrop-filter, faint tint only); off
-   macOS, the same blur stack as dark with a lighter tint. */
 html[data-theme="light"] .sidebar-material {
-  background: rgba(
-    231,
-    229,
-    228,
-    0.6
-  ); /* stone-200 @ 60% — glass stays alive */
-  backdrop-filter: blur(10px) saturate(95%);
-  -webkit-backdrop-filter: blur(10px) saturate(95%);
+  background: var(--sidebar-light);
+
+  backdrop-filter:
+    blur(60px)
+    saturate(150%)
+    contrast(101%)
+    brightness(1.015);
+
+  -webkit-backdrop-filter:
+    blur(60px)
+    saturate(150%)
+    contrast(101%)
+    brightness(1.015);
+
+  border: 0;
+
+  box-shadow:
+    inset -0.5px 0 0 var(--sidebar-light-divider);
 }
 
 html[data-platform="macos"][data-theme="light"] .sidebar-material {
-  background: rgba(
-    231,
-    229,
-    228,
-    0.6
-  ); /* stone-200 @ 60% — glass stays alive */
-  backdrop-filter: blur(10px) saturate(95%);
-  -webkit-backdrop-filter: blur(10px) saturate(95%);
+  background: var(--sidebar-light-macos);
+
+  backdrop-filter:
+    saturate(140%)
+    contrast(101%);
+
+  -webkit-backdrop-filter:
+    saturate(140%)
+    contrast(101%);
+
+  border: 0;
+
+  box-shadow:
+    inset -0.5px 0 0 var(--sidebar-light-divider);
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) .sidebar-material {
-    background: rgba(
-      231,
-      229,
-      228,
-      0.6
-    ); /* stone-200 @ 60% — glass stays alive */
-    backdrop-filter: blur(10px) saturate(95%);
-    -webkit-backdrop-filter: blur(10px) saturate(95%);
+    background: var(--sidebar-light);
+
+    backdrop-filter:
+      blur(60px)
+      saturate(150%)
+      contrast(101%)
+      brightness(1.015);
+
+    -webkit-backdrop-filter:
+      blur(60px)
+      saturate(150%)
+      contrast(101%)
+      brightness(1.015);
+
+    border: 0;
+
+    box-shadow:
+      inset -0.5px 0 0 var(--sidebar-light-divider);
   }
 
   :root:not([data-theme])[data-platform="macos"] .sidebar-material {
-    background: rgba(
-      231,
-      229,
-      228,
-      0.6
-    ); /* stone-200 @ 60% — glass stays alive */
-    backdrop-filter: blur(10px) saturate(95%);
-    -webkit-backdrop-filter: blur(10px) saturate(95%);
+    background: var(--sidebar-light-macos);
+
+    backdrop-filter:
+      saturate(140%)
+      contrast(101%);
+
+    -webkit-backdrop-filter:
+      saturate(140%)
+      contrast(101%);
+
+    border: 0;
+
+    box-shadow:
+      inset -0.5px 0 0 var(--sidebar-light-divider);
+  }
+}
+
+:fullscreen .sidebar-material,
+html[data-fullscreen="true"] .sidebar-material,
+.sidebar-material[data-solid="true"] {
+  background: var(--sidebar-solid-dark);
+
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+
+  border: 0;
+  box-shadow: none;
+}
+
+html[data-theme="light"]:fullscreen .sidebar-material,
+html[data-theme="light"][data-fullscreen="true"] .sidebar-material,
+html[data-theme="light"] .sidebar-material[data-solid="true"] {
+  background: var(--sidebar-solid-light);
+
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+
+  border: 0;
+
+  box-shadow:
+    inset -0.5px 0 0 var(--sidebar-light-divider);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]):fullscreen .sidebar-material,
+  :root:not([data-theme])[data-fullscreen="true"] .sidebar-material,
+  :root:not([data-theme]) .sidebar-material[data-solid="true"] {
+    background: var(--sidebar-solid-light);
+
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+
+    border: 0;
+
+    box-shadow:
+      inset -0.5px 0 0 var(--sidebar-light-divider);
   }
 }
 
@@ -144,10 +248,9 @@ html[data-platform="macos"] .app-titlebar {
   }
 }
 
-/* Light-mode scrollbars — stone thumb, no border, no ring on hover. */
 html[data-theme="light"] {
-  --scrollbar-thumb: #d6d3d1; /* stone-300 */
-  --scrollbar-thumb-hover: #a8a29e; /* stone-400 */
+  --scrollbar-thumb: #d6d3d1;
+  --scrollbar-thumb-hover: #a8a29e;
 }
 
 @media (prefers-color-scheme: light) {
@@ -160,13 +263,14 @@ html[data-theme="light"] {
 .container {
   margin: 0;
   padding-top: 10vh;
+
   display: flex;
   flex-direction: column;
   justify-content: center;
+
   text-align: center;
 }
 
-/* Interactive elements are pointer-affordant everywhere */
 button:not(:disabled),
 [role="button"]:not(:disabled),
 [role="tab"]:not(:disabled),
@@ -180,12 +284,14 @@ select:not(:disabled) {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Just a bit darker than the (already dark) background, keeping its warm tint */
-    --color-log-surface: color-mix(in srgb, var(--color-background), black 15%);
+    --color-log-surface: color-mix(
+      in srgb,
+      var(--color-background),
+      black 15%
+    );
   }
 }
 
-/* Custom Scrollbar — stone-750 thumb, borderless, no ring on hover */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -204,8 +310,6 @@ select:not(:disabled) {
   background-color: var(--scrollbar-thumb-hover);
 }
 
-/* Menu popup (dialog) scrollbars — darker thumb with a stone-700 hairline
-   border so it reads inside the stone-700 popup surface. */
 [data-slot="menu-popup"] ::-webkit-scrollbar {
   width: 8px;
 }
@@ -215,13 +319,15 @@ select:not(:disabled) {
 }
 
 [data-slot="menu-popup"] ::-webkit-scrollbar-thumb {
-  background-color: var(--color-surface); /* stone-800 */
+  background-color: var(--color-surface);
   border-radius: 8px;
-  box-shadow: inset 0 0 0 1px var(--color-divider); /* stone-700 border */
+
+  box-shadow:
+    inset 0 0 0 1px var(--color-divider);
 }
 
 [data-slot="menu-popup"] ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-divider); /* stone-700 — lighter on hover */
+  background-color: var(--color-divider);
 }
 
 @layer utilities {
@@ -243,9 +349,18 @@ select:not(:disabled) {
 @keyframes home-transcribe-pulse {
   0%,
   100% {
-    color: color-mix(in srgb, var(--color-text) 40%, transparent);
+    color: color-mix(
+      in srgb,
+      var(--color-text) 40%,
+      transparent
+    );
   }
+
   50% {
-    color: color-mix(in srgb, var(--color-text) 90%, transparent);
+    color: color-mix(
+      in srgb,
+      var(--color-text) 90%,
+      transparent
+    );
   }
 }

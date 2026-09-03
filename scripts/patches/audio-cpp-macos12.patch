@@ -1,0 +1,20 @@
+diff --git a/src/framework/debug/trace.cpp b/src/framework/debug/trace.cpp
+index ed7b141..81fe19e 100644
+--- a/src/framework/debug/trace.cpp
++++ b/src/framework/debug/trace.cpp
+@@ -65,14 +65,9 @@ std::string timestamp_seconds_local() {
+ }
+ 
+ std::string format_scalar_double(double value) {
+-    char buffer[64];
+-    const auto result = std::to_chars(buffer, buffer + sizeof(buffer), value, std::chars_format::general);
+-    if (result.ec == std::errc()) {
+-        return std::string(buffer, result.ptr);
+-    }
+     std::ostringstream out;
+     out.precision(17);
+-    out << value;
++    out << std::defaultfloat << value;
+     return out.str();
+ }
+ 

@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod audio_cpp;
 pub mod gguf_meta;
 pub mod history;
 pub mod mlx;

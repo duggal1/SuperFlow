@@ -426,6 +426,10 @@
         "title": "語音活動偵測",
         "description": "過濾錄音中的靜音。支援串流的模型會使用較長的 VAD 尾段；停用 VAD 則會錄製原始音訊"
       },
+      "audioEnhancement": {
+        "title": "音訊增強",
+        "description": "在轉錄前去除背景噪音並增強您的聲音。在嘈雜環境以及輕聲或耳語時很有幫助。"
+      },
       "fillerWordRemoval": {
         "title": "移除語助詞",
         "description": "從轉錄中移除常見的語助詞。關閉此選項即可保留這些詞。"

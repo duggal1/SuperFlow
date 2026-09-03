@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "entries": [
     {
       "canonical": "Next.js",
@@ -26,1397 +26,228 @@
         "next dot j s"
       ]
     },
-    [
-      {
-        "canonical": "Astro",
-        "aliases": [
-          "astro js",
-          "astrojs",
-          "astro framework",
-          "astro web framework",
-          "astro javascript framework",
-          "astro site framework",
-          "astro static site framework",
-          "astro project",
-          "astro web app"
-        ]
-      },
-      {
-        "canonical": "Vanilla JavaScript",
-        "aliases": [
-          "vanilla javascript",
-          "vanilla js",
-          "vanilla j s",
-          "plain javascript",
-          "plain js",
-          "pure javascript",
-          "pure js",
-          "vanilla javascript app",
-          "vanilla javascript project",
-          "vanilla js project"
-        ]
-      },
-      {
-        "canonical": "Svelte",
-        "aliases": [
-          "svelte js",
-          "svelte framework",
-          "svelte javascript",
-          "svelte web framework",
-          "svelt js",
-          "svelt framework",
-          "svelte app",
-          "svelte project"
-        ]
-      },
-      {
-        "canonical": "SvelteKit",
-        "aliases": [
-          "svelte kit",
-          "sveltekit",
-          "svelte kit framework",
-          "sveltekit framework",
-          "svelte kit app",
-          "svelte kit project",
-          "svelt kit",
-          "svelte kit web framework"
-        ]
-      },
-      {
-        "canonical": "Nuxt",
-        "aliases": [
-          "nuxt js",
-          "nuxtjs",
-          "nuxt framework",
-          "nuxt vue framework",
-          "nuxt web framework",
-          "nuxt app",
-          "nuxt project",
-          "nucks js",
-          "newxt js"
-        ]
-      },
-      {
-        "canonical": "Remix",
-        "aliases": [
-          "remix js",
-          "remix framework",
-          "remix web framework",
-          "remix react framework",
-          "remix app",
-          "remix project",
-          "remix javascript framework",
-          "remix full stack framework"
-        ]
-      },
-      {
-        "canonical": "SolidJS",
-        "aliases": [
-          "solid js",
-          "solidjs",
-          "solid jay ess",
-          "solid javascript",
-          "solid js framework",
-          "solidjs framework",
-          "solid web framework",
-          "solid js app"
-        ]
-      },
-      {
-        "canonical": "SolidStart",
-        "aliases": [
-          "solid start",
-          "solidstart",
-          "solid start framework",
-          "solidjs solid start",
-          "solid js solid start",
-          "solid start app",
-          "solid start project",
-          "solid start web framework"
-        ]
-      },
-      {
-        "canonical": "Qwik",
-        "aliases": [
-          "qwik js",
-          "qwik framework",
-          "qwik web framework",
-          "qwik javascript",
-          "quick js framework",
-          "qwik app",
-          "qwik project",
-          "qwik web app"
-        ]
-      },
-      {
-        "canonical": "Angular",
-        "aliases": [
-          "angular framework",
-          "angular web framework",
-          "angular typescript",
-          "angular typescript framework",
-          "angular app",
-          "angular application",
-          "angular project",
-          "angular frontend framework"
-        ]
-      },
-      {
-        "canonical": "Vue",
-        "aliases": [
-          "vue js",
-          "vuejs",
-          "vue javascript",
-          "vue framework",
-          "vue web framework",
-          "vue app",
-          "vue project",
-          "view js framework"
-        ]
-      },
-      {
-        "canonical": "Astro",
-        "aliases": [
-          "astro js",
-          "astrojs",
-          "astro framework",
-          "astro web framework",
-          "astro javascript framework",
-          "astro site framework",
-          "astro static site framework",
-          "astro project",
-          "astro web app"
-        ]
-      },
-      {
-        "canonical": "Vanilla JavaScript",
-        "aliases": [
-          "vanilla javascript",
-          "vanilla js",
-          "vanilla j s",
-          "plain javascript",
-          "plain js",
-          "pure javascript",
-          "pure js",
-          "vanilla javascript app",
-          "vanilla javascript project",
-          "vanilla js project"
-        ]
-      },
-      {
-        "canonical": "Svelte",
-        "aliases": [
-          "svelte js",
-          "svelte framework",
-          "svelte javascript",
-          "svelte web framework",
-          "svelt js",
-          "svelt framework",
-          "svelte app",
-          "svelte project"
-        ]
-      },
-      {
-        "canonical": "SvelteKit",
-        "aliases": [
-          "svelte kit",
-          "sveltekit",
-          "svelte kit framework",
-          "sveltekit framework",
-          "svelte kit app",
-          "svelte kit project",
-          "svelt kit",
-          "svelte kit web framework"
-        ]
-      },
-      {
-        "canonical": "Nuxt",
-        "aliases": [
-          "nuxt js",
-          "nuxtjs",
-          "nuxt framework",
-          "nuxt vue framework",
-          "nuxt web framework",
-          "nuxt app",
-          "nuxt project",
-          "nucks js",
-          "newxt js"
-        ]
-      },
-      {
-        "canonical": "Remix",
-        "aliases": [
-          "remix js",
-          "remix framework",
-          "remix web framework",
-          "remix react framework",
-          "remix app",
-          "remix project",
-          "remix javascript framework",
-          "remix full stack framework"
-        ]
-      },
-      {
-        "canonical": "SolidJS",
-        "aliases": [
-          "solid js",
-          "solidjs",
-          "solid jay ess",
-          "solid javascript",
-          "solid js framework",
-          "solidjs framework",
-          "solid web framework",
-          "solid js app"
-        ]
-      },
-      {
-        "canonical": "SolidStart",
-        "aliases": [
-          "solid start",
-          "solidstart",
-          "solid start framework",
-          "solidjs solid start",
-          "solid js solid start",
-          "solid start app",
-          "solid start project",
-          "solid start web framework"
-        ]
-      },
-      {
-        "canonical": "Qwik",
-        "aliases": [
-          "qwik js",
-          "qwik framework",
-          "qwik web framework",
-          "qwik javascript",
-          "quick js framework",
-          "qwik app",
-          "qwik project",
-          "qwik web app"
-        ]
-      },
-      {
-        "canonical": "Angular",
-        "aliases": [
-          "angular framework",
-          "angular web framework",
-          "angular typescript",
-          "angular typescript framework",
-          "angular app",
-          "angular application",
-          "angular project",
-          "angular frontend framework"
-        ]
-      },
-      {
-        "canonical": "Vue",
-        "aliases": [
-          "vue js",
-          "vuejs",
-          "vue javascript",
-          "vue framework",
-          "vue web framework",
-          "vue app",
-          "vue project",
-          "view js framework"
-        ]
-      },
-      {
-        "canonical": "Gatsby",
-        "aliases": [
-          "gatsby js",
-          "gatsbyjs",
-          "gatsby framework",
-          "gatsby react framework",
-          "gatsby site framework",
-          "gatsby static site framework",
-          "gatsby app",
-          "gatsby project"
-        ]
-      },
-      {
-        "canonical": "Vite",
-        "aliases": [
-          "vite js",
-          "vitejs",
-          "wheat js",
-          "Beat JS",
-          "vite framework",
-          "vite frontend",
-          "vite app",
-          "vite project",
-          "vite react app",
-          "vite development server",
-          "vite build tool",
-          "vite",
-          "veet",
-          "vight",
-          "vite build",
-          "vite bundler",
-          "vite dev server",
-          "vite j s",
-          "vite jay ess",
-          "vite builder",
-          "vite react",
-          "veet js",
-          "veet build",
-          "veet dev server",
-          "veat",
-          "veat js",
-          "veat build",
-          "veat dev server",
-          "vight js",
-          "vight build",
-          "wheat build",
-          "wheat dev server",
-          "beat build",
-          "vite tool"
-        ]
-      },
-      {
-        "canonical": "React",
-        "aliases": [
-          "re act",
-          "ree act",
-          "react js",
-          "reactjs",
-          "react j s",
-          "react jay ess",
-          "react javascript",
-          "react framework",
-          "react library"
-        ]
-      },
-      {
-        "canonical": "React DOM",
-        "aliases": [
-          "react dom",
-          "react domm",
-          "react d o m",
-          "react document object model",
-          "react dom library"
-        ]
-      },
-      {
-        "canonical": "React Native",
-        "aliases": [
-          "react native",
-          "reactnative",
-          "react native js",
-          "react native javascript",
-          "react natively"
-        ]
-      },
-      {
-        "canonical": "TypeScript",
-        "aliases": [
-          "type script",
-          "typescript",
-          "type-script",
-          "type script js",
-          "type script javascript",
-          "type scrip",
-          "type skip",
-          "types script"
-        ]
-      },
-      {
-        "canonical": "JavaScript",
-        "aliases": [
-          "java script",
-          "javascript",
-          "java-script",
-          "java scripts",
-          "java scripted",
-          "java script language",
-          "js",
-          "j s"
-        ]
-      },
-      {
-        "canonical": "Tailwind CSS",
-        "aliases": [
-          "tailwind css",
-          "tailwindcss",
-          "tail wind css",
-          "tail wind s",
-          "tail wins",
-          "tail winds css",
-          "tailwind styles",
-          "tailwind classes",
-          "tailwind class"
-        ]
-      },
-      {
-        "canonical": "Tailwind Merge",
-        "aliases": [
-          "tailwind merge",
-          "tail wind merge",
-          "tailwind merge library",
-          "tail wind merge library",
-          "tailwind merge package",
-          "tail wind merge package"
-        ]
-      },
-      {
-        "canonical": "Tailwind Variants",
-        "aliases": [
-          "tailwind variants",
-          "tail wind variants",
-          "tailwind variant",
-          "tail wind variant",
-          "tailwind variants library"
-        ]
-      },
-      {
-        "canonical": "Node.js",
-        "aliases": [
-          "node js",
-          "nodejs",
-          "node j s",
-          "node jay ess",
-          "node dot js",
-          "node javascript",
-          "node runtime",
-          "node server"
-        ]
-      },
-      {
-        "canonical": "Express.js",
-        "aliases": [
-          "express js",
-          "expressjs",
-          "express j s",
-          "express jay ess",
-          "express dot js",
-          "express javascript",
-          "express server",
-          "express framework"
-        ]
-      },
-      {
-        "canonical": "Fastify",
-        "aliases": [
-          "fastify",
-          "fast if i",
-          "fastify js",
-          "fastify javascript",
-          "fastify server",
-          "fast if y"
-        ]
-      },
-      {
-        "canonical": "NestJS",
-        "aliases": [
-          "nest js",
-          "nestjs",
-          "nest j s",
-          "nest jay ess",
-          "nest javascript",
-          "nest framework",
-          "nest js framework"
-        ]
-      },
-      {
-        "canonical": "Hono",
-        "aliases": [
-          "hono",
-          "hono js",
-          "hono javascript",
-          "ho no",
-          "hono framework"
-        ]
-      },
-      {
-        "canonical": "Deno",
-        "aliases": [
-          "deno",
-          "de no",
-          "deeno",
-          "deno runtime",
-          "deno js",
-          "deno javascript"
-        ]
-      },
-      {
-        "canonical": "Bun",
-        "aliases": ["bun js", "bunjs", "bun runtime", "bun javascript"]
-      },
-      {
-        "canonical": "Webpack",
-        "aliases": [
-          "webpack",
-          "web pack",
-          "webpack js",
-          "web pack js",
-          "webpack bundler",
-          "web pack bundler"
-        ]
-      },
-      {
-        "canonical": "Turbopack",
-        "aliases": [
-          "turbopack",
-          "turbo pack",
-          "turbo pack bundler",
-          "turbo package",
-          "turbo pack js",
-          "turbo packer"
-        ]
-      },
-      {
-        "canonical": "Rollup",
-        "aliases": ["rollup", "rollup bundler", "roll up bundler", "rollup js"]
-      },
-      {
-        "canonical": "esbuild",
-        "aliases": [
-          "esbuild",
-          "es build",
-          "e s build",
-          "es build bundler",
-          "e s build bundler"
-        ]
-      },
-      {
-        "canonical": "SWC",
-        "aliases": [
-          "swc",
-          "s w c",
-          "s double u c",
-          "swc compiler",
-          "swc javascript"
-        ]
-      },
-      {
-        "canonical": "Babel",
-        "aliases": [
-          "babel",
-          "babble js",
-          "babel js",
-          "babel javascript",
-          "babel compiler"
-        ]
-      },
-      {
-        "canonical": "ESLint",
-        "aliases": [
-          "eslint",
-          "es lint",
-          "e s lint",
-          "es lint js",
-          "eslint javascript",
-          "eslint linter",
-          "eslint js",
-          "eslint typescript",
-          "eslint config",
-          "eslint configuration",
-          "eslint rules",
-          "eslint rule",
-          "eslint plugin",
-          "eslint plugins",
-          "eslint flat config",
-          "es linter",
-          "e s linter",
-          "es lint config",
-          "es lint rules",
-          "esland config",
-          "esland rules",
-          "eslint formatter",
-          "eslint check"
-        ]
-      },
-      {
-        "canonical": "Prettier",
-        "aliases": [
-          "prettier formatter",
-          "prettier js",
-          "prettier javascript",
-          "prettier code formatter",
-          "prettier formatting"
-        ]
-      },
-      {
-        "canonical": "PostCSS",
-        "aliases": ["post css", "postcss", "post c s s", "post css processor"]
-      },
-      {
-        "canonical": "Sass",
-        "aliases": [
-          "s a s s",
-          "sass css",
-          "sass stylesheet",
-          "sass preprocessor"
-        ]
-      },
-      {
-        "canonical": "SCSS",
-        "aliases": ["scss", "s c s s", "s css", "scss styles"]
-      },
-      {
-        "canonical": "TanStack Query",
-        "aliases": [
-          "tanstack query",
-          "tan stack query",
-          "tan stack",
-          "tanstack",
-          "tan stake query",
-          "ten stack query",
-          "tan stat query",
-          "tan get query",
-          "tan stack queries",
-          "tanstack queries",
-          "tan stack data",
-          "react query",
-          "react-query",
-          "react queries",
-          "tanstack react query",
-          "tan stack react query",
-          "tan-stack query",
-          "tanstackquery",
-          "10 stack query",
-          "tenstack query",
-          "tan star query",
-          "tanstar query",
-          "tanstate query",
-          "tan stack quarry",
-          "tan stack query library",
-          "tanstack query library",
-          "tan stack data query",
-          "tanstack data query",
-          "tan stack q",
-          "tan stack query js",
-          "tanstack query js",
-          "tan stack query react",
-          "tanstack query react"
-        ]
-      },
-      {
-        "canonical": "TanStack Router",
-        "aliases": [
-          "tanstack router",
-          "tan stack router",
-          "tanstack routing",
-          "tan stack routing",
-          "tan stake router",
-          "ten stack router",
-          "tan stack route",
-          "tanstack route"
-        ]
-      },
-      {
-        "canonical": "TanStack Table",
-        "aliases": [
-          "tanstack table",
-          "tan stack table",
-          "tanstack tables",
-          "tan stack tables",
-          "tan stake table",
-          "ten stack table"
-        ]
-      },
-      {
-        "canonical": "Redux",
-        "aliases": [
-          "redux",
-          "re ducks",
-          "ree ducks",
-          "redux js",
-          "redux javascript",
-          "redux store",
-          "redux state"
-        ]
-      },
-      {
-        "canonical": "Redux Toolkit",
-        "aliases": [
-          "redux toolkit",
-          "redux tool kit",
-          "redux tools",
-          "redux toolkit js",
-          "rtk",
-          "r t k",
-          "redux rtk"
-        ]
-      },
-      {
-        "canonical": "Zustand",
-        "aliases": [
-          "zustand",
-          "zoo stand",
-          "zoo stan",
-          "zoo stand store",
-          "zustand store",
-          "zoo stand state",
-          "zoo stand js",
-          "zustand state",
-          "zustand state management",
-          "zustand state manager",
-          "zustand react",
-          "zustand js",
-          "zustand library",
-          "zu stand",
-          "zu stand store",
-          "zu stand state",
-          "zoo stand react",
-          "zoo stan store",
-          "zoo stan state",
-          "zoostand",
-          "zoostand store",
-          "zoostand state",
-          "zust and store",
-          "zust and state",
-          "stan store library",
-          "stan state library"
-        ]
-      },
-      {
-        "canonical": "MobX",
-        "aliases": [
-          "mobx",
-          "mob x",
-          "mobbex",
-          "mob ex",
-          "mob x state",
-          "mobx store"
-        ]
-      },
-      {
-        "canonical": "Jotai",
-        "aliases": ["jotai", "jo tie", "joe tie", "jot eye", "jotai state"]
-      },
-      {
-        "canonical": "Recoil",
-        "aliases": ["ree coil", "re coil", "recoil state"]
-      },
-      {
-        "canonical": "React Router",
-        "aliases": [
-          "react router",
-          "react-router",
-          "react routing",
-          "react route",
-          "react router dom",
-          "react route er"
-        ]
-      },
-      {
-        "canonical": "React Hook Form",
-        "aliases": [
-          "react hook form",
-          "react hooks form",
-          "react hook forms",
-          "react form",
-          "react-hook-form",
-          "react hook form library"
-        ]
-      },
-      {
-        "canonical": "shadcn/ui",
-        "aliases": [
-          "shadcn ui",
-          "shad cn ui",
-          "shad cn",
-          "shad c n",
-          "shadow cn",
-          "shadow c n",
-          "shad can",
-          "shad can ui",
-          "shad seen ui",
-          "shad sin",
-          "shad ui",
-          "shad cn components",
-          "shad cn component",
-          "shadcn components",
-          "shad c n components",
-          "shed scene",
-          "shad cn scene",
-          "shadow cn ui",
-          "shed cn"
-        ]
-      },
-      {
-        "canonical": "Radix UI",
-        "aliases": [
-          "radix ui",
-          "radix u i",
-          "radix",
-          "radics ui",
-          "radix you i",
-          "radix components",
-          "radix primitives"
-        ]
-      },
-      {
-        "canonical": "Storybook",
-        "aliases": [
-          "storybook",
-          "story book",
-          "story books",
-          "storybook js",
-          "story book js",
-          "storybook components",
-          "storybook ui"
-        ]
-      },
-      {
-        "canonical": "Playwright",
-        "aliases": ["playwright", "play right js", "playwright testing"]
-      },
-      {
-        "canonical": "Cypress",
-        "aliases": [
-          "cypress",
-          "cy press",
-          "sigh press",
-          "cypress testing",
-          "cypress test"
-        ]
-      },
-      {
-        "canonical": "Vitest",
-        "aliases": [
-          "vitest",
-          "v test",
-          "vee test",
-          "vie test",
-          "vit test",
-          "vite test",
-          "vite testing",
-          "vite test runner",
-          "vitest runner",
-          "vitest test",
-          "vitest testing",
-          "vitest framework",
-          "vitest js",
-          "vitest typescript",
-          "v test runner",
-          "vee test runner",
-          "veat test",
-          "veet test",
-          "vight test",
-          "veat test runner",
-          "veet test runner",
-          "veat light testing",
-          "veat light test runner",
-          "vitest unit test",
-          "vitest unit testing"
-        ]
-      },
-      {
-        "canonical": "Jest",
-        "aliases": [
-          "jest js",
-          "jest testing",
-          "jest test",
-          "jest tests",
-          "js test runner"
-        ]
-      },
-      {
-        "canonical": "Testing Library",
-        "aliases": [
-          "testing library",
-          "react testing library",
-          "rtl",
-          "r t l",
-          "testing-library",
-          "testing library react"
-        ]
-      },
-      {
-        "canonical": "Figma",
-        "aliases": ["figma", "fig ma", "figma design", "figma file", "figma ui"]
-      },
-      {
-        "canonical": "Framer Motion",
-        "aliases": [
-          "framer motion",
-          "framer animations",
-          "framer motion react",
-          "motion react"
-        ]
-      },
-      {
-        "canonical": "Tech stack",
-        "aliases": [
-          "tech stack",
-          "tech-stack",
-          "techstack",
-          "tek stack",
-          "tec stack",
-          "tech stak",
-          "tech stakk",
-          "tech tack",
-          "tech stock",
-          "text stack",
-          "text tack",
-          "text track",
-          "tech track",
-          "tek stak",
-          "tekstack",
-          "technology stack",
-          "software tech stack",
-          "development tech stack",
-          "dev tech stack",
-          "frontend tech stack",
-          "backend tech stack",
-          "full stack tech stack"
-        ]
-      },
-      {
-        "canonical": "DeepSeek",
-        "aliases": [
-          "deepseek",
-          "deep seek",
-          "deep-seek",
-          "deep seek ai",
-          "deepseek ai",
-          "deep seek model",
-          "deepseek model",
-          "deep seek llm",
-          "deepseek llm",
-          "deep seek coder",
-          "deepseek coder",
-          "deep seek coding model",
-          "deepseek coding model",
-          "deep seek r1",
-          "deepseek r1",
-          "deep seek r one",
-          "deepseek r one",
-          "deep seek v3",
-          "deepseek v3",
-          "deep seek v three",
-          "deepseek v three",
-          "deep sea ai",
-          "deep sea model",
-          "deep sea llm",
-          "deep sea coder",
-          "deep sea r1",
-          "deep sea r one",
-          "deep sea v3",
-          "deep seat model",
-          "deep seat ai",
-          "deep sick model",
-          "deep sick ai",
-          "deepseak",
-          "deep seak",
-          "deepseec",
-          "deep seec"
-        ]
-      },
-      {
-        "canonical": "Qwen",
-        "aliases": [
-          "qwen",
-          "qwen ai",
-          "qwen model",
-          "qwen llm",
-          "qwen coder",
-          "qwen coding model",
-          "qwen code",
-          "qwen coder model",
-          "qwen code model",
-          "kwen model",
-          "kwen ai",
-          "quen model",
-          "quen ai",
-          "cue wen model",
-          "cue wen ai",
-          "cue when model",
-          "cue when ai",
-          "queue wen model",
-          "queue wen ai",
-          "quinn model",
-          "quinn ai",
-          "quinn coder",
-          "q when model",
-          "q when ai"
-        ]
-      },
-      {
-        "canonical": "GPT-5",
-        "aliases": [
-          "gpt 5",
-          "gpt5",
-          "gpt-5",
-          "gpt five",
-          "g p t 5",
-          "g p t five",
-          "gee pee tee five",
-          "openai gpt 5",
-          "open ai gpt 5",
-          "openai gpt five",
-          "open ai gpt five",
-          "gpt five model",
-          "gpt 5 model",
-          "gpt5 model",
-          "gpt five ai",
-          "gpt 5 ai"
-        ]
-      },
-      {
-        "canonical": "Transformers",
-        "aliases": [
-          "transformers library",
-          "transformer library",
-          "transformers package",
-          "transformer package",
-          "transformers python",
-          "transformer python library",
-          "hugging face transformers",
-          "huggingface transformers",
-          "hugging face transformer library",
-          "hf transformers",
-          "transformers model library",
-          "transformers framework"
-        ]
-      },
-      {
-        "canonical": "PyTorch",
-        "aliases": [
-          "pytorch",
-          "py torch",
-          "py-torch",
-          "pie torch",
-          "pye torch",
-          "python torch",
-          "pytorch framework",
-          "py torch framework",
-          "pie torch framework",
-          "pytorch library",
-          "py torch library",
-          "pytorch python",
-          "torch pytorch",
-          "pytos",
-          "py tos",
-          "pytorch model",
-          "pytorch tensor",
-          "pytorch cuda",
-          "pytorch gpu"
-        ]
-      },
-      {
-        "canonical": "Drizzle ORM",
-        "aliases": [
-          "drizzle orm",
-          "drizzle o r m",
-          "drizzle or m",
-          "drizzle orm library",
-          "drizzle orm database",
-          "drizzle database orm",
-          "drizzle db orm",
-          "drizzle typescript orm",
-          "drizzle ts orm",
-          "drizzle postgres orm",
-          "drizzle sql orm",
-          "drizzel orm",
-          "drizel orm",
-          "drisel orm",
-          "drissel orm",
-          "drizle orm",
-          "drizel o r m",
-          "rizzle orm",
-          "rizal orm",
-          "rizel orm",
-          "rissel orm",
-          "drizzle object relational mapper",
-          "drizzle mapper",
-          "drizzle database library"
-        ]
-      },
-      {
-        "canonical": "Tauri",
-        "aliases": [
-          "tauri",
-          "tauri app",
-          "tauri desktop",
-          "tauri desktop app",
-          "tauri application",
-          "tauri framework",
-          "tauri rust",
-          "tauri rust app",
-          "tauri rust desktop",
-          "tauri js",
-          "tauri javascript",
-          "tauri typescript",
-          "tauri v2",
-          "tauri v 2",
-          "tauri two",
-          "taury app",
-          "taury desktop",
-          "taury framework",
-          "tawri app",
-          "tawri desktop",
-          "towri app",
-          "towri desktop",
-          "tori desktop app",
-          "tory desktop app",
-          "story desktop app",
-          "story rust app",
-          "story rust framework",
-          "story desktop framework"
-        ]
-      },
-      {
-        "canonical": "npm",
-        "aliases": [
-          "npm",
-          "n p m",
-          "en pee em",
-          "en p m",
-          "npm cli",
-          "npm command",
-          "npm commands",
-          "npm package",
-          "npm packages",
-          "npm package manager",
-          "npm install",
-          "npm run",
-          "npm run dev",
-          "npm run build",
-          "npm start",
-          "npm init",
-          "npm ci",
-          "npm script",
-          "npm scripts",
-          "and pm package manager",
-          "and pm install",
-          "and pm run",
-          "and pm run dev",
-          "and pm command",
-          "and pm cli",
-          "npm registry",
-          "npm dependency",
-          "npm dependencies"
-        ]
-      },
-      {
-        "canonical": "Yarn",
-        "aliases": [
-          "yarn package manager",
-          "yarn cli",
-          "yarn command",
-          "yarn commands",
-          "yarn install",
-          "yarn add",
-          "yarn remove",
-          "yarn run",
-          "yarn dev",
-          "yarn build",
-          "yarn workspace",
-          "yarn workspaces",
-          "yarn lock",
-          "yarn lockfile",
-          "yarnpkg",
-          "yarn pkg",
-          "yan package manager",
-          "yan install",
-          "yan add",
-          "yan command",
-          "yarn javascript package manager"
-        ]
-      },
-      {
-        "canonical": "Nginx",
-        "aliases": [
-          "nginx",
-          "nginx server",
-          "nginx web server",
-          "nginx proxy",
-          "nginx reverse proxy",
-          "nginx config",
-          "nginx configuration",
-          "nginx ingress",
-          "nginx load balancer",
-          "n g i n x",
-          "ngin x",
-          "ngin ex",
-          "nginex",
-          "ningx",
-          "engine x",
-          "engine-x",
-          "engine ex",
-          "engine x server",
-          "engine x proxy",
-          "enginex",
-          "enjinx",
-          "incines server",
-          "incines proxy",
-          "nginx docker",
-          "nginx container"
-        ]
-      },
-      {
-        "canonical": "AWS Lambda",
-        "aliases": [
-          "aws lambda",
-          "a w s lambda",
-          "amazon lambda",
-          "amazon web services lambda",
-          "aws lambda function",
-          "aws lambda functions",
-          "lambda function aws",
-          "lambda functions aws",
-          "aws lamda",
-          "aws lamda function",
-          "aws lamb da",
-          "aws lam bda",
-          "aws llama da",
-          "aws llama da function",
-          "aws llama function",
-          "aws lambda serverless",
-          "aws serverless lambda",
-          "amazon lambda function",
-          "lambda on aws",
-          "lambda aws function"
-        ]
-      },
-      {
-        "canonical": "Sentry",
-        "aliases": [
-          "sentry",
-          "sentry io",
-          "sentry dot io",
-          "sentry sdk",
-          "sentry javascript",
-          "sentry typescript",
-          "sentry react",
-          "sentry next js",
-          "sentry monitoring",
-          "sentry error monitoring",
-          "sentry error tracking",
-          "sentry crash reporting",
-          "sentry performance monitoring",
-          "sentry tracing",
-          "sentry logs",
-          "sentry integration",
-          "century sdk",
-          "century monitoring",
-          "century error tracking",
-          "century error monitoring",
-          "century dot io",
-          "century react sdk",
-          "century next js"
-        ]
-      },
-      {
-        "canonical": "Claude",
-        "aliases": [
-          "claude ai",
-          "claude model",
-          "claude llm",
-          "claude code",
-          "claude coding model",
-          "anthropic claude",
-          "anthropic claude model",
-          "clod ai model",
-          "clod coding model",
-          "cloud ai model anthropic",
-          "cloud code anthropic"
-        ]
-      },
-      {
-        "canonical": "Gemini",
-        "aliases": [
-          "gemini ai",
-          "gemini model",
-          "gemini llm",
-          "google gemini",
-          "gemini google",
-          "gemini coding model",
-          "gemini pro model",
-          "gemini flash model",
-          "jiminy ai model",
-          "jiminy model",
-          "gem in eye model",
-          "gem in eye ai",
-          "google jiminy model"
-        ]
-      },
-      {
-        "canonical": "Llama",
-        "aliases": [
-          "llama model",
-          "llama ai",
-          "llama llm",
-          "meta llama",
-          "meta llama model",
-          "llama language model",
-          "llama coder",
-          "lama model",
-          "lama ai",
-          "lama llm",
-          "meta lama model",
-          "llama three model",
-          "llama 3 model",
-          "llama four model",
-          "llama 4 model"
-        ]
-      },
-      {
-        "canonical": "Mistral",
-        "aliases": [
-          "mistral ai",
-          "mistral model",
-          "mistral llm",
-          "mistral language model",
-          "mistral coder",
-          "mistral code model",
-          "mistrel model",
-          "mistrel ai",
-          "mistrall model",
-          "mistral seven b",
-          "mistral 7b"
-        ]
-      },
-      {
-        "canonical": "Motion (Previously framer-motion)",
-        "aliases": [
-          "motion.dev",
-          "motion dot dev",
-          "motion react library",
-          "motion animation library",
-          "motion for react",
-          "motion one",
-          "motion one library",
-          "motion javascript library"
-        ]
-      },
-      {
-        "canonical": "Gatsby",
-        "aliases": [
-          "gatsby js",
-          "gatsbyjs",
-          "gatsby framework",
-          "gatsby react framework",
-          "gatsby site framework",
-          "gatsby static site framework",
-          "gatsby app",
-          "gatsby project"
-        ]
-      },
-      {
-        "canonical": "Vite",
-        "aliases": [
-          "vite js",
-          "vitejs",
-          "wheat js",
-          "Beat JS",
-          "vite framework",
-          "vite frontend",
-          "vite app",
-          "vite project",
-          "vite react app",
-          "vite development server",
-          "vite build tool"
-        ]
-      }
-    ],
+    {
+      "canonical": "Astro",
+      "aliases": [
+        "astro js",
+        "astrojs",
+        "astro framework",
+        "astro web framework",
+        "astro javascript framework",
+        "astro site framework",
+        "astro static site framework",
+        "astro project",
+        "astro web app",
+        "astro"
+      ]
+    },
+    {
+      "canonical": "Vanilla JavaScript",
+      "aliases": [
+        "vanilla javascript",
+        "vanilla js",
+        "vanilla j s",
+        "plain javascript",
+        "plain js",
+        "pure javascript",
+        "pure js",
+        "vanilla javascript app",
+        "vanilla javascript project",
+        "vanilla js project"
+      ]
+    },
+    {
+      "canonical": "Svelte",
+      "aliases": [
+        "svelte js",
+        "svelte framework",
+        "svelte javascript",
+        "svelte web framework",
+        "svelt js",
+        "svelt framework",
+        "svelte app",
+        "svelte project",
+        "svelte",
+        "svelt",
+        "sveltejs"
+      ]
+    },
+    {
+      "canonical": "SvelteKit",
+      "aliases": [
+        "svelte kit",
+        "sveltekit",
+        "svelte kit framework",
+        "sveltekit framework",
+        "svelte kit app",
+        "svelte kit project",
+        "svelt kit",
+        "svelte kit web framework",
+        "svelte kit js",
+        "svelte kits"
+      ]
+    },
+    {
+      "canonical": "Nuxt",
+      "aliases": [
+        "nuxt js",
+        "nuxtjs",
+        "nuxt framework",
+        "nuxt vue framework",
+        "nuxt web framework",
+        "nuxt app",
+        "nuxt project",
+        "nucks js",
+        "newxt js",
+        "nuxt",
+        "newxt",
+        "nucks"
+      ]
+    },
+    {
+      "canonical": "Remix",
+      "aliases": [
+        "remix js",
+        "remix framework",
+        "remix web framework",
+        "remix react framework",
+        "remix app",
+        "remix project",
+        "remix javascript framework",
+        "remix full stack framework",
+        "remix",
+        "remixjs"
+      ]
+    },
+    {
+      "canonical": "SolidJS",
+      "aliases": [
+        "solid js",
+        "solidjs",
+        "solid jay ess",
+        "solid javascript",
+        "solid js framework",
+        "solidjs framework",
+        "solid web framework",
+        "solid js app"
+      ]
+    },
+    {
+      "canonical": "SolidStart",
+      "aliases": [
+        "solid start",
+        "solidstart",
+        "solid start framework",
+        "solidjs solid start",
+        "solid js solid start",
+        "solid start app",
+        "solid start project",
+        "solid start web framework"
+      ]
+    },
+    {
+      "canonical": "Qwik",
+      "aliases": [
+        "qwik js",
+        "qwik framework",
+        "qwik web framework",
+        "qwik javascript",
+        "quick js framework",
+        "qwik app",
+        "qwik project",
+        "qwik web app",
+        "qwik",
+        "quick",
+        "quick js"
+      ]
+    },
+    {
+      "canonical": "Angular",
+      "aliases": [
+        "angular framework",
+        "angular web framework",
+        "angular typescript",
+        "angular typescript framework",
+        "angular app",
+        "angular application",
+        "angular project",
+        "angular frontend framework",
+        "angular",
+        "angular js",
+        "angularjs"
+      ]
+    },
+    {
+      "canonical": "Vue",
+      "aliases": [
+        "vue js",
+        "vuejs",
+        "vue javascript",
+        "vue framework",
+        "vue web framework",
+        "vue app",
+        "vue project",
+        "view js framework",
+        "vue",
+        "view"
+      ]
+    },
+    {
+      "canonical": "Gatsby",
+      "aliases": [
+        "gatsby js",
+        "gatsbyjs",
+        "gatsby framework",
+        "gatsby react framework",
+        "gatsby site framework",
+        "gatsby static site framework",
+        "gatsby app",
+        "gatsby project",
+        "gatsby"
+      ]
+    },
+    {
+      "canonical": "Vite",
+      "aliases": [
+        "vite js",
+        "vitejs",
+        "wheat js",
+        "Beat JS",
+        "vite framework",
+        "vite frontend",
+        "vite app",
+        "vite project",
+        "vite react app",
+        "vite development server",
+        "vite build tool",
+        "vite",
+        "veet",
+        "vight",
+        "vite build",
+        "vite bundler",
+        "vite dev server",
+        "vite j s",
+        "vite jay ess",
+        "vite builder",
+        "vite react",
+        "veet js",
+        "veet build",
+        "veet dev server",
+        "veat",
+        "veat js",
+        "veat build",
+        "veat dev server",
+        "vight js",
+        "vight build",
+        "wheat build",
+        "wheat dev server",
+        "beat build",
+        "vite tool"
+      ]
+    },
     {
       "canonical": "React",
       "aliases": [
-        "react",
         "re act",
         "ree act",
         "react js",
@@ -1425,7 +256,8 @@
         "react jay ess",
         "react javascript",
         "react framework",
-        "react library"
+        "react library",
+        "react"
       ]
     },
     {
@@ -1480,15 +312,15 @@
         "tailwind css",
         "tailwindcss",
         "tail wind css",
-        "tail winds",
-        "tail wind",
         "tail wind s",
         "tail wins",
         "tail winds css",
-        "tailwind",
         "tailwind styles",
         "tailwind classes",
-        "tailwind class"
+        "tailwind class",
+        "tail winds",
+        "tail wind",
+        "tailwind"
       ]
     },
     {
@@ -1586,26 +418,13 @@
     {
       "canonical": "Bun",
       "aliases": [
-        "bun",
         "bun js",
         "bunjs",
         "bun runtime",
         "bun javascript",
+        "bun",
         "boon",
         "bunn"
-      ]
-    },
-    {
-      "canonical": "Vite",
-      "aliases": [
-        "vite",
-        "veet",
-        "vight",
-        "vite js",
-        "vitejs",
-        "vite build",
-        "vite bundler",
-        "vite dev server"
       ]
     },
     {
@@ -1634,10 +453,10 @@
       "canonical": "Rollup",
       "aliases": [
         "rollup",
-        "roll up",
         "rollup bundler",
         "roll up bundler",
-        "rollup js"
+        "rollup js",
+        "roll up"
       ]
     },
     {
@@ -1664,11 +483,11 @@
       "canonical": "Babel",
       "aliases": [
         "babel",
-        "babble",
         "babble js",
         "babel js",
         "babel javascript",
-        "babel compiler"
+        "babel compiler",
+        "babble"
       ]
     },
     {
@@ -1679,37 +498,65 @@
         "e s lint",
         "es lint js",
         "eslint javascript",
-        "eslint linter"
+        "eslint linter",
+        "eslint js",
+        "eslint typescript",
+        "eslint config",
+        "eslint configuration",
+        "eslint rules",
+        "eslint rule",
+        "eslint plugin",
+        "eslint plugins",
+        "eslint flat config",
+        "es linter",
+        "e s linter",
+        "es lint config",
+        "es lint rules",
+        "esland config",
+        "esland rules",
+        "eslint formatter",
+        "eslint check"
       ]
     },
     {
       "canonical": "Prettier",
       "aliases": [
-        "prettier",
         "prettier formatter",
         "prettier js",
         "prettier javascript",
         "prettier code formatter",
-        "prettier formatting"
+        "prettier formatting",
+        "prettier"
       ]
     },
     {
       "canonical": "PostCSS",
-      "aliases": ["post css", "postcss", "post c s s", "post css processor"]
+      "aliases": [
+        "post css",
+        "postcss",
+        "post c s s",
+        "post css processor"
+      ]
     },
     {
       "canonical": "Sass",
       "aliases": [
-        "sass",
         "s a s s",
         "sass css",
         "sass stylesheet",
-        "sass preprocessor"
+        "sass preprocessor",
+        "sass"
       ]
     },
     {
       "canonical": "SCSS",
-      "aliases": ["scss", "s c s s", "s css", "sass css", "scss styles"]
+      "aliases": [
+        "scss",
+        "s c s s",
+        "s css",
+        "scss styles",
+        "sass css"
+      ]
     },
     {
       "canonical": "TanStack Query",
@@ -1719,7 +566,6 @@
         "tan stack",
         "tanstack",
         "tan stake query",
-        "tan stack query",
         "ten stack query",
         "tan stat query",
         "tan get query",
@@ -1730,7 +576,24 @@
         "react-query",
         "react queries",
         "tanstack react query",
-        "tan stack react query"
+        "tan stack react query",
+        "tan-stack query",
+        "tanstackquery",
+        "10 stack query",
+        "tenstack query",
+        "tan star query",
+        "tanstar query",
+        "tanstate query",
+        "tan stack quarry",
+        "tan stack query library",
+        "tanstack query library",
+        "tan stack data query",
+        "tanstack data query",
+        "tan stack q",
+        "tan stack query js",
+        "tanstack query js",
+        "tan stack query react",
+        "tanstack query react"
       ]
     },
     {
@@ -1785,16 +648,34 @@
       "canonical": "Zustand",
       "aliases": [
         "zustand",
-        "zostand",
-        "zostan",
-        "zoostand",
         "zoo stand",
-        "zoo standoff",
         "zoo stan",
         "zoo stand store",
         "zustand store",
         "zoo stand state",
-        "zoo stand js"
+        "zoo stand js",
+        "zustand state",
+        "zustand state management",
+        "zustand state manager",
+        "zustand react",
+        "zustand js",
+        "zustand library",
+        "zu stand",
+        "zu stand store",
+        "zu stand state",
+        "zoo stand react",
+        "zoo stan store",
+        "zoo stan state",
+        "zoostand",
+        "zoostand store",
+        "zoostand state",
+        "zust and store",
+        "zust and state",
+        "stan store library",
+        "stan state library",
+        "zostand",
+        "zostan",
+        "zoo standoff"
       ]
     },
     {
@@ -1810,11 +691,22 @@
     },
     {
       "canonical": "Jotai",
-      "aliases": ["jotai", "jo tie", "joe tie", "jot eye", "jotai state"]
+      "aliases": [
+        "jotai",
+        "jo tie",
+        "joe tie",
+        "jot eye",
+        "jotai state"
+      ]
     },
     {
       "canonical": "Recoil",
-      "aliases": ["recoil", "ree coil", "re coil", "recoil state"]
+      "aliases": [
+        "ree coil",
+        "re coil",
+        "recoil state",
+        "recoil"
+      ]
     },
     {
       "canonical": "React Router",
@@ -1890,11 +782,11 @@
       "canonical": "Playwright",
       "aliases": [
         "playwright",
+        "play right js",
+        "playwright testing",
         "play right",
         "play rite",
-        "play write",
-        "play right js",
-        "playwright testing"
+        "play write"
       ]
     },
     {
@@ -1917,18 +809,35 @@
         "vit test",
         "vite test",
         "vite testing",
-        "vite test runner"
+        "vite test runner",
+        "vitest runner",
+        "vitest test",
+        "vitest testing",
+        "vitest framework",
+        "vitest js",
+        "vitest typescript",
+        "v test runner",
+        "vee test runner",
+        "veat test",
+        "veet test",
+        "vight test",
+        "veat test runner",
+        "veet test runner",
+        "veat light testing",
+        "veat light test runner",
+        "vitest unit test",
+        "vitest unit testing"
       ]
     },
     {
       "canonical": "Jest",
       "aliases": [
-        "jest",
         "jest js",
         "jest testing",
         "jest test",
         "jest tests",
-        "js test runner"
+        "js test runner",
+        "jest"
       ]
     },
     {
@@ -1944,17 +853,514 @@
     },
     {
       "canonical": "Figma",
-      "aliases": ["figma", "fig ma", "figma design", "figma file", "figma ui"]
+      "aliases": [
+        "figma",
+        "fig ma",
+        "figma design",
+        "figma file",
+        "figma ui"
+      ]
     },
     {
       "canonical": "Framer Motion",
       "aliases": [
         "framer motion",
-        "framer",
         "framer animations",
         "framer motion react",
         "motion react",
+        "framer",
         "motion library"
+      ]
+    },
+    {
+      "canonical": "Tech stack",
+      "aliases": [
+        "tech stack",
+        "tech-stack",
+        "techstack",
+        "tek stack",
+        "tec stack",
+        "tech stak",
+        "tech stakk",
+        "tech tack",
+        "tech stock",
+        "text stack",
+        "text tack",
+        "text track",
+        "tech track",
+        "tek stak",
+        "tekstack",
+        "technology stack",
+        "software tech stack",
+        "development tech stack",
+        "dev tech stack",
+        "frontend tech stack",
+        "backend tech stack",
+        "full stack tech stack"
+      ]
+    },
+    {
+      "canonical": "DeepSeek",
+      "aliases": [
+        "deepseek",
+        "deep seek",
+        "deep-seek",
+        "deep seek ai",
+        "deepseek ai",
+        "deep seek model",
+        "deepseek model",
+        "deep seek llm",
+        "deepseek llm",
+        "deep seek coder",
+        "deepseek coder",
+        "deep seek coding model",
+        "deepseek coding model",
+        "deep seek r1",
+        "deepseek r1",
+        "deep seek r one",
+        "deepseek r one",
+        "deep seek v3",
+        "deepseek v3",
+        "deep seek v three",
+        "deepseek v three",
+        "deep sea ai",
+        "deep sea model",
+        "deep sea llm",
+        "deep sea coder",
+        "deep sea r1",
+        "deep sea r one",
+        "deep sea v3",
+        "deep seat model",
+        "deep seat ai",
+        "deep sick model",
+        "deep sick ai",
+        "deepseak",
+        "deep seak",
+        "deepseec",
+        "deep seec"
+      ]
+    },
+    {
+      "canonical": "Qwen",
+      "aliases": [
+        "qwen",
+        "qwen ai",
+        "qwen model",
+        "qwen llm",
+        "qwen coder",
+        "qwen coding model",
+        "qwen code",
+        "qwen coder model",
+        "qwen code model",
+        "kwen model",
+        "kwen ai",
+        "quen model",
+        "quen ai",
+        "cue wen model",
+        "cue wen ai",
+        "cue when model",
+        "cue when ai",
+        "queue wen model",
+        "queue wen ai",
+        "quinn model",
+        "quinn ai",
+        "quinn coder",
+        "q when model",
+        "q when ai",
+        "quen",
+        "quinn",
+        "queen",
+        "q wen",
+        "q when",
+        "cue wen",
+        "qwen 3",
+        "quen 3",
+        "quinn 3",
+        "queen 3",
+        "qwen 3 235b",
+        "quen 3 235b",
+        "quinn 3 235b",
+        "qwen3 235b",
+        "qwen 3 235 b"
+      ]
+    },
+    {
+      "canonical": "GPT-5",
+      "aliases": [
+        "gpt 5",
+        "gpt5",
+        "gpt-5",
+        "gpt five",
+        "g p t 5",
+        "g p t five",
+        "gee pee tee five",
+        "openai gpt 5",
+        "open ai gpt 5",
+        "openai gpt five",
+        "open ai gpt five",
+        "gpt five model",
+        "gpt 5 model",
+        "gpt5 model",
+        "gpt five ai",
+        "gpt 5 ai"
+      ]
+    },
+    {
+      "canonical": "Transformers",
+      "aliases": [
+        "transformers library",
+        "transformer library",
+        "transformers package",
+        "transformer package",
+        "transformers python",
+        "transformer python library",
+        "hugging face transformers",
+        "huggingface transformers",
+        "hugging face transformer library",
+        "hf transformers",
+        "transformers model library",
+        "transformers framework"
+      ]
+    },
+    {
+      "canonical": "PyTorch",
+      "aliases": [
+        "pytorch",
+        "py torch",
+        "py-torch",
+        "pie torch",
+        "pye torch",
+        "python torch",
+        "pytorch framework",
+        "py torch framework",
+        "pie torch framework",
+        "pytorch library",
+        "py torch library",
+        "pytorch python",
+        "torch pytorch",
+        "pytos",
+        "py tos",
+        "pytorch model",
+        "pytorch tensor",
+        "pytorch cuda",
+        "pytorch gpu"
+      ]
+    },
+    {
+      "canonical": "Drizzle ORM",
+      "aliases": [
+        "drizzle orm",
+        "drizzle o r m",
+        "drizzle or m",
+        "drizzle orm library",
+        "drizzle orm database",
+        "drizzle database orm",
+        "drizzle db orm",
+        "drizzle typescript orm",
+        "drizzle ts orm",
+        "drizzle postgres orm",
+        "drizzle sql orm",
+        "drizzel orm",
+        "drizel orm",
+        "drisel orm",
+        "drissel orm",
+        "drizle orm",
+        "drizel o r m",
+        "rizzle orm",
+        "rizal orm",
+        "rizel orm",
+        "rissel orm",
+        "drizzle object relational mapper",
+        "drizzle mapper",
+        "drizzle database library",
+        "drizzle",
+        "driz zel",
+        "drizzle database",
+        "drizzle library",
+        "drizzle sql",
+        "drizzle schema"
+      ]
+    },
+    {
+      "canonical": "Tauri",
+      "aliases": [
+        "tauri",
+        "tauri app",
+        "tauri desktop",
+        "tauri desktop app",
+        "tauri application",
+        "tauri framework",
+        "tauri rust",
+        "tauri rust app",
+        "tauri rust desktop",
+        "tauri js",
+        "tauri javascript",
+        "tauri typescript",
+        "tauri v2",
+        "tauri v 2",
+        "tauri two",
+        "taury app",
+        "taury desktop",
+        "taury framework",
+        "tawri app",
+        "tawri desktop",
+        "towri app",
+        "towri desktop",
+        "tori desktop app",
+        "tory desktop app",
+        "story desktop app",
+        "story rust app",
+        "story rust framework",
+        "story desktop framework",
+        "tory",
+        "tari"
+      ]
+    },
+    {
+      "canonical": "npm",
+      "aliases": [
+        "npm",
+        "n p m",
+        "en pee em",
+        "en p m",
+        "npm cli",
+        "npm command",
+        "npm commands",
+        "npm package",
+        "npm packages",
+        "npm package manager",
+        "npm install",
+        "npm run",
+        "npm run dev",
+        "npm run build",
+        "npm start",
+        "npm init",
+        "npm ci",
+        "npm script",
+        "npm scripts",
+        "and pm package manager",
+        "and pm install",
+        "and pm run",
+        "and pm run dev",
+        "and pm command",
+        "and pm cli",
+        "npm registry",
+        "npm dependency",
+        "npm dependencies",
+        "node package manager",
+        "n p m install"
+      ]
+    },
+    {
+      "canonical": "Yarn",
+      "aliases": [
+        "yarn package manager",
+        "yarn cli",
+        "yarn command",
+        "yarn commands",
+        "yarn install",
+        "yarn add",
+        "yarn remove",
+        "yarn run",
+        "yarn dev",
+        "yarn build",
+        "yarn workspace",
+        "yarn workspaces",
+        "yarn lock",
+        "yarn lockfile",
+        "yarnpkg",
+        "yarn pkg",
+        "yan package manager",
+        "yan install",
+        "yan add",
+        "yan command",
+        "yarn javascript package manager",
+        "yarn"
+      ]
+    },
+    {
+      "canonical": "Nginx",
+      "aliases": [
+        "nginx",
+        "nginx server",
+        "nginx web server",
+        "nginx proxy",
+        "nginx reverse proxy",
+        "nginx config",
+        "nginx configuration",
+        "nginx ingress",
+        "nginx load balancer",
+        "n g i n x",
+        "ngin x",
+        "ngin ex",
+        "nginex",
+        "ningx",
+        "engine x",
+        "engine-x",
+        "engine ex",
+        "engine x server",
+        "engine x proxy",
+        "enginex",
+        "enjinx",
+        "incines server",
+        "incines proxy",
+        "nginx docker",
+        "nginx container",
+        "n gin x",
+        "nginix"
+      ]
+    },
+    {
+      "canonical": "AWS Lambda",
+      "aliases": [
+        "aws lambda",
+        "a w s lambda",
+        "amazon lambda",
+        "amazon web services lambda",
+        "aws lambda function",
+        "aws lambda functions",
+        "lambda function aws",
+        "lambda functions aws",
+        "aws lamda",
+        "aws lamda function",
+        "aws lamb da",
+        "aws lam bda",
+        "aws llama da",
+        "aws llama da function",
+        "aws llama function",
+        "aws lambda serverless",
+        "aws serverless lambda",
+        "amazon lambda function",
+        "lambda on aws",
+        "lambda aws function",
+        "lambda function",
+        "lambda"
+      ]
+    },
+    {
+      "canonical": "Sentry",
+      "aliases": [
+        "sentry",
+        "sentry io",
+        "sentry dot io",
+        "sentry sdk",
+        "sentry javascript",
+        "sentry typescript",
+        "sentry react",
+        "sentry next js",
+        "sentry monitoring",
+        "sentry error monitoring",
+        "sentry error tracking",
+        "sentry crash reporting",
+        "sentry performance monitoring",
+        "sentry tracing",
+        "sentry logs",
+        "sentry integration",
+        "century sdk",
+        "century monitoring",
+        "century error tracking",
+        "century error monitoring",
+        "century dot io",
+        "century react sdk",
+        "century next js"
+      ]
+    },
+    {
+      "canonical": "Claude",
+      "aliases": [
+        "claude ai",
+        "claude model",
+        "claude llm",
+        "claude code",
+        "claude coding model",
+        "anthropic claude",
+        "anthropic claude model",
+        "clod ai model",
+        "clod coding model",
+        "cloud ai model anthropic",
+        "cloud code anthropic",
+        "claude",
+        "clod",
+        "cloud",
+        "claud ai"
+      ]
+    },
+    {
+      "canonical": "Gemini",
+      "aliases": [
+        "gemini ai",
+        "gemini model",
+        "gemini llm",
+        "google gemini",
+        "gemini google",
+        "gemini coding model",
+        "gemini pro model",
+        "gemini flash model",
+        "jiminy ai model",
+        "jiminy model",
+        "gem in eye model",
+        "gem in eye ai",
+        "google jiminy model",
+        "gemini",
+        "geminy",
+        "jamnia",
+        "jemnia",
+        "jemina",
+        "gemnia",
+        "gemini jamnia",
+        "the jamnia model"
+      ]
+    },
+    {
+      "canonical": "Llama",
+      "aliases": [
+        "llama model",
+        "llama ai",
+        "llama llm",
+        "meta llama",
+        "meta llama model",
+        "llama language model",
+        "llama coder",
+        "lama model",
+        "lama ai",
+        "lama llm",
+        "meta lama model",
+        "llama three model",
+        "llama 3 model",
+        "llama four model",
+        "llama 4 model",
+        "llama",
+        "lama"
+      ]
+    },
+    {
+      "canonical": "Mistral",
+      "aliases": [
+        "mistral ai",
+        "mistral model",
+        "mistral llm",
+        "mistral language model",
+        "mistral coder",
+        "mistral code model",
+        "mistrel model",
+        "mistrel ai",
+        "mistrall model",
+        "mistral seven b",
+        "mistral 7b",
+        "mistral"
+      ]
+    },
+    {
+      "canonical": "Motion (Previously framer-motion)",
+      "aliases": [
+        "motion.dev",
+        "motion dot dev",
+        "motion react library",
+        "motion animation library",
+        "motion for react",
+        "motion one",
+        "motion one library",
+        "motion javascript library"
       ]
     },
     {
@@ -2020,57 +1426,20 @@
     },
     {
       "canonical": "WASM",
-      "aliases": ["wasm", "w a s m", "w a s m runtime", "web assembly"]
-    },
-    {
-      "canonical": "Astro",
-      "aliases": ["astro", "astro js", "astrojs", "astro framework"]
-    },
-    {
-      "canonical": "Svelte",
-      "aliases": ["svelte", "svelt", "svelt js", "svelte js", "sveltejs"]
-    },
-    {
-      "canonical": "SvelteKit",
       "aliases": [
-        "svelte kit",
-        "sveltekit",
-        "svelte kit js",
-        "svelte kit framework",
-        "svelte kits"
+        "wasm",
+        "w a s m",
+        "w a s m runtime",
+        "web assembly"
       ]
     },
     {
-      "canonical": "Angular",
-      "aliases": ["angular", "angular js", "angularjs", "angular framework"]
-    },
-    {
-      "canonical": "Vue",
-      "aliases": ["vue", "view", "vue js", "vuejs", "vue javascript"]
-    },
-    {
-      "canonical": "Nuxt",
-      "aliases": ["nuxt", "nuxt js", "nuxtjs", "newxt", "nucks"]
-    },
-    {
-      "canonical": "Remix",
-      "aliases": ["remix", "remix js", "remixjs", "remix framework"]
-    },
-    {
-      "canonical": "Gatsby",
-      "aliases": ["gatsby", "gatsby js", "gatsbyjs"]
-    },
-    {
-      "canonical": "SolidJS",
-      "aliases": ["solid js", "solidjs", "solid jay ess", "solid javascript"]
-    },
-    {
-      "canonical": "Qwik",
-      "aliases": ["qwik", "quick", "quick js", "qwik js"]
-    },
-    {
       "canonical": "Expo",
-      "aliases": ["expo", "expo react native", "expo cli"]
+      "aliases": [
+        "expo",
+        "expo react native",
+        "expo cli"
+      ]
     },
     {
       "canonical": "Electron",
@@ -2080,17 +1449,6 @@
         "electronjs",
         "electron framework",
         "electron desktop"
-      ]
-    },
-    {
-      "canonical": "Tauri",
-      "aliases": [
-        "tauri",
-        "tauri app",
-        "tauri js",
-        "tauri desktop",
-        "tory",
-        "tari"
       ]
     },
     {
@@ -2143,7 +1501,11 @@
     },
     {
       "canonical": "Apollo Server",
-      "aliases": ["apollo server", "apollo graphql server", "apollo backend"]
+      "aliases": [
+        "apollo server",
+        "apollo graphql server",
+        "apollo backend"
+      ]
     },
     {
       "canonical": "REST API",
@@ -2272,15 +1634,32 @@
     },
     {
       "canonical": "YAML",
-      "aliases": ["yaml", "yam l", "yam el", "ya ml", "yammel", "yaml file"]
+      "aliases": [
+        "yaml",
+        "yam l",
+        "yam el",
+        "ya ml",
+        "yammel",
+        "yaml file"
+      ]
     },
     {
       "canonical": "TOML",
-      "aliases": ["toml", "tom mel", "tom l", "toe mel", "toml config"]
+      "aliases": [
+        "toml",
+        "tom mel",
+        "tom l",
+        "toe mel",
+        "toml config"
+      ]
     },
     {
       "canonical": "XML",
-      "aliases": ["xml", "x m l", "extensible markup language"]
+      "aliases": [
+        "xml",
+        "x m l",
+        "extensible markup language"
+      ]
     },
     {
       "canonical": "HTML",
@@ -2368,7 +1747,13 @@
     },
     {
       "canonical": "Redis",
-      "aliases": ["redis", "reedis", "re dis", "redis cache", "redis database"]
+      "aliases": [
+        "redis",
+        "reedis",
+        "re dis",
+        "redis cache",
+        "redis database"
+      ]
     },
     {
       "canonical": "DynamoDB",
@@ -2423,21 +1808,10 @@
     },
     {
       "canonical": "Turso",
-      "aliases": ["turso", "turso database", "turso db"]
-    },
-    {
-      "canonical": "Drizzle ORM",
       "aliases": [
-        "drizzle",
-        "drizzle orm",
-        "drizzle o r m",
-        "driz zel",
-        "drizzle or m",
-        "drizzle database",
-        "drizzle orm library",
-        "drizzle library",
-        "drizzle sql",
-        "drizzle schema"
+        "turso",
+        "turso database",
+        "turso db"
       ]
     },
     {
@@ -2514,7 +1888,12 @@
     },
     {
       "canonical": "Azure",
-      "aliases": ["azure", "azur", "microsoft azure", "azure cloud"]
+      "aliases": [
+        "azure",
+        "azur",
+        "microsoft azure",
+        "azure cloud"
+      ]
     },
     {
       "canonical": "Cloudflare",
@@ -2540,29 +1919,38 @@
     },
     {
       "canonical": "Netlify",
-      "aliases": ["netlify", "net lif y", "netlify hosting", "netlify deploy"]
+      "aliases": [
+        "netlify",
+        "net lif y",
+        "netlify hosting",
+        "netlify deploy"
+      ]
     },
     {
       "canonical": "Railway",
-      "aliases": ["railway", "rail way", "railway deploy", "railway hosting"]
+      "aliases": [
+        "railway",
+        "rail way",
+        "railway deploy",
+        "railway hosting"
+      ]
     },
     {
       "canonical": "Render",
-      "aliases": ["render", "render cloud", "render hosting", "render deploy"]
+      "aliases": [
+        "render",
+        "render cloud",
+        "render hosting",
+        "render deploy"
+      ]
     },
     {
       "canonical": "Heroku",
-      "aliases": ["heroku", "hero ku", "hero koo", "heroku cloud"]
-    },
-    {
-      "canonical": "AWS Lambda",
       "aliases": [
-        "aws lambda",
-        "a w s lambda",
-        "amazon lambda",
-        "lambda function",
-        "aws lambda function",
-        "lambda"
+        "heroku",
+        "hero ku",
+        "hero koo",
+        "heroku cloud"
       ]
     },
     {
@@ -2593,7 +1981,13 @@
     },
     {
       "canonical": "RDS",
-      "aliases": ["rds", "r d s", "aws rds", "amazon rds", "rds database"]
+      "aliases": [
+        "rds",
+        "r d s",
+        "aws rds",
+        "amazon rds",
+        "rds database"
+      ]
     },
     {
       "canonical": "CloudFront",
@@ -2656,44 +2050,63 @@
     },
     {
       "canonical": "Terraform",
-      "aliases": ["terraform", "terraform cloud", "terraform infrastructure"]
+      "aliases": [
+        "terraform",
+        "terraform cloud",
+        "terraform infrastructure"
+      ]
     },
     {
       "canonical": "Ansible",
-      "aliases": ["ansible", "an sibble", "ansible automation"]
+      "aliases": [
+        "ansible",
+        "an sibble",
+        "ansible automation"
+      ]
     },
     {
       "canonical": "Helm",
-      "aliases": ["helm", "helm charts", "helm chart", "kubernetes helm"]
-    },
-    {
-      "canonical": "Nginx",
       "aliases": [
-        "nginx",
-        "n gin x",
-        "n g i n x",
-        "engine x",
-        "engine-x",
-        "nginix",
-        "ngin x",
-        "nginx server"
+        "helm",
+        "helm charts",
+        "helm chart",
+        "kubernetes helm"
       ]
     },
     {
       "canonical": "Apache",
-      "aliases": ["apache", "apache server", "apache http server"]
+      "aliases": [
+        "apache",
+        "apache server",
+        "apache http server"
+      ]
     },
     {
       "canonical": "Git",
-      "aliases": ["git", "git version control", "git repo", "git repository"]
+      "aliases": [
+        "git",
+        "git version control",
+        "git repo",
+        "git repository"
+      ]
     },
     {
       "canonical": "GitHub",
-      "aliases": ["github", "git hub", "git hub", "git hub repo", "github repo"]
+      "aliases": [
+        "github",
+        "git hub",
+        "git hub",
+        "git hub repo",
+        "github repo"
+      ]
     },
     {
       "canonical": "GitLab",
-      "aliases": ["gitlab", "git lab", "git lab repo"]
+      "aliases": [
+        "gitlab",
+        "git lab",
+        "git lab repo"
+      ]
     },
     {
       "canonical": "GitHub Actions",
@@ -2728,17 +2141,6 @@
       ]
     },
     {
-      "canonical": "npm",
-      "aliases": [
-        "npm",
-        "n p m",
-        "node package manager",
-        "npm install",
-        "npm package manager",
-        "n p m install"
-      ]
-    },
-    {
       "canonical": "pnpm",
       "aliases": [
         "pnpm",
@@ -2747,16 +2149,6 @@
         "pnpm package manager",
         "pnpm install",
         "p n p m install"
-      ]
-    },
-    {
-      "canonical": "Yarn",
-      "aliases": [
-        "yarn",
-        "yarn package manager",
-        "yarn install",
-        "yarn add",
-        "yarn workspace"
       ]
     },
     {
@@ -2771,7 +2163,12 @@
     },
     {
       "canonical": "uv",
-      "aliases": ["uv", "u v", "uv python", "uv package manager"]
+      "aliases": [
+        "uv",
+        "u v",
+        "uv python",
+        "uv package manager"
+      ]
     },
     {
       "canonical": "Poetry",
@@ -2804,7 +2201,11 @@
     },
     {
       "canonical": "Flask",
-      "aliases": ["flask", "flask python", "flask framework"]
+      "aliases": [
+        "flask",
+        "flask python",
+        "flask framework"
+      ]
     },
     {
       "canonical": "FastAPI",
@@ -2819,15 +2220,31 @@
     },
     {
       "canonical": "Pandas",
-      "aliases": ["pandas", "panda", "python pandas", "pandas library"]
+      "aliases": [
+        "pandas",
+        "panda",
+        "python pandas",
+        "pandas library"
+      ]
     },
     {
       "canonical": "NumPy",
-      "aliases": ["numpy", "num py", "num pie", "num p y", "numpy python"]
+      "aliases": [
+        "numpy",
+        "num py",
+        "num pie",
+        "num p y",
+        "numpy python"
+      ]
     },
     {
       "canonical": "SciPy",
-      "aliases": ["scipy", "sigh pie", "sci py", "sci p y"]
+      "aliases": [
+        "scipy",
+        "sigh pie",
+        "sci py",
+        "sci p y"
+      ]
     },
     {
       "canonical": "scikit-learn",
@@ -2852,18 +2269,13 @@
       ]
     },
     {
-      "canonical": "PyTorch",
-      "aliases": [
-        "pytorch",
-        "py torch",
-        "pie torch",
-        "pie torch",
-        "python torch"
-      ]
-    },
-    {
       "canonical": "TensorFlow",
-      "aliases": ["tensorflow", "tensor flow", "tensor-flow", "tensor flows"]
+      "aliases": [
+        "tensorflow",
+        "tensor flow",
+        "tensor-flow",
+        "tensor flows"
+      ]
     },
     {
       "canonical": "Rust",
@@ -2887,19 +2299,39 @@
     },
     {
       "canonical": "Tokio",
-      "aliases": ["tokio", "toe kee o", "tokyo", "rust tokio"]
+      "aliases": [
+        "tokio",
+        "toe kee o",
+        "tokyo",
+        "rust tokio"
+      ]
     },
     {
       "canonical": "Axum",
-      "aliases": ["axum", "axum rust", "axe um", "axum framework"]
+      "aliases": [
+        "axum",
+        "axum rust",
+        "axe um",
+        "axum framework"
+      ]
     },
     {
       "canonical": "Actix",
-      "aliases": ["actix", "act ticks", "actix web", "actix rust"]
+      "aliases": [
+        "actix",
+        "act ticks",
+        "actix web",
+        "actix rust"
+      ]
     },
     {
       "canonical": "Serde",
-      "aliases": ["serde", "sir dee", "ser day", "rust serde"]
+      "aliases": [
+        "serde",
+        "sir dee",
+        "ser day",
+        "rust serde"
+      ]
     },
     {
       "canonical": "Go",
@@ -2913,11 +2345,20 @@
     },
     {
       "canonical": "Golang",
-      "aliases": ["golang", "go lang", "go language", "go-lang"]
+      "aliases": [
+        "golang",
+        "go lang",
+        "go language",
+        "go-lang"
+      ]
     },
     {
       "canonical": "Ruby",
-      "aliases": ["ruby", "ruby language", "ruby programming"]
+      "aliases": [
+        "ruby",
+        "ruby language",
+        "ruby programming"
+      ]
     },
     {
       "canonical": "Ruby on Rails",
@@ -2931,15 +2372,29 @@
     },
     {
       "canonical": "PHP",
-      "aliases": ["php", "p h p", "pee h p", "php language"]
+      "aliases": [
+        "php",
+        "p h p",
+        "pee h p",
+        "php language"
+      ]
     },
     {
       "canonical": "Laravel",
-      "aliases": ["laravel", "lara vel", "laravel php", "laravel framework"]
+      "aliases": [
+        "laravel",
+        "lara vel",
+        "laravel php",
+        "laravel framework"
+      ]
     },
     {
       "canonical": "Java",
-      "aliases": ["java", "java language", "java programming"]
+      "aliases": [
+        "java",
+        "java language",
+        "java programming"
+      ]
     },
     {
       "canonical": "Spring Boot",
@@ -2953,15 +2408,30 @@
     },
     {
       "canonical": "Kotlin",
-      "aliases": ["kotlin", "cotton", "kotlin language", "kotlin android"]
+      "aliases": [
+        "kotlin",
+        "cotton",
+        "kotlin language",
+        "kotlin android"
+      ]
     },
     {
       "canonical": "Swift",
-      "aliases": ["swift", "swift language", "swift programming", "swift lang"]
+      "aliases": [
+        "swift",
+        "swift language",
+        "swift programming",
+        "swift lang"
+      ]
     },
     {
       "canonical": "SwiftUI",
-      "aliases": ["swift ui", "swiftui", "swift u i", "swift ui framework"]
+      "aliases": [
+        "swift ui",
+        "swiftui",
+        "swift u i",
+        "swift ui framework"
+      ]
     },
     {
       "canonical": "C++",
@@ -2987,7 +2457,12 @@
     },
     {
       "canonical": "Java Virtual Machine",
-      "aliases": ["jvm", "j v m", "java virtual machine", "java vm"]
+      "aliases": [
+        "jvm",
+        "j v m",
+        "java virtual machine",
+        "java vm"
+      ]
     },
     {
       "canonical": "Docker Registry",
@@ -3010,7 +2485,12 @@
     },
     {
       "canonical": "Kafka",
-      "aliases": ["kafka", "apache kafka", "kafka streaming", "kafka broker"]
+      "aliases": [
+        "kafka",
+        "apache kafka",
+        "kafka streaming",
+        "kafka broker"
+      ]
     },
     {
       "canonical": "Elasticsearch",
@@ -3023,15 +2503,28 @@
     },
     {
       "canonical": "OpenSearch",
-      "aliases": ["opensearch", "open search", "open search engine"]
+      "aliases": [
+        "opensearch",
+        "open search",
+        "open search engine"
+      ]
     },
     {
       "canonical": "Prometheus",
-      "aliases": ["prometheus", "prometheus monitoring", "prometheus metrics"]
+      "aliases": [
+        "prometheus",
+        "prometheus monitoring",
+        "prometheus metrics"
+      ]
     },
     {
       "canonical": "Grafana",
-      "aliases": ["grafana", "gra fana", "graffana", "grafana dashboard"]
+      "aliases": [
+        "grafana",
+        "gra fana",
+        "graffana",
+        "grafana dashboard"
+      ]
     },
     {
       "canonical": "Datadog",
@@ -3043,28 +2536,47 @@
       ]
     },
     {
-      "canonical": "Sentry",
-      "aliases": ["sentry", "sentry io", "sentry monitoring", "sentry sdk"]
-    },
-    {
       "canonical": "Postman",
-      "aliases": ["postman", "post man", "postman api", "postman testing"]
+      "aliases": [
+        "postman",
+        "post man",
+        "postman api",
+        "postman testing"
+      ]
     },
     {
       "canonical": "Insomnia",
-      "aliases": ["insomnia", "insomnia api", "insomnia rest"]
+      "aliases": [
+        "insomnia",
+        "insomnia api",
+        "insomnia rest"
+      ]
     },
     {
       "canonical": "Stripe",
-      "aliases": ["stripe", "stripe api", "stripe payments", "stripe sdk"]
+      "aliases": [
+        "stripe",
+        "stripe api",
+        "stripe payments",
+        "stripe sdk"
+      ]
     },
     {
       "canonical": "PayPal",
-      "aliases": ["paypal", "pay pal", "paypal api"]
+      "aliases": [
+        "paypal",
+        "pay pal",
+        "paypal api"
+      ]
     },
     {
       "canonical": "Twilio",
-      "aliases": ["twilio", "twilio api", "twilio sms", "twilio voice"]
+      "aliases": [
+        "twilio",
+        "twilio api",
+        "twilio sms",
+        "twilio voice"
+      ]
     },
     {
       "canonical": "OpenAI",
@@ -3079,11 +2591,11 @@
     },
     {
       "canonical": "Anthropic",
-      "aliases": ["anthropic", "anthropic ai", "anthropic api"]
-    },
-    {
-      "canonical": "Claude",
-      "aliases": ["claude", "clod", "cloud", "claud ai", "claude ai"]
+      "aliases": [
+        "anthropic",
+        "anthropic ai",
+        "anthropic api"
+      ]
     },
     {
       "canonical": "ChatGPT",
@@ -3099,31 +2611,31 @@
     },
     {
       "canonical": "GPT",
-      "aliases": ["gpt", "g p t", "gee p tee", "g p t model", "g p t api"]
+      "aliases": [
+        "gpt",
+        "g p t",
+        "gee p tee",
+        "g p t model",
+        "g p t api"
+      ]
     },
     {
       "canonical": "GPT-4",
-      "aliases": ["gpt 4", "g p t 4", "gpt four", "g p t four"]
+      "aliases": [
+        "gpt 4",
+        "g p t 4",
+        "gpt four",
+        "g p t four"
+      ]
     },
     {
       "canonical": "GPT-4o",
-      "aliases": ["gpt 4o", "g p t 4 o", "gpt four oh", "g p t four o"]
-    },
-    {
-      "canonical": "GPT-5",
-      "aliases": ["gpt 5", "g p t 5", "gpt five", "g p t five"]
-    },
-    {
-      "canonical": "Gemini",
-      "aliases": ["gemini", "geminy", "gemini ai", "google gemini"]
-    },
-    {
-      "canonical": "Llama",
-      "aliases": ["llama", "llama ai", "lama", "llama model", "meta llama"]
-    },
-    {
-      "canonical": "Mistral",
-      "aliases": ["mistral", "mistral ai", "mistral model"]
+      "aliases": [
+        "gpt 4o",
+        "g p t 4 o",
+        "gpt four oh",
+        "g p t four o"
+      ]
     },
     {
       "canonical": "Ollama",
@@ -3158,7 +2670,12 @@
     },
     {
       "canonical": "LangGraph",
-      "aliases": ["langgraph", "lang graph", "lang graph ai", "lang graph js"]
+      "aliases": [
+        "langgraph",
+        "lang graph",
+        "lang graph ai",
+        "lang graph js"
+      ]
     },
     {
       "canonical": "LangSmith",
@@ -3197,6 +2714,279 @@
         "nematron",
         "nemo tron ai",
         "nvidia nemotron"
+      ]
+    },
+    {
+      "canonical": "Nemotron 3 Super 120B",
+      "aliases": [
+        "nemotron 3 super 120b",
+        "nemotron three super 120b",
+        "nemotron 3 super 120 b",
+        "motron 3 super 120b",
+        "nemo tron 3 super 120b",
+        "nvidia nemotron 3 super 120b",
+        "nemotron 120b",
+        "nemotron 120 b"
+      ]
+    },
+    {
+      "canonical": "ConnectX-8",
+      "aliases": [
+        "connectx 8",
+        "connectx8",
+        "connect x 8",
+        "connect x eight",
+        "connectx eight",
+        "mellanox connectx 8",
+        "nvidia connectx 8"
+      ]
+    },
+    {
+      "canonical": "ConnectX-7",
+      "aliases": [
+        "connectx 7",
+        "connectx7",
+        "connect x 7",
+        "connect x seven",
+        "connectx seven",
+        "mellanox connectx 7",
+        "nvidia connectx 7"
+      ]
+    },
+    {
+      "canonical": "ASUS ExpertCenter Pro ET900N G3",
+      "aliases": [
+        "asus expertcenter pro et900n g3",
+        "asus expect center pro et900n g3",
+        "asus expert center pro et900n g3",
+        "expertcenter pro et900n g3",
+        "expect center pro et900n g3",
+        "expert center pro et900n g3",
+        "asus expertcenter",
+        "asus expect center",
+        "et900n g3"
+      ]
+    },
+    {
+      "canonical": "DGX Station",
+      "aliases": [
+        "dgx station",
+        "d g x station",
+        "nvidia dgx station",
+        "dgx workstation"
+      ]
+    },
+    {
+      "canonical": "Mac Mini",
+      "aliases": [
+        "mac mini",
+        "mac minis",
+        "apple mac mini",
+        "macmini"
+      ]
+    },
+    {
+      "canonical": "Mac Studio",
+      "aliases": [
+        "mac studio",
+        "mac studios",
+        "apple mac studio",
+        "macstudio"
+      ]
+    },
+    {
+      "canonical": "RTX 5090",
+      "aliases": [
+        "rtx 5090",
+        "rtx5090",
+        "rtx 5 0 9 0",
+        "geforce rtx 5090",
+        "nvidia rtx 5090"
+      ]
+    },
+    {
+      "canonical": "RTX 5080",
+      "aliases": [
+        "rtx 5080",
+        "rtx5080",
+        "rtx 5 0 8 0",
+        "geforce rtx 5080",
+        "nvidia rtx 5080"
+      ]
+    },
+    {
+      "canonical": "RTX 4090",
+      "aliases": [
+        "rtx 4090",
+        "rtx4090",
+        "rtx 4 0 9 0",
+        "geforce rtx 4090",
+        "nvidia rtx 4090"
+      ]
+    },
+    {
+      "canonical": "RTX 4080",
+      "aliases": [
+        "rtx 4080",
+        "rtx4080",
+        "rtx 4 0 8 0",
+        "geforce rtx 4080",
+        "nvidia rtx 4080"
+      ]
+    },
+    {
+      "canonical": "RTX 3090",
+      "aliases": [
+        "rtx 3090",
+        "rtx3090",
+        "rtx 3 0 9 0",
+        "geforce rtx 3090",
+        "nvidia rtx 3090"
+      ]
+    },
+    {
+      "canonical": "RTX 3080",
+      "aliases": [
+        "rtx 3080",
+        "rtx3080",
+        "rtx 3 0 8 0",
+        "geforce rtx 3080",
+        "nvidia rtx 3080"
+      ]
+    },
+    {
+      "canonical": "RTX PRO 6000",
+      "aliases": [
+        "rtx pro 6000",
+        "rtxpro6000",
+        "rtx pro 6 0 0 0",
+        "nvidia rtx pro 6000",
+        "rtx professional 6000"
+      ]
+    },
+    {
+      "canonical": "RTX 6000",
+      "aliases": [
+        "rtx 6000",
+        "rtx6000",
+        "rtx 6 0 0 0",
+        "nvidia rtx 6000",
+        "quadro rtx 6000"
+      ]
+    },
+    {
+      "canonical": "RTX 5000",
+      "aliases": [
+        "rtx 5000",
+        "rtx5000",
+        "rtx 5 0 0 0",
+        "nvidia rtx 5000",
+        "quadro rtx 5000"
+      ]
+    },
+    {
+      "canonical": "RTX 4000",
+      "aliases": [
+        "rtx 4000",
+        "rtx4000",
+        "rtx 4 0 0 0",
+        "nvidia rtx 4000",
+        "quadro rtx 4000"
+      ]
+    },
+    {
+      "canonical": "H100",
+      "aliases": [
+        "h100",
+        "h 100",
+        "h one hundred",
+        "nvidia h100",
+        "h100 gpu"
+      ]
+    },
+    {
+      "canonical": "H200",
+      "aliases": [
+        "h200",
+        "h 200",
+        "h two hundred",
+        "nvidia h200",
+        "h200 gpu"
+      ]
+    },
+    {
+      "canonical": "A100",
+      "aliases": [
+        "a100",
+        "a 100",
+        "a one hundred",
+        "nvidia a100",
+        "a100 gpu"
+      ]
+    },
+    {
+      "canonical": "Radeon 8060S",
+      "aliases": [
+        "radeon 8060s",
+        "radeon 8060 s",
+        "radeon eight zero six zero s",
+        "amd radeon 8060s"
+      ]
+    },
+    {
+      "canonical": "Super NIC",
+      "aliases": [
+        "super nic",
+        "super nics",
+        "supernics",
+        "supernic"
+      ]
+    },
+    {
+      "canonical": "Blackwell",
+      "aliases": [
+        "blackwell",
+        "blackwell architecture",
+        "nvidia blackwell",
+        "blackwell gpu"
+      ]
+    },
+    {
+      "canonical": "prefill",
+      "aliases": [
+        "pre-fill",
+        "pre fill",
+        "prefill throughput",
+        "pre-fill throughput"
+      ]
+    },
+    {
+      "canonical": "MoE",
+      "aliases": [
+        "moe",
+        "m o e",
+        "mixture of experts",
+        "mixture-of-experts"
+      ]
+    },
+    {
+      "canonical": "GB300",
+      "aliases": [
+        "gb300",
+        "gb 300",
+        "g b 300",
+        "nvidia gb300",
+        "gb 300 platform"
+      ]
+    },
+    {
+      "canonical": "DeepSeek-V4-Flash",
+      "aliases": [
+        "deepseek v4 flash",
+        "deep seek v4 flash",
+        "deepseek v 4 flash",
+        "deep seek v 4 flash",
+        "deepseek version 4 flash"
       ]
     },
     {
@@ -3281,7 +3071,12 @@
     },
     {
       "canonical": "Weaviate",
-      "aliases": ["weaviate", "weave eight", "weave ate", "weaviate database"]
+      "aliases": [
+        "weaviate",
+        "weave eight",
+        "weave ate",
+        "weaviate database"
+      ]
     },
     {
       "canonical": "Chroma",
@@ -3317,11 +3112,21 @@
     },
     {
       "canonical": "OIDC",
-      "aliases": ["oidc", "o i d c", "openid connect", "open id connect"]
+      "aliases": [
+        "oidc",
+        "o i d c",
+        "openid connect",
+        "open id connect"
+      ]
     },
     {
       "canonical": "HTTP",
-      "aliases": ["http", "h t t p", "h t p", "hypertext transfer protocol"]
+      "aliases": [
+        "http",
+        "h t t p",
+        "h t p",
+        "hypertext transfer protocol"
+      ]
     },
     {
       "canonical": "HTTPS",
@@ -3335,11 +3140,21 @@
     },
     {
       "canonical": "SSH",
-      "aliases": ["ssh", "s s h", "secure shell", "ssh connection"]
+      "aliases": [
+        "ssh",
+        "s s h",
+        "secure shell",
+        "ssh connection"
+      ]
     },
     {
       "canonical": "DNS",
-      "aliases": ["dns", "d n s", "domain name system", "domain name service"]
+      "aliases": [
+        "dns",
+        "d n s",
+        "domain name system",
+        "domain name service"
+      ]
     },
     {
       "canonical": "CDN",
@@ -3352,23 +3167,46 @@
     },
     {
       "canonical": "TCP",
-      "aliases": ["tcp", "t c p", "transmission control protocol"]
+      "aliases": [
+        "tcp",
+        "t c p",
+        "transmission control protocol"
+      ]
     },
     {
       "canonical": "UDP",
-      "aliases": ["udp", "u d p", "user datagram protocol"]
+      "aliases": [
+        "udp",
+        "u d p",
+        "user datagram protocol"
+      ]
     },
     {
       "canonical": "IP",
-      "aliases": ["ip", "i p", "ip address", "internet protocol"]
+      "aliases": [
+        "ip",
+        "i p",
+        "ip address",
+        "internet protocol"
+      ]
     },
     {
       "canonical": "IPv4",
-      "aliases": ["ipv4", "i p v 4", "i p v four", "ip version 4"]
+      "aliases": [
+        "ipv4",
+        "i p v 4",
+        "i p v four",
+        "ip version 4"
+      ]
     },
     {
       "canonical": "IPv6",
-      "aliases": ["ipv6", "i p v 6", "i p v six", "ip version 6"]
+      "aliases": [
+        "ipv6",
+        "i p v 6",
+        "i p v six",
+        "ip version 6"
+      ]
     },
     {
       "canonical": "localhost",
@@ -3409,15 +3247,31 @@
     },
     {
       "canonical": "Cursor",
-      "aliases": ["cursor", "cursor editor", "cursor ai", "cursor ide"]
+      "aliases": [
+        "cursor",
+        "cursor editor",
+        "cursor ai",
+        "cursor ide"
+      ]
     },
     {
       "canonical": "Xcode",
-      "aliases": ["xcode", "ex code", "excode", "x code", "apple xcode"]
+      "aliases": [
+        "xcode",
+        "ex code",
+        "excode",
+        "x code",
+        "apple xcode"
+      ]
     },
     {
       "canonical": "JetBrains",
-      "aliases": ["jetbrains", "jet brains", "jet brain", "jetbrains ide"]
+      "aliases": [
+        "jetbrains",
+        "jet brains",
+        "jet brain",
+        "jetbrains ide"
+      ]
     },
     {
       "canonical": "IntelliJ",
@@ -3452,19 +3306,38 @@
     },
     {
       "canonical": "Warp",
-      "aliases": ["warp", "warp terminal", "warp cli"]
+      "aliases": [
+        "warp",
+        "warp terminal",
+        "warp cli"
+      ]
     },
     {
       "canonical": "zsh",
-      "aliases": ["zsh", "z shell", "z e s h", "z-shell"]
+      "aliases": [
+        "zsh",
+        "z shell",
+        "z e s h",
+        "z-shell"
+      ]
     },
     {
       "canonical": "bash",
-      "aliases": ["bash", "b a s h", "bash shell", "bourne again shell"]
+      "aliases": [
+        "bash",
+        "b a s h",
+        "bash shell",
+        "bourne again shell"
+      ]
     },
     {
       "canonical": "fish shell",
-      "aliases": ["fish shell", "fish", "fish terminal", "fish shell"]
+      "aliases": [
+        "fish shell",
+        "fish",
+        "fish terminal",
+        "fish shell"
+      ]
     },
     {
       "canonical": "macOS",
@@ -3479,7 +3352,13 @@
     },
     {
       "canonical": "Linux",
-      "aliases": ["linux", "linnux", "linnex", "linn ux", "linux os"]
+      "aliases": [
+        "linux",
+        "linnux",
+        "linnex",
+        "linn ux",
+        "linux os"
+      ]
     },
     {
       "canonical": "Ubuntu",
@@ -3493,7 +3372,12 @@
     },
     {
       "canonical": "Arch Linux",
-      "aliases": ["arch linux", "arch", "archlinux", "arch linux os"]
+      "aliases": [
+        "arch linux",
+        "arch",
+        "archlinux",
+        "arch linux os"
+      ]
     },
     {
       "canonical": "Homebrew",
@@ -3517,7 +3401,12 @@
     },
     {
       "canonical": "Turborepo",
-      "aliases": ["turborepo", "turbo repo", "turbo-repo", "turbo repository"]
+      "aliases": [
+        "turborepo",
+        "turbo repo",
+        "turbo-repo",
+        "turbo repository"
+      ]
     },
     {
       "canonical": "Nx",
@@ -3558,7 +3447,11 @@
     },
     {
       "canonical": "ISR",
-      "aliases": ["isr", "i s r", "incremental static regeneration"]
+      "aliases": [
+        "isr",
+        "i s r",
+        "incremental static regeneration"
+      ]
     },
     {
       "canonical": "CSR",
@@ -3625,15 +3518,28 @@
     },
     {
       "canonical": "DRY",
-      "aliases": ["dry", "d r y", "don't repeat yourself"]
+      "aliases": [
+        "dry",
+        "d r y",
+        "don't repeat yourself"
+      ]
     },
     {
       "canonical": "KISS",
-      "aliases": ["kiss", "k i s s", "keep it simple stupid"]
+      "aliases": [
+        "kiss",
+        "k i s s",
+        "keep it simple stupid"
+      ]
     },
     {
       "canonical": "YAGNI",
-      "aliases": ["yagni", "yagny", "y a g n i", "you aren't gonna need it"]
+      "aliases": [
+        "yagni",
+        "yagny",
+        "y a g n i",
+        "you aren't gonna need it"
+      ]
     },
     {
       "canonical": "regex",
@@ -3668,7 +3574,11 @@
     },
     {
       "canonical": "URI",
-      "aliases": ["uri", "u r i", "uniform resource identifier"]
+      "aliases": [
+        "uri",
+        "u r i",
+        "uniform resource identifier"
+      ]
     },
     {
       "canonical": "CRUD",
@@ -3737,27 +3647,51 @@
     },
     {
       "canonical": "Kubernetes Service",
-      "aliases": ["kubernetes service", "kube service", "k8s service"]
+      "aliases": [
+        "kubernetes service",
+        "kube service",
+        "k8s service"
+      ]
     },
     {
       "canonical": "Ingress",
-      "aliases": ["ingress", "kubernetes ingress", "ingress controller"]
+      "aliases": [
+        "ingress",
+        "kubernetes ingress",
+        "ingress controller"
+      ]
     },
     {
       "canonical": "JWT Token",
-      "aliases": ["jwt token", "j w t token", "json web token"]
+      "aliases": [
+        "jwt token",
+        "j w t token",
+        "json web token"
+      ]
     },
     {
       "canonical": "Access Token",
-      "aliases": ["access token", "api access token", "bearer token"]
+      "aliases": [
+        "access token",
+        "api access token",
+        "bearer token"
+      ]
     },
     {
       "canonical": "Refresh Token",
-      "aliases": ["refresh token", "refresh-token", "auth refresh token"]
+      "aliases": [
+        "refresh token",
+        "refresh-token",
+        "auth refresh token"
+      ]
     },
     {
       "canonical": "Bearer Token",
-      "aliases": ["bearer token", "bearer auth", "bearer authorization"]
+      "aliases": [
+        "bearer token",
+        "bearer auth",
+        "bearer authorization"
+      ]
     },
     {
       "canonical": "CORS",
@@ -3838,19 +3772,36 @@
     },
     {
       "canonical": "Memoization",
-      "aliases": ["memoization", "memoisation", "memo", "function memoization"]
+      "aliases": [
+        "memoization",
+        "memoisation",
+        "memo",
+        "function memoization"
+      ]
     },
     {
       "canonical": "Debounce",
-      "aliases": ["debounce", "debouncing", "debounce function"]
+      "aliases": [
+        "debounce",
+        "debouncing",
+        "debounce function"
+      ]
     },
     {
       "canonical": "Throttle",
-      "aliases": ["throttle", "throttling", "throttle function"]
+      "aliases": [
+        "throttle",
+        "throttling",
+        "throttle function"
+      ]
     },
     {
       "canonical": "Promise",
-      "aliases": ["promise", "promises", "javascript promise"]
+      "aliases": [
+        "promise",
+        "promises",
+        "javascript promise"
+      ]
     },
     {
       "canonical": "Async Await",
@@ -3863,15 +3814,26 @@
     },
     {
       "canonical": "Callback",
-      "aliases": ["callback", "call back", "callback function"]
+      "aliases": [
+        "callback",
+        "call back",
+        "callback function"
+      ]
     },
     {
       "canonical": "Closure",
-      "aliases": ["closure", "closures", "javascript closure"]
+      "aliases": [
+        "closure",
+        "closures",
+        "javascript closure"
+      ]
     },
     {
       "canonical": "Hoisting",
-      "aliases": ["hoisting", "javascript hoisting"]
+      "aliases": [
+        "hoisting",
+        "javascript hoisting"
+      ]
     },
     {
       "canonical": "Destructuring",
@@ -3927,11 +3889,19 @@
     },
     {
       "canonical": "Type Alias",
-      "aliases": ["type alias", "type aliases", "typescript type alias"]
+      "aliases": [
+        "type alias",
+        "type aliases",
+        "typescript type alias"
+      ]
     },
     {
       "canonical": "Union Type",
-      "aliases": ["union type", "union types", "typescript union"]
+      "aliases": [
+        "union type",
+        "union types",
+        "typescript union"
+      ]
     },
     {
       "canonical": "Intersection Type",
@@ -3943,11 +3913,19 @@
     },
     {
       "canonical": "Type Guard",
-      "aliases": ["type guard", "type guards", "typescript type guard"]
+      "aliases": [
+        "type guard",
+        "type guards",
+        "typescript type guard"
+      ]
     },
     {
       "canonical": "Type Inference",
-      "aliases": ["type inference", "typescript inference", "inferred type"]
+      "aliases": [
+        "type inference",
+        "typescript inference",
+        "inferred type"
+      ]
     },
     {
       "canonical": "Generative AI",
@@ -3961,11 +3939,21 @@
     },
     {
       "canonical": "Machine Learning",
-      "aliases": ["machine learning", "machine-learning", "ml", "m l"]
+      "aliases": [
+        "machine learning",
+        "machine-learning",
+        "ml",
+        "m l"
+      ]
     },
     {
       "canonical": "Deep Learning",
-      "aliases": ["deep learning", "deep-learning", "dl", "d l"]
+      "aliases": [
+        "deep learning",
+        "deep-learning",
+        "dl",
+        "d l"
+      ]
     },
     {
       "canonical": "Neural Network",
@@ -3999,7 +3987,6 @@
       "aliases": [
         "fine tuning",
         "fine-tuning",
-        "fine tune",
         "fine tuned",
         "model fine tuning"
       ]
@@ -4071,11 +4058,19 @@
     },
     {
       "canonical": "IDE",
-      "aliases": ["ide", "i d e", "integrated development environment"]
+      "aliases": [
+        "ide",
+        "i d e",
+        "integrated development environment"
+      ]
     },
     {
       "canonical": "REPL",
-      "aliases": ["repl", "r e p l", "read eval print loop"]
+      "aliases": [
+        "repl",
+        "r e p l",
+        "read eval print loop"
+      ]
     },
     {
       "canonical": "JSONL",
@@ -4099,11 +4094,21 @@
     },
     {
       "canonical": "MDX",
-      "aliases": ["mdx", "m d x", "markdown jsx", "markdown js"]
+      "aliases": [
+        "mdx",
+        "m d x",
+        "markdown jsx",
+        "markdown js"
+      ]
     },
     {
       "canonical": ".ts",
-      "aliases": ["dot ts", "dot t s", "ts file", "typescript file"]
+      "aliases": [
+        "dot ts",
+        "dot t s",
+        "ts file",
+        "typescript file"
+      ]
     },
     {
       "canonical": ".tsx",
@@ -4117,23 +4122,48 @@
     },
     {
       "canonical": ".js",
-      "aliases": ["dot js", "dot j s", "js file", "javascript file"]
+      "aliases": [
+        "dot js",
+        "dot j s",
+        "js file",
+        "javascript file"
+      ]
     },
     {
       "canonical": ".jsx",
-      "aliases": ["dot jsx", "dot j s x", "jsx file", "javascript react file"]
+      "aliases": [
+        "dot jsx",
+        "dot j s x",
+        "jsx file",
+        "javascript react file"
+      ]
     },
     {
       "canonical": ".mjs",
-      "aliases": ["dot mjs", "dot m j s", "mjs file", "module js"]
+      "aliases": [
+        "dot mjs",
+        "dot m j s",
+        "mjs file",
+        "module js"
+      ]
     },
     {
       "canonical": ".cjs",
-      "aliases": ["dot cjs", "dot c j s", "cjs file", "common js file"]
+      "aliases": [
+        "dot cjs",
+        "dot c j s",
+        "cjs file",
+        "common js file"
+      ]
     },
     {
       "canonical": ".json",
-      "aliases": ["dot json", "dot j son", "json file", "jason file"]
+      "aliases": [
+        "dot json",
+        "dot j son",
+        "json file",
+        "jason file"
+      ]
     },
     {
       "canonical": ".env",
@@ -4170,51 +4200,104 @@
     },
     {
       "canonical": ".npmrc",
-      "aliases": ["dot npmrc", "npm rc", "npm config file", "n p m r c"]
+      "aliases": [
+        "dot npmrc",
+        "npm rc",
+        "npm config file",
+        "n p m r c"
+      ]
     },
     {
       "canonical": ".yml",
-      "aliases": ["dot yml", "dot y m l", "yml file", "yaml file"]
+      "aliases": [
+        "dot yml",
+        "dot y m l",
+        "yml file",
+        "yaml file"
+      ]
     },
     {
       "canonical": ".yaml",
-      "aliases": ["dot yaml", "yaml file", "yam l file"]
+      "aliases": [
+        "dot yaml",
+        "yaml file",
+        "yam l file"
+      ]
     },
     {
       "canonical": ".toml",
-      "aliases": ["dot toml", "toml file", "tom mel file"]
+      "aliases": [
+        "dot toml",
+        "toml file",
+        "tom mel file"
+      ]
     },
     {
       "canonical": ".sql",
-      "aliases": ["dot sql", "dot s q l", "sql file", "sequel file"]
+      "aliases": [
+        "dot sql",
+        "dot s q l",
+        "sql file",
+        "sequel file"
+      ]
     },
     {
       "canonical": ".md",
-      "aliases": ["dot md", "dot m d", "markdown file", "md file"]
+      "aliases": [
+        "dot md",
+        "dot m d",
+        "markdown file",
+        "md file"
+      ]
     },
     {
       "canonical": ".mdx",
-      "aliases": ["dot mdx", "dot m d x", "mdx file"]
+      "aliases": [
+        "dot mdx",
+        "dot m d x",
+        "mdx file"
+      ]
     },
     {
       "canonical": ".css",
-      "aliases": ["dot css", "dot c s s", "css file"]
+      "aliases": [
+        "dot css",
+        "dot c s s",
+        "css file"
+      ]
     },
     {
       "canonical": ".scss",
-      "aliases": ["dot scss", "dot s c s s", "scss file"]
+      "aliases": [
+        "dot scss",
+        "dot s c s s",
+        "scss file"
+      ]
     },
     {
       "canonical": ".html",
-      "aliases": ["dot html", "html file", "h t m l file"]
+      "aliases": [
+        "dot html",
+        "html file",
+        "h t m l file"
+      ]
     },
     {
       "canonical": ".svg",
-      "aliases": ["dot svg", "dot s v g", "svg file", "vector file"]
+      "aliases": [
+        "dot svg",
+        "dot s v g",
+        "svg file",
+        "vector file"
+      ]
     },
     {
       "canonical": ".csv",
-      "aliases": ["dot csv", "dot c s v", "csv file"]
+      "aliases": [
+        "dot csv",
+        "dot c s v",
+        "csv file"
+      ]
     },
     {
       "canonical": "package.json",
@@ -4264,7 +4347,12 @@
     },
     {
       "canonical": "README",
-      "aliases": ["readme", "read me", "read me file", "readme file"]
+      "aliases": [
+        "readme",
+        "read me",
+        "read me file",
+        "readme file"
+      ]
     },
     {
       "canonical": "Git branch",
@@ -4286,15 +4374,28 @@
     },
     {
       "canonical": "Git merge",
-      "aliases": ["git merge", "merge", "git merges"]
+      "aliases": [
+        "git merge",
+        "merge",
+        "git merges"
+      ]
     },
     {
       "canonical": "Git rebase",
-      "aliases": ["git rebase", "rebase", "git re basing", "rebase branch"]
+      "aliases": [
+        "git rebase",
+        "rebase",
+        "git re basing",
+        "rebase branch"
+      ]
     },
     {
       "canonical": "Git stash",
-      "aliases": ["git stash", "stash", "git stashed changes"]
+      "aliases": [
+        "git stash",
+        "stash",
+        "git stashed changes"
+      ]
     },
     {
       "canonical": "Pull Request",
@@ -4302,8 +4403,6 @@
         "pull request",
         "pull-request",
         "pull req",
-        "pr",
-        "p r",
         "code review request"
       ]
     },
@@ -4318,11 +4417,19 @@
     },
     {
       "canonical": "Issue",
-      "aliases": ["github issue", "gitlab issue", "bug ticket"]
+      "aliases": [
+        "github issue",
+        "gitlab issue",
+        "bug ticket"
+      ]
     },
     {
       "canonical": "Branch Protection",
-      "aliases": ["branch protection", "protected branch", "branch rules"]
+      "aliases": [
+        "branch protection",
+        "protected branch",
+        "branch rules"
+      ]
     },
     {
       "canonical": "Environment Variable",
@@ -4346,7 +4453,12 @@
     },
     {
       "canonical": "API Key",
-      "aliases": ["api key", "a p i key", "api token", "developer key"]
+      "aliases": [
+        "api key",
+        "a p i key",
+        "api token",
+        "developer key"
+      ]
     },
     {
       "canonical": "Database Migration",
@@ -4370,15 +4482,30 @@
     },
     {
       "canonical": "Primary Key",
-      "aliases": ["primary key", "primary-key", "database primary key", "p key"]
+      "aliases": [
+        "primary key",
+        "primary-key",
+        "database primary key",
+        "p key"
+      ]
     },
     {
       "canonical": "Foreign Key",
-      "aliases": ["foreign key", "foreign-key", "database foreign key", "f key"]
+      "aliases": [
+        "foreign key",
+        "foreign-key",
+        "database foreign key",
+        "f key"
+      ]
     },
     {
       "canonical": "Index",
-      "aliases": ["index", "database index", "sql index", "db index"]
+      "aliases": [
+        "index",
+        "database index",
+        "sql index",
+        "db index"
+      ]
     },
     {
       "canonical": "Transaction",
@@ -4399,11 +4526,20 @@
     },
     {
       "canonical": "Query",
-      "aliases": ["query", "database query", "sql query", "queries"]
+      "aliases": [
+        "query",
+        "database query",
+        "sql query",
+        "queries"
+      ]
     },
     {
       "canonical": "Mutation",
-      "aliases": ["mutation", "graphql mutation", "data mutation"]
+      "aliases": [
+        "mutation",
+        "graphql mutation",
+        "data mutation"
+      ]
     },
     {
       "canonical": "Middleware",
@@ -4416,15 +4552,28 @@
     },
     {
       "canonical": "Controller",
-      "aliases": ["controller", "api controller", "route controller"]
+      "aliases": [
+        "controller",
+        "api controller",
+        "route controller"
+      ]
     },
     {
       "canonical": "Repository",
-      "aliases": ["repository", "repo", "data repository", "repository layer"]
+      "aliases": [
+        "repository",
+        "repo",
+        "data repository",
+        "repository layer"
+      ]
     },
     {
       "canonical": "Service Layer",
-      "aliases": ["service layer", "service-layer", "business logic layer"]
+      "aliases": [
+        "service layer",
+        "service-layer",
+        "business logic layer"
+      ]
     },
     {
       "canonical": "Dependency Injection",
@@ -4447,7 +4596,12 @@
     },
     {
       "canonical": "Package",
-      "aliases": ["package", "npm package", "node package", "software package"]
+      "aliases": [
+        "package",
+        "npm package",
+        "node package",
+        "software package"
+      ]
     },
     {
       "canonical": "Library",
@@ -4479,7 +4633,12 @@
     },
     {
       "canonical": "Bundler",
-      "aliases": ["bundler", "bundle", "javascript bundler", "module bundler"]
+      "aliases": [
+        "bundler",
+        "bundle",
+        "javascript bundler",
+        "module bundler"
+      ]
     },
     {
       "canonical": "Transpiler",
@@ -4492,7 +4651,12 @@
     },
     {
       "canonical": "Linter",
-      "aliases": ["linter", "lint", "code lint", "javascript linter"]
+      "aliases": [
+        "linter",
+        "lint",
+        "code lint",
+        "javascript linter"
+      ]
     },
     {
       "canonical": "Formatter",
@@ -4525,7 +4689,12 @@
     },
     {
       "canonical": "Tree Shaking",
-      "aliases": ["tree shaking", "tree-shaking", "tree shake", "tree shaker"]
+      "aliases": [
+        "tree shaking",
+        "tree-shaking",
+        "tree shake",
+        "tree shaker"
+      ]
     },
     {
       "canonical": "Code Splitting",
@@ -4538,7 +4707,12 @@
     },
     {
       "canonical": "Lazy Loading",
-      "aliases": ["lazy loading", "lazy-load", "lazy load", "dynamic loading"]
+      "aliases": [
+        "lazy loading",
+        "lazy-load",
+        "lazy load",
+        "dynamic loading"
+      ]
     },
     {
       "canonical": "Dynamic Import",
@@ -4578,7 +4752,12 @@
     },
     {
       "canonical": "API Route",
-      "aliases": ["api route", "api routes", "endpoint route", "backend route"]
+      "aliases": [
+        "api route",
+        "api routes",
+        "endpoint route",
+        "backend route"
+      ]
     },
     {
       "canonical": "Route Handler",
@@ -4591,7 +4770,12 @@
     },
     {
       "canonical": "Hydration",
-      "aliases": ["hydration", "react hydration", "server hydration", "hydrate"]
+      "aliases": [
+        "hydration",
+        "react hydration",
+        "server hydration",
+        "hydrate"
+      ]
     },
     {
       "canonical": "Hydration Mismatch",
@@ -4612,11 +4796,19 @@
     },
     {
       "canonical": "DOM",
-      "aliases": ["dom", "d o m", "document object model"]
+      "aliases": [
+        "dom",
+        "d o m",
+        "document object model"
+      ]
     },
     {
       "canonical": "Shadow DOM",
-      "aliases": ["shadow dom", "shadow d o m", "web component shadow dom"]
+      "aliases": [
+        "shadow dom",
+        "shadow d o m",
+        "web component shadow dom"
+      ]
     },
     {
       "canonical": "Web Components",
@@ -4629,7 +4821,11 @@
     },
     {
       "canonical": "Custom Element",
-      "aliases": ["custom element", "custom elements", "web custom element"]
+      "aliases": [
+        "custom element",
+        "custom elements",
+        "web custom element"
+      ]
     },
     {
       "canonical": "Accessibility",
@@ -4662,11 +4858,21 @@
     },
     {
       "canonical": "Open Graph",
-      "aliases": ["open graph", "open-graph", "og metadata", "og tags"]
+      "aliases": [
+        "open graph",
+        "open-graph",
+        "og metadata",
+        "og tags"
+      ]
     },
     {
       "canonical": "Meta Tags",
-      "aliases": ["meta tags", "meta tag", "html meta tags", "seo meta tags"]
+      "aliases": [
+        "meta tags",
+        "meta tag",
+        "html meta tags",
+        "seo meta tags"
+      ]
     },
     {
       "canonical": "Canonical URL",
@@ -4679,7 +4885,12 @@
     },
     {
       "canonical": "Sitemap",
-      "aliases": ["sitemap", "site map", "xml sitemap", "sitemap xml"]
+      "aliases": [
+        "sitemap",
+        "site map",
+        "xml sitemap",
+        "sitemap xml"
+      ]
     },
     {
       "canonical": "robots.txt",
@@ -4693,119 +4904,238 @@
     },
     {
       "canonical": "HTML Tag",
-      "aliases": ["html tag", "html tags", "markup tag", "element tag"]
+      "aliases": [
+        "html tag",
+        "html tags",
+        "markup tag",
+        "element tag"
+      ]
     },
     {
       "canonical": "div",
-      "aliases": ["div", "div tag", "dive", "d iv"]
+      "aliases": [
+        "div",
+        "div tag",
+        "dive",
+        "d iv"
+      ]
     },
     {
       "canonical": "span",
-      "aliases": ["span", "span tag", "s p a n"]
+      "aliases": [
+        "span",
+        "span tag",
+        "s p a n"
+      ]
     },
     {
       "canonical": "section",
-      "aliases": ["section", "section tag", "section element"]
+      "aliases": [
+        "section",
+        "section tag",
+        "section element"
+      ]
     },
     {
       "canonical": "article",
-      "aliases": ["article", "article tag", "article element"]
+      "aliases": [
+        "article",
+        "article tag",
+        "article element"
+      ]
     },
     {
       "canonical": "header",
-      "aliases": ["header", "header tag", "header element"]
+      "aliases": [
+        "header",
+        "header tag",
+        "header element"
+      ]
     },
     {
       "canonical": "footer",
-      "aliases": ["footer", "footer tag", "footer element"]
+      "aliases": [
+        "footer",
+        "footer tag",
+        "footer element"
+      ]
     },
     {
       "canonical": "main",
-      "aliases": ["main", "main tag", "main element"]
+      "aliases": [
+        "main",
+        "main tag",
+        "main element"
+      ]
     },
     {
       "canonical": "nav",
-      "aliases": ["nav", "nav tag", "navigation tag"]
+      "aliases": [
+        "nav",
+        "nav tag",
+        "navigation tag"
+      ]
     },
     {
       "canonical": "button",
-      "aliases": ["button", "button tag", "button element"]
+      "aliases": [
+        "button",
+        "button tag",
+        "button element"
+      ]
     },
     {
       "canonical": "input",
-      "aliases": ["input", "input tag", "input element"]
+      "aliases": [
+        "input",
+        "input tag",
+        "input element"
+      ]
     },
     {
       "canonical": "textarea",
-      "aliases": ["textarea", "text area", "textarea tag"]
+      "aliases": [
+        "textarea",
+        "text area",
+        "textarea tag"
+      ]
     },
     {
       "canonical": "form",
-      "aliases": ["form", "form tag", "form element"]
+      "aliases": [
+        "form",
+        "form tag",
+        "form element"
+      ]
     },
     {
       "canonical": "label",
-      "aliases": ["label", "label tag", "form label"]
+      "aliases": [
+        "label",
+        "label tag",
+        "form label"
+      ]
     },
     {
       "canonical": "select",
-      "aliases": ["select", "select tag", "select element", "dropdown select"]
+      "aliases": [
+        "select",
+        "select tag",
+        "select element",
+        "dropdown select"
+      ]
     },
     {
       "canonical": "option",
-      "aliases": ["option", "option tag", "select option"]
+      "aliases": [
+        "option",
+        "option tag",
+        "select option"
+      ]
     },
     {
       "canonical": "table",
-      "aliases": ["table", "table tag", "html table"]
+      "aliases": [
+        "table",
+        "table tag",
+        "html table"
+      ]
     },
     {
       "canonical": "thead",
-      "aliases": ["thead", "t head", "table head"]
+      "aliases": [
+        "thead",
+        "t head",
+        "table head"
+      ]
     },
     {
       "canonical": "tbody",
-      "aliases": ["tbody", "t body", "table body"]
+      "aliases": [
+        "tbody",
+        "t body",
+        "table body"
+      ]
     },
     {
       "canonical": "tfoot",
-      "aliases": ["tfoot", "t foot", "table footer"]
+      "aliases": [
+        "tfoot",
+        "t foot",
+        "table footer"
+      ]
     },
     {
       "canonical": "tr",
-      "aliases": ["tr", "t r", "table row"]
+      "aliases": [
+        "tr",
+        "t r",
+        "table row"
+      ]
     },
     {
       "canonical": "td",
-      "aliases": ["td", "t d", "table data cell"]
+      "aliases": [
+        "td",
+        "t d",
+        "table data cell"
+      ]
     },
     {
       "canonical": "th",
-      "aliases": ["th", "t h", "table header cell"]
+      "aliases": [
+        "th",
+        "t h",
+        "table header cell"
+      ]
     },
     {
       "canonical": "ul",
-      "aliases": ["ul", "u l", "unordered list"]
+      "aliases": [
+        "ul",
+        "u l",
+        "unordered list"
+      ]
     },
     {
       "canonical": "ol",
-      "aliases": ["ol", "o l", "ordered list"]
+      "aliases": [
+        "ol",
+        "o l",
+        "ordered list"
+      ]
     },
     {
       "canonical": "li",
-      "aliases": ["li", "l i", "list item"]
+      "aliases": [
+        "li",
+        "l i",
+        "list item"
+      ]
     },
     {
       "canonical": "pre",
-      "aliases": ["pre", "pre tag", "preformatted"]
+      "aliases": [
+        "pre",
+        "pre tag",
+        "preformatted"
+      ]
     },
     {
       "canonical": "code",
-      "aliases": ["code", "code tag", "code element"]
+      "aliases": [
+        "code",
+        "code tag",
+        "code element"
+      ]
     },
     {
       "canonical": "blockquote",
-      "aliases": ["blockquote", "block quote", "quote tag"]
+      "aliases": [
+        "blockquote",
+        "block quote",
+        "quote tag"
+      ]
     },
     {
       "canonical": "Markdown Heading",
@@ -4818,7 +5148,11 @@
     },
     {
       "canonical": "Markdown Link",
-      "aliases": ["markdown link", "markdown hyperlink", "md link"]
+      "aliases": [
+        "markdown link",
+        "markdown hyperlink",
+        "md link"
+      ]
     },
     {
       "canonical": "Markdown Code Fence",
@@ -4831,31 +5165,61 @@
     },
     {
       "canonical": "Backtick",
-      "aliases": ["backtick", "back tick", "back ticks", "grave accent"]
+      "aliases": [
+        "backtick",
+        "back tick",
+        "back ticks",
+        "grave accent"
+      ]
     },
     {
       "canonical": "CamelCase",
-      "aliases": ["camel case", "camelcase", "camel casing"]
+      "aliases": [
+        "camel case",
+        "camelcase",
+        "camel casing"
+      ]
     },
     {
       "canonical": "PascalCase",
-      "aliases": ["pascal case", "pascalcase", "pascal casing"]
+      "aliases": [
+        "pascal case",
+        "pascalcase",
+        "pascal casing"
+      ]
     },
     {
       "canonical": "snake_case",
-      "aliases": ["snake case", "snake_case", "snake casing"]
+      "aliases": [
+        "snake case",
+        "snake_case",
+        "snake casing"
+      ]
     },
     {
       "canonical": "kebab-case",
-      "aliases": ["kebab case", "kebab-case", "dash case"]
+      "aliases": [
+        "kebab case",
+        "kebab-case",
+        "dash case"
+      ]
     },
     {
       "canonical": "SCREAMING_SNAKE_CASE",
-      "aliases": ["screaming snake case", "upper snake case", "constant case"]
+      "aliases": [
+        "screaming snake case",
+        "upper snake case",
+        "constant case"
+      ]
     },
     {
       "canonical": "port",
-      "aliases": ["port", "server port", "network port", "localhost port"]
+      "aliases": [
+        "port",
+        "server port",
+        "network port",
+        "localhost port"
+      ]
     },
     {
       "canonical": "port 3000",
@@ -4932,7 +5296,12 @@
     },
     {
       "canonical": "React Hooks",
-      "aliases": ["react hooks", "react hook", "hooks", "react hooks api"]
+      "aliases": [
+        "react hooks",
+        "react hook",
+        "hooks",
+        "react hooks api"
+      ]
     },
     {
       "canonical": "useState",
@@ -4958,35 +5327,65 @@
     },
     {
       "canonical": "getUserById",
-      "aliases": ["get user by id", "get user by i d", "getUserById"]
+      "aliases": [
+        "get user by id",
+        "get user by i d",
+        "getUserById"
+      ]
     },
     {
       "canonical": "fileName",
-      "aliases": ["file-name", "filename"]
+      "aliases": [
+        "file-name",
+        "filename"
+      ]
     },
     {
       "canonical": "SuperflowPanel",
-      "aliases": ["superflow panel", "super flow panel"]
+      "aliases": [
+        "superflow panel",
+        "super flow panel"
+      ]
     },
     {
       "canonical": "useMemo",
-      "aliases": ["use memo", "useMemo", "use memo hook"]
+      "aliases": [
+        "use memo",
+        "useMemo",
+        "use memo hook"
+      ]
     },
     {
       "canonical": "useCallback",
-      "aliases": ["use callback", "useCallback", "use callback hook"]
+      "aliases": [
+        "use callback",
+        "useCallback",
+        "use callback hook"
+      ]
     },
     {
       "canonical": "useRef",
-      "aliases": ["use ref", "useRef", "use ref hook"]
+      "aliases": [
+        "use ref",
+        "useRef",
+        "use ref hook"
+      ]
     },
     {
       "canonical": "useContext",
-      "aliases": ["use context", "useContext", "use context hook"]
+      "aliases": [
+        "use context",
+        "useContext",
+        "use context hook"
+      ]
     },
     {
       "canonical": "useReducer",
-      "aliases": ["use reducer", "useReducer", "use reducer hook"]
+      "aliases": [
+        "use reducer",
+        "useReducer",
+        "use reducer hook"
+      ]
     },
     {
       "canonical": "useLayoutEffect",
@@ -5006,15 +5405,27 @@
     },
     {
       "canonical": "useId",
-      "aliases": ["use id", "useId", "use id hook"]
+      "aliases": [
+        "use id",
+        "useId",
+        "use id hook"
+      ]
     },
     {
       "canonical": "useTransition",
-      "aliases": ["use transition", "useTransition", "use transition hook"]
+      "aliases": [
+        "use transition",
+        "useTransition",
+        "use transition hook"
+      ]
     },
     {
       "canonical": "useDeferredValue",
-      "aliases": ["use deferred value", "useDeferredValue", "use deferred hook"]
+      "aliases": [
+        "use deferred value",
+        "useDeferredValue",
+        "use deferred hook"
+      ]
     },
     {
       "canonical": "Context API",
@@ -5027,19 +5438,38 @@
     },
     {
       "canonical": "Suspense",
-      "aliases": ["suspense", "react suspense", "suspense boundary"]
+      "aliases": [
+        "suspense",
+        "react suspense",
+        "suspense boundary"
+      ]
     },
     {
       "canonical": "Error Boundary",
-      "aliases": ["error boundary", "error boundaries", "react error boundary"]
+      "aliases": [
+        "error boundary",
+        "error boundaries",
+        "react error boundary"
+      ]
     },
     {
       "canonical": "JSX",
-      "aliases": ["jsx", "j s x", "jay ess ex", "javascript xml", "react jsx"]
+      "aliases": [
+        "jsx",
+        "j s x",
+        "jay ess ex",
+        "javascript xml",
+        "react jsx"
+      ]
     },
     {
       "canonical": "TSX",
-      "aliases": ["tsx", "t s x", "typescript jsx", "type script jsx"]
+      "aliases": [
+        "tsx",
+        "t s x",
+        "typescript jsx",
+        "type script jsx"
+      ]
     },
     {
       "canonical": "TypeScript Compiler",
@@ -5053,7 +5483,12 @@
     },
     {
       "canonical": "tsc",
-      "aliases": ["tsc", "t s c", "typescript compiler", "t s compiler"]
+      "aliases": [
+        "tsc",
+        "t s c",
+        "typescript compiler",
+        "t s compiler"
+      ]
     },
     {
       "canonical": "npm install",
@@ -5076,59 +5511,119 @@
     },
     {
       "canonical": "pnpm install",
-      "aliases": ["pnpm install", "p n p m install", "pnpm i", "p n p m eye"]
+      "aliases": [
+        "pnpm install",
+        "p n p m install",
+        "pnpm i",
+        "p n p m eye"
+      ]
     },
     {
       "canonical": "pnpm dev",
-      "aliases": ["pnpm dev", "p n p m dev", "pnpm development"]
+      "aliases": [
+        "pnpm dev",
+        "p n p m dev",
+        "pnpm development"
+      ]
     },
     {
       "canonical": "bun install",
-      "aliases": ["bun install", "bun i", "boon install", "bun package install"]
+      "aliases": [
+        "bun install",
+        "bun i",
+        "boon install",
+        "bun package install"
+      ]
     },
     {
       "canonical": "bun dev",
-      "aliases": ["bun dev", "boon dev", "bun development"]
+      "aliases": [
+        "bun dev",
+        "boon dev",
+        "bun development"
+      ]
     },
     {
       "canonical": "git push",
-      "aliases": ["git push", "git push origin", "push to git", "push git"]
+      "aliases": [
+        "git push",
+        "git push origin",
+        "push to git",
+        "push git"
+      ]
     },
     {
       "canonical": "git pull",
-      "aliases": ["git pull", "pull git", "git fetch and merge"]
+      "aliases": [
+        "git pull",
+        "pull git",
+        "git fetch and merge"
+      ]
     },
     {
       "canonical": "git clone",
-      "aliases": ["git clone", "clone git repo", "clone repository"]
+      "aliases": [
+        "git clone",
+        "clone git repo",
+        "clone repository"
+      ]
     },
     {
       "canonical": "git fetch",
-      "aliases": ["git fetch", "fetch git", "git fetch origin"]
+      "aliases": [
+        "git fetch",
+        "fetch git",
+        "git fetch origin"
+      ]
     },
     {
       "canonical": "git checkout",
-      "aliases": ["git checkout", "checkout branch", "git check out"]
+      "aliases": [
+        "git checkout",
+        "checkout branch",
+        "git check out"
+      ]
     },
     {
       "canonical": "git switch",
-      "aliases": ["git switch", "switch branch", "git switch branch"]
+      "aliases": [
+        "git switch",
+        "switch branch",
+        "git switch branch"
+      ]
     },
     {
       "canonical": "git log",
-      "aliases": ["git log", "git history", "git commit history"]
+      "aliases": [
+        "git log",
+        "git history",
+        "git commit history"
+      ]
     },
     {
       "canonical": "git diff",
-      "aliases": ["git diff", "git difference", "git changes"]
+      "aliases": [
+        "git diff",
+        "git difference",
+        "git changes"
+      ]
     },
     {
       "canonical": "git status",
-      "aliases": ["git status", "git stats", "repository status"]
+      "aliases": [
+        "git status",
+        "git stats",
+        "repository status"
+      ]
     },
     {
       "canonical": "git reset",
-      "aliases": ["git reset", "reset git", "git hard reset", "git soft reset"]
+      "aliases": [
+        "git reset",
+        "reset git",
+        "git hard reset",
+        "git soft reset"
+      ]
     },
     {
       "canonical": "git cherry-pick",
@@ -5143,8 +5638,6 @@
       "aliases": [
         "pull request",
         "pull req",
-        "pr",
-        "p r",
         "pull request github"
       ]
     },
@@ -5159,119 +5652,192 @@
     },
     {
       "canonical": "/",
-      "aliases": ["slash", "forward slash"]
+      "aliases": [
+        "slash",
+        "forward slash"
+      ]
     },
     {
       "canonical": ".rs",
-      "aliases": ["dot rs", "dot r s", "rust file", "dot rust"]
+      "aliases": [
+        "dot rs",
+        "dot r s",
+        "rust file",
+        "dot rust"
+      ]
     },
     {
       "canonical": ".py",
-      "aliases": ["dot py", "dot p y", "python file"]
+      "aliases": [
+        "dot py",
+        "dot p y",
+        "python file"
+      ]
     },
     {
       "canonical": ".rb",
-      "aliases": ["dot rb", "dot r b"]
+      "aliases": [
+        "dot rb",
+        "dot r b"
+      ]
     },
     {
       "canonical": ".go",
-      "aliases": ["dot go"]
+      "aliases": [
+        "dot go"
+      ]
     },
     {
       "canonical": ".java",
-      "aliases": ["dot java"]
+      "aliases": [
+        "dot java"
+      ]
     },
     {
       "canonical": ".kt",
-      "aliases": ["dot kt", "dot k t"]
+      "aliases": [
+        "dot kt",
+        "dot k t"
+      ]
     },
     {
       "canonical": ".kts",
-      "aliases": ["dot k t s"]
+      "aliases": [
+        "dot k t s"
+      ]
     },
     {
       "canonical": ".swift",
-      "aliases": ["dot swift"]
+      "aliases": [
+        "dot swift"
+      ]
     },
     {
       "canonical": ".php",
-      "aliases": ["dot php"]
+      "aliases": [
+        "dot php"
+      ]
     },
     {
       "canonical": ".cs",
-      "aliases": ["dot cs", "dot c sharp file"]
+      "aliases": [
+        "dot cs",
+        "dot c sharp file"
+      ]
     },
     {
       "canonical": ".cpp",
-      "aliases": ["dot cpp", "dot c plus plus"]
+      "aliases": [
+        "dot cpp",
+        "dot c plus plus"
+      ]
     },
     {
       "canonical": ".cc",
-      "aliases": ["dot c c"]
+      "aliases": [
+        "dot c c"
+      ]
     },
     {
       "canonical": ".c",
-      "aliases": ["dot c"]
+      "aliases": [
+        "dot c"
+      ]
     },
     {
       "canonical": ".h",
-      "aliases": ["dot h"]
+      "aliases": [
+        "dot h"
+      ]
     },
     {
       "canonical": ".hpp",
-      "aliases": ["dot h p p"]
+      "aliases": [
+        "dot h p p"
+      ]
     },
     {
       "canonical": ".txt",
-      "aliases": ["dot txt"]
+      "aliases": [
+        "dot txt"
+      ]
     },
     {
       "canonical": ".less",
-      "aliases": ["dot less"]
+      "aliases": [
+        "dot less"
+      ]
     },
     {
       "canonical": ".htm",
-      "aliases": ["dot h t m"]
+      "aliases": [
+        "dot h t m"
+      ]
     },
     {
       "canonical": ".xml",
-      "aliases": ["dot xml"]
+      "aliases": [
+        "dot xml"
+      ]
     },
     {
       "canonical": ".ini",
-      "aliases": ["dot i n i"]
+      "aliases": [
+        "dot i n i"
+      ]
     },
     {
       "canonical": ".cfg",
-      "aliases": ["dot cfg"]
+      "aliases": [
+        "dot cfg"
+      ]
     },
     {
       "canonical": ".conf",
-      "aliases": ["dot conf"]
+      "aliases": [
+        "dot conf"
+      ]
     },
     {
       "canonical": ".sh",
-      "aliases": ["dot sh", "dot s h", "shell script file"]
+      "aliases": [
+        "dot sh",
+        "dot s h",
+        "shell script file"
+      ]
     },
     {
       "canonical": ".bash",
-      "aliases": ["dot bash"]
+      "aliases": [
+        "dot bash"
+      ]
     },
     {
       "canonical": ".zsh",
-      "aliases": ["dot zsh"]
+      "aliases": [
+        "dot zsh"
+      ]
     },
     {
       "canonical": ".lock",
-      "aliases": ["dot lock"]
+      "aliases": [
+        "dot lock"
+      ]
     },
     {
       "canonical": "Zod",
-      "aliases": ["zord", "zord schema", "the zod"]
+      "aliases": [
+        "zord",
+        "zord schema",
+        "the zod"
+      ]
     },
     {
       "canonical": "WebSockets",
-      "aliases": ["web socket", "websockets"]
+      "aliases": [
+        "web socket",
+        "websockets"
+      ]
     },
     {
       "canonical": "rounded-2xl",
@@ -5287,8 +5853,10 @@
       "aliases": [
         "claude opus 5",
         "opus 5",
+        "opus v",
         "opus five",
         "claude opus five",
+        "claude opus v",
         "opers 5",
         "opers five",
         "operas five",
@@ -5345,15 +5913,28 @@
     },
     {
       "canonical": "Claude Opus 4.5",
-      "aliases": ["claude opus 4.5", "opus 4.5", "opus four point five"]
+      "aliases": [
+        "claude opus 4.5",
+        "opus 4.5",
+        "opus four point five"
+      ]
     },
     {
       "canonical": "Claude Sonnet 4.5",
-      "aliases": ["claude sonnet 4.5", "sonnet 4.5", "sonnet four point five"]
+      "aliases": [
+        "claude sonnet 4.5",
+        "sonnet 4.5",
+        "sonnet four point five"
+      ]
     },
     {
       "canonical": "Claude Opus 4",
-      "aliases": ["claude opus 4", "opus 4", "opus four", "claude opus four"]
+      "aliases": [
+        "claude opus 4",
+        "opus 4",
+        "opus four",
+        "claude opus four"
+      ]
     },
     {
       "canonical": "Claude Sonnet 4",
@@ -5389,7 +5970,11 @@
     },
     {
       "canonical": "GPT-5.6 Luna",
-      "aliases": ["gpt 5.6 luna", "chatgpt 5.6 luna", "gpt five point six luna"]
+      "aliases": [
+        "gpt 5.6 luna",
+        "chatgpt 5.6 luna",
+        "gpt five point six luna"
+      ]
     },
     {
       "canonical": "GPT-5.5",
@@ -5403,11 +5988,17 @@
     },
     {
       "canonical": "o3-mini",
-      "aliases": ["o3 mini", "o three mini"]
+      "aliases": [
+        "o3 mini",
+        "o three mini"
+      ]
     },
     {
       "canonical": "o4-mini",
-      "aliases": ["o4 mini", "o four mini"]
+      "aliases": [
+        "o4 mini",
+        "o four mini"
+      ]
     },
     {
       "canonical": "DeepSeek-V4-Flash",
@@ -5422,7 +6013,11 @@
     },
     {
       "canonical": "DeepSeek-V4-Pro",
-      "aliases": ["deepseek v4 pro", "deep seek v4 pro", "deepseek v four pro"]
+      "aliases": [
+        "deepseek v4 pro",
+        "deep seek v4 pro",
+        "deepseek v four pro"
+      ]
     },
     {
       "canonical": "DeepSeek-V4",
@@ -5454,11 +6049,20 @@
     },
     {
       "canonical": "GLM-5",
-      "aliases": ["glm 5", "glm five", "g l m five", "zhipu glm 5"]
+      "aliases": [
+        "glm 5",
+        "glm five",
+        "g l m five",
+        "zhipu glm 5"
+      ]
     },
     {
       "canonical": "GLM-4.5",
-      "aliases": ["glm 4.5", "glm four point five", "g l m four point five"]
+      "aliases": [
+        "glm 4.5",
+        "glm four point five",
+        "g l m four point five"
+      ]
     },
     {
       "canonical": "Kimi K3",
@@ -5485,7 +6089,11 @@
     },
     {
       "canonical": "Kimi K2",
-      "aliases": ["kimi k2", "kimi k two", "kimi k 2"]
+      "aliases": [
+        "kimi k2",
+        "kimi k two",
+        "kimi k 2"
+      ]
     },
     {
       "canonical": "Grok 4.6",
@@ -5499,11 +6107,19 @@
     },
     {
       "canonical": "Grok 4",
-      "aliases": ["grok 4", "grok four", "grock 4"]
+      "aliases": [
+        "grok 4",
+        "grok four",
+        "grock 4"
+      ]
     },
     {
       "canonical": "Grok 3",
-      "aliases": ["grok 3", "grok three", "grock 3"]
+      "aliases": [
+        "grok 3",
+        "grok three",
+        "grock 3"
+      ]
     },
     {
       "canonical": "Gemini 2.5 Pro",
@@ -5515,7 +6131,10 @@
     },
     {
       "canonical": "Gemini 2.5 Flash",
-      "aliases": ["gemini 2.5 flash", "gemini two point five flash"]
+      "aliases": [
+        "gemini 2.5 flash",
+        "gemini two point five flash"
+      ]
     },
     {
       "canonical": "Gemini 3 Flash",
@@ -5527,31 +6146,34 @@
       ]
     },
     {
-      "canonical": "Gemini",
+      "canonical": "Qwen3-Coder",
       "aliases": [
-        "jamnia",
-        "jemnia",
-        "jemina",
-        "gemnia",
-        "gemini jamnia",
-        "the jamnia model"
+        "qwen3 coder",
+        "qwen 3 coder",
+        "qwen three coder"
       ]
     },
     {
-      "canonical": "Qwen3-Coder",
-      "aliases": ["qwen3 coder", "qwen 3 coder", "qwen three coder"]
-    },
-    {
       "canonical": "Llama 4 Scout",
-      "aliases": ["llama 4 scout", "llama four scout"]
+      "aliases": [
+        "llama 4 scout",
+        "llama four scout"
+      ]
     },
     {
       "canonical": "Llama 4 Maverick",
-      "aliases": ["llama 4 maverick", "llama four maverick"]
+      "aliases": [
+        "llama 4 maverick",
+        "llama four maverick"
+      ]
     },
     {
       "canonical": "Codestral",
-      "aliases": ["codestral", "code stral", "codstral"]
+      "aliases": [
+        "codestral",
+        "code stral",
+        "codstral"
+      ]
     },
     {
       "canonical": "Muse Spark 1.2",
@@ -5586,7 +6208,11 @@
     },
     {
       "canonical": "Muse Glimmer",
-      "aliases": ["muse glimmer", "moose glimmer", "meta muse glimmer"]
+      "aliases": [
+        "muse glimmer",
+        "moose glimmer",
+        "meta muse glimmer"
+      ]
     },
     {
       "canonical": "Kimi K2.7 Code",
@@ -5648,7 +6274,11 @@
     },
     {
       "canonical": "Qwen3.6-Plus",
-      "aliases": ["qwen3.6 plus", "qwen 3.6 plus", "qwen three point six plus"]
+      "aliases": [
+        "qwen3.6 plus",
+        "qwen 3.6 plus",
+        "qwen three point six plus"
+      ]
     },
     {
       "canonical": "Qwen-Audio 3.0",
@@ -5663,125 +6293,553 @@
       "aliases": [
         "glm 5.2",
         "glm five point two",
+        "gln 5.2",
         "g l m 5.2",
         "g l m five point two"
       ]
     },
     {
       "canonical": "GLM-5.1",
-      "aliases": ["glm 5.1", "glm five point one", "g l m five point one"]
+      "aliases": [
+        "glm 5.1",
+        "glm five point one",
+        "g l m five point one"
+      ]
     },
     {
       "canonical": "OCuLink",
-      "aliases": ["oculink", "ocu link", "o c u link"]
+      "aliases": [
+        "oculink",
+        "ocu link",
+        "o c u link"
+      ]
     },
     {
       "canonical": "GMKtec",
-      "aliases": ["gmk tech", "g m k tech", "gmk tec"]
+      "aliases": [
+        "gmk tech",
+        "g m k tech",
+        "gmk tec"
+      ]
     },
     {
       "canonical": "EVO-X2",
-      "aliases": ["evo x2", "evo x 2", "evil x2", "evil x 2"]
+      "aliases": [
+        "evo x2",
+        "evo x 2",
+        "evil x2",
+        "evil x 2"
+      ]
     },
     {
       "canonical": "EVO-X3",
-      "aliases": ["evo x3", "evo x 3", "evil x3", "evil x 3"]
+      "aliases": [
+        "evo x3",
+        "evo x 3",
+        "evil x3",
+        "evil x 3"
+      ]
     },
     {
       "canonical": "Strix Halo",
-      "aliases": ["strix halo", "strips halo"]
+      "aliases": [
+        "strix halo",
+        "strips halo"
+      ]
     },
     {
       "canonical": "Qwen2.5",
-      "aliases": ["qwen 2.5", "qwen two point five", "quen 2.5", "quen two point five", "queen 2.5"]
+      "aliases": [
+        "qwen 2.5",
+        "qwen two point five",
+        "quen 2.5",
+        "quen two point five",
+        "queen 2.5"
+      ]
     },
     {
       "canonical": "llama.cpp",
-      "aliases": ["llama c plus plus", "llama c++", "llama cpp", "llama dot cpp", "llama c plus plus project"]
+      "aliases": [
+        "llama c plus plus",
+        "llama c++",
+        "llama cpp",
+        "llama dot cpp",
+        "llama c plus plus project"
+      ]
     },
     {
       "canonical": "NVIDIA",
-      "aliases": ["nvidia", "n vidia", "n vid ee uh"]
+      "aliases": [
+        "nvidia",
+        "n vidia",
+        "n vid ee uh"
+      ]
     },
     {
       "canonical": "AMD",
-      "aliases": ["a m d", "emd", "e m d"]
+      "aliases": [
+        "a m d",
+        "emd",
+        "e m d"
+      ]
     },
     {
       "canonical": "PCIe",
-      "aliases": ["pcie", "pci e", "p c i e", "pci express"]
+      "aliases": [
+        "pcie",
+        "pci e",
+        "p c i e",
+        "pci express"
+      ]
+    },
+    {
+      "canonical": "HBM",
+      "aliases": [
+        "hbm",
+        "h b m",
+        "high bandwidth memory",
+        "high-bandwidth memory",
+        "hpm"
+      ]
+    },
+    {
+      "canonical": "LPDDR5X",
+      "aliases": [
+        "lpddr5x",
+        "lp ddr5x",
+        "lpddr 5x",
+        "low power ddr5x"
+      ]
+    },
+    {
+      "canonical": "FP4",
+      "aliases": [
+        "fp4",
+        "f p 4",
+        "floating point 4",
+        "4-bit float",
+        "floating 0.4"
+      ]
+    },
+    {
+      "canonical": "NVFP4",
+      "aliases": [
+        "nvfp4",
+        "nv fp4",
+        "nvidia fp4",
+        "nvidia floating point 4"
+      ]
     },
     {
       "canonical": "AES-256",
-      "aliases": ["aes256", "aes 256", "a e s 256"]
+      "aliases": [
+        "aes256",
+        "aes 256",
+        "a e s 256"
+      ]
     },
     {
       "canonical": "VRAM",
-      "aliases": ["v ram", "v r a m", "video ram"]
+      "aliases": [
+        "v ram",
+        "v r a m",
+        "video ram"
+      ]
     },
     {
       "canonical": "Q4",
-      "aliases": ["q four", "q 4"]
+      "aliases": [
+        "q four",
+        "q 4"
+      ]
     },
     {
       "canonical": "Q8",
-      "aliases": ["q eight", "q 8"]
+      "aliases": [
+        "q eight",
+        "q 8"
+      ]
     },
     {
       "canonical": "RTX 5080",
-      "aliases": ["rtx 5080", "rtx 5,080", "r t x 5080", "r t x 5,080"]
+      "aliases": [
+        "rtx 5080",
+        "rtx 5,080",
+        "r t x 5080",
+        "r t x 5,080"
+      ]
     },
     {
       "canonical": "RTX PRO 6000",
-      "aliases": ["rtx pro 6000", "rtx pro 6,000", "pro 6000", "pro 6,000"]
+      "aliases": [
+        "rtx pro 6000",
+        "rtx pro 6,000",
+        "pro 6000",
+        "pro 6,000"
+      ]
     },
     {
       "canonical": "Radeon 8060S",
-      "aliases": ["radeon 8060s", "radeon 8060 s", "radeon 8,060", "8060s gpu", "8,060 gpu"]
+      "aliases": [
+        "radeon 8060s",
+        "radeon 8060 s",
+        "radeon 8,060",
+        "8060s gpu",
+        "8,060 gpu"
+      ]
     },
     {
       "canonical": "nvtop",
-      "aliases": ["nvtop", "n v top"]
+      "aliases": [
+        "nvtop",
+        "n v top"
+      ]
     },
     {
       "canonical": "ROCm",
-      "aliases": ["rocm", "rock m", "r o c m"]
+      "aliases": [
+        "rocm",
+        "rock m",
+        "r o c m"
+      ]
     },
     {
       "canonical": "CUDA",
-      "aliases": ["cuda", "c u d a"]
+      "aliases": [
+        "cuda",
+        "c u d a"
+      ]
     },
     {
       "canonical": "Vulkan",
-      "aliases": ["vulkan", "vulcan api"]
+      "aliases": [
+        "vulkan",
+        "vulcan api"
+      ]
     },
     {
       "canonical": "Windows",
-      "aliases": ["windows", "windows os", "microsoft windows"]
+      "aliases": [
+        "windows",
+        "windows os",
+        "microsoft windows"
+      ]
     },
     {
       "canonical": "GPU",
-      "aliases": ["gpu", "g p u", "graphics processing unit"]
+      "aliases": [
+        "gpu",
+        "g p u",
+        "graphics processing unit"
+      ]
     },
     {
       "canonical": "CPU",
-      "aliases": ["cpu", "c p u", "central processing unit"]
+      "aliases": [
+        "cpu",
+        "c p u",
+        "central processing unit"
+      ]
     },
     {
       "canonical": "APU",
-      "aliases": ["apu", "a p u", "accelerated processing unit"]
+      "aliases": [
+        "apu",
+        "a p u",
+        "accelerated processing unit"
+      ]
     },
     {
       "canonical": "RAM",
-      "aliases": ["ram", "r a m", "system memory"]
+      "aliases": [
+        "ram",
+        "r a m",
+        "system memory"
+      ]
     },
     {
       "canonical": "MoE",
-      "aliases": ["moe", "m o e", "mixture of experts", "mixture-of-experts"]
+      "aliases": [
+        "moe",
+        "m o e",
+        "mixture of experts",
+        "mixture-of-experts"
+      ]
     },
     {
       "canonical": "GGUF",
-      "aliases": ["gguf", "g g u f"]
+      "aliases": [
+        "gguf",
+        "g g u f"
+      ]
+    },
+    {
+      "canonical": "ASUS ExpertCenter",
+      "aliases": [
+        "asus expect center",
+        "asus expert center",
+        "asus expect centre",
+        "asus expertcentre"
+      ]
+    },
+    {
+      "canonical": "DGX Station",
+      "aliases": [
+        "dgx station",
+        "d g x station"
+      ]
+    },
+    {
+      "canonical": "DGX Spark",
+      "aliases": [
+        "dgx spark",
+        "d g x spark"
+      ]
+    },
+    {
+      "canonical": "GB300",
+      "aliases": [
+        "gb 300",
+        "g b 300",
+        "gb three hundred"
+      ]
+    },
+    {
+      "canonical": "HGX",
+      "aliases": [
+        "hgx",
+        "h g x"
+      ]
+    },
+    {
+      "canonical": "Apple Silicon",
+      "aliases": [
+        "apple silicon"
+      ]
+    },
+    {
+      "canonical": "Jensen Huang",
+      "aliases": [
+        "jensen juan",
+        "jensen whang",
+        "jensen hong"
+      ]
+    },
+    {
+      "canonical": "Safetensors",
+      "aliases": [
+        "safetensors",
+        "safe tensors",
+        "safe tensor",
+        "safetensor"
+      ]
+    },
+    {
+      "canonical": "GGML",
+      "aliases": [
+        "ggml",
+        "g g m l"
+      ]
+    },
+    {
+      "canonical": "ONNX",
+      "aliases": [
+        "onnx",
+        "o n n x"
+      ]
+    },
+    {
+      "canonical": "CoreML",
+      "aliases": [
+        "coreml",
+        "core ml",
+        "core m l"
+      ]
+    },
+    {
+      "canonical": "MLX",
+      "aliases": [
+        "m l x"
+      ]
+    },
+    {
+      "canonical": "BF16",
+      "aliases": [
+        "bf16",
+        "b f sixteen",
+        "b float sixteen",
+        "b f 16",
+        "bf sixteen"
+      ]
+    },
+    {
+      "canonical": "INT8",
+      "aliases": [
+        "int8",
+        "int eight",
+        "int 8",
+        "i n t eight",
+        "integer eight"
+      ]
+    },
+    {
+      "canonical": "FP16",
+      "aliases": [
+        "fp16",
+        "f p sixteen",
+        "f p 16",
+        "fp sixteen"
+      ]
+    },
+    {
+      "canonical": "FP32",
+      "aliases": [
+        "fp32",
+        "f p thirty two",
+        "f p 32",
+        "fp thirty two"
+      ]
+    },
+    {
+      "canonical": "Q8_0",
+      "aliases": [
+        "q8 0",
+        "q 8 0",
+        "q eight zero"
+      ]
+    },
+    {
+      "canonical": "Q5_K_M",
+      "aliases": [
+        "q5 k m",
+        "q five k m"
+      ]
+    },
+    {
+      "canonical": "Q6_K",
+      "aliases": [
+        "q6 k",
+        "q six k"
+      ]
+    },
+    {
+      "canonical": "Q4_K_M",
+      "aliases": [
+        "q4 k m",
+        "q four k m",
+        "q4 underscore k underscore m",
+        "q 4 k m"
+      ]
+    },
+    {
+      "canonical": "Q4_K_XL",
+      "aliases": [
+        "q4 k xl",
+        "q4k xl",
+        "q four k x l",
+        "q4 underscore k underscore xl"
+      ]
+    },
+    {
+      "canonical": "UD-Q4_K_XL",
+      "aliases": [
+        "ud q4 k xl",
+        "udq4 kxl",
+        "u d q four k x l",
+        "ug q4k xl"
+      ]
+    },
+    {
+      "canonical": "IQ2_M",
+      "aliases": [
+        "iq2 m",
+        "i q 2 m",
+        "iq two m",
+        "iq tower 2ms"
+      ]
+    },
+    {
+      "canonical": "KV Cache",
+      "aliases": [
+        "kv cache",
+        "k v cache",
+        "key value cache"
+      ]
+    },
+    {
+      "canonical": "LoRA",
+      "aliases": [
+        "l o r a"
+      ]
+    },
+    {
+      "canonical": "vLLM",
+      "aliases": [
+        "vllm",
+        "v llm",
+        "v l l m"
+      ]
+    },
+    {
+      "canonical": "RCCL",
+      "aliases": [
+        "rccl",
+        "r c c l",
+        "rickle rccl"
+      ]
+    },
+    {
+      "canonical": "rocm-smi",
+      "aliases": [
+        "rocm smi",
+        "r o c m s m i",
+        "rockam smi"
+      ]
+    },
+    {
+      "canonical": "Unsloth",
+      "aliases": [
+        "unsloth",
+        "unsloss",
+        "monsloft"
+      ]
+    },
+    {
+      "canonical": "GLM-4.7",
+      "aliases": [
+        "glm 4.7",
+        "g l m 4.7",
+        "glm four point seven"
+      ]
+    },
+    {
+      "canonical": "Qwen3.5",
+      "aliases": [
+        "qwen 3.5",
+        "quen 3.5",
+        "qwen three point five",
+        "quen three point five"
+      ]
+    },
+    {
+      "canonical": "JAX",
+      "aliases": [
+        "j a x"
+      ]
+    },
+    {
+      "canonical": "AI Agent",
+      "aliases": [
+        "ai agent",
+        "a i agent"
+      ]
+    },
+    {
+      "canonical": "Embedding Model",
+      "aliases": [
+        "embedding model",
+        "embeddings model"
+      ]
     }
   ]
 }

@@ -3,6 +3,7 @@ use crate::audio_toolkit::{
     remove_filler_words, OutputLanguageEvidence,
 };
 use crate::managers::audio::AudioRecordingManager;
+use crate::managers::audio_cpp::AudioCppEngine;
 use crate::managers::model::{EngineType, ModelManager};
 use crate::settings::{
     get_settings, AppSettings, ModelUnloadTimeout, OrtAcceleratorSetting,
@@ -20,8 +21,7 @@ use std::time::{Duration, Instant, SystemTime};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 use transcribe_cpp::{
-    Backend, Feature, Model, ModelOptions, RunExtension, RunOptions, Session, SessionOptions,
-    StreamOptions, Task, WhisperRunOptions,
+    Backend, Model, ModelOptions, RunOptions, Session, SessionOptions, StreamOptions, Task,
 };
 use transcribe_rs::{
     onnx::{
@@ -196,6 +196,7 @@ enum LoadedEngine {
     /// transcribe-cpp. Holds the live `Session`, which keeps its `Model` alive
     /// internally, so repeated dictation reuses the session without reloading.
     TranscribeCpp(Session),
+    AudioCpp(AudioCppEngine),
     Parakeet(ParakeetModel),
     Moonshine(MoonshineModel),
     MoonshineStreaming(StreamingModel),
@@ -662,6 +663,30 @@ impl TranscriptionManager {
                 );
                 LoadedEngine::TranscribeCpp(session)
             }
+            EngineType::AudioCpp => {
+                let engine = AudioCppEngine::load(&self.app_handle, &model_path).map_err(|e| {
+                    let error_msg = format!("Failed to load audio.cpp model {}: {e:#}", model_id);
+                    emit_loading_failed(&error_msg);
+                    anyhow::anyhow!(error_msg)
+                })?;
+                // audio.cpp GGUFs carry no `stt.capability.*` KVs, so header
+                // probes report "no streaming" and the live overlay would be
+                // gated off. The granite5asr CTC family does stream, so
+                // reconcile the registry at load exactly like transcribe-cpp.
+                self.model_manager.set_runtime_capabilities(
+                    model_id,
+                    true,
+                    false,
+                    false,
+                    vec!["en".to_string()],
+                );
+                info!(
+                    "Loaded audio.cpp model '{}' (family='granite5asr', backend='{}')",
+                    model_id,
+                    engine.backend()
+                );
+                LoadedEngine::AudioCpp(engine)
+            }
             EngineType::Parakeet => {
                 let engine =
                     ParakeetModel::load(&model_path, &Quantization::Int8).map_err(|e| {
@@ -883,6 +908,7 @@ impl TranscriptionManager {
             Some(LoadedEngine::TranscribeCpp(session)) => {
                 Some(session.model().backend().to_string())
             }
+            Some(LoadedEngine::AudioCpp(engine)) => Some(format!("audio.cpp/{}", engine.backend())),
             Some(_) => Some("onnx".to_string()),
             None => None,
         }
@@ -991,6 +1017,78 @@ impl TranscriptionManager {
             LoadedEngine::Mlx(v) => Some(*v),
             _ => None,
         };
+
+        if matches!(&engine, LoadedEngine::AudioCpp(_)) {
+            let settings = get_settings(&self.app_handle);
+            let languages = vec!["en".to_string()];
+            let output_language =
+                resolve_output_language_evidence(&settings, Some("en"), &languages, false);
+            let live_session = match &engine {
+                LoadedEngine::AudioCpp(audio_cpp) => audio_cpp.start_stream(),
+                _ => unreachable!(),
+            };
+            let mut live_session = match live_session {
+                Ok(session) => session,
+                Err(error) => {
+                    error!("Failed to start audio.cpp stream: {error:#}; falling back to batch");
+                    self.return_engine(engine, &model_id);
+                    self.router.clear();
+                    drain_until_finalize(rx);
+                    return;
+                }
+            };
+
+            self.stream_active.store(true, Ordering::Release);
+            self.touch_activity();
+            info!("audio.cpp streaming input started (model '{}')", model_id);
+
+            let mut finalize_reply = None;
+            let mut finalize_result = None;
+            while let Ok(command) = rx.recv() {
+                match command {
+                    StreamCmd::Feed(pcm) => {
+                        self.touch_activity();
+                        if let Err(error) = live_session.feed(&pcm) {
+                            warn!("audio.cpp stream feed failed: {error:#}");
+                        }
+                        // The runtime reports streaming snapshots on stdout as
+                        // `text_output=` lines; surface each new one exactly
+                        // like the MLX bridge's committed-text updates.
+                        if let Some(partial) = live_session.take_partial() {
+                            self.emit_stream_text(&partial, "");
+                        }
+                    }
+                    StreamCmd::Finalize(reply) => {
+                        finalize_result = Some(match live_session.finalize() {
+                            Ok(text) => Some(FinalizedStreamText {
+                                text,
+                                output_language,
+                                supported_languages: languages,
+                                truncated: false,
+                            }),
+                            Err(error) => {
+                                error!(
+                                    "audio.cpp stream finalize failed: {error:#}; falling back to batch"
+                                );
+                                None
+                            }
+                        });
+                        finalize_reply = Some(reply);
+                        break;
+                    }
+                    StreamCmd::Cancel => {
+                        live_session.cancel();
+                        break;
+                    }
+                }
+            }
+
+            self.return_engine(engine, &model_id);
+            if let (Some(reply), Some(result)) = (finalize_reply, finalize_result) {
+                let _ = reply.send(result);
+            }
+            return;
+        }
 
         if let Some(variant) = mlx_variant {
             let supports_streaming = variant.supports_streaming();
@@ -1571,13 +1669,6 @@ impl TranscriptionManager {
             );
         }
 
-        // Whether the loaded model is actually whisper-family (arch string).
-        // Non-whisper archs (e.g. Voxtral Small) can advertise
-        // Feature::InitialPrompt yet reject the whisper-kind run extension
-        // with INVALID_ARG, so the whisper extension must be gated on the
-        // arch, not on the feature (see #1601).
-        let mut model_is_whisper = false;
-
         // Perform transcription with the appropriate engine.
         // We use catch_unwind to prevent engine panics from poisoning the mutex,
         // which would make the app hang indefinitely on subsequent operations.
@@ -1616,20 +1707,12 @@ impl TranscriptionManager {
             if let LoadedEngine::TranscribeCpp(session) = &engine {
                 let model = session.model();
                 let caps = model.capabilities();
-                // Informational only; the whisper run extension and the
-                // fuzzy-correction skip are gated on `model_is_whisper`
-                // instead, since non-whisper archs can advertise
-                // Feature::InitialPrompt while rejecting the whisper-kind
-                // extension (see #1601).
-                let model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
-                model_is_whisper = model.arch() == "whisper";
                 model_supports_translate = caps.supports_translate;
                 model_languages = caps.languages;
                 debug!(
-                    "transcribe-cpp model '{}' on '{}': initial_prompt={}, translate={}, languages={:?}",
+                    "transcribe-cpp model '{}' on '{}': translate={}, languages={:?}",
                     settings.selected_model,
                     model.backend(),
-                    model_takes_initial_prompt,
                     model_supports_translate,
                     model_languages
                 );
@@ -1639,30 +1722,13 @@ impl TranscriptionManager {
             let transcribe_result = catch_unwind(AssertUnwindSafe(|| -> Result<String> {
                 match &mut engine {
                     LoadedEngine::TranscribeCpp(session) => {
-                        // Vocabulary biasing for whisper-family decoders: the
-                        // built-in technical lexicon plus user custom words go
-                        // into initial_prompt so names like "Next.js" or
-                        // "Kubernetes" are spelled correctly at the source
-                        // instead of relying on post-correction. Non-whisper
-                        // archs (Parakeet, Nemotron) reject the whisper
-                        // extension; their accuracy rides on the fuzzy
-                        // post-correction path instead.
-                        let family = if !model_is_whisper {
-                            None
-                        } else {
-                            let mut vocab = crate::audio_toolkit::tech_lexicon::vocabulary_hint();
-                            for word in &settings.custom_words {
-                                if !vocab.contains(word) {
-                                    vocab.push(word.clone());
-                                }
-                            }
-                            (!vocab.is_empty()).then(|| {
-                                RunExtension::Whisper(WhisperRunOptions {
-                                    initial_prompt: Some(vocab.join(", ")),
-                                    ..Default::default()
-                                })
-                            })
-                        };
+                        // Do not seed the decoder with repository, catalog, or
+                        // custom-word context. Decode prompts can manufacture
+                        // technical entities that were never spoken. All
+                        // canonicalization happens afterward through the
+                        // conservative local catalogs, where every change is
+                        // evidence-gated and reversible.
+                        let family = None;
 
                         let run_plan = transcribe_cpp_run_plan(
                             settings.translate_to_english,
@@ -1704,6 +1770,12 @@ impl TranscriptionManager {
                             .map_err(|e| {
                                 anyhow::anyhow!("transcribe-cpp transcription failed: {}", e)
                             })
+                    }
+                    LoadedEngine::AudioCpp(audio_cpp) => {
+                        applied_language_hint = Some("en".to_string());
+                        audio_cpp
+                            .transcribe(&audio)
+                            .map_err(|e| anyhow::anyhow!("audio.cpp transcription failed: {e:#}"))
                     }
                     LoadedEngine::Parakeet(parakeet_engine) => {
                         let params = ParakeetParams {
@@ -1873,15 +1945,12 @@ impl TranscriptionManager {
             (text, output_language, model_languages)
         };
 
-        // Apply fuzzy word correction if custom words are configured — UNLESS the
-        // words were already handed to the model as an initial prompt (whisper
-        // family). We don't pass a prompt to non-whisper models (it requires the
-        // whisper-kind run extension), so they still get fuzzy correction here,
-        // same as the ONNX engines.
+        // No decoder prompt receives custom words, so every model family uses
+        // the same deterministic post-correction path.
         let filtered_result = post_process_transcription_text(
             result,
             &settings,
-            model_is_whisper,
+            false,
             &output_language,
             &model_languages,
         );
@@ -2288,7 +2357,11 @@ fn post_process_transcription_text(
 
         // Harper 100%: right after Parakeet, before any normalization, with protected spans.
         // No cap, always English, no turn-off. This is the user requirement: parakeet → harper → normalization.
-        let protected = crate::superflow_grammar::ProtectedText::new(&raw);
+        // Repair only structurally certain ASR token splits before protected
+        // spans are detected. This preserves decimals/versions and lets a
+        // spoken `mistake. md` become the protected filename `mistake.md`.
+        let structurally_repaired = crate::audio_toolkit::repair_structural_token_boundaries(&raw);
+        let protected = crate::superflow_grammar::ProtectedText::new(&structurally_repaired);
         let masked = protected.masked().to_string();
         let harpered_masked = if grammar_enabled {
             crate::superflow_grammar::correct(&masked)
@@ -2314,12 +2387,11 @@ fn post_process_transcription_text(
         // Always enabled — no frontend toggle (deterministic, local).
         let corrected = {
             let corrected = crate::audio_toolkit::tech_lexicon::apply(&corrected);
-            // Styling catalogs (both Tailwind datasets) and the programming
-            // syntax catalog ride the same gate — all pre-built technical
-            // vocabulary, all local. Emoji pairing rides along too: spoken
-            // counts become real repeated emojis ("three rocket emojis").
+            // Both styling catalogs remain available for explicitly spoken
+            // Tailwind/UI tokens. Programming-syntax rewriting is deliberately
+            // excluded: it was capable of injecting symbols and code terms
+            // into ordinary speech. Emoji pairing remains local and explicit.
             let corrected = crate::audio_toolkit::styling::apply(&corrected);
-            let corrected = crate::audio_toolkit::programming_syntax::apply(&corrected);
             crate::audio_toolkit::emoji::apply(&corrected)
         };
 
@@ -2369,7 +2441,10 @@ fn post_process_transcription_text(
         // 9.9 invariant: any newly introduced high-entropy identifier must exist in raw or be approved canonical.
         // This is the hard safety boundary for context contamination (file paths, URLs, code tokens, Vercel hallucination).
         // Fail-open: if hallucination detected, strip only the hallucinated spans, not the whole transcript.
-        let cleaned = crate::superflow_grammar::invariant::enforce_no_hallucinated_identifiers(&original_raw, cleaned);
+        let cleaned = crate::superflow_grammar::invariant::enforce_no_hallucinated_identifiers(
+            &original_raw,
+            cleaned,
+        );
         // Measurement: for 9.9, every transformation should be traceable in tests (see transcript_cleanup tests)
         // The invariant above is Tier A (mechanically safe) — it only removes hallucinated identifiers, never rewrites meaning.
         cleaned
@@ -2935,6 +3010,106 @@ mod tests {
             shaped.contains("\n\n"),
             "missing paragraph breaks: {shaped}"
         );
+    }
+
+    #[test]
+    fn difficult_technical_transcript_repairs_only_supported_tokens() {
+        let settings = AppSettings {
+            selected_language: "en".to_string(),
+            ..Default::default()
+        };
+        let raw = concat!(
+            "Run GLM 4. 7 and Qwen 3. 5 397B with Llama C++ through VLLM. ",
+            "The 358,000,000,000 MoE model uses UDQ4 KXL and Q4K xl. ",
+            "Check Rockam SMI and Rickle RCCL, then save mistake. md. ",
+            "The 128 gigawatt box has two installation option, and cloning the drives also clone the data. ",
+            "It was very, very slow. According to mark down the total and spread apart before folding."
+        );
+        let output = post_process_transcription_text(
+            raw.to_string(),
+            &settings,
+            false,
+            &OutputLanguageEvidence::UserSelected("en".to_string()),
+            &languages(&["en"]),
+        );
+
+        for expected in [
+            "GLM-4.7",
+            "Qwen3.5 397B",
+            "llama.cpp",
+            "vLLM",
+            "358B MoE model",
+            "UD-Q4_K_XL",
+            "Q4_K_XL",
+            "rocm-smi",
+            "RCCL",
+            "mistake.md",
+            "128 GB box",
+            "two installation options",
+            "cloning the drives also clones",
+            "very, very slow",
+            "according to mark down",
+            "spread apart",
+        ] {
+            assert!(
+                output.to_lowercase().contains(&expected.to_lowercase()),
+                "missing {expected:?}: {output}"
+            );
+        }
+        for forbidden in [
+            "Markdown",
+            "Spread Operator",
+            "Promise",
+            "#before",
+            ".TypeScript",
+        ] {
+            assert!(
+                !output.contains(forbidden),
+                "contamination {forbidden:?}: {output}"
+            );
+        }
+    }
+
+    #[test]
+    fn correct_natural_words_survive_the_complete_cleanup_pipeline() {
+        let settings = AppSettings {
+            selected_language: "en".to_string(),
+            ..Default::default()
+        };
+        let raw = concat!(
+            "The accessible model showed an exploded view of the inline six engine. ",
+            "The shell casings, safeguards, charts, and channel all remained visible. ",
+            "I opened Vue and changed the Nginx configuration in zsh. ",
+            "The view from the engine bay was accessible from the shell."
+        );
+        let output = post_process_transcription_text(
+            raw.to_string(),
+            &settings,
+            false,
+            &OutputLanguageEvidence::UserSelected("en".to_string()),
+            &languages(&["en"]),
+        );
+
+        for expected in [
+            "accessible model",
+            "exploded view",
+            "inline six engine",
+            "shell casings",
+            "safeguards",
+            "charts",
+            "channel",
+            "Vue",
+            "Nginx",
+            "zsh",
+        ] {
+            assert!(output.contains(expected), "missing {expected:?}: {output}");
+        }
+        for forbidden in ["Accessibility model", "exploded Vue", "inline six Nginx"] {
+            assert!(
+                !output.contains(forbidden),
+                "corruption {forbidden:?}: {output}"
+            );
+        }
     }
 
     #[test]

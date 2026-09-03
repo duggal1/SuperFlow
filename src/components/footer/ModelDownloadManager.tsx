@@ -119,8 +119,8 @@ export default function ModelDownloadManager() {
         <div
           className={`absolute bottom-full left-0 z-50 mb-2 w-[360px] overflow-hidden rounded-[8px] p-1.5 shadow-none ${
             isLight
-              ? "bg-white border border-stone-200/80 text-stone-900"
-              : "bg-stone-850 text-text"
+              ? "bg-white border border-stone-200/70 text-stone-900"
+              : "bg-[#363230] border border-white/[0.06] text-text"
           }`}
         >
           <div className="flex items-center justify-between px-3 pb-2 pt-2.5">
@@ -174,9 +174,9 @@ export default function ModelDownloadManager() {
                   : modelId;
 
                 return (
-                  <div
+                    <div
                     key={modelId}
-                    className={`rounded-[6px] px-2.5 py-2 transition-colors ${isLight ? "hover:bg-stone-100" : "hover:bg-stone-800"}`}
+                    className={`rounded-[6px] px-2.5 py-2 transition-colors ${isLight ? "hover:bg-stone-100" : "hover:bg-white/[0.04]"}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="min-w-0 flex-1">
@@ -227,7 +227,7 @@ export default function ModelDownloadManager() {
                           aria-label={t("modelSelector.deleteModel", {
                             modelName,
                           })}
-                          className={`flex size-7 shrink-0 items-center justify-center rounded-[4px] transition-colors disabled:opacity-40 ${isLight ? "text-stone-500 hover:bg-rose-50 hover:text-rose-600" : "text-text/55 hover:bg-rose-500/10 hover:text-rose-400"}`}
+                          className={`flex size-7 shrink-0 items-center justify-center rounded-[4px] transition-colors disabled:opacity-40 ${isLight ? "text-stone-500 hover:bg-rose-400 hover:text-white" : "text-text/55 hover:bg-rose-700 hover:text-white"}`}
                         >
                           <Trash className="size-3.5" />
                         </button>

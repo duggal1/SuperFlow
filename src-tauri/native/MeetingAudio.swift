@@ -21,7 +21,11 @@ final class MeetingSystemAudioCapturer {
     func start() -> Bool {
         guard !isCapturing else { return true }
 
-        let tapDescription = CATapDescription(stereoGlobalTapButExcludeProcesses: [])
+        // A process tap observes the system mix without becoming an output
+        // device, muting playback, or forcing the current output route to
+        // change. Mono is exactly what STT consumes and avoids treating planar
+        // stereo buffers as sequential audio.
+        let tapDescription = CATapDescription(monoGlobalTapButExcludeProcesses: [])
         tapDescription.name = "SuperFlow Meeting Audio"
         tapDescription.isPrivate = true
         tapDescription.muteBehavior = .unmuted
@@ -31,6 +35,7 @@ final class MeetingSystemAudioCapturer {
             return false
         }
         tapID = newTapID
+        sampleRate = readTapSampleRate(tapID: tapID)
 
         let aggregateUID = "com.superflow.meeting.\(UUID().uuidString)"
         let aggregateDescription: [String: Any] = [
@@ -53,7 +58,6 @@ final class MeetingSystemAudioCapturer {
             return false
         }
         aggregateID = newAggregateID
-        sampleRate = readSampleRate(deviceID: aggregateID)
 
         var newIOProcID: AudioDeviceIOProcID?
         let status = AudioDeviceCreateIOProcIDWithBlock(
@@ -117,24 +121,181 @@ final class MeetingSystemAudioCapturer {
         }
     }
 
-    private func readSampleRate(deviceID: AudioObjectID) -> Int {
+    private func readTapSampleRate(tapID: AudioObjectID) -> Int {
         var address = AudioObjectPropertyAddress(
-            mSelector: kAudioDevicePropertyNominalSampleRate,
+            mSelector: kAudioTapPropertyFormat,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
-        var value = Float64(48_000)
-        var size = UInt32(MemoryLayout<Float64>.size)
+        var format = AudioStreamBasicDescription()
+        var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         let status = AudioObjectGetPropertyData(
-            deviceID,
+            tapID,
             &address,
             0,
             nil,
             &size,
-            &value
+            &format
         )
-        return status == noErr ? max(16_000, Int(value.rounded())) : 48_000
+        guard status == noErr,
+              format.mFormatID == kAudioFormatLinearPCM,
+              format.mFormatFlags & kAudioFormatFlagIsFloat != 0,
+              format.mBitsPerChannel == 32,
+              format.mSampleRate >= 16_000 else {
+            return 48_000
+        }
+        return Int(format.mSampleRate.rounded())
     }
+}
+
+private func audioDeviceIDs() -> [AudioObjectID] {
+    var address = AudioObjectPropertyAddress(
+        mSelector: kAudioHardwarePropertyDevices,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+    var size: UInt32 = 0
+    guard AudioObjectGetPropertyDataSize(
+        AudioObjectID(kAudioObjectSystemObject),
+        &address,
+        0,
+        nil,
+        &size
+    ) == noErr else { return [] }
+
+    let count = Int(size) / MemoryLayout<AudioObjectID>.size
+    guard count > 0 else { return [] }
+    var devices = [AudioObjectID](repeating: AudioObjectID(kAudioObjectUnknown), count: count)
+    guard AudioObjectGetPropertyData(
+        AudioObjectID(kAudioObjectSystemObject),
+        &address,
+        0,
+        nil,
+        &size,
+        &devices
+    ) == noErr else { return [] }
+    return devices
+}
+
+private func defaultInputDeviceID() -> AudioObjectID? {
+    var address = AudioObjectPropertyAddress(
+        mSelector: kAudioHardwarePropertyDefaultInputDevice,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+    var deviceID = AudioObjectID(kAudioObjectUnknown)
+    var size = UInt32(MemoryLayout<AudioObjectID>.size)
+    guard AudioObjectGetPropertyData(
+        AudioObjectID(kAudioObjectSystemObject),
+        &address,
+        0,
+        nil,
+        &size,
+        &deviceID
+    ) == noErr, deviceID != AudioObjectID(kAudioObjectUnknown) else { return nil }
+    return deviceID
+}
+
+private func deviceName(_ deviceID: AudioObjectID) -> String? {
+    var address = AudioObjectPropertyAddress(
+        mSelector: kAudioObjectPropertyName,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+    var value: CFString = "" as CFString
+    var size = UInt32(MemoryLayout<CFString>.size)
+    guard AudioObjectGetPropertyData(
+        deviceID,
+        &address,
+        0,
+        nil,
+        &size,
+        &value
+    ) == noErr else { return nil }
+    return value as String
+}
+
+private func deviceTransport(_ deviceID: AudioObjectID) -> UInt32? {
+    var address = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyTransportType,
+        mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain
+    )
+    var transport: UInt32 = 0
+    var size = UInt32(MemoryLayout<UInt32>.size)
+    guard AudioObjectGetPropertyData(
+        deviceID,
+        &address,
+        0,
+        nil,
+        &size,
+        &transport
+    ) == noErr else { return nil }
+    return transport
+}
+
+private func hasInputStreams(_ deviceID: AudioObjectID) -> Bool {
+    var address = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyStreams,
+        mScope: kAudioDevicePropertyScopeInput,
+        mElement: kAudioObjectPropertyElementMain
+    )
+    var size: UInt32 = 0
+    return AudioObjectGetPropertyDataSize(deviceID, &address, 0, nil, &size) == noErr
+        && size >= UInt32(MemoryLayout<AudioStreamID>.size)
+}
+
+private func isBluetoothTransport(_ transport: UInt32?) -> Bool {
+    transport == kAudioDeviceTransportTypeBluetooth
+        || transport == kAudioDeviceTransportTypeBluetoothLE
+}
+
+private func safeInputRank(_ transport: UInt32?) -> Int {
+    switch transport {
+    case kAudioDeviceTransportTypeBuiltIn: return 0
+    case kAudioDeviceTransportTypeUSB: return 1
+    case kAudioDeviceTransportTypeThunderbolt: return 2
+    case kAudioDeviceTransportTypeContinuityCaptureWired: return 3
+    default: return 10
+    }
+}
+
+/// Returns a non-Bluetooth input only when the requested (or system-default)
+/// microphone is Bluetooth. Classic Bluetooth cannot provide headset-mic input
+/// and high-fidelity playback simultaneously; selecting the built-in/USB mic
+/// preserves the user's earbuds as an A2DP output while still capturing voice.
+@_cdecl("superflow_safe_input_device_name")
+public func superflowSafeInputDeviceName(
+    _ requestedName: UnsafePointer<CChar>?,
+    _ output: UnsafeMutablePointer<CChar>?,
+    _ outputCapacity: Int
+) -> Bool {
+    guard let output, outputCapacity > 1 else { return false }
+    let devices = audioDeviceIDs().filter(hasInputStreams)
+    let requestedDevice: AudioObjectID?
+    if let requestedName {
+        let requested = String(cString: requestedName)
+        requestedDevice = devices.first {
+            deviceName($0)?.caseInsensitiveCompare(requested) == .orderedSame
+        }
+    } else {
+        requestedDevice = defaultInputDeviceID()
+    }
+
+    guard let requestedDevice,
+          isBluetoothTransport(deviceTransport(requestedDevice)) else { return false }
+    let safeDevice = devices
+        .filter { !isBluetoothTransport(deviceTransport($0)) }
+        .min { safeInputRank(deviceTransport($0)) < safeInputRank(deviceTransport($1)) }
+    guard let safeDevice, let safeName = deviceName(safeDevice) else { return false }
+
+    let utf8 = safeName.utf8CString
+    guard utf8.count <= outputCapacity else { return false }
+    utf8.withUnsafeBufferPointer { buffer in
+        guard let source = buffer.baseAddress else { return }
+        output.update(from: source, count: buffer.count)
+    }
+    return true
 }
 
 @available(macOS 14.2, *)

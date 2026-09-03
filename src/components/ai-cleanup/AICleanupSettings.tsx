@@ -22,6 +22,7 @@ import { Alert } from "@/components/ui/Alert";
 import { useIsLight } from "@/lib/utils/theme";
 
 const MODELS: DropdownOption[] = [
+  { value: "gemini-3.8-flash", label: "Gemini 3.8 Flash" },
   { value: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash Lite" },
   { value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
   { value: "gemini-3.7-flash", label: "Gemini 3.7 Flash" },

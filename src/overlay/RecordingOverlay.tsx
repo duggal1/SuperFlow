@@ -37,6 +37,10 @@ type OverlayState =
   | "calendar_success"
   | "calendar_clarify"
   | "calendar_failure"
+  | "obsidian_processing"
+  | "obsidian_success"
+  | "obsidian_clarify"
+  | "obsidian_failure"
   | "ai_notice";
 
 interface CalendarSuccessPayload {
@@ -47,6 +51,16 @@ interface CalendarSuccessPayload {
   end: string;
   calendar: string;
   event_id: string;
+  success_message: string;
+}
+
+interface ObsidianSuccessPayload {
+  ok: boolean;
+  action: string;
+  kind: string;
+  title: string;
+  path: string;
+  task_status: string;
   success_message: string;
 }
 
@@ -195,9 +209,19 @@ const RecordingOverlay: React.FC = () => {
   const [calendarFailure, setCalendarFailure] = useState<string | null>(null);
   const [calendarProcessingTitle, setCalendarProcessingTitle] =
     useState<string>("");
+  // Obsidian result states (parallel to Calendar, same pill architecture)
+  const [obsidianSuccess, setObsidianSuccess] =
+    useState<ObsidianSuccessPayload | null>(null);
+  const [obsidianClarify, setObsidianClarify] = useState<string | null>(null);
+  const [obsidianFailure, setObsidianFailure] = useState<string | null>(null);
+  const [obsidianProcessingTitle, setObsidianProcessingTitle] =
+    useState<string>("");
   // Clarification input — when AI asks "What date do you want me to set?" we render an input
   const [clarifyInput, setClarifyInput] = useState("");
   const [pendingCalendarTranscript, setPendingCalendarTranscript] = useState<
+    string | null
+  >(null);
+  const [pendingObsidianTranscript, setPendingObsidianTranscript] = useState<
     string | null
   >(null);
   // Auto-dismiss safety net so the floating card can never linger forever.
@@ -536,6 +560,42 @@ const RecordingOverlay: React.FC = () => {
         },
       );
 
+      const unlistenObsidianProcessing = await listen<string>(
+        "obsidian-processing",
+        (event) => {
+          setObsidianProcessingTitle(event.payload);
+          setPendingObsidianTranscript(event.payload);
+        },
+      );
+      const unlistenObsidianSuccess = await listen<ObsidianSuccessPayload>(
+        "obsidian-success",
+        (event) => {
+          setObsidianSuccess(event.payload);
+          setObsidianClarify(null);
+          setObsidianFailure(null);
+          setPendingObsidianTranscript(null);
+          setClarifyInput("");
+        },
+      );
+      const unlistenObsidianClarify = await listen<string>(
+        "obsidian-clarify",
+        (event) => {
+          setObsidianClarify(event.payload);
+          setObsidianSuccess(null);
+          setObsidianFailure(null);
+        },
+      );
+      const unlistenObsidianFailure = await listen<string>(
+        "obsidian-failure",
+        (event) => {
+          setObsidianFailure(event.payload);
+          setObsidianSuccess(null);
+          setObsidianClarify(null);
+          setPendingObsidianTranscript(null);
+          setClarifyInput("");
+        },
+      );
+
       return () => {
         unlistenShow();
         unlistenHide();
@@ -547,6 +607,10 @@ const RecordingOverlay: React.FC = () => {
         unlistenCalendarSuccess();
         unlistenCalendarClarify();
         unlistenCalendarFailure();
+        unlistenObsidianProcessing();
+        unlistenObsidianSuccess();
+        unlistenObsidianClarify();
+        unlistenObsidianFailure();
         unlistenResult();
         unlistenCancelToast();
         unlistenAiNotice();
@@ -1293,6 +1357,255 @@ const RecordingOverlay: React.FC = () => {
             </div>
             <span className="swork-label" style={{ color: "#dc2626" }}>
               {calendarFailure}
+            </span>
+            <div className="sbase-r">
+              <Badge variant="rose" className="rounded-[7px] text-[11px]">
+                !
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Obsidian states: natural professional tone, task_status aware ----
+  if (state === "obsidian_processing") {
+    const label = obsidianProcessingTitle
+      ? `Saving ${obsidianProcessingTitle.slice(0, 36)}…`
+      : "Saving to Obsidian…";
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className={`scard compact cworking ${isVisible ? "" : "leaving"}`}>
+          {sayThisRow(label.replace("...", ""))}
+        </div>
+      </div>
+    );
+  }
+
+  if (state === "obsidian_success" && obsidianSuccess) {
+    const driftY = position === "top" ? -10 : 10;
+    const statusLabel =
+      obsidianSuccess.task_status === "completed" ||
+      obsidianSuccess.task_status === "done"
+        ? t("overlay.done", { defaultValue: "Done" })
+        : obsidianSuccess.task_status === "pending"
+          ? "Pending"
+          : obsidianSuccess.task_status === "in_progress"
+            ? "In progress"
+            : "Saved";
+    return (
+      <div dir={direction} className={`ov-stage ${position}`}>
+        <motion.div
+          className="scard"
+          style={{
+            width: "fit-content",
+            minWidth: 220,
+            maxWidth: 520,
+            paddingLeft: 16,
+            paddingRight: 12,
+            paddingTop: 10,
+            paddingBottom: 10,
+            gap: 10,
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: 16,
+            background: "var(--color-background)",
+            boxShadow:
+              "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06)",
+            border: "1px solid #e7e5e4",
+          }}
+          initial={dialogEnter(driftY)}
+          animate={{ ...dialogShown, transition: dialogTransition }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#1c1917",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {obsidianSuccess.title}
+            </span>
+            <Badge
+              variant={
+                obsidianSuccess.task_status === "done" ||
+                obsidianSuccess.task_status === "completed"
+                  ? "green"
+                  : obsidianSuccess.task_status === "pending"
+                    ? "orange"
+                    : "green"
+              }
+              className="rounded-full text-[11px] px-2.5 py-0.5 shrink-0"
+            >
+              {statusLabel}
+            </Badge>
+          </div>
+          <span
+            style={{
+              fontSize: 12.5,
+              fontWeight: 400,
+              color: "#57534e",
+              lineHeight: 1.35,
+            }}
+          >
+            {obsidianSuccess.success_message}
+          </span>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (state === "obsidian_clarify" && obsidianClarify) {
+    const handleObsidianClarifySubmit = async () => {
+      const answer = clarifyInput.trim();
+      if (!answer) return;
+      const original = pendingObsidianTranscript || "";
+      const combined = original ? `${original} - Answer: ${answer}` : answer;
+      setClarifyInput("");
+      setState("say_this");
+      setSayThisLabel("Saving to Obsidian");
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("submit_obsidian_clarification", { transcript: combined });
+      } catch (err) {
+        console.error("Failed to submit obsidian clarification:", err);
+        setState("obsidian_failure");
+        setObsidianFailure("Couldn't update Obsidian note.");
+      }
+    };
+
+    const driftY = position === "top" ? -10 : 10;
+    return (
+      <div dir={direction} className={`ov-stage ${position}`}>
+        <motion.div
+          className="scard"
+          style={{
+            width: "fit-content",
+            minWidth: 320,
+            maxWidth: 480,
+            background: "#f5f5f4",
+            border: "none",
+            borderRadius: 24,
+            padding: "16px 20px",
+            boxShadow:
+              "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+          initial={dialogEnter(driftY)}
+          animate={{ ...dialogShown, transition: dialogTransition }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Badge
+              variant="orange"
+              className="rounded-full text-[11px] px-2.5 py-1"
+            >
+              ?
+            </Badge>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#44403c",
+                lineHeight: 1.3,
+              }}
+            >
+              {obsidianClarify}
+            </span>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "white",
+              borderRadius: 9999,
+              padding: "8px 8px 8px 16px",
+              border: "1px solid #e7e5e4",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+            }}
+          >
+            <input
+              value={clarifyInput}
+              onChange={(e) => setClarifyInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void handleObsidianClarifySubmit();
+                }
+                if (e.key === "Escape") {
+                  void commands.hideResultOverlay();
+                }
+              }}
+              placeholder="Add details..."
+              autoFocus
+              style={{
+                flex: 1,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                fontSize: 14,
+                fontWeight: 400,
+                color: "#1c1917",
+                minWidth: 0,
+              }}
+            />
+            <button
+              onClick={() => void handleObsidianClarifySubmit()}
+              disabled={!clarifyInput.trim()}
+              aria-label="Send"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9999,
+                background: clarifyInput.trim() ? "#1c1917" : "#e7e5e4",
+                color: clarifyInput.trim() ? "white" : "#a8a29e",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: clarifyInput.trim() ? "pointer" : "not-allowed",
+                transition: "all 0.15s ease",
+                flexShrink: 0,
+              }}
+            >
+              <ArrowUp size={16} weight="bold" aria-hidden="true" />
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (state === "obsidian_failure" && obsidianFailure) {
+    return (
+      <div
+        dir={direction}
+        className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
+      >
+        <div className={`scard compact cworking ${isVisible ? "" : "leaving"}`}>
+          <div className="sbase">
+            <div className="sbase-l">
+              <IOSSpinner size={13} color="#dc2626" speed={1.0} />
+            </div>
+            <span className="swork-label" style={{ color: "#dc2626" }}>
+              {obsidianFailure}
             </span>
             <div className="sbase-r">
               <Badge variant="rose" className="rounded-[7px] text-[11px]">

@@ -1,9 +1,12 @@
 pub mod ai_cleanup;
+pub mod apple_voice;
 pub mod audio;
 pub mod calendar;
 pub mod history;
+pub mod integrations;
 pub mod meeting;
 pub mod models;
+pub mod obsidian;
 pub mod transcription;
 
 use crate::settings::{get_settings, write_settings, AppSettings, LogLevel};

@@ -86,7 +86,14 @@ fn overlay_dimensions(state: &str) -> (f64, f64) {
         | "calendar_success"
         | "calendar_processing"
         | "calendar_clarify"
-        | "calendar_failure" => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
+        | "calendar_failure"
+        | "obsidian_success"
+        | "obsidian_processing"
+        | "obsidian_clarify"
+        | "obsidian_failure"
+        | "automation_success"
+        | "automation_processing"
+        | "automation_failure" => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
         _ => (OVERLAY_WIDTH, OVERLAY_HEIGHT),
     }
 }
@@ -727,6 +734,72 @@ pub fn show_calendar_failure_overlay(app_handle: &AppHandle, message: String) {
     let handle = app_handle.clone();
     let _ = app_handle.run_on_main_thread(move || {
         let _ = handle.emit_to("recording_overlay", "calendar-failure", message);
+    });
+}
+
+pub fn show_obsidian_processing_overlay(app_handle: &AppHandle, title: &str) {
+    show_overlay_state_forced(app_handle, "obsidian_processing");
+    let handle = app_handle.clone();
+    let title = title.to_string();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "obsidian-processing", title);
+    });
+}
+
+pub fn show_obsidian_success_overlay(
+    app_handle: &AppHandle,
+    result: &crate::obsidian::ObsidianSuccessResult,
+) {
+    show_overlay_state_forced(app_handle, "obsidian_success");
+    let handle = app_handle.clone();
+    let payload = serde_json::to_value(result).unwrap_or(serde_json::Value::Null);
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "obsidian-success", payload);
+    });
+}
+
+pub fn show_obsidian_clarify_overlay(app_handle: &AppHandle, message: String) {
+    show_overlay_state_forced(app_handle, "obsidian_clarify");
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "obsidian-clarify", message);
+    });
+}
+
+pub fn show_obsidian_failure_overlay(app_handle: &AppHandle, message: String) {
+    show_overlay_state_forced(app_handle, "obsidian_failure");
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "obsidian-failure", message);
+    });
+}
+
+pub fn show_automation_processing_overlay(app_handle: &AppHandle, title: &str) {
+    show_overlay_state_forced(app_handle, "automation_processing");
+    let handle = app_handle.clone();
+    let title = title.to_string();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "automation-processing", title);
+    });
+}
+
+pub fn show_automation_success_overlay(
+    app_handle: &AppHandle,
+    report: &crate::automation::ExecutionReport,
+) {
+    show_overlay_state_forced(app_handle, "automation_success");
+    let handle = app_handle.clone();
+    let payload = serde_json::to_value(report).unwrap_or(serde_json::Value::Null);
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "automation-success", payload);
+    });
+}
+
+pub fn show_automation_failure_overlay(app_handle: &AppHandle, message: String) {
+    show_overlay_state_forced(app_handle, "automation_failure");
+    let handle = app_handle.clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "automation-failure", message);
     });
 }
 

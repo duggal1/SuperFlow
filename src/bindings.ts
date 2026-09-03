@@ -399,6 +399,14 @@ async changeVadEnabledSetting(enabled: boolean) : Promise<Result<null, string>> 
     else return { status: "error", error: e  as any };
 }
 },
+async changeAudioEnhancementSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_audio_enhancement_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeFillerWordRemovalEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_filler_word_removal_enabled_setting", { enabled }) };
@@ -1145,6 +1153,30 @@ async submitCalendarClarification(transcript: string) : Promise<Result<null, str
     else return { status: "error", error: e  as any };
 }
 },
+async submitObsidianClarification(transcript: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("submit_obsidian_clarification", { transcript }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async appleVoiceShowMicrophoneModes() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("apple_voice_show_microphone_modes") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async appleVoiceGetMicrophoneModes() : Promise<Result<[number, number], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("apple_voice_get_microphone_modes") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Checks if the Mac is a laptop by detecting battery presence
  * 
@@ -1272,7 +1304,13 @@ local_llm_model?: string;
  * `intelligence_awareness_enabled` so existing awareness users aren't
  * surprised and the feature can be tested independently.
  */
-experimental_gmail_voice_enabled?: boolean; lazy_stream_close?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
+experimental_gmail_voice_enabled?: boolean; lazy_stream_close?: boolean; 
+/**
+ * RNNoise denoising + AGC on the dictation stream. Boosts quiet/far-mic
+ * voices and removes background noise before VAD/ASR. On by default;
+ * applies from the next recording after a change.
+ */
+audio_enhancement_enabled?: boolean; keyboard_implementation?: KeyboardImplementation; show_tray_icon?: boolean; paste_delay_ms?: number; paste_delay_after_ms?: number; 
 /**
  * Debug-gated ("beta") receipt-sequenced paste: restore the clipboard only
  * after the target app actually reads the transcript, instead of after a
@@ -1329,7 +1367,11 @@ export type EngineType =
  * Voxtral, Qwen3-ASR, Nemotron, …). The architecture is auto-detected from
  * the file, so this one variant covers the whole transcribe-cpp family.
  */
-"TranscribeCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere" | 
+"TranscribeCpp" | 
+/**
+ * Granite Speech 5 GGUF models executed by the bundled audio.cpp runtime.
+ */
+"AudioCpp" | "Parakeet" | "Moonshine" | "MoonshineStreaming" | "SenseVoice" | "GigaAM" | "Canary" | "Cohere" | 
 /**
  * Native Apple-Silicon MLX models executed through an external uv-managed
  * Python environment (src-tauri/src/mlx/mlx_voice.py). Weights live in the

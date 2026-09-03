@@ -426,6 +426,10 @@
         "title": "Wykrywanie aktywności głosowej",
         "description": "Odfiltrowuje ciszę z nagrań. Modele obsługujące streaming używają dłuższego marginesu VAD; wyłączenie VAD nagrywa surowy dźwięk."
       },
+      "audioEnhancement": {
+        "title": "Poprawa dźwięku",
+        "description": "Usuwa szum tła i wzmacnia Twój głos przed transkrypcją. Pomaga w hałaśliwych miejscach oraz przy cichej lub szeptanej mowie."
+      },
       "fillerWordRemoval": {
         "title": "Usuń wyrazy wypełniające",
         "description": "Usuwa typowe słowa wyrażające wahanie z transkrypcji. Wyłącz, aby je zachować."

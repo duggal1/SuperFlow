@@ -5,7 +5,6 @@ pub mod emoji;
 pub mod formatter;
 pub mod lang_id;
 pub mod normalization;
-pub mod programming_syntax;
 pub mod punctuation;
 pub mod slack_formatting;
 pub mod styling;
@@ -22,7 +21,7 @@ pub use audio::{
 pub use lang_id::detect_output_language;
 pub use text::{
     apply_custom_words, join_path_tokens, normalize_transcription_output, remove_filler_words,
-    OutputLanguageEvidence,
+    repair_structural_token_boundaries, OutputLanguageEvidence,
 };
 pub use utils::get_cpal_host;
 pub use vad::{SileroVad, VoiceActivityDetector};

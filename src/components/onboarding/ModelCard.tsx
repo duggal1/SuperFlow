@@ -307,7 +307,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
             size="sm"
             onClick={handleDelete}
             title={t("modelSelector.deleteModel", { modelName: displayName })}
-            className={`${isLight ? "text-stone-600 hover:bg-rose-600/10 hover:text-rose-600" : "text-stone-100 hover:bg-rose-600/10 hover:text-rose-700/80"}`}
+            className={`${isLight ? "text-stone-600 hover:bg-rose-400 hover:text-white" : "text-stone-100 hover:bg-rose-700 hover:text-white"}`}
           >
             {t("common.delete")}
           </Button>

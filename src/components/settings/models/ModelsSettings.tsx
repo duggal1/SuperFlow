@@ -398,7 +398,7 @@ export const ModelsSettings: React.FC = () => {
             <MenuTrigger
               aria-label={t("settings.models.filters.sort")}
               title={t("settings.models.filters.sort")}
-              className={`flex h-7 cursor-pointer items-center gap-2 rounded-lg border-0 px-3 text-[13px] outline-none transition-colors duration-150 ${isLight ? "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50" : "bg-[#36322f] text-text/60 hover:bg-stone-700"}`}
+              className={`flex h-7 cursor-pointer items-center gap-2 rounded-lg border-0 px-3 py-0.5 text-[13px] outline-none transition-colors duration-150 ${isLight ? "bg-white border border-stone-200 text-stone-600 hover:bg-stone-50" : "bg-[#34302e] text-text/60 hover:bg-[#363230]"}`}
             >
               <Funnel size={16} />
               <span>{t("settings.models.filters.sort")}</span>
@@ -409,7 +409,7 @@ export const ModelsSettings: React.FC = () => {
             </MenuTrigger>
             <MenuPopup
               align="start"
-              className={`min-w-48 rounded-lg p-1 ${isLight ? "border border-stone-200 bg-white text-stone-900" : "border-none bg-stone-700 text-stone-50"}`}
+              className={`min-w-48 rounded-lg p-0.5 ${isLight ? "border border-stone-200 bg-white text-stone-900" : "border border-white/[0.06] bg-[#363230] text-stone-50"}`}
             >
               <MenuRadioGroup
                 value={sortMode}
@@ -421,7 +421,7 @@ export const ModelsSettings: React.FC = () => {
                   <MenuRadioItem
                     key={option.value}
                     value={option.value}
-                    className={`flex cursor-pointer select-none items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] outline-none data-disabled:pointer-events-none data-disabled:opacity-50 ${isLight ? "text-stone-900 data-highlighted:bg-stone-100" : "text-stone-50 data-highlighted:bg-stone-600"}`}
+                    className={`flex cursor-pointer select-none items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[13px] outline-none data-disabled:pointer-events-none data-disabled:opacity-50 ${isLight ? "text-stone-900 data-highlighted:bg-stone-100" : "text-stone-50 data-highlighted:bg-white/[0.08]"}`}
                   >
                     {t(option.labelKey)}
                   </MenuRadioItem>

@@ -426,6 +426,10 @@
         "title": "Ses Etkinliği Algılama",
         "description": "Kayıtlardaki sessizliği filtreler. Akış destekli modeller daha uzun bir VAD kuyruğu kullanır; VAD devre dışı bırakıldığında ham ses kaydedilir."
       },
+      "audioEnhancement": {
+        "title": "Ses İyileştirme",
+        "description": "Transkripsiyondan önce arka plan gürültüsünü kaldırır ve sesinizi yükseltir. Gürültülü ortamlarda ve fısıltı veya kısık sesle konuşmada yardımcı olur."
+      },
       "fillerWordRemoval": {
         "title": "Dolgu Sözcüklerini Kaldır",
         "description": "Transkripsiyonlardaki yaygın duraksama sözcüklerini kaldırır. Bunları korumak için kapatın."

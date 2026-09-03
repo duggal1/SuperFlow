@@ -426,6 +426,10 @@
         "title": "Spraakactiviteitsdetectie (VAD)",
         "description": "Filter stilte uit opnames. Streaming-modellen gebruiken een langere VAD-uitloop; het uitschakelen van VAD neemt de ruwe audio op."
       },
+      "audioEnhancement": {
+        "title": "Audioverbetering",
+        "description": "Verwijdert achtergrondgeluid en versterkt uw stem vóór transcriptie. Helpt in lawaaiige omgevingen en bij zacht of gefluisterd spreken."
+      },
       "fillerWordRemoval": {
         "title": "Opvulwoorden verwijderen",
         "description": "Verwijdert veelvoorkomende aarzelwoorden uit transcripties. Schakel dit uit om ze te behouden."

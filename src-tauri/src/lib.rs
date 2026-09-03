@@ -2,12 +2,12 @@ mod actions;
 mod ai_cleanup;
 mod audio_feedback;
 pub mod audio_toolkit;
+mod automation;
 mod autostart;
 mod calendar;
 mod catalog;
 pub mod cli;
 mod clipboard;
-mod code_context;
 mod commands;
 mod context;
 mod dev_icon;
@@ -22,6 +22,7 @@ mod llm_client;
 mod managers;
 mod meeting;
 mod memory;
+mod obsidian;
 mod overlay;
 mod paste_tx;
 pub mod portable;
@@ -718,6 +719,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,
             shortcut::change_vad_enabled_setting,
+            shortcut::change_audio_enhancement_setting,
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_tech_lexicon_enabled_setting,
             shortcut::change_smart_file_references_enabled_setting,
@@ -813,7 +815,16 @@ pub fn run(cli_args: CliArgs) {
             commands::meeting::generate_meeting_intelligence,
             commands::meeting::ask_meeting,
             commands::calendar::submit_calendar_clarification,
+            commands::obsidian::submit_obsidian_clarification,
+            commands::apple_voice::apple_voice_show_microphone_modes,
+            commands::apple_voice::apple_voice_get_microphone_modes,
             helpers::clamshell::is_laptop,
+            commands::integrations::google_connect,
+            commands::integrations::google_disconnect,
+            commands::integrations::google_status,
+            commands::integrations::microsoft_connect,
+            commands::integrations::microsoft_disconnect,
+            commands::integrations::microsoft_status,
         ])
         .events(collect_events![
             managers::history::HistoryUpdatePayload,
@@ -830,6 +841,20 @@ pub fn run(cli_args: CliArgs) {
         .expect("Failed to export typescript bindings");
 
     let invoke_handler = specta_builder.invoke_handler();
+
+    // Integration clients (Google + Microsoft). Tokens persist only in the OS
+    // Keychain. `new_unchecked` lets the app boot and report status without
+    // OAuth client IDs configured; connect fails with a clear error instead.
+    let integrations = tori_integrations::Integrations::new_unchecked(
+        "com.superflow.app",
+        tori_integrations::google::GoogleConfig::workspace(
+            std::env::var("TORI_GOOGLE_CLIENT_ID").unwrap_or_default(),
+            std::env::var("TORI_GOOGLE_CLIENT_SECRET").ok(),
+        ),
+        tori_integrations::microsoft::MicrosoftConfig::graph(
+            std::env::var("TORI_MICROSOFT_CLIENT_ID").unwrap_or_default(),
+        ),
+    );
 
     // The headless path must run as its own instance (see the single-instance
     // note below), not forward to an already-running app.
@@ -927,6 +952,7 @@ pub fn run(cli_args: CliArgs) {
             Some(vec![]),
         ))
         .manage(cli_args.clone())
+        .manage(integrations)
         .setup(move |app| {
             specta_builder.mount_events(app);
 

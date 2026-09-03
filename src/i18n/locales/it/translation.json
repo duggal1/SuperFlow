@@ -426,6 +426,10 @@
         "title": "Rilevamento dell'attività vocale",
         "description": "Filtra il silenzio dalle registrazioni. I modelli che supportano lo streaming utilizzano una coda VAD più lunga; disabilitando la VAD si registra l'audio grezzo."
       },
+      "audioEnhancement": {
+        "title": "Miglioramento audio",
+        "description": "Rimuove il rumore di fondo e amplifica la voce prima della trascrizione. Utile in ambienti rumorosi e con voce bassa o sussurrata."
+      },
       "fillerWordRemoval": {
         "title": "Rimuovi le parole riempitive",
         "description": "Rimuove le parole di esitazione più comuni dalle trascrizioni. Disattiva per mantenerle."

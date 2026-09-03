@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, type ReactNode } from "react";
-import { toast, Toaster } from "sonner";
-import { CheckCircle, Warning, XCircle } from "@phosphor-icons/react";
 import { useTranslation } from "react-i18next";
+import { Toaster } from "sonner";
+import { CheckCircle, Warning, XCircle } from "@phosphor-icons/react";
+import { Sonner, type SonnerState } from "./components/toast";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { platform } from "@tauri-apps/plugin-os";
@@ -37,6 +38,7 @@ const renderSettingsContent = (section: SidebarSection) => {
 
 function App() {
   const { t, i18n } = useTranslation();
+  const [sonner, setSonner] = useState<SonnerState | null>(null);
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(
     null,
   );
@@ -161,15 +163,11 @@ function App() {
         const description = t(platformKey, {
           defaultValue: t("errors.micPermissionDenied.generic"),
         });
-        toast.error(t("errors.micPermissionDeniedTitle"), { description });
+        setSonner({ kind: "error", message: `${t("errors.micPermissionDeniedTitle")}: ${description}` });
       } else if (error_type === "no_input_device") {
-        toast.error(t("errors.noInputDeviceTitle"), {
-          description: t("errors.noInputDevice"),
-        });
+        setSonner({ kind: "error", message: `${t("errors.noInputDeviceTitle")}: ${t("errors.noInputDevice")}` });
       } else {
-        toast.error(
-          t("errors.recordingFailed", { error: detail ?? "Unknown error" }),
-        );
+        setSonner({ kind: "error", message: t("errors.recordingFailed", { error: detail ?? "Unknown error" }) });
       }
     });
     return () => {
@@ -183,9 +181,7 @@ function App() {
   // so we show a localized, user-friendly message here instead of the raw error.
   useEffect(() => {
     const unlisten = listen("paste-error", () => {
-      toast.error(t("errors.pasteFailedTitle"), {
-        description: t("errors.pasteFailed"),
-      });
+      setSonner({ kind: "error", message: `${t("errors.pasteFailedTitle")}: ${t("errors.pasteFailed")}` });
     });
     return () => {
       unlisten.then((fn) => fn());
@@ -196,9 +192,7 @@ function App() {
   // The payload is the backend error message (also logged to superflow.log).
   useEffect(() => {
     const unlisten = listen<string>("transcription-error", (event) => {
-      toast.error(t("errors.transcriptionFailedTitle"), {
-        description: event.payload,
-      });
+      setSonner({ kind: "error", message: `${t("errors.transcriptionFailedTitle")}: ${event.payload}` });
     });
     return () => {
       unlisten.then((fn) => fn());
@@ -209,15 +203,10 @@ function App() {
   useEffect(() => {
     const unlisten = listen<ModelStateEvent>("model-state-changed", (event) => {
       if (event.payload.event_type === "loading_failed") {
-        toast.error(
-          t("errors.modelLoadFailed", {
-            model:
-              event.payload.model_name || t("errors.modelLoadFailedUnknown"),
-          }),
-          {
-            description: event.payload.error,
-          },
-        );
+        setSonner({
+          kind: "error",
+          message: `${t("errors.modelLoadFailed", { model: event.payload.model_name || t("errors.modelLoadFailedUnknown") })}: ${event.payload.error}`,
+        });
       }
     });
     return () => {
@@ -308,47 +297,31 @@ function App() {
     setOnboardingStep("done");
   };
 
-  // Rendered once around every step below (including onboarding) so
-  // toast.error() calls surface to the user. sonner renders via a portal, so
-  // its position in the tree doesn't affect layout. Without this, errors during
-  // onboarding (e.g. a model download failing because blob.handy.computer is
-  // unreachable) are silently swallowed and the wizard just appears to "blink".
   const toaster = (
-    <Toaster
-      theme="system"
-      position="bottom-right"
-      icons={{
-        success: (
-          <CheckCircle weight="fill" className="size-4 text-[#34D399]" />
-        ),
-        error: <XCircle weight="fill" className="size-4 text-[#FF5C5C]" />,
-        warning: <Warning weight="fill" className="size-4 text-[#FF6A1A]" />,
-      }}
-      toastOptions={{
-        unstyled: true,
-        classNames: {
-          toast:
-            "bg-surface text-text border-0 rounded-[7px] shadow-none px-3 py-3 flex items-center gap-2 text-sm",
-          error: isLight
-            ? "!bg-[#FEF2F2] !text-[#991B1B]"
-            : "!bg-[#241010] !text-[#FFD3D3]",
-          warning: isLight
-            ? "!bg-[#FFF7ED] !text-[#9A3412]"
-            : "!bg-[#241708] !text-[#FFDCC0]",
-          success: isLight
-            ? "!bg-[#F0FDF4] !text-[#166534]"
-            : "!bg-[#0D1E16] !text-[#C8F5DA]",
-          title: "font-normal text-current",
-          description: "text-current opacity-75",
-          actionButton:
-            "cursor-pointer whitespace-nowrap rounded-lg border border-current/20 bg-transparent px-2 py-1 text-xs font-medium text-current hover:bg-current/10 hover:text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current",
-          cancelButton:
-            "cursor-pointer whitespace-nowrap rounded-lg border-0 bg-current/10 px-2 py-1 text-xs font-medium text-current hover:bg-current/15 hover:text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current",
-          closeButton:
-            "border-0 bg-transparent text-current shadow-none hover:bg-current/10 hover:text-current focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current",
-        },
-      }}
-    />
+    <>
+      <Sonner sonner={sonner} />
+      {/* Fallback for legacy `toast` calls from other modules until migrated to Sonner */}
+      <Toaster
+        theme="system"
+        position="bottom-right"
+        icons={{
+          success: <CheckCircle weight="fill" className="size-4 text-[#34D399]" />,
+          error: <XCircle weight="fill" className="size-4 text-[#FF5C5C]" />,
+          warning: <Warning weight="fill" className="size-4 text-[#FF6A1A]" />,
+        }}
+        toastOptions={{
+          unstyled: true,
+          classNames: {
+            toast: "bg-surface text-text border-0 rounded-[7px] shadow-none px-3 py-3 flex items-center gap-2 text-sm",
+            error: isLight ? "!bg-[#FEF2F2] !text-[#991B1B]" : "!bg-[#241010] !text-[#FFD3D3]",
+            warning: isLight ? "!bg-[#FFF7ED] !text-[#9A3412]" : "!bg-[#241708] !text-[#FFDCC0]",
+            success: isLight ? "!bg-[#F0FDF4] !text-[#166534]" : "!bg-[#0D1E16] !text-[#C8F5DA]",
+            title: "font-normal text-current",
+            description: "text-current opacity-75",
+          },
+        }}
+      />
+    </>
   );
 
   // Still checking onboarding status
@@ -431,7 +404,7 @@ function App() {
         className={
           onboardingStep === "done"
             ? "h-screen w-screen bg-transparent"
-            : "h-screen w-screen bg-background"
+            : "h-screen w-screen sidebar-material"
         }
       >
         {content}

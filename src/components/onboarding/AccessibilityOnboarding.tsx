@@ -11,13 +11,13 @@ import { toast } from "sonner";
 import { commands } from "@/bindings";
 import { useSettingsStore } from "@/stores/settingsStore";
 import SuperFlowTextLogo from "../icons/SuperFlowTextLogo";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Keyboard,
-  Microphone,
-  Check,
-  CircleNotch,
-} from "@phosphor-icons/react";
-import { Badge } from "../ui/Badge";
+  KeyboardIcon,
+  Mic02Icon,
+  CheckmarkCircle02Icon,
+} from "@hugeicons/core-free-icons";
+import { IOSSpinner } from "../shared/global-spinner";
 
 interface AccessibilityOnboardingProps {
   onComplete: () => void;
@@ -290,8 +290,8 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
   // Still checking platform/initial permissions
   if (isChecking) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-neutral-900">
-        <CircleNotch className="size-8 animate-spin text-text/50" />
+      <div className="flex h-screen w-screen items-center justify-center sidebar-material">
+        <IOSSpinner size={20} color="var(--color-text)" />
       </div>
     );
   }
@@ -299,10 +299,12 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
   // All permissions granted - show success briefly
   if (allGranted) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-neutral-900">
-        <div className="rounded-full bg-emerald-500/20 p-4">
-          <Check className="size-12 text-emerald-400" />
-        </div>
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 sidebar-material">
+        <HugeiconsIcon
+          icon={CheckmarkCircle02Icon}
+          size={48}
+          className="text-green-600 dark:text-green-500"
+        />
         <p className="text-lg font-medium text-text">
           {t("onboarding.permissions.allGranted")}
         </p>
@@ -312,7 +314,7 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
 
   // Show permissions request screen
   return (
-    <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 bg-neutral-900 p-6">
+    <div className="flex h-screen w-screen flex-col items-center justify-center gap-6 sidebar-material p-6">
       <div className="flex flex-col items-center gap-2">
         <SuperFlowTextLogo size={22} />
       </div>
@@ -329,39 +331,57 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
 
         {/* Microphone Permission Card */}
         {showMicrophonePermission && (
-          <div className="w-full rounded-lg bg-surface p-4">
+          <div className="w-full rounded-lg border border-stone-200/70 bg-white dark:border-white/[0.06] dark:bg-white/[0.04] p-4">
             <div className="flex items-start gap-4">
-              <Microphone size={32} className="shrink-0 text-stone-100" />
+              <HugeiconsIcon
+                icon={Mic02Icon}
+                size={28}
+                className="shrink-0 text-stone-700 dark:text-stone-100"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-medium tracking-tight text-stone-50">
+                  <h3 className="text-sm font-medium tracking-tight text-stone-900 dark:text-stone-50">
                     {t("onboarding.permissions.microphone.title")}
                   </h3>
                   {permissions.microphone === "granted" && (
-                    <Badge variant="green">
-                      {t("onboarding.permissions.granted")}
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 text-sm">
+                      <HugeiconsIcon
+                        icon={CheckmarkCircle02Icon}
+                        size={16}
+                        className="text-green-600 dark:text-green-500"
+                      />
+                      <span className="text-green-600 dark:text-green-500 font-medium">
+                        {t("onboarding.permissions.granted")}
+                      </span>
+                    </span>
                   )}
                   {permissions.microphone === "waiting" && (
-                    <Badge variant="neutral">
-                      <CircleNotch className="size-3 animate-spin" />
+                    <span className="inline-flex items-center gap-1.5 text-sm text-stone-500 dark:text-stone-400">
+                      <IOSSpinner size={14} color="currentColor" speed={1.2} />
                       {t("onboarding.permissions.waiting")}
-                    </Badge>
+                    </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm leading-relaxed text-stone-400">
+                <p className="mt-1 text-sm leading-relaxed text-stone-600 dark:text-stone-400">
                   {t("onboarding.permissions.microphone.description")}
                 </p>
                 {permissions.microphone !== "granted" &&
                   permissions.microphone !== "waiting" && (
                     <div className="mt-3">
-                      <PermissionButton onClick={handleGrantMicrophone}>
+                      <PermissionButton onClick={handleGrantMicrophone} isLoading={false}>
                         {isWindows
                           ? t("accessibility.openSettings")
                           : t("onboarding.permissions.grant")}
                       </PermissionButton>
                     </div>
                   )}
+                {permissions.microphone === "waiting" && (
+                  <div className="mt-3">
+                    <PermissionButton onClick={handleGrantMicrophone} isLoading={true}>
+                      {t("onboarding.permissions.waiting")}
+                    </PermissionButton>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -369,37 +389,55 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
 
         {/* Accessibility Permission Card */}
         {showAccessibilityPermission && (
-          <div className="w-full rounded-lg bg-surface p-4">
+          <div className="w-full rounded-lg border border-stone-200/70 bg-white dark:border-white/[0.06] dark:bg-white/[0.04] p-4">
             <div className="flex items-start gap-4">
-              <Keyboard size={32} className="shrink-0 text-stone-100" />
+              <HugeiconsIcon
+                icon={KeyboardIcon}
+                size={28}
+                className="shrink-0 text-stone-700 dark:text-stone-100"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-medium tracking-tight text-stone-50">
+                  <h3 className="text-sm font-medium tracking-tight text-stone-900 dark:text-stone-50">
                     {t("onboarding.permissions.accessibility.title")}
                   </h3>
                   {permissions.accessibility === "granted" && (
-                    <Badge variant="green">
-                      {t("onboarding.permissions.granted")}
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 text-sm">
+                      <HugeiconsIcon
+                        icon={CheckmarkCircle02Icon}
+                        size={16}
+                        className="text-green-600 dark:text-green-500"
+                      />
+                      <span className="text-green-600 dark:text-green-500 font-medium">
+                        {t("onboarding.permissions.granted")}
+                      </span>
+                    </span>
                   )}
                   {permissions.accessibility === "waiting" && (
-                    <Badge variant="neutral">
-                      <CircleNotch className="size-3 animate-spin" />
+                    <span className="inline-flex items-center gap-1.5 text-sm text-stone-500 dark:text-stone-400">
+                      <IOSSpinner size={14} color="currentColor" speed={1.2} />
                       {t("onboarding.permissions.waiting")}
-                    </Badge>
+                    </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm leading-relaxed text-stone-400">
+                <p className="mt-1 text-sm leading-relaxed text-stone-600 dark:text-stone-400">
                   {t("onboarding.permissions.accessibility.description")}
                 </p>
                 {permissions.accessibility !== "granted" &&
                   permissions.accessibility !== "waiting" && (
                     <div className="mt-3">
-                      <PermissionButton onClick={handleGrantAccessibility}>
+                      <PermissionButton onClick={handleGrantAccessibility} isLoading={false}>
                         {t("onboarding.permissions.grant")}
                       </PermissionButton>
                     </div>
                   )}
+                {permissions.accessibility === "waiting" && (
+                  <div className="mt-3">
+                    <PermissionButton onClick={handleGrantAccessibility} isLoading={true}>
+                      {t("onboarding.permissions.waiting")}
+                    </PermissionButton>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -409,26 +447,29 @@ const AccessibilityOnboarding: React.FC<AccessibilityOnboardingProps> = ({
   );
 };
 
-/* Grant button - fixed geometry, stone-950 surface with blue edge and the
-   shared inset/ambient shadow stack. */
+/* Grant button - blue theme, clean, with optional iOS spinner prefix */
 const PermissionButton = ({
   onClick,
   children,
+  isLoading = false,
 }: {
   onClick: () => void;
   children: React.ReactNode;
+  isLoading?: boolean;
 }) => {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group relative inline-flex h-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-[5px] border border-blue-700 bg-blue-600 px-3.5 py-1 no-underline shadow-[0_0_0_1px_#2563eb26,inset_0_2px_#ffffff30,inset_0_-0.5px_2px_#00000065,0_2px_8px_#0000000d,0_3px_4px_#00000040] transition-[background,border-color,box-shadow] duration-200 ease-out hover:border-blue-700 hover:bg-blue-700/[0.85] hover:shadow-[0_0_0_1px_#1d4ed833,inset_0_2px_#ffffff22,inset_0_-0.5px_2px_#00000080,0_2px_8px_#00000012,0_3px_4px_#0000004d]"
+      disabled={isLoading}
+      className="group relative inline-flex h-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-[5px] border border-blue-700 bg-blue-600 px-3.5 py-1 no-underline shadow-[0_0_0_1px_#2563eb26,inset_0_2px_#ffffff30,inset_0_-0.5px_2px_#00000065,0_2px_8px_#0000000d,0_3px_4px_#00000040] transition-[background,border-color,box-shadow] duration-200 ease-out hover:border-blue-700 hover:bg-blue-700/[0.85] hover:shadow-[0_0_0_1px_#1d4ed833,inset_0_2px_#ffffff22,inset_0_-0.5px_2px_#00000080,0_2px_8px_#00000012,0_3px_4px_#0000004d] disabled:cursor-not-allowed disabled:opacity-70"
     >
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 rounded-[5px] bg-blue-950/15 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100"
       />
       <span className="relative z-10 inline-flex items-center justify-center gap-1.5">
+        {isLoading && <IOSSpinner size={12} color="white" speed={1.0} />}
         <span className="text-[13px] font-[460] tracking-[0.15px] text-white">
           {children}
         </span>

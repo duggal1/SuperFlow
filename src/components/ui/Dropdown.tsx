@@ -63,13 +63,13 @@ export function MenuPopup({
           className={cn(
             isLight
               ? "relative flex not-[class*='w-']:min-w-32 origin-(--transform-origin) rounded-[6px] border border-stone-200 bg-white text-stone-900 shadow-none outline-none"
-              : "relative flex not-[class*='w-']:min-w-32 origin-(--transform-origin) rounded-[6px] border border-stone-700 bg-stone-800 text-stone-50 shadow-none outline-none",
+              : "relative flex not-[class*='w-']:min-w-32 origin-(--transform-origin) rounded-[6px] border border-white/[0.06] bg-[#363230] text-stone-50 shadow-none outline-none",
             className,
           )}
           data-slot="menu-popup"
           {...props}
         >
-          <div className="max-h-(--available-height) w-full overflow-y-auto p-1">
+          <div className="max-h-(--available-height) w-full overflow-y-auto p-0.5">
             {children}
           </div>
         </MenuPrimitive.Popup>
@@ -98,8 +98,8 @@ export function MenuItem({
     <MenuPrimitive.Item
       className={cn(
         isLight
-          ? "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-1 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-highlighted:text-stone-900 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0"
-          : "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-1 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-700 data-highlighted:text-stone-50 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0",
+          ? "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-0.5 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-highlighted:text-stone-900 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0"
+          : "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-0.5 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-white/[0.08] data-highlighted:text-stone-50 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0",
         className,
       )}
       data-inset={inset}
@@ -125,8 +125,8 @@ export function MenuLinkItem({
     <MenuPrimitive.LinkItem
       className={cn(
         isLight
-          ? "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-1 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-highlighted:text-stone-900 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0"
-          : "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-1 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-700 data-highlighted:text-stone-50 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0",
+          ? "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-0.5 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-highlighted:text-stone-900 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0"
+          : "flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-[4px] px-2 py-0.5 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-white/[0.08] data-highlighted:text-stone-50 data-inset:ps-8 data-[variant=destructive]:text-red-400 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&>svg:not([class*='opacity-'])]:opacity-80 [&>svg:not([class*='size-'])]:size-4 [&>svg]:pointer-events-none [&>svg]:-mx-0.5 [&>svg]:shrink-0",
         className,
       )}
       closeOnClick={closeOnClick}
@@ -151,7 +151,7 @@ export function MenuCheckboxItem({
     <MenuPrimitive.CheckboxItem
       checked={checked}
       className={cn(
-        "grid min-h-8 cursor-pointer items-center gap-2 rounded-[4px] py-1 ps-2 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-700 data-highlighted:text-stone-50 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "grid min-h-8 cursor-pointer items-center gap-2 rounded-[4px] py-0.5 ps-2 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-white/[0.08] data-highlighted:text-stone-50 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         variant === "switch"
           ? "grid-cols-[1fr_auto] gap-4 pe-1.5"
           : "grid-cols-[.75rem_1fr] pe-4",
@@ -213,8 +213,8 @@ export function MenuRadioItem({
     <MenuPrimitive.RadioItem
       className={cn(
         isLight
-          ? "grid min-h-8 cursor-pointer grid-cols-[.75rem_1fr] items-center gap-2 rounded-[4px] py-1 ps-2 pe-4 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-highlighted:text-stone-900 aria-checked:bg-stone-100 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
-          : "grid min-h-8 cursor-pointer grid-cols-[.75rem_1fr] items-center gap-2 rounded-[4px] py-1 ps-2 pe-4 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-700 data-highlighted:text-stone-50 aria-checked:bg-stone-700 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+          ? "grid min-h-8 cursor-pointer grid-cols-[.75rem_1fr] items-center gap-2 rounded-[4px] py-0.5 ps-2 pe-4 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-highlighted:text-stone-900 aria-checked:bg-stone-100 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0"
+          : "grid min-h-8 cursor-pointer grid-cols-[.75rem_1fr] items-center gap-2 rounded-[4px] py-0.5 ps-2 pe-4 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-white/[0.08] data-highlighted:text-stone-50 aria-checked:bg-white/[0.08] data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
       )}
       data-slot="menu-radio-item"
@@ -258,7 +258,7 @@ export function MenuSeparator({
 }: MenuPrimitive.Separator.Props): React.ReactElement {
   return (
     <MenuPrimitive.Separator
-      className={cn("mx-2 my-1 h-px bg-stone-800", className)}
+      className={cn("mx-2 my-1 h-px bg-white/[0.06]", className)}
       data-slot="menu-separator"
       {...props}
     />
@@ -300,8 +300,8 @@ export function MenuSubTrigger({
     <MenuPrimitive.SubmenuTrigger
       className={cn(
         isLight
-          ? "flex min-h-8 cursor-pointer items-center gap-2 rounded-[4px] px-2 py-1 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-popup-open:bg-stone-100 data-inset:ps-8 data-highlighted:text-stone-900 data-popup-open:text-stone-900 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none"
-          : "flex min-h-8 cursor-pointer items-center gap-2 rounded-[4px] px-2 py-1 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-700 data-popup-open:bg-stone-700 data-inset:ps-8 data-highlighted:text-stone-50 data-popup-open:text-stone-50 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none",
+          ? "flex min-h-8 cursor-pointer items-center gap-2 rounded-[4px] px-2 py-0.5 text-base text-stone-700 outline-none data-disabled:pointer-events-none data-highlighted:bg-stone-100/80 data-popup-open:bg-stone-100 data-inset:ps-8 data-highlighted:text-stone-900 data-popup-open:text-stone-900 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none"
+          : "flex min-h-8 cursor-pointer items-center gap-2 rounded-[4px] px-2 py-0.5 text-base text-stone-200 outline-none data-disabled:pointer-events-none data-highlighted:bg-white/[0.08] data-popup-open:bg-white/[0.08] data-inset:ps-8 data-highlighted:text-stone-50 data-popup-open:text-stone-50 data-disabled:opacity-64 sm:min-h-7 sm:text-sm [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none",
         className,
       )}
       data-inset={inset}
@@ -383,8 +383,8 @@ export function Dropdown({
         disabled={disabled}
         className={cn(
           isLight
-            ? "flex h-9 min-w-44 cursor-pointer items-center justify-between gap-2 rounded-[10px] border-0 bg-stone-100 px-3 text-[13px] text-stone-900 outline-none transition-colors hover:bg-stone-200 data-disabled:cursor-not-allowed data-disabled:opacity-50"
-            : "flex h-9 min-w-44 cursor-pointer items-center justify-between gap-2 rounded-[10px] border-0 bg-stone-700 px-3 text-[13px] text-stone-50 outline-none transition-colors hover:bg-stone-600 data-disabled:cursor-not-allowed data-disabled:opacity-50",
+            ? "flex h-8 min-w-44 cursor-pointer items-center justify-between gap-2 rounded-[10px] border-0 bg-stone-100 px-3 py-1 text-[13px] text-stone-900 outline-none transition-colors hover:bg-stone-200 data-disabled:cursor-not-allowed data-disabled:opacity-50"
+            : "flex h-8 min-w-44 cursor-pointer items-center justify-between gap-2 rounded-[10px] border-0 bg-[#34302e] px-3 py-1 text-[13px] text-stone-50 outline-none transition-colors hover:bg-[#363230] data-disabled:cursor-not-allowed data-disabled:opacity-50",
           className,
         )}
       >
@@ -402,14 +402,14 @@ export function Dropdown({
       </MenuTrigger>
       <MenuPopup
         className={cn(
-          "min-w-36 rounded-lg p-1 shadow-none",
+          "min-w-44 rounded-lg p-0.5 shadow-none",
           isLight
             ? "border border-stone-200 bg-white text-stone-900 shadow-none"
-            : "border-none bg-stone-700 text-stone-50 shadow-none",
+            : "border border-white/[0.06] bg-[#363230] text-stone-50 shadow-none",
         )}
       >
         {onRefresh && (
-          <div className="mb-1 flex items-center justify-between gap-3 px-2 py-1">
+          <div className="mb-1 flex items-center justify-between gap-3 px-2 py-0.5">
             {/* eslint-disable-next-line i18next/no-literal-string */}
             <span className="text-[11px] text-stone-500">Device</span>
             {/* eslint-disable i18next/no-literal-string */}
@@ -433,7 +433,7 @@ export function Dropdown({
               "mb-1 px-1 pb-1",
               isLight
                 ? "border-b border-stone-200"
-                : "border-b border-stone-600",
+                : "border-b border-white/[0.06]",
             )}
           >
             <input
@@ -444,8 +444,8 @@ export function Dropdown({
               placeholder={searchPlaceholder ?? placeholder}
               className={
                 isLight
-                  ? "w-full rounded-md border border-transparent bg-stone-100 px-2 py-1 text-[13px] text-stone-900 outline-none placeholder:text-stone-400 focus:border-blue-600"
-                  : "w-full rounded-md bg-stone-800 px-2 py-1 text-[13px] text-stone-50 outline-none placeholder:text-stone-500"
+                  ? "w-full rounded-md border border-transparent bg-stone-100 px-2 py-0.5 text-[13px] text-stone-900 outline-none placeholder:text-stone-400 focus:border-blue-600"
+                  : "w-full rounded-md bg-[#2e2b28] px-2 py-0.5 text-[13px] text-stone-50 outline-none placeholder:text-stone-500"
               }
             />
           </div>
@@ -463,10 +463,10 @@ export function Dropdown({
               value={opt.value}
               disabled={opt.disabled}
               className={cn(
-                "flex cursor-pointer select-none items-center gap-1.5 rounded-md px-1.5 py-1 text-[13px] outline-none data-disabled:pointer-events-none data-disabled:opacity-50",
+                "flex cursor-pointer select-none items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[13px] outline-none data-disabled:pointer-events-none data-disabled:opacity-50",
                 isLight
                   ? "text-stone-900 data-highlighted:bg-stone-100/80"
-                  : "text-stone-50 data-highlighted:bg-stone-600",
+                  : "text-stone-50 data-highlighted:bg-white/[0.08]",
               )}
             >
               {renderIcon(opt.icon)}

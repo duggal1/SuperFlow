@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "namespace": "programming-syntax-speech-normalization",
+  "namespace": "styling-speech-normalization",
   "purpose": "Normalize spoken developer language into precise technical syntax while preserving user intent, target, action, semantic meaning, and canonical implementation. Optimized for vibe coding and spoken Tailwind CSS workflows.",
   "canonical_preferences": {
     "tailwind_background_prefix": "bg",

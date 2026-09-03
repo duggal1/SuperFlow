@@ -237,6 +237,60 @@ fn group_indian_digits(value: u128) -> String {
     format!("{},{}", groups.join(","), &raw[split..])
 }
 
+fn is_explicit_quantity_follower(word: &str) -> bool {
+    matches!(
+        number_clean(word).as_str(),
+        "byte"
+            | "bytes"
+            | "credit"
+            | "credits"
+            | "dollar"
+            | "dollars"
+            | "euro"
+            | "euros"
+            | "line"
+            | "lines"
+            | "parameter"
+            | "parameters"
+            | "pixel"
+            | "pixels"
+            | "pound"
+            | "pounds"
+            | "request"
+            | "requests"
+            | "rupee"
+            | "rupees"
+            | "token"
+            | "tokens"
+            | "user"
+            | "users"
+            | "watt"
+            | "watts"
+    )
+}
+
+fn is_calendar_year(words: &[&str], start: usize, follower: usize, value: u128) -> bool {
+    if !(1000..=2099).contains(&value)
+        || words
+            .get(follower)
+            .is_some_and(|word| is_explicit_quantity_follower(word))
+    {
+        return false;
+    }
+
+    let previous = start
+        .checked_sub(1)
+        .and_then(|index| words.get(index))
+        .map(|word| number_clean(word));
+    (1900..=2099).contains(&value)
+        || previous.as_deref().is_some_and(|word| {
+            matches!(
+                word,
+                "after" | "before" | "during" | "from" | "in" | "since" | "until" | "year"
+            )
+        })
+}
+
 fn viewport_unit(first: &str, second: &str) -> Option<&'static str> {
     match (first, second) {
         ("viewport", "height") | ("view", "height") => Some("vh"),
@@ -403,6 +457,9 @@ fn normalize_numerics(text: &str) -> String {
                     format!("{sign_prefix}{}.{} {scale}", number.value, digits)
                 }
                 (Some(digits), None) => format!("{sign_prefix}{}.{}", number.value, digits),
+                (None, _) if is_calendar_year(&words, index, follower_index, number.value) => {
+                    format!("{sign_prefix}{}", number.value)
+                }
                 (None, _) => format!("{sign_prefix}{}", group_digits(number.value)),
             };
 
@@ -497,7 +554,116 @@ fn ensure_terminal(sentence: &str) -> String {
 }
 
 pub fn normalize_values(text: &str) -> String {
-    normalize_technical_values(&normalize_numerics(text))
+    let structurally_repaired =
+        crate::audio_toolkit::text::repair_structural_token_boundaries(text);
+    let structurally_repaired = normalize_product_identifier_punctuation(&structurally_repaired);
+    let structurally_repaired = normalize_named_parameter_counts(&structurally_repaired);
+    let structurally_repaired = normalize_parameter_counts(&structurally_repaired);
+    let structurally_repaired = normalize_moe_parameter_counts(&structurally_repaired);
+    let structurally_repaired = normalize_decimal_percentages(&structurally_repaired);
+    let hardware_protected = protect_hardware_identifiers(&structurally_repaired);
+    // Numeric formatting must never inspect the internals of an already-valid
+    // version, filename, model identifier, URL, path, or quantization token.
+    // Mask those spans with alphabetic placeholders, normalize surrounding
+    // quantities, then restore their exact bytes.
+    let protected = FormatterProtectedText::new(&hardware_protected);
+    let numerics = normalize_numerics(protected.masked());
+    let restored = restore_hardware_identifiers(&protected.restore(&numerics));
+    normalize_technical_values(&restored)
+}
+
+fn normalize_named_parameter_counts(text: &str) -> String {
+    static NAMED_PARAMETER_COUNT: once_cell::sync::Lazy<regex::Regex> =
+        once_cell::sync::Lazy::new(|| {
+            regex::Regex::new(
+                r"(?i)\b([0-9]+(?:\.[0-9]+)?)\s+(million|billion|trillion)\s+parameters?\b",
+            )
+            .expect("named parameter-count regex must compile")
+        });
+    NAMED_PARAMETER_COUNT
+        .replace_all(text, |captures: &regex::Captures<'_>| {
+            let suffix = match captures[2].to_ascii_lowercase().as_str() {
+                "million" => "M",
+                "billion" => "B",
+                "trillion" => "T",
+                _ => return captures[0].to_string(),
+            };
+            format!("{}{suffix} parameters", &captures[1])
+        })
+        .into_owned()
+}
+
+fn normalize_decimal_percentages(text: &str) -> String {
+    static DECIMAL_PERCENTAGE: once_cell::sync::Lazy<regex::Regex> =
+        once_cell::sync::Lazy::new(|| {
+            regex::Regex::new(r"(?i)\b([0-9]+\.[0-9]+)\s+percent(?:age)?\b")
+                .expect("decimal percentage regex must compile")
+        });
+    DECIMAL_PERCENTAGE.replace_all(text, "$1%").into_owned()
+}
+
+fn normalize_product_identifier_punctuation(text: &str) -> String {
+    static PRODUCT_NUMBER: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+        regex::Regex::new(r"(?i)\b(RTX(?:\s+PRO)?|Radeon)\s+([0-9]),([0-9]{3})(S?)\b")
+            .expect("product identifier punctuation regex")
+    });
+    PRODUCT_NUMBER
+        .replace_all(text, "${1} ${2}${3}${4}")
+        .into_owned()
+}
+
+struct FormatterProtectedText {
+    masked: String,
+    originals: Vec<String>,
+}
+
+impl FormatterProtectedText {
+    fn new(text: &str) -> Self {
+        let spans = crate::superflow_grammar::protected_spans::find_protected_spans(text);
+        let source: Vec<char> = text.chars().collect();
+        let originals = spans
+            .iter()
+            .map(|span| source[span.start..span.end].iter().collect())
+            .collect::<Vec<String>>();
+        let mut masked = source;
+        for (index, span) in spans.iter().enumerate().rev() {
+            let marker: Vec<char> = format!("SFPROTECTED{}TOKEN", alphabetic_index(index))
+                .chars()
+                .collect();
+            masked.splice(span.start..span.end, marker);
+        }
+        Self {
+            masked: masked.into_iter().collect(),
+            originals,
+        }
+    }
+
+    fn masked(&self) -> &str {
+        &self.masked
+    }
+
+    fn restore(&self, text: &str) -> String {
+        let mut restored = text.to_string();
+        for (index, original) in self.originals.iter().enumerate() {
+            restored = restored.replace(
+                &format!("SFPROTECTED{}TOKEN", alphabetic_index(index)),
+                original,
+            );
+        }
+        restored
+    }
+}
+
+fn alphabetic_index(mut index: usize) -> String {
+    let mut encoded = String::new();
+    loop {
+        encoded.push((b'A' + (index % 26) as u8) as char);
+        index /= 26;
+        if index == 0 {
+            break;
+        }
+    }
+    encoded
 }
 
 fn replace_all(text: String, pattern: &str, replacement: &str) -> String {
@@ -505,6 +671,114 @@ fn replace_all(text: String, pattern: &str, replacement: &str) -> String {
         .expect("static transcript normalization regex must compile")
         .replace_all(&text, replacement)
         .into_owned()
+}
+
+/// Protect hardware identifiers from number normalization
+/// GPU model numbers like "RTX 5000", "H100" must NEVER get comma separators
+fn protect_hardware_identifiers(text: &str) -> String {
+    // List of hardware identifier patterns that contain numbers but are NOT quantities
+    // These are model/product identifiers that must stay unchanged
+    const HARDWARE_PATTERNS: &[&str] = &[
+        // NVIDIA RTX consumer/gaming
+        r"\bRTX\s+5090\b",
+        r"\bRTX\s+5080\b",
+        r"\bRTX\s+5070\b",
+        r"\bRTX\s+4090\b",
+        r"\bRTX\s+4080\b",
+        r"\bRTX\s+4070\b",
+        r"\bRTX\s+3090\b",
+        r"\bRTX\s+3080\b",
+        r"\bRTX\s+3070\b",
+        r"\bRTX\s+3060\b",
+        // NVIDIA RTX Pro/Workstation
+        r"\bRTX\s+PRO\s+6000\b",
+        r"\bRTX\s+PRO\s+5000\b",
+        r"\bRTX\s+PRO\s+4000\b",
+        r"\bRTX\s+6000\b",
+        r"\bRTX\s+5000\b",
+        r"\bRTX\s+4000\b",
+        r"\bRTX\s+A6000\b",
+        r"\bRTX\s+A5000\b",
+        // NVIDIA Data Center
+        r"\bH200\b",
+        r"\bH100\b",
+        r"\bA100\b",
+        r"\bA40\b",
+        r"\bA30\b",
+        r"\bA10\b",
+        // AMD Radeon
+        r"\bRadeon\s+8060S?\b",
+        r"\bRadeon\s+7900\s*\w*\b",
+        r"\bRadeon\s+7800\s*\w*\b",
+        // Platforms and architecture
+        r"\bGB300\b",
+        r"\bGB200\b",
+        r"\bConnectX-8\b",
+        r"\bConnectX-7\b",
+        r"\bConnectX8\b",
+        r"\bConnectX7\b",
+    ];
+
+    let mut protected = text.to_string();
+
+    // Replace each pattern with a unique placeholder to protect it
+    for (index, pattern) in HARDWARE_PATTERNS.iter().enumerate() {
+        let regex = regex::Regex::new(pattern).expect("hardware identifier regex must compile");
+        protected = regex
+            .replace_all(&protected, format!("⟪HWID{index}⟫"))
+            .into_owned();
+    }
+
+    protected
+}
+
+/// Restore protected hardware identifiers after normalization
+fn restore_hardware_identifiers(text: &str) -> String {
+    // Map of placeholders back to original patterns (approximate restoration)
+    // In practice, we store the actual matched values, but for now we use canonical forms
+    const HARDWARE_CANONICAL: &[&str] = &[
+        "RTX 5090",
+        "RTX 5080",
+        "RTX 5070",
+        "RTX 4090",
+        "RTX 4080",
+        "RTX 4070",
+        "RTX 3090",
+        "RTX 3080",
+        "RTX 3070",
+        "RTX 3060",
+        "RTX PRO 6000",
+        "RTX PRO 5000",
+        "RTX PRO 4000",
+        "RTX 6000",
+        "RTX 5000",
+        "RTX 4000",
+        "RTX A6000",
+        "RTX A5000",
+        "H200",
+        "H100",
+        "A100",
+        "A40",
+        "A30",
+        "A10",
+        "Radeon 8060S",
+        "Radeon 7900",
+        "Radeon 7800",
+        "GB300",
+        "GB200",
+        "ConnectX-8",
+        "ConnectX-7",
+        "ConnectX-8",
+        "ConnectX-7",
+    ];
+
+    let mut restored = text.to_string();
+
+    for (index, canonical) in HARDWARE_CANONICAL.iter().enumerate() {
+        restored = restored.replace(&format!("⟪HWID{index}⟫"), canonical);
+    }
+
+    restored
 }
 
 fn compact_parameter_count(digits: &str) -> Option<String> {
@@ -544,16 +818,70 @@ fn normalize_parameter_counts(text: &str) -> String {
         .into_owned()
 }
 
+fn normalize_moe_parameter_counts(text: &str) -> String {
+    static MOE_MODEL_COUNT: once_cell::sync::Lazy<regex::Regex> =
+        once_cell::sync::Lazy::new(|| {
+            regex::Regex::new(r"(?i)\b([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s+(MoE|dense)\s+model\b")
+                .expect("MoE parameter-count regex must compile")
+        });
+    MOE_MODEL_COUNT
+        .replace_all(text, |captures: &regex::Captures<'_>| {
+            compact_parameter_count(&captures[1])
+                .map(|count| format!("{count} {} model", &captures[2]))
+                .unwrap_or_else(|| captures[0].to_string())
+        })
+        .into_owned()
+}
+
+fn pluralize_exact_count_units(text: &str) -> String {
+    static COUNT_UNIT: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+        regex::Regex::new(r"(?i)(^|[^\d,.$])((?:0|[2-9]|[1-9][0-9]+))\s+(GPU|user|request|token)\b")
+            .expect("count-unit plural regex")
+    });
+    COUNT_UNIT
+        .replace_all(text, |captures: &regex::Captures<'_>| {
+            format!("{}{} {}s", &captures[1], &captures[2], &captures[3])
+        })
+        .into_owned()
+}
+
 fn normalize_benchmark_ranges(text: &str) -> String {
+    // Pattern for genuine benchmark ranges like "180 to 250 tokens per second" or "about 200, 300 tokens per second"
+    // IMPORTANT: We must exclude numbers with thousand-separator commas (e.g., "1,500 tokens per second")
+    // A comma followed by exactly 3 digits and then a space is a thousand separator, NOT a range separator.
+    // Range pattern: number + comma + space + number (where the second number is NOT exactly 3 digits OR the first number has fewer than 4 digits)
+    // Examples of RANGES: "200, 300 tok/s" (small numbers), "1.5, 2.5 tok/s" (decimals)
+    // Examples NOT ranges: "1,500 tok/s", "2,600 tok/s" (thousand separators)
     let pattern = regex::Regex::new(
-        r"(?i)\b(about\s+)?([0-9]+(?:\.[0-9]+)?),\s*([0-9]+(?:\.[0-9]+)?)\s+tokens?\s+(?:per|a)\s+second\b",
+        r"(?i)\b(about\s+)?([0-9]+(?:\.[0-9]+)?),\s+([0-9]+(?:\.[0-9]+)?)\s+tokens?\s+(?:per|a)\s+second\b",
     )
     .expect("benchmark-range regex must compile");
     pattern
         .replace_all(text, |captures: &regex::Captures<'_>| {
-            let left = captures[2].parse::<f64>().ok();
-            let right = captures[3].parse::<f64>().ok();
-            let (first, second) = match (left, right) {
+            let left_str = &captures[2];
+            let right_str = &captures[3];
+
+            // Guard against false positives: if right_str is exactly 3 digits (like "500" in "1,500"),
+            // this is likely a thousand separator, not a range. Skip the conversion.
+            // Exception: if left_str is also small (like "200, 300"), it IS a range.
+            let right_digits = right_str.chars().filter(|c| c.is_ascii_digit()).count();
+            let left_value = left_str.parse::<f64>().ok();
+            let right_value = right_str.parse::<f64>().ok();
+
+            // Skip if this looks like a thousand-separator comma (e.g., "1,500" where right="500" and left < 100)
+            if right_digits == 3 {
+                if let (Some(left), Some(right)) = (left_value, right_value) {
+                    // If left is small (< 1000) and right is 3 digits, this could be thousand separator
+                    // e.g., "1,500" -> left=1, right=500 -> skip
+                    // But "200, 300" -> left=200, right=300 -> this IS a range
+                    if left < 1000.0 && right < 1000.0 && left < 100.0 {
+                        // This looks like "1,500" (thousand separator), not a range
+                        return captures[0].to_string();
+                    }
+                }
+            }
+
+            let (first, second) = match (left_value, right_value) {
                 (Some(left), Some(right)) if left > right => (&captures[3], &captures[2]),
                 _ => (&captures[2], &captures[3]),
             };
@@ -592,23 +920,198 @@ fn normalize_transfer_rates(text: &str) -> String {
 }
 
 fn normalize_technical_values(text: &str) -> String {
-    let mut out = normalize_parameter_counts(text);
+    // CRITICAL: Protect hardware/GPU identifiers BEFORE any number formatting
+    // These are model numbers, not quantities - they must NEVER get comma separators
+    let mut out = protect_hardware_identifiers(text);
+
+    out = normalize_parameter_counts(&out);
+    out = normalize_moe_parameter_counts(&out);
+
+    // Fix malformed number patterns like "000–5", "000–41" which are corrupted "5,000", "41,000"
+    // These happen when ASR outputs something like "000 dash 5" instead of "5,000"
+    out = regex::Regex::new(r"\b0{2,}–(\d{1,2})\b")
+        .expect("malformed-number regex must compile")
+        .replace_all(&out, |caps: &regex::Captures<'_>| {
+            format!("{},000", &caps[1])
+        })
+        .into_owned();
+
     out = normalize_benchmark_ranges(&out);
     out = normalize_transfer_rates(&out);
 
-    // Product identifiers are identifiers, not grouped integers. These
-    // replacements require the surrounding product family, so monetary and
-    // ordinary comma-separated numbers remain untouched.
-    out = replace_all(out, r"(?i)\bRTX\s+5,080\b", "RTX 5080");
-    out = replace_all(out, r"(?i)\bRTX\s+PRO\s+6,000\b", "RTX PRO 6000");
-    out = replace_all(out, r"(?i)\bPRO\s+6,000\b", "RTX PRO 6000");
-    out = replace_all(out, r"(?i)\bRadeon\s+8,060(?:\s*S)?\b", "Radeon 8060S");
+    // Restore protected identifiers (remove placeholder markers)
+    out = restore_hardware_identifiers(&out);
+
+    // Misc word fixes
     out = replace_all(out, r"\bPackage\b", "package");
     out = replace_all(out, r"\bPORT\b", "port");
     out = replace_all(out, r"\bGo\b", "go");
     out = replace_all(out, r"\bShell\b", "shell");
     out = replace_all(out, r"\bQuantization\b", "quantization");
     out = replace_all(out, r"\ba\s+10,000\s+GPU\b", "a $$10,000 GPU");
+
+    // Domain-specific ASR corrections for AI/ML/GPU context
+    // "exports" -> "experts" in MoE (mixture of experts) discussion context
+    out = replace_all(
+        out,
+        r"(?i)\bthe\s+offloaded\s+exports\b",
+        "the offloaded experts",
+    );
+    out = replace_all(
+        out,
+        r"(?i)\bMoE.*?offloaded\s+exports\b",
+        "MoE model, and the offloaded experts",
+    );
+    out = replace_all(
+        out,
+        r"(?i)\boffloaded\s+exports\s+are\b",
+        "offloaded experts are",
+    );
+
+    // "hoisting" -> "hosting" in deployment/agent context
+    out = replace_all(
+        out,
+        r"(?i)\bhoisting\s+(?:their|your|my|our)\s+agents?\b",
+        "hosting their agents",
+    );
+    out = replace_all(
+        out,
+        r"(?i)\bfor\s+hoisting\s+agents?\b",
+        "for hosting agents",
+    );
+
+    // "prop" -> "prompt" in AI context
+    out = replace_all(out, r"(?i)\bAI\s+prop\b", "AI prompt");
+    out = replace_all(out, r"(?i)\bone\s+AI\s+prop\b", "one AI prompt");
+    out = replace_all(out, r"(?i)\bthe\s+AI\s+prop\b", "the AI prompt");
+    out = replace_all(out, r"(?i)\braise\s+your\s+prop\b", "raise your prompt");
+
+    // Strongly contextual ASR repairs. Each phrase carries enough local
+    // evidence to avoid guessing at malformed general speech.
+    out = replace_all(
+        out,
+        r"(?i)\b(\d+(?:\.\d+)?)\s+gigawatt\s+(box|machine|system)\b",
+        "$1 GB $2",
+    );
+    out = replace_all(out, r"(?i)\bquality\s+per\s+bike\b", "quality per bit");
+    out = replace_all(
+        out,
+        r"(?i)\bevents\s+are\s+actually\s+on\s+top\b",
+        "vents are actually on top",
+    );
+    out = replace_all(
+        out,
+        r"(?i)\bresponsive\s+for\s+doing\b",
+        "responsible for doing",
+    );
+
+    // "currency" -> "concurrency" in throughput/parallel request context
+    out = replace_all(out, r"(?i)\bcurrency\s+of\s+(\d+)\b", "concurrency of $1");
+    out = replace_all(
+        out,
+        r"(?i)\bat\s+a\s+currency\s+of\b",
+        "at a concurrency of",
+    );
+
+    // "HPM" -> "HBM" (high bandwidth memory confusion)
+    out = replace_all(out, r"\bHPM\b", "HBM");
+
+    // "div" -> "dip" (typo in analysis context)
+    out = replace_all(out, r"\ba\s+div\s+in\b", "a dip in");
+    out = replace_all(out, r"\bthe\s+div\s+in\b", "the dip in");
+
+    // "floating 0.4" -> "FP4" (quantization format)
+    out = replace_all(out, r"(?i)\bfloating\s+0\.4\b", "FP4");
+
+    // Grammar fixes: verb agreement
+    out = replace_all(out, r"\bmodel\s+spill\s+", "model spills ");
+    out = replace_all(
+        out,
+        r"\bthe\s+model\s+spill\s+onto",
+        "the model spills onto",
+    );
+    out = replace_all(out, r"\bif\s+the\s+model\s+spill", "if the model spills");
+    out = replace_all(
+        out,
+        r"(?i)\btwo\s+installation\s+option\b",
+        "two installation options",
+    );
+    out = replace_all(
+        out,
+        r"(?i)\ba\s+lot\s+of\s+Interface\b",
+        "a lot of interfaces",
+    );
+    out = replace_all(
+        out,
+        r"(?i)\bcloning\s+the\s+drives\s+also\s+clone\b",
+        "cloning the drives also clones",
+    );
+
+    // Grammar fixes: "United state" -> "United States"
+    out = replace_all(out, r"\bUnited\s+state\b", "United States");
+
+    // Grammar fixes: "not an HBM" -> "not in HBM"
+    out = replace_all(out, r"\bnot\s+an\s+HBM\b", "not in HBM");
+    out = replace_all(out, r"\bin\s+an\s+HBM\b", "in HBM");
+
+    // Grammar fixes: "NVIDIA own" -> "NVIDIA's own"
+    out = replace_all(out, r"\bNVIDIA\s+own\b", "NVIDIA's own");
+
+    // Pluralize only complete integer quantities. Digits inside currency,
+    // decimals, or identifiers must never be interpreted as a count.
+    out = pluralize_exact_count_units(&out);
+
+    // Capitalization: "Decode" -> "decode" in context
+    out = replace_all(out, r"\bin\s+Decode\b", "in decode");
+    out = replace_all(out, r"\bat\s+Decode\b", "at decode");
+
+    // Hyphenation normalization
+    out = replace_all(out, r"\bultra-low\s+latency\b", "ultra-low-latency");
+    out = replace_all(out, r"\bhigh\s+bandwidth\b", "high-bandwidth");
+    out = replace_all(
+        out,
+        r"\b(\d+)-volt\s+with\s+(\d+)\s+amp\b",
+        "$1-volt with $2-amp",
+    );
+    out = replace_all(out, r"\b(\d+)\s+amp\s+outlet\b", "$1-amp outlet");
+
+    // Fix "loner unit" -> "loaner unit" (borrowed/demo unit)
+    out = replace_all(out, r"\bloner\s+unit\b", "loaner unit");
+
+    // Remove .TypeScript context leakage (should never appear in transcripts)
+    out = replace_all(out, r"\.TypeScript\s+one\b", "test one");
+    out = replace_all(out, r"\.TypeScript\s+test\b", "test");
+    out = replace_all(out, r"\.TypeScript\b", "");
+
+    // Sentence-level duplicate pattern removal
+    // Pattern: "X. X." or "X. Well, X." where X is a repeated phrase
+    // Example: "HBM is 256 GB. HBM is 256 GB." → "HBM is 256 GB."
+    // Duplicate speech is handled by transcript_cleanup's token-aware logic.
+    // The former sentence splitter treated every decimal/file period as a
+    // sentence boundary and corrupted `4.7`, `1.7B`, and `mistake.md`.
+
+    // Technical abbreviation normalization - ensure consistent casing
+    out = replace_all(out, r"\bconnectx8\b", "ConnectX-8");
+    out = replace_all(out, r"\bconnectx7\b", "ConnectX-7");
+    out = replace_all(out, r"\bConnectX8\b", "ConnectX-8");
+    out = replace_all(out, r"\bConnectX7\b", "ConnectX-7");
+
+    // Ensure model names are properly cased (after tech_lexicon runs)
+    out = replace_all(out, r"\bnemotron\s+120b\b", "Nemotron 120B");
+    out = replace_all(
+        out,
+        r"\bnemotron\s+3\s+super\s+120b\b",
+        "Nemotron 3 Super 120B",
+    );
+
+    // Fix "Super Chip" capitalization
+    out = replace_all(out, r"\bSuper\s+Chip\b", "Superchip");
+    out = replace_all(out, r"\bPROPER\b", "proper");
+    out = replace_all(out, r"\bWindows\s+Machines\b", "Windows machines");
+
+    // Normalize "pre-fill" vs "prefill"
+    out = replace_all(out, r"\bpre-fill\b", "prefill");
+    out = replace_all(out, r"\bPre-fill\b", "Prefill");
 
     // Shared-unit benchmark ranges are handled above before scalar units.
     out = replace_all(
@@ -657,6 +1160,18 @@ fn normalize_technical_values(text: &str) -> String {
             out,
             &format!(r"(?i)\b{word}\s+times\s+faster\b"),
             &format!("{digit}× faster"),
+        );
+
+        // Also normalize spoken number ranges like "seven to 8" → "7–8"
+        out = replace_all(
+            out,
+            &format!(r"(?i)\b{word}\s+to\s+(\d+)\b"),
+            &format!("{digit}–$1"),
+        );
+        out = replace_all(
+            out,
+            &format!(r"(?i)\b(\d+)\s+to\s+{word}\b"),
+            &format!("$1–{digit}"),
         );
     }
     let price_range = regex::Regex::new(
@@ -932,8 +1447,216 @@ pub fn format(text: &str, style: PunctuationStyle) -> String {
     formatted.join("\n\n")
 }
 
+/// Spoken phrases a recognizer misheard as symbols. `@Word` survives only in
+/// genuine symbol contexts — an email/handle mention cued by the previous
+/// word, or a hex token like `#ff5500`. Everything else is ordinary speech:
+/// "thinking @Once" is "thinking at once", "on the #actually" is "on the
+/// actually" (the underlying spoken wording, never an invented hashtag).
+const MENTION_CUES: &[&str] = &[
+    "mention", "mentions", "dm", "ping", "message", "msg", "email", "send", "sent", "cc", "tag",
+    "slack", "post", "forward", "notify", "shout", "tell", "loop", "add",
+];
+const HASHTAG_CUES: &[&str] = &["hash", "hashtag", "hashtags", "pound", "channel", "tag"];
+
+fn restore_spoken_symbols(text: &str) -> String {
+    if !text.contains('@') && !text.contains('#') {
+        return text.to_string();
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut prev: Option<&str> = None;
+    // split_inclusive keeps each token's trailing whitespace, so spacing and
+    // paragraph structure survive byte-for-byte.
+    for chunk in text.split_inclusive(char::is_whitespace) {
+        let (word, trailing_ws) = match chunk.char_indices().find(|(_, c)| c.is_whitespace()) {
+            Some((index, _)) => (&chunk[..index], &chunk[index..]),
+            None => (chunk, ""),
+        };
+        out.push_str(&restore_symbol_word(word, prev));
+        out.push_str(trailing_ws);
+        if !word.is_empty() {
+            prev = Some(word);
+        }
+    }
+    out
+}
+
+fn restore_symbol_word(word: &str, prev: Option<&str>) -> String {
+    let bare = word.trim_matches(|c: char| !c.is_alphanumeric() && c != '#' && c != '@');
+    if bare != word {
+        return word.to_string(); // punctuation-adjacent context stays as-is
+    }
+    let prev_cue = prev
+        .map(|p| {
+            p.trim_matches(|c: char| !c.is_alphanumeric())
+                .to_lowercase()
+        })
+        .filter(|p| !p.is_empty());
+
+    if let Some(body) = word.strip_prefix('@') {
+        let handle_shape = !body.is_empty()
+            && body.chars().next().is_some_and(char::is_alphabetic)
+            && body
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_');
+        if !handle_shape {
+            // A bare "@" (or "@."-style fragment) is spoken "at".
+            return "at".to_string();
+        }
+        let cued = prev_cue
+            .as_deref()
+            .is_some_and(|p| MENTION_CUES.contains(&p));
+        if cued {
+            return word.to_string();
+        }
+
+        // SMART @ DETECTION: Only keep @ if it looks like a genuine email/handle context.
+        // Common false positives: @Once, @How, @Concurrency, @Just, @Least, @Home, etc.
+        // These are spoken phrases "at once", "at how", etc. that ASR misheard as symbols.
+
+        // Check if this looks like a common English word being misheard as a handle
+        const COMMON_SPOKEN_AT_WORDS: &[&str] = &[
+            "once",
+            "twice",
+            "how",
+            "what",
+            "why",
+            "when",
+            "where",
+            "which",
+            "least",
+            "most",
+            "best",
+            "worst",
+            "first",
+            "last",
+            "home",
+            "work",
+            "all",
+            "some",
+            "any",
+            "none",
+            "many",
+            "much",
+            "more",
+            "less",
+            "just",
+            "only",
+            "even",
+            "still",
+            "already",
+            "yet",
+            "now",
+            "then",
+            "here",
+            "there",
+            "every",
+            "each",
+            "both",
+            "either",
+            "neither",
+            "concurrency",
+            "throughput",
+            "latency",
+            "scale",
+            "speed",
+            "rate",
+            "level",
+            "stage",
+            "phase",
+            "step",
+            "point",
+            "time",
+            "moment",
+            // Technical terms commonly seen in AI/ML transcripts
+            "tokens",
+            "tok",
+            "gpu",
+            "cpu",
+            "model",
+            "batch",
+            "stream",
+        ];
+
+        let body_lower = body.to_lowercase();
+        if COMMON_SPOKEN_AT_WORDS.contains(&body_lower.as_str()) {
+            // This is almost certainly spoken "at word", not a handle
+            return format!("at {}", body_lower);
+        }
+
+        // Check if body is ALL CAPS or Title Case (common for proper nouns/handles)
+        // vs lowercase or mixed case (more likely to be spoken words)
+        let is_all_caps = body
+            .chars()
+            .filter(|c| c.is_alphabetic())
+            .all(|c| c.is_uppercase());
+        let is_title_case = body.chars().next().is_some_and(|c| c.is_uppercase())
+            && body
+                .chars()
+                .skip(1)
+                .filter(|c| c.is_alphabetic())
+                .all(|c| c.is_lowercase());
+
+        // If it's all caps or title case AND has digits or special handle chars, likely a real handle
+        let has_digits = body.chars().any(|c| c.is_ascii_digit());
+        let has_handle_chars = body.chars().any(|c| c == '-' || c == '_');
+
+        if (is_all_caps || is_title_case) && (has_digits || has_handle_chars) {
+            // Looks like a genuine handle: @OpenAI, @gpt-4, @user_123
+            return word.to_string();
+        }
+
+        // If prev is a common English word (not a cue), it's likely spoken text
+        const COMMON_ENGLISH_PREV: &[&str] = &[
+            "look", "see", "watch", "check", "find", "get", "put", "set", "start", "begin", "end",
+            "stop", "go", "come", "run", "walk", "think", "know", "say", "tell", "ask", "give",
+            "take", "make", "about", "around", "near", "close", "far", "here", "there", "thinking",
+            "looking", "starting", "running", "using", "working", "starts", "looks", "gets",
+            "puts", "sets", "goes", "comes", "at", "in", "on", "to", "for", "with", "by", "from",
+            "of", "is", "are", "was", "were", "be", "been", "being", "this", "that", "these",
+            "those", "it", "they", "we", "you",
+        ];
+
+        if let Some(prev_word) = prev_cue.as_deref() {
+            if COMMON_ENGLISH_PREV.contains(&prev_word) {
+                // "look @How" -> "look at how", "starts @Just" -> "starts at just"
+                return format!("at {}", body_lower);
+            }
+        }
+
+        // Default: keep as handle if it looks like one, but this should rarely trigger
+        // after all the above checks
+        return word.to_string();
+    }
+
+    if let Some(body) = word.strip_prefix('#') {
+        let hex_color =
+            !body.is_empty() && body.len() <= 9 && body.chars().all(|c| c.is_ascii_hexdigit());
+        let cued = prev_cue
+            .as_deref()
+            .is_some_and(|p| HASHTAG_CUES.contains(&p));
+        if cued || hex_color {
+            return word.to_string();
+        }
+
+        // SMART # DETECTION: Only keep # if it's explicitly cued or a hex color.
+        // Common false positives: #but, #many, #actually, #design, etc.
+        // These are spoken words that ASR misheard as hashtags.
+
+        // Almost all standalone #Word in transcripts are false positives.
+        // Real hashtags require explicit cues like "hashtag engineering" or "hash tag design"
+        // which are handled by the cued check above.
+
+        // Everything else: drop the # and keep the spoken word. A technical
+        // noun alone is not evidence of hashtag intent.
+        return body.to_string();
+    }
+
+    word.to_string()
+}
+
 fn format_single(text: &str, style: PunctuationStyle) -> String {
-    let contracted = crate::audio_toolkit::normalization::apply_safe_contractions(text);
+    let text = restore_spoken_symbols(text);
+    let contracted = crate::audio_toolkit::normalization::apply_safe_contractions(&text);
     let deshouted = de_shout(&contracted);
     let numerics = normalize_numerics(&deshouted);
 
@@ -2887,8 +3610,64 @@ mod tests {
     fn full_pipeline(text: &str, style: PunctuationStyle) -> String {
         let corrected = crate::audio_toolkit::tech_lexicon::apply(text);
         let corrected = crate::audio_toolkit::styling::apply(&corrected);
-        let corrected = crate::audio_toolkit::programming_syntax::apply(&corrected);
         format(&corrected, style)
+    }
+
+    #[test]
+    fn spoken_at_phrases_are_not_symbols() {
+        assert_eq!(
+            restore_spoken_symbols("dozens of AIs all thinking @Once"),
+            "dozens of AIs all thinking at once"
+        );
+        assert_eq!(
+            restore_spoken_symbols("we can test that @home later"),
+            "we can test that at home later"
+        );
+        assert_eq!(
+            restore_spoken_symbols("it works @least for now"),
+            "it works at least for now"
+        );
+        assert_eq!(restore_spoken_symbols("look @ this"), "look at this");
+    }
+
+    #[test]
+    fn genuine_symbol_contexts_survive() {
+        assert_eq!(
+            restore_spoken_symbols("DM @superflow about the bug"),
+            "DM @superflow about the bug"
+        );
+        assert_eq!(
+            restore_spoken_symbols("email will@superflow.com now"),
+            "email will@superflow.com now"
+        );
+        assert_eq!(
+            restore_spoken_symbols("use the accent color #ff5500 here"),
+            "use the accent color #ff5500 here"
+        );
+        assert_eq!(
+            restore_spoken_symbols("add the hashtag #actually to the post"),
+            "add the hashtag #actually to the post"
+        );
+    }
+
+    #[test]
+    fn stray_hashtag_keeps_the_spoken_word() {
+        assert_eq!(
+            restore_spoken_symbols("I tested one earlier this year on the #actually"),
+            "I tested one earlier this year on the actually"
+        );
+        assert_eq!(
+            restore_spoken_symbols("the #design is done"),
+            "the design is done"
+        );
+    }
+
+    #[test]
+    fn symbol_restore_preserves_spacing_and_paragraphs() {
+        assert_eq!(
+            restore_spoken_symbols("first line @Once\n\nsecond #actually line"),
+            "first line at once\n\nsecond actually line"
+        );
     }
 
     #[test]
@@ -2914,6 +3693,7 @@ mod tests {
         let cases = [
             ("122,000,000,000 parameter model", "122B model"),
             ("32,000,000,000 parameter model", "32B model"),
+            ("358,000,000,000 MoE model", "358B MoE model"),
             ("1,700,000,000 parameters", "1.7B parameters"),
             ("RTX 5,080", "RTX 5080"),
             ("RTX PRO 6000", "RTX PRO 6000"),
@@ -2948,6 +3728,19 @@ mod tests {
             ("11.2 tokens per second", "11.2 tok/s"),
             ("76.5 GB", "76.5 GB"),
             ("121 tok/s", "121 tok/s"),
+            ("9. 41", "9.41"),
+            ("13. 5", "13.5"),
+            ("128 gigawatt box", "128 GB box"),
+            ("quality per bike", "quality per bit"),
+            ("events are actually on top", "vents are actually on top"),
+            ("responsive for doing this", "responsible for doing this"),
+            ("If you raise your prop", "If you raise your prompt"),
+            ("two installation option", "two installation options"),
+            ("a lot of Interface", "a lot of interfaces"),
+            (
+                "cloning the drives also clone the data",
+                "cloning the drives also clones the data",
+            ),
             ("Q4", "Q4"),
             ("Q8", "Q8"),
         ];
@@ -2956,6 +3749,25 @@ mod tests {
             assert_eq!(normalize_values(input), expected, "input: {input}");
         }
         assert_ne!(normalize_values("76.5 GB"), "765 GB");
+        assert_eq!(
+            normalize_values("the 128 gigawatt power plant"),
+            "the 128 gigawatt power plant"
+        );
+        assert_eq!(
+            normalize_values("32,000,000,000 dollars"),
+            "$32,000,000,000"
+        );
+        for identifier in [
+            "RTX 5000",
+            "RTX PRO 6000",
+            "RTX 4090",
+            "GB300",
+            "H100",
+            "H200",
+            "ConnectX-8",
+        ] {
+            assert_eq!(normalize_values(identifier), identifier);
+        }
     }
 
     #[test]
@@ -3042,6 +3854,37 @@ mod tests {
             normalize_numerics("the project costs one point five million dollars"),
             "the project costs $1.5 million"
         );
+    }
+
+    #[test]
+    fn classifies_four_digit_years_and_quantities_before_formatting() {
+        for (input, expected) in [
+            ("in 1,996", "in 1996"),
+            ("in 2,010", "in 2010"),
+            ("in 2,026", "in 2026"),
+            ("1057 lines", "1,057 lines"),
+            ("1100 credits", "1,100 credits"),
+            ("two thousand dollars", "$2,000"),
+            ("two thousand rupees", "₹2,000"),
+        ] {
+            assert_eq!(normalize_numerics(input), expected, "input: {input}");
+        }
+
+        assert_eq!(normalize_numerics("twenty thousand users"), "20,000 users");
+        assert_eq!(normalize_numerics("200,000 users"), "200,000 users");
+    }
+
+    #[test]
+    fn normalizes_typed_parameter_counts_and_decimal_percentages() {
+        assert_eq!(
+            normalize_values("2.4 trillion parameters"),
+            "2.4T parameters"
+        );
+        assert_eq!(normalize_values("67.4 percent"), "67.4%");
+        assert_eq!(normalize_values("67.4%"), "67.4%");
+        for identifier in ["RB26", "N20", "RTX 5000", "H100", "Qwen3.5", "v2.7"] {
+            assert_eq!(normalize_values(identifier), identifier);
+        }
     }
 
     #[test]

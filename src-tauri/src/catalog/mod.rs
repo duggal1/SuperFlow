@@ -48,6 +48,8 @@ struct CatalogModel {
     name: String,
     description: String,
     architecture: Option<String>,
+    #[serde(default)]
+    engine: CatalogEngine,
     languages: Vec<String>,
     capabilities: CatalogCaps,
     speed_score: Option<f32>,
@@ -59,6 +61,14 @@ struct CatalogModel {
     /// from `recommended_rank`, which only orders the full list.
     #[serde(default)]
     recommended: bool,
+}
+
+#[derive(Clone, Copy, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CatalogEngine {
+    #[default]
+    TranscribeCpp,
+    AudioCpp,
 }
 
 #[derive(Deserialize)]
@@ -90,7 +100,10 @@ impl From<&CatalogModel> for ModelDescriptor {
             },
             name: m.name.clone(),
             description: m.description.clone(),
-            engine_type: EngineType::TranscribeCpp,
+            engine_type: match m.engine {
+                CatalogEngine::TranscribeCpp => EngineType::TranscribeCpp,
+                CatalogEngine::AudioCpp => EngineType::AudioCpp,
+            },
             caps: CapabilityProbe {
                 verdict: Compatibility::Compatible, // curated org models we ship support for
                 display_name: None,
@@ -151,6 +164,7 @@ pub fn is_curated_batch_model(model_id: &str) -> bool {
 pub static CATALOG: Lazy<Vec<ModelDescriptor>> = Lazy::new(|| {
     ROOT.models
         .iter()
+        .filter(|m| m.engine != CatalogEngine::AudioCpp || cfg!(target_os = "macos"))
         .filter(|m| m.capabilities.streaming || CURATED_BATCH_REPOS.contains(&m.id.as_str()))
         .map(ModelDescriptor::from)
         .collect()

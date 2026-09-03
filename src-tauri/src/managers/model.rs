@@ -29,6 +29,8 @@ pub enum EngineType {
     /// Voxtral, Qwen3-ASR, Nemotron, …). The architecture is auto-detected from
     /// the file, so this one variant covers the whole transcribe-cpp family.
     TranscribeCpp,
+    /// Granite Speech 5 GGUF models executed by the bundled audio.cpp runtime.
+    AudioCpp,
     Parakeet,
     Moonshine,
     MoonshineStreaming,

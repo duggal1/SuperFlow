@@ -7,6 +7,7 @@ import type {
   SingleValue,
   StylesConfig,
 } from "react-select";
+import { useIsLight } from "../../lib/utils/theme";
 
 export type SelectOption = {
   value: string;
@@ -48,10 +49,10 @@ const focusBackground =
 const neutralBorder =
   "color-mix(in srgb, var(--color-mid-gray) 80%, transparent)";
 
-const selectStyles: StylesConfig<SelectOption, false> = {
+const getSelectStyles = (isLight: boolean): StylesConfig<SelectOption, false> => ({
   control: (base, state) => ({
     ...base,
-    minHeight: 40,
+    minHeight: 36,
     borderRadius: 6,
     borderColor: state.isFocused ? "var(--color-accent)" : neutralBorder,
     boxShadow: state.isFocused ? "0 0 0 1px var(--color-accent)" : "none",
@@ -67,7 +68,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   valueContainer: (base) => ({
     ...base,
     paddingInline: 10,
-    paddingBlock: 6,
+    paddingBlock: 4,
   }),
   input: (base) => ({
     ...base,
@@ -96,28 +97,45 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   menu: (provided) => ({
     ...provided,
     zIndex: 30,
-    backgroundColor: "var(--color-background)",
+    backgroundColor: isLight ? "#ffffff" : "#363230",
     color: "var(--color-text)",
-    border:
-      "1px solid color-mix(in srgb, var(--color-mid-gray) 30%, transparent)",
+    border: isLight
+      ? "1px solid color-mix(in srgb, var(--color-mid-gray) 30%, transparent)"
+      : "1px solid rgba(255,255,255,0.06)",
     boxShadow: "0 10px 30px rgba(15, 15, 15, 0.2)",
+    paddingTop: 2,
+    paddingBottom: 2,
+  }),
+  menuList: (base) => ({
+    ...base,
+    paddingTop: 2,
+    paddingBottom: 2,
   }),
   option: (base, state) => ({
     ...base,
     backgroundColor: state.isSelected
-      ? focusBackground
+      ? isLight
+        ? focusBackground
+        : "rgba(255,255,255,0.08)"
       : state.isFocused
-        ? hoverBackground
+        ? isLight
+          ? hoverBackground
+          : "rgba(255,255,255,0.08)"
         : "transparent",
     color: "var(--color-text)",
     cursor: state.isDisabled ? "not-allowed" : base.cursor,
     opacity: state.isDisabled ? 0.5 : 1,
+    paddingTop: 4,
+    paddingBottom: 4,
+    paddingLeft: 10,
+    paddingRight: 10,
+    fontSize: "0.875rem",
   }),
   placeholder: (base) => ({
     ...base,
     color: "color-mix(in srgb, var(--color-mid-gray) 65%, transparent)",
   }),
-};
+});
 
 export const Select: React.FC<SelectProps> = React.memo(
   ({
@@ -134,6 +152,7 @@ export const Select: React.FC<SelectProps> = React.memo(
     formatCreateLabel,
     onCreateOption,
   }) => {
+    const isLight = useIsLight();
     const selectValue = React.useMemo(() => {
       if (!value) return null;
       const existing = options.find((option) => option.value === value);
@@ -159,7 +178,7 @@ export const Select: React.FC<SelectProps> = React.memo(
       isLoading,
       onBlur,
       isClearable,
-      styles: selectStyles,
+      styles: getSelectStyles(isLight),
     };
 
     if (isCreatable) {

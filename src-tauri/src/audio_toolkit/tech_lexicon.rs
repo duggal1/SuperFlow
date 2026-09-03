@@ -62,10 +62,41 @@ fn safe_alias(canonical: &str, alias: &str) -> bool {
     if canonical == "OpenSearch" && normalized == "open search" {
         return false;
     }
-    if canonical == "Package" && normalized == "package" {
+    if matches!(canonical, "Formatter" | "Package")
+        && matches!(normalized.as_str(), "formatter" | "package")
+    {
         return false;
     }
     if canonical == "Quantization" && normalized == "quantization" {
+        return false;
+    }
+    // These entries are valid technical terms, but their bare aliases are
+    // ordinary prose. Require the authored technical phrase instead of
+    // allowing a global rewrite (Promise, Interface, Markdown, Node.js and
+    // Spread Operator were all observed contaminating unrelated speech).
+    if matches!(canonical, "Promise" | "Interface" | "Library")
+        && !normalized.contains("javascript")
+        && !normalized.contains("typescript")
+        && !normalized.contains("software")
+        && !normalized.contains("code ")
+    {
+        return false;
+    }
+    if canonical == "Spread Operator" && normalized == "spread" {
+        return false;
+    }
+    if canonical == "Node.js"
+        && matches!(
+            normalized.as_str(),
+            "node" | "node js" | "node runtime" | "node server"
+        )
+    {
+        return false;
+    }
+    if canonical == "Markdown" && matches!(normalized.as_str(), "markdown" | "mark down" | "md") {
+        return false;
+    }
+    if canonical == "Qwen" && matches!(normalized.as_str(), "queen" | "quinn" | "quen") {
         return false;
     }
     // Split phonetic aliases for Vercel turn ordinary phrases such as
@@ -203,6 +234,42 @@ mod tests {
     }
 
     #[test]
+    fn corrects_ai_hardware_and_person_entities() {
+        assert!(apply("running asus expect center").contains("ASUS ExpertCenter"));
+        assert!(apply("the dgx station setup").contains("DGX Station"));
+        assert!(apply("dgx spark benchmarks").contains("DGX Spark"));
+        assert!(apply("jensen juan announced it").contains("Jensen Huang"));
+        assert!(apply("apple silicon vs nvidia").contains("Apple Silicon"));
+        assert!(apply("nvidia vs apple silicon").contains("NVIDIA"));
+        assert!(apply("hgx h100 systems").contains("HGX"));
+    }
+
+    #[test]
+    fn corrects_ai_model_format_terms() {
+        assert!(apply("a safetensors file").contains("Safetensors"));
+        assert!(apply("load the safe tensors weights").contains("Safetensors"));
+        assert!(apply("pytorch training loop").contains("PyTorch"));
+        assert!(apply("hugging face hub").contains("Hugging Face"));
+        assert!(apply("quantize to int8").contains("INT8"));
+        assert!(apply("export to bf16").contains("BF16"));
+        assert!(
+            apply("the gguf model runs on ggml").contains("GGUF")
+                && apply("the gguf model runs on ggml").contains("GGML")
+        );
+        assert!(apply("q8 0 quantization").contains("Q8_0"));
+    }
+
+    #[test]
+    fn preserves_abbreviations_and_numbers() {
+        assert_eq!(apply("748 gb of vram"), "748 gb of vram");
+        assert_eq!(apply("all the llms are fast"), "all the llms are fast");
+        assert!(apply("the gb300 chip").contains("GB300"));
+        // Ordinary names are never auto-replaced.
+        assert_eq!(apply("my friend juan visited"), "my friend juan visited");
+        assert_eq!(apply("the station is near"), "the station is near");
+    }
+
+    #[test]
     fn canonical_terms_ignore_shouted_input() {
         assert_eq!(apply("NEXT JAYS app"), "Next.js app");
         assert_eq!(apply("PLAYWRIGHT test"), "Playwright test");
@@ -306,7 +373,7 @@ mod tests {
         );
         assert_eq!(
             apply("deploy on render hosting with the use transition hook"),
-            "deploy on Render with the useTransition"
+            "deploy on Render hosting with the useTransition"
         );
     }
 
@@ -376,5 +443,90 @@ mod tests {
         );
         assert_eq!(apply("a moose in the forest"), "a moose in the forest");
         assert_eq!(apply("the glimmer of hope"), "the glimmer of hope");
+    }
+
+    #[test]
+    fn canonicalizes_high_confidence_runtime_and_quantization_entities() {
+        let cases = [
+            (
+                "use Llama C++ and not Ollama",
+                "use llama.cpp and not Ollama",
+            ),
+            ("serve it with VLLM", "serve it with vLLM"),
+            ("Rickle RCCL is running", "RCCL is running"),
+            ("check Rockam SMI", "check rocm-smi"),
+            ("the Unsloss quant", "the Unsloth quant"),
+            ("the Monsloft build", "the Unsloth build"),
+            ("use GLM 4.7", "use GLM-4.7"),
+            ("Qwen 3.5 397B", "Qwen3.5 397B"),
+            ("Q4K xl", "Q4_K_XL"),
+            ("UDQ4 KXL", "UD-Q4_K_XL"),
+            ("IQ Tower 2ms", "IQ2_M"),
+        ];
+        for (raw, expected) in cases {
+            assert_eq!(apply(raw), expected, "raw: {raw}");
+        }
+    }
+
+    #[test]
+    fn ambiguous_programming_words_do_not_contaminate_prose() {
+        for prose in [
+            "according to mark down the total",
+            "spread apart before folding",
+            "the root node is healthy",
+            "I promise this interface is simple",
+            "find the answer before lunch",
+        ] {
+            assert_eq!(apply(prose), prose, "prose changed: {prose}");
+        }
+        assert_eq!(
+            apply("this library is written in C++"),
+            "this library is written in C++"
+        );
+    }
+
+    #[test]
+    fn pr_is_not_assumed_to_mean_pull_request() {
+        assert_eq!(
+            apply("PR means permanent residence"),
+            "PR means permanent residence"
+        );
+        assert_eq!(
+            apply("p r means permanent residence"),
+            "p r means permanent residence"
+        );
+        assert_eq!(apply("open the pull request"), "open the Pull Request");
+    }
+
+    #[test]
+    fn natural_words_never_promote_to_technical_entities() {
+        for prose in [
+            "accessible model",
+            "inline six engine",
+            "exploded view",
+            "shell casings",
+            "safeguards",
+            "charts",
+            "channel",
+            "The view from the engine bay was accessible from the shell.",
+        ] {
+            assert_eq!(apply(prose), prose, "natural prose changed: {prose}");
+        }
+    }
+
+    #[test]
+    fn alphabetic_entities_never_inherit_a_stray_leading_dot() {
+        assert_eq!(apply("use .typescript here"), "use TypeScript here");
+        assert_eq!(apply("use TypeScript here"), "use TypeScript here");
+        assert_eq!(apply("edit hero dot ts"), "edit hero .ts");
+    }
+
+    #[test]
+    fn genuine_raw_technical_entities_remain_technical() {
+        assert_eq!(
+            apply("I opened Vue and changed the Nginx configuration in zsh."),
+            "I opened Vue and changed the Nginx configuration in zsh."
+        );
+        assert_eq!(apply("compare Opus V today"), "compare Claude Opus 5 today");
     }
 }

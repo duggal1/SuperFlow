@@ -532,38 +532,19 @@ async fn process_transcription_output_with_context(
     let mut post_processed_text: Option<String> = None;
     let mut post_process_prompt: Option<String> = None;
 
-    // Smart file references: resolve spoken file names against the active dev
-    // project when dictating into a terminal or editor. Local-only, best-effort.
-    // Always enabled — no frontend toggle.
-    if true {
-        let project = context
-            .as_ref()
-            .and_then(|context| context.project_root.clone());
-        if let Some(resolved) = context
-            .as_ref()
-            .and_then(|context| context.project_root.as_deref())
-            .and_then(|root| crate::file_refs::resolve_references(root, &final_text))
-        {
-            debug!(
-                "Smart file reference resolved in {} characters",
-                final_text.len()
-            );
-            final_text = resolved;
-        }
-        // Deterministic code-context enhancement (inline only): spoken
-        // symbol names -> exact identifiers from resolved files; error
-        // wording + captured terminal diagnostic -> one evidence line.
-        if let Some(root) = project {
-            let focused_buffer = context
-                .as_ref()
-                .and_then(|c| c.snapshot.focused_text.as_deref());
-            if let Some(enhanced) =
-                crate::code_context::maybe_enhance(&root, &final_text, focused_buffer)
-            {
-                debug!("code_context enhanced transcript inline");
-                final_text = enhanced;
-            }
-        }
+    // Resolve a filename only when the transcript itself contains an explicit
+    // spoken file reference. Editor text and repository identifiers are never
+    // allowed to rewrite or append to ordinary speech.
+    if let Some(resolved) = context
+        .as_ref()
+        .and_then(|context| context.project_root.as_deref())
+        .and_then(|root| crate::file_refs::resolve_references(root, &final_text))
+    {
+        debug!(
+            "Smart file reference resolved in {} characters",
+            final_text.len()
+        );
+        final_text = resolved;
     }
 
     // User-defined shortcuts: expand spoken references ("my design prompt",
@@ -1119,7 +1100,7 @@ async fn run_voice_command(
     // with deterministic native execution, not generic AI prose.
     match crate::calendar::handle_calendar_transcript(&instruction, &settings, Some(app)).await {
         crate::calendar::CalendarHandleResult::NotCalendar => {
-            // Not a calendar request — continue to generic AI (which will show say_this)
+            // Not a calendar request — try Obsidian next
         }
         crate::calendar::CalendarHandleResult::Success(result) => {
             crate::overlay::show_calendar_success_overlay(app, &result);
@@ -1158,6 +1139,141 @@ async fn run_voice_command(
                 change_tray_icon(&ah2, TrayIconState::Idle);
             });
             return;
+        }
+    }
+
+    // Native Obsidian action (strict JSON -> Rust validate -> Rust writer -> Markdown vault)
+    // Hooked up parallel to Calendar. Uses piece2text ASR transcript via the same AI hotkey
+    // (Control + Super Wispr + Enable) — Gemini interprets the transcript into Obsidian JSON,
+    // then Rust writes the vault file. No paste into chat; Gemini output is the vault write.
+    match crate::obsidian::handle_obsidian_transcript(&instruction, &settings, Some(app)).await {
+        crate::obsidian::ObsidianHandleResult::NotObsidian => {
+            // Not an Obsidian request — try automation next
+        }
+        crate::obsidian::ObsidianHandleResult::Success(result) => {
+            crate::overlay::show_obsidian_success_overlay(app, &result);
+            if wav_saved {
+                let _ = history.save_entry(
+                    file_name,
+                    raw_transcription,
+                    true,
+                    Some(format!(
+                        "Obsidian: {} [{}] — {}",
+                        result.title, result.task_status, result.success_message
+                    )),
+                    None,
+                    sample_count as f64 / 16_000.0,
+                );
+            }
+            let ah2 = app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(3800)).await;
+                crate::overlay::hide_recording_overlay(&ah2);
+                change_tray_icon(&ah2, TrayIconState::Idle);
+            });
+            return;
+        }
+        crate::obsidian::ObsidianHandleResult::NeedsClarification(clarify) => {
+            crate::overlay::show_obsidian_clarify_overlay(app, clarify.clarification_message);
+            return;
+        }
+        crate::obsidian::ObsidianHandleResult::Failure(err) => {
+            crate::overlay::show_obsidian_failure_overlay(app, err.message.clone());
+            log::warn!("Obsidian action failed: {} - {}", err.error, err.message);
+            let ah2 = app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(3200)).await;
+                crate::overlay::hide_recording_overlay(&ah2);
+                change_tray_icon(&ah2, TrayIconState::Idle);
+            });
+            return;
+        }
+    }
+
+    // Native Superflow AI Automation — Experimental Feature (mail + calendar + notes + reminders via Gemini CLF)
+    // Bounded Agent Kit loop: Gemini plans JSON → Swift/AppleScript deterministic execution → observation → next plan (max 4 rounds).
+    // This is the unified automation that combines Mail, Calendar, Notes, Reminders with cross-service workflows.
+    // It uses the strict Gemini CLF planner (same model as calendar/obsidian) but with a broader action registry and template refs.
+    match crate::automation::handle_automation_transcript(&instruction, &settings, Some(app)).await
+    {
+        crate::automation::AutomationHandleResult::NotAutomation => {
+            // Not an automation request — continue to generic Hey Superflow
+        }
+        crate::automation::AutomationHandleResult::Success(report) => {
+            crate::overlay::show_automation_success_overlay(app, &report);
+            if wav_saved {
+                let summary = report
+                    .finalMessage
+                    .clone()
+                    .unwrap_or_else(|| format!("Automation: {} steps", report.observations.len()));
+                let _ = history.save_entry(
+                    file_name,
+                    raw_transcription,
+                    true,
+                    Some(summary),
+                    None,
+                    sample_count as f64 / 16_000.0,
+                );
+            }
+            // Save AI cleanup history for observability
+            if let Err(e) = history.save_ai_cleanup(
+                "automation",
+                &instruction,
+                &serde_json::to_string_pretty(&report).unwrap_or_default(),
+                &settings.ai_cleanup_model,
+                crate::ai_cleanup::thinking_level_name(settings.ai_cleanup_thinking_level),
+            ) {
+                log::warn!("Failed to save automation history: {e}");
+            }
+            let ah2 = app.clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(4000)).await;
+                crate::overlay::hide_recording_overlay(&ah2);
+                change_tray_icon(&ah2, TrayIconState::Idle);
+            });
+            return;
+        }
+        crate::automation::AutomationHandleResult::NeedsClarification(clarify) => {
+            crate::overlay::show_ai_cleanup_notice(
+                app,
+                clarify.message,
+                "Clarify".to_string(),
+                "warning",
+            );
+            return;
+        }
+        crate::automation::AutomationHandleResult::Failure(err) => {
+            // For automation, we treat planner failures as fallback to generic AI unless it's a permission/execution error.
+            // If Gemini explicitly failed to produce valid JSON, we fallback to Hey Superflow AI.
+            // Otherwise surface the error.
+            if err.error == "validation_error" || err.error == "planner_failure" {
+                log::warn!(
+                    "Automation planner fallback: {} - {} — falling through to Hey Superflow",
+                    err.error,
+                    err.message
+                );
+                // Fall through to Hey Superflow — don't return, don't show failure overlay
+            } else {
+                crate::overlay::show_automation_failure_overlay(app, err.message.clone());
+                log::warn!("Automation action failed: {} - {}", err.error, err.message);
+                if wav_saved {
+                    let _ = history.save_entry(
+                        file_name.clone(),
+                        raw_transcription.clone(),
+                        true,
+                        Some(format!("Automation failed: {}", err.message)),
+                        None,
+                        sample_count as f64 / 16_000.0,
+                    );
+                }
+                let ah2 = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(3500)).await;
+                    crate::overlay::hide_recording_overlay(&ah2);
+                    change_tray_icon(&ah2, TrayIconState::Idle);
+                });
+                return;
+            }
         }
     }
 

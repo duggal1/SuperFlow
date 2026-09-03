@@ -426,6 +426,10 @@
         "title": "Detekce hlasové aktivity",
         "description": "Odfiltruje ticho z nahrávek. Modely podporující streaming používají delší doběh VAD; vypnutí VAD nahrává surový zvuk."
       },
+      "audioEnhancement": {
+        "title": "Vylepšení zvuku",
+        "description": "Odstraňuje okolní šum a zesiluje váš hlas před přepisem. Pomáhá v hlučném prostředí a při tichém či šeptaném projevu."
+      },
       "fillerWordRemoval": {
         "title": "Odstranit výplňová slova",
         "description": "Odstraňuje běžná slova vyjadřující váhání z přepisů. Vypnutím je zachováte."

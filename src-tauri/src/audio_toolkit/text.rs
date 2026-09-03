@@ -1,8 +1,52 @@
+use harper_core::spell::{Dictionary, FstDictionary};
 use natural::phonetics::soundex;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::{BTreeMap, HashSet};
+use std::sync::Arc;
 use strsim::levenshtein;
+
+/// Existing, correctly spelled English words are authoritative. The built-in
+/// technical catalogs may change their presentation, but may not promote a
+/// natural one-word span into a different technical vocabulary item.
+static NATURAL_LANGUAGE_DICTIONARY: Lazy<Arc<FstDictionary>> = Lazy::new(FstDictionary::curated);
+
+fn rejects_natural_word_promotion(raw_words: &[&str], replacement: &str, score: f64) -> bool {
+    if raw_words.len() != 1 {
+        return false;
+    }
+
+    let raw = raw_words[0].trim_matches(|character: char| {
+        !character.is_alphabetic() && character != '\'' && character != '’'
+    });
+    if raw.is_empty()
+        || !raw
+            .chars()
+            .all(|character| character.is_alphabetic() || character == '\'' || character == '’')
+    {
+        return false;
+    }
+
+    let raw_key = build_match_key(raw);
+    let replacement_key = build_match_key(replacement);
+    let exact_structured_entity = score == 0.0
+        && (replacement_key.is_empty()
+            || replacement
+                .chars()
+                .any(|character| character.is_ascii_digit())
+            || replacement
+                .chars()
+                .skip(1)
+                .any(|character| character.is_uppercase()));
+    if exact_structured_entity {
+        return false;
+    }
+    if !NATURAL_LANGUAGE_DICTIONARY.contains_word_str(raw) {
+        return false;
+    }
+
+    raw_key != replacement_key
+}
 
 /// Builds an n-gram string by cleaning and concatenating words
 ///
@@ -533,11 +577,32 @@ fn apply_match_entries(
             };
 
             if let Some((replacement, score)) = matched {
+                if canonical_casing
+                    && rejects_natural_word_promotion(ngram_words, replacement, score)
+                {
+                    log::trace!(
+                        target: "transcript_mutation",
+                        "rule=technical_alias result=rejected reason=natural_word_to_tech_entity raw={:?} candidate={:?}",
+                        ngram_words[0],
+                        replacement
+                    );
+                    continue;
+                }
+                let consumed = if n > 1
+                    && !replacement.starts_with('.')
+                    && build_match_key(ngram_words[0]) == build_match_key(replacement)
+                {
+                    // Context-bearing aliases may validate an entity, but must
+                    // not consume ordinary words after an already-canonical token.
+                    1
+                } else {
+                    n
+                };
                 let is_better = best_match
                     .as_ref()
                     .is_none_or(|(_, _, best_score)| score < *best_score);
                 if is_better {
-                    best_match = Some((n, replacement, score));
+                    best_match = Some((consumed, replacement, score));
                 }
             }
         }
@@ -546,7 +611,25 @@ fn apply_match_entries(
             let ngram_words = &words[i..i + n];
             // Extract punctuation from first and last words of the n-gram.
             let (prefix, _) = extract_punctuation(ngram_words[0]);
+            let prefix = if canonical_casing
+                && prefix == "."
+                && replacement.chars().all(char::is_alphabetic)
+            {
+                // A bare leading period is not evidence that an alphabetic
+                // entity should become a dot-prefixed code token.
+                ""
+            } else {
+                prefix
+            };
             let (_, suffix) = extract_punctuation(ngram_words[n - 1]);
+            // In `C++`, the plus signs are part of the matched alias rather
+            // than trailing sentence punctuation. The canonical replacement
+            // already carries its own semantic punctuation (`llama.cpp`).
+            let suffix = if replacement == "llama.cpp" && suffix.chars().all(|c| c == '+') {
+                ""
+            } else {
+                suffix
+            };
 
             // Canonical entries render verbatim; custom words inherit the
             // speaker's casing pattern.
@@ -588,7 +671,9 @@ fn extract_punctuation(word: &str) -> (&str, &str) {
     // not trailing punctuation. Preserve it so "Llama C++" -> "llama.cpp" doesn't
     // become "llama.cpp++".
     let lower = word.to_ascii_lowercase();
-    if lower == "c++" || lower.starts_with("c++") && word[3..].chars().all(|c| ",.;:!?()[]{}<>\"'".contains(c)) {
+    if lower == "c++"
+        || lower.starts_with("c++") && word[3..].chars().all(|c| ",.;:!?()[]{}<>\"'".contains(c))
+    {
         // Find where "C++" ends and trailing punctuation begins
         if lower == "c++" {
             return ("", "");
@@ -786,7 +871,15 @@ pub fn remove_filler_words(
 /// Kept separate from [`remove_filler_words`] so disabling filler deletion
 /// does not also disable the existing repeated-word and whitespace cleanup.
 pub fn normalize_transcription_output(text: &str) -> String {
-    let mut normalized = collapse_stutters(text);
+    static STRAY_DOT_TYPESCRIPT: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"(?i)(^|[\s(\[])\.\s*type\s*script\b").expect("stray dot TypeScript regex")
+    });
+
+    // `.TypeScript` is not a valid filename or language spelling. It is an
+    // observed ASR/context-contamination token; remove the unsupported token
+    // without touching ordinary `TypeScript` or real `.ts`/`.tsx` filenames.
+    let without_stray_typescript = STRAY_DOT_TYPESCRIPT.replace_all(text, "$1");
+    let mut normalized = collapse_stutters(&without_stray_typescript);
 
     // Clean up multiple spaces to single space
     normalized = MULTI_SPACE_PATTERN
@@ -806,6 +899,27 @@ const PATH_EXTENSIONS: &[&str] = &[
     "html", "htm", "xml", "yml", "yaml", "toml", "sql", "sh", "bash", "zsh", "env", "lock", "svg",
     "csv",
 ];
+
+/// Extensions that remain unambiguous when ASR emits the filename period on
+/// the previous token (`mistake. md`). Common prose words such as `go` and
+/// one-letter C/C++ extensions are intentionally excluded.
+const TRAILING_DOT_EXTENSIONS: &[&str] = &[
+    "ts", "tsx", "js", "jsx", "mjs", "cjs", "json", "rs", "py", "rb", "java", "kt", "kts", "swift",
+    "php", "cpp", "hpp", "md", "mdx", "txt", "css", "scss", "less", "html", "htm", "xml", "yml",
+    "yaml", "toml", "sql", "bash", "zsh", "env", "lock", "svg", "csv",
+];
+
+static SPLIT_DECIMAL_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(\d+)\.\s+(\d+)\b").expect("split decimal regex"));
+
+/// Repairs token boundaries that are unambiguously structural before Harper
+/// or catalog matching sees the text. It does not infer values: it only
+/// removes whitespace inside a digit-dot-digit span and rejoins known file
+/// extensions.
+pub fn repair_structural_token_boundaries(text: &str) -> String {
+    let decimals = SPLIT_DECIMAL_RE.replace_all(text, "$1.$2");
+    join_path_tokens(&decimals)
+}
 
 fn ends_with_alphanumeric(token: &str) -> bool {
     token
@@ -868,6 +982,14 @@ pub fn join_path_tokens(text: &str) -> String {
                         }
                     }
                 }
+            } else if last.ends_with('.') && last[..last.len() - 1].ends_with(char::is_alphanumeric)
+            {
+                let (core, punctuation) = split_trailing_punctuation(word);
+                if core == core.to_ascii_lowercase() && TRAILING_DOT_EXTENSIONS.contains(&core) {
+                    last.push_str(core);
+                    last.push_str(punctuation);
+                    merged = true;
+                }
             }
         }
         if !merged {
@@ -916,6 +1038,22 @@ mod tests {
         assert_eq!(preserve_case_pattern("HELLO", "world"), "WORLD");
         assert_eq!(preserve_case_pattern("Hello", "world"), "World");
         assert_eq!(preserve_case_pattern("hello", "WORLD"), "WORLD");
+    }
+
+    #[test]
+    fn removes_only_invalid_dot_typescript_contamination() {
+        assert_eq!(
+            normalize_transcription_output("I did .TypeScript test first"),
+            "I did test first"
+        );
+        assert_eq!(
+            normalize_transcription_output("I did . Type Script test first"),
+            "I did test first"
+        );
+        assert_eq!(
+            normalize_transcription_output("I use TypeScript with component.ts and view.tsx"),
+            "I use TypeScript with component.ts and view.tsx"
+        );
     }
 
     #[test]
@@ -1281,6 +1419,12 @@ mod tests {
             join_path_tokens("open app .json file"),
             "open app.json file"
         );
+        assert_eq!(join_path_tokens("open mistake. md"), "open mistake.md");
+        assert_eq!(join_path_tokens("open mistake. md."), "open mistake.md.");
+        assert_eq!(
+            join_path_tokens("edit component. tsx"),
+            "edit component.tsx"
+        );
     }
 
     #[test]
@@ -1302,6 +1446,22 @@ mod tests {
         assert_eq!(join_path_tokens("version .5 release"), "version .5 release");
         assert_eq!(join_path_tokens("a .unknown b"), "a .unknown b");
         assert_eq!(join_path_tokens("one two"), "one two");
+        assert_eq!(
+            join_path_tokens("that was a mistake. go now"),
+            "that was a mistake. go now"
+        );
+    }
+
+    #[test]
+    fn repairs_split_decimals_versions_and_filenames_without_inference() {
+        assert_eq!(
+            repair_structural_token_boundaries("9. 41 and 13. 5 and mistake. md"),
+            "9.41 and 13.5 and mistake.md"
+        );
+        assert_eq!(
+            repair_structural_token_boundaries("version .5 release"),
+            "version .5 release"
+        );
     }
 
     #[test]

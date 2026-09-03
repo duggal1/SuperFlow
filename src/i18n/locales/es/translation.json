@@ -426,6 +426,10 @@
         "title": "Detección de actividad de voz",
         "description": "Filtra el silencio de las grabaciones. Los modelos compatibles con streaming usan una cola de VAD más larga; desactivar el VAD graba audio sin procesar."
       },
+      "audioEnhancement": {
+        "title": "Mejora de audio",
+        "description": "Elimina el ruido de fondo y realza su voz antes de la transcripción. Útil en lugares ruidosos y con voz baja o susurrada."
+      },
       "fillerWordRemoval": {
         "title": "Eliminar muletillas",
         "description": "Elimina las muletillas más comunes de las transcripciones. Desactívalo para conservarlas."

@@ -23,7 +23,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
   };
 
   return (
-    <div className="absolute bottom-full start-0 z-50 mb-2 max-h-[60vh] w-64 space-y-1 overflow-y-auto rounded-[8px] bg-stone-850 p-1.5">
+    <div className="absolute bottom-full start-0 z-50 mb-2 max-h-[60vh] w-64 space-y-1 overflow-y-auto rounded-[8px] bg-[#363230] p-1">
       {downloadedModels.length > 0 ? (
         <div className="space-y-1">
           {downloadedModels.map((model) => (
@@ -38,7 +38,7 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
               }}
               tabIndex={0}
               role="button"
-              className="w-full cursor-pointer rounded-[6px] bg-stone-800 px-3 py-2 text-start transition-colors hover:bg-stone-700 focus:outline-none"
+              className="w-full cursor-pointer rounded-[6px] bg-[#363230] px-3 py-1.5 text-start transition-colors hover:bg-white/[0.08] focus:outline-none"
             >
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
@@ -68,8 +68,8 @@ const ModelDropdown: React.FC<ModelDropdownProps> = ({
             </div>
           ))}
         </div>
-      ) : (
-        <div className="px-3 py-2 text-sm text-text/60">
+        ) : (
+        <div className="px-3 py-1.5 text-sm text-text/60">
           {t("modelSelector.noModelsAvailable")}
         </div>
       )}

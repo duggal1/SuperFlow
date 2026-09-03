@@ -1,3 +1,4 @@
+use crate::audio_toolkit::audio::safe_macos_input_device_name;
 use crate::audio_toolkit::{
     list_input_devices,
     vad::{
@@ -20,6 +21,10 @@ use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager};
 
 const STREAM_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+/// How long a resolved named-microphone device may be reused before a fresh
+/// enumeration. Short on purpose: device switches (earbuds, HFP) must be
+/// picked up by the next recording start, and enumeration only costs ~100ms.
+const DEVICE_CACHE_TTL: Duration = Duration::from_millis(1500);
 const VAD_THRESHOLD: f32 = 0.3;
 
 fn set_mute(mute: bool) {
@@ -356,7 +361,12 @@ pub struct AudioRecordingManager {
     /// change misses naturally; cleared when an open fails (device unplugged)
     /// so the retry re-enumerates. The system-default case is never cached —
     /// the recorder resolves the current default itself, cheaply.
-    cached_device: Arc<Mutex<Option<(String, cpal::Device)>>>,
+    ///
+    /// Entries also expire after a short TTL: input devices reconfigure at
+    /// runtime (earbuds connect/disconnect, Bluetooth HFP profile switches,
+    /// lid state), and a cached cpal device for a reconfigured device can keep
+    /// opening while producing silence. A start past the TTL re-enumerates.
+    cached_device: Arc<Mutex<Option<(String, cpal::Device, std::time::Instant)>>>,
     /// File stem of the active session's crash-durability journal
     /// (`superflow-<ts>`). Set on a successful recording start, consumed by
     /// stop to name the final WAV so the journal, the WAV and the history
@@ -438,27 +448,51 @@ impl AudioRecordingManager {
 
     fn resolve_microphone_device(&self, settings: &AppSettings) -> MicrophoneResolution {
         let desired = self.desired_microphone(settings);
-        let (device_name, selected_microphone) = match desired {
+        let (requested_name, selected_microphone) = match desired {
             DesiredMicrophone::Default => {
-                debug!("device resolve: no mic configured -> system default");
-                return MicrophoneResolution {
-                    device: None,
-                    unavailable_selected_microphone: None,
+                let Some(safe_name) = safe_macos_input_device_name(None) else {
+                    debug!("device resolve: no mic configured -> system default");
+                    return MicrophoneResolution {
+                        device: None,
+                        unavailable_selected_microphone: None,
+                    };
                 };
+                warn!(
+                    "Bluetooth default microphone would degrade playback; using '{}' for input",
+                    safe_name
+                );
+                (safe_name, None)
             }
             DesiredMicrophone::Selected(name) => (name.clone(), Some(name)),
             DesiredMicrophone::Clamshell(name) => (name, None),
         };
+        let device_name =
+            safe_macos_input_device_name(Some(&requested_name)).unwrap_or(requested_name);
+        if selected_microphone
+            .as_deref()
+            .is_some_and(|name| name != device_name)
+        {
+            warn!(
+                "Bluetooth microphone '{}' would degrade playback; using '{}' for input",
+                selected_microphone.as_deref().unwrap_or_default(),
+                device_name
+            );
+        }
 
         // Cache hit: skip the full enumeration. A stale device (unplugged)
         // fails at open, where the caller invalidates and retries fresh.
-        if let Some((cached_name, device)) = self.cached_device.lock().unwrap().as_ref() {
-            if *cached_name == device_name {
-                debug!("device resolve: cache hit for '{}'", device_name);
-                return MicrophoneResolution {
-                    device: Some(device.clone()),
-                    unavailable_selected_microphone: None,
-                };
+        // Reconfigured devices (earbud connect, HFP switch) may keep "opening"
+        // while going silent, so entries older than the TTL re-enumerate.
+        {
+            let cached = self.cached_device.lock().unwrap();
+            if let Some((cached_name, device, cached_at)) = cached.as_ref() {
+                if *cached_name == device_name && cached_at.elapsed() < DEVICE_CACHE_TTL {
+                    debug!("device resolve: cache hit for '{}'", device_name);
+                    return MicrophoneResolution {
+                        device: Some(device.clone()),
+                        unavailable_selected_microphone: None,
+                    };
+                }
             }
         }
 
@@ -485,7 +519,8 @@ impl AudioRecordingManager {
             device.is_some()
         );
         if let Some(d) = &device {
-            *self.cached_device.lock().unwrap() = Some((device_name, d.clone()));
+            *self.cached_device.lock().unwrap() =
+                Some((device_name, d.clone(), std::time::Instant::now()));
         }
 
         let unavailable_selected_microphone = if enumeration_succeeded && device.is_none() {

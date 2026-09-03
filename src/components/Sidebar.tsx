@@ -1,22 +1,22 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { motion, useReducedMotion } from "motion/react";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
-  AiBeautifyIcon,
-  BadgeInfoIcon,
-  CoPresentIcon,
-  ComputerIcon,
+  AboutIcon,
+  GeneralIcon,
   HistoryIcon,
-  Home01Icon,
-  Settings01Icon,
-  ZapIcon,
-} from "@hugeicons/core-free-icons";
+  HomeIcon,
+  PeopleIcon,
+  SparklesIcon,
+  VADIcon,
+  type IconProps,
+} from "./icons/sidebar";
 import SuperFlowLogo from "./icons/SuperFlowTextLogo";
 import SidebarToggleIcon from "./icons/SidebarToggleIcon";
 import { HomePage } from "./home";
 import { AICleanupSettings } from "./ai-cleanup";
 import { MeetingPage } from "./meeting";
+import { AgentsPage } from "./agents/AgentsPage";
 import { useSettings } from "../hooks/useSettings";
 import { useIsLight } from "../lib/utils/theme";
 import {
@@ -34,7 +34,7 @@ const SIDEBAR_WIDTH = 176;
 
 interface SectionConfig {
   labelKey: string;
-  icon: IconSvgElement;
+  icon: React.ComponentType<IconProps>;
   component: React.ComponentType;
   enabled: (settings: ReturnType<typeof useSettings>["settings"]) => boolean;
 }
@@ -42,31 +42,37 @@ interface SectionConfig {
 export const SECTIONS_CONFIG = {
   home: {
     labelKey: "sidebar.home",
-    icon: Home01Icon,
+    icon: HomeIcon,
     component: HomePage,
     enabled: () => true,
   },
   general: {
     labelKey: "sidebar.general",
-    icon: ComputerIcon,
+    icon: GeneralIcon,
     component: GeneralSettings,
     enabled: () => true,
   },
   models: {
     labelKey: "sidebar.models",
-    icon: ZapIcon,
+    icon: SparklesIcon,
     component: ModelsSettings,
     enabled: () => true,
   },
   meeting: {
     labelKey: "sidebar.meeting",
-    icon: CoPresentIcon,
+    icon: PeopleIcon,
     component: MeetingPage,
+    enabled: () => true,
+  },
+  agents: {
+    labelKey: "sidebar.agents",
+    icon: VADIcon,
+    component: AgentsPage,
     enabled: () => true,
   },
   aiCleanup: {
     labelKey: "sidebar.aiCleanup",
-    icon: AiBeautifyIcon,
+    icon: SparklesIcon,
     component: AICleanupSettings,
     enabled: () => true,
   },
@@ -78,19 +84,19 @@ export const SECTIONS_CONFIG = {
   },
   advanced: {
     labelKey: "sidebar.advanced",
-    icon: Settings01Icon,
+    icon: GeneralIcon,
     component: AdvancedSettings,
     enabled: () => true,
   },
   debug: {
     labelKey: "sidebar.debug",
-    icon: Settings01Icon,
+    icon: GeneralIcon,
     component: DebugSettings,
     enabled: (settings) => settings?.debug_mode ?? false,
   },
   about: {
     labelKey: "sidebar.about",
-    icon: BadgeInfoIcon,
+    icon: AboutIcon,
     component: AboutSettings,
     enabled: () => true,
   },
@@ -122,13 +128,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <motion.div
+      layout
       initial={false}
       animate={{ width: open ? SIDEBAR_WIDTH : 0 }}
       transition={
         reduceMotion
           ? { duration: 0 }
-          : { duration: 0.22, ease: [0.32, 0.72, 0, 1] }
+          : {
+              // ultra-luxury open/close: longer, no bounce, pure transform
+              // Cmd+B and click share this exact frame
+              duration: 0.72,
+              ease: [0.16, 1, 0.3, 1],
+            }
       }
+      style={{ willChange: "transform" }}
       className="relative h-full shrink-0 overflow-hidden"
     >
       <nav
@@ -138,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ? "bg-stone-50"
               : "bg-stone-900"
             : isLight
-              ? "sidebar-material border-r border-stone-200"
+              ? "sidebar-material border-r border-black/[0.06]"
               : "sidebar-material border-r border-white/[0.045]"
         }`}
       >
@@ -153,8 +166,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title="Close sidebar (Ctrl+B)"
             className={
               isLight
-                ? "flex size-7 shrink-0 items-center justify-center rounded-md text-stone-500 transition-colors duration-150 hover:bg-stone-200 hover:text-stone-900"
-                : "flex size-7 shrink-0 items-center justify-center rounded-md text-stone-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-stone-100"
+                ? "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[0.5px] text-stone-900"
+                : "flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[0.5px] text-stone-100"
             }
           >
             <SidebarToggleIcon expanded={open} />
@@ -189,11 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : "text-stone-300/75 hover:bg-white/[0.045] hover:text-stone-100"
                   }`}
                 >
-                  <HugeiconsIcon
-                    icon={section.icon}
-                    size={16}
-                    className="shrink-0 opacity-75"
-                  />
+                  <section.icon className="size-4 shrink-0 opacity-90" />
                   <span className="truncate">{t(section.labelKey)}</span>
                 </button>
               );

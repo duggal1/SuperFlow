@@ -1,5 +1,7 @@
-use superflow_app_lib::audio_toolkit::{transcript_cleanup, formatter, tech_lexicon, styling, programming_syntax, emoji, text};
-use superflow_app_lib::superflow_grammar::{ProtectedText, correct};
+use superflow_app_lib::audio_toolkit::{
+    emoji, formatter, styling, tech_lexicon, transcript_cleanup,
+};
+use superflow_app_lib::superflow_grammar::{correct, ProtectedText};
 
 fn main() {
     let raw = r#"Last year with the X2 still holds up on the X3. So I grabbed the model I already tested on the X2 last year. It's older, yeah, but I wanted to make sure.
@@ -36,16 +38,15 @@ I installed Linux right away on there in a dual boot scenario, but I did test fi
     println!("\n--- after styling ---");
     println!("{}", step2);
 
-    let step3 = programming_syntax::apply(&step2);
-    println!("\n--- after programming_syntax ---");
-    println!("{}", step3);
-
-    let step4 = emoji::apply(&step3);
+    let step4 = emoji::apply(&step2);
     println!("\n--- after emoji ---");
     println!("{}", step4);
 
     // Use default settings for filler removal - assume English
-    use superflow_app_lib::audio_toolkit::text::{OutputLanguageEvidence, remove_filler_words, normalize_transcription_output, join_path_tokens};
+    use superflow_app_lib::audio_toolkit::text::{
+        join_path_tokens, normalize_transcription_output, remove_filler_words,
+        OutputLanguageEvidence,
+    };
     let lang = OutputLanguageEvidence::UserSelected("en".to_string());
     let without_fillers = remove_filler_words(&step4, &lang, &None, true);
     println!("\n--- after remove_fillers ---");
@@ -76,6 +77,6 @@ I installed Linux right away on there in a dual boot scenario, but I did test fi
     println!("\n=== PARAGRAPH WORD COUNTS ===");
     for (i, para) in formatted.split("\n\n").enumerate() {
         let wc = para.split_whitespace().count();
-        println!("Para {}: {} words", i+1, wc);
+        println!("Para {}: {} words", i + 1, wc);
     }
 }

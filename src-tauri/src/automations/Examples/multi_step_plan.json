@@ -1,0 +1,68 @@
+{
+  "request": "Find the latest email from Maya Chen about the Q4 security review. Draft a reply confirming that the revised architecture document will be ready Thursday by 4 PM. Schedule a review meeting for Friday at 10 AM, add the engagement details to my client notes, and remind me Thursday at 2 PM to finish the document.",
+  "steps": [
+    {
+      "id": "find_client_email",
+      "service": "mail",
+      "action": "find",
+      "parameters": {
+        "query": "Maya Chen Q4 security review",
+        "limit": 5
+      },
+      "taskStatus": "Located Maya Chen Q4 security thread latest email matching query accurately"
+    },
+    {
+      "id": "read_client_email",
+      "service": "mail",
+      "action": "read",
+      "parameters": {
+        "localId": "{{steps.find_client_email.matches.0.localId}}"
+      },
+      "taskStatus": "Reading Maya email body and subject to extract full commitment context cleanly"
+    },
+    {
+      "id": "draft_reply",
+      "service": "mail",
+      "action": "draft_reply",
+      "parameters": {
+        "localId": "{{steps.find_client_email.matches.0.localId}}",
+        "body": "Hi Maya,\n\nThanks for the update. I’ll have the revised architecture document ready by Thursday at 4 PM. I’ve also scheduled time on Friday to review it together.\n\nBest,\nHarshit"
+      },
+      "taskStatus": "Drafted sharp reply confirming Thursday 4 PM delivery and Friday review scheduled"
+    },
+    {
+      "id": "schedule_review",
+      "service": "calendar",
+      "action": "create",
+      "parameters": {
+        "title": "Q4 Security Architecture Review",
+        "startAt": "2026-09-04T10:00:00+05:30",
+        "durationMinutes": 45,
+        "notes": "Review revised architecture document with Maya Chen. Related email: {{steps.read_client_email.subject}}"
+      },
+      "taskStatus": "Review meeting locked Friday 10 AM for 45 minutes with notes attached cleanly"
+    },
+    {
+      "id": "update_client_notes",
+      "service": "notes",
+      "action": "create",
+      "parameters": {
+        "title": "Maya Chen — Q4 Security Review",
+        "body": "Client: Maya Chen\nSubject: {{steps.read_client_email.subject}}\nCommitment: Revised architecture document due Thursday at 4 PM.\nReview: Friday at 10 AM.\n\nEmail context:\n{{steps.read_client_email.content}}"
+      },
+      "taskStatus": "Captured client notes with subject and email context preserved and organized sharply"
+    },
+    {
+      "id": "create_delivery_reminder",
+      "service": "reminders",
+      "action": "create",
+      "parameters": {
+        "title": "Finish Q4 security architecture document",
+        "notes": "Complete the revised architecture before the commitment to Maya Chen.",
+        "dueAt": "2026-09-03T14:00:00+05:30",
+        "priority": 1
+      },
+      "taskStatus": "Delivery reminder armed Thursday 2 PM high priority to finish document on time"
+    }
+  ]
+}

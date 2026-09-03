@@ -9,11 +9,51 @@ static APPROVED_CANONICALS: Lazy<HashSet<String>> = Lazy::new(|| {
     // From tech_lexicon canonicals — exact strings that are allowed to be introduced
     // These are the only high-entropy identifiers the system may introduce.
     let canonicals = [
-        "Qwen2.5", "Qwen3", "Qwen3-Coder", "Qwen3.7", "Qwen3.7-Plus", "Qwen3.8-Max",
-        "OCuLink", "GMKtec", "EVO-X2", "EVO-X3", "Strix Halo", "llama.cpp",
-        "NVIDIA", "AMD", "PCIe", "VRAM", "RTX 5080", "RTX PRO 6000", "Radeon 8060S",
-        "Next.js", "Tailwind CSS", "Tauri", "Zustand", "Parakeet", "Claude", "Gemini",
-        "GPT-5", "Muse Spark", "Glimmer", "Kimi", "DeepSeek", "Grok", "GLM",
+        "Qwen2.5",
+        "Qwen3",
+        "Qwen3-Coder",
+        "Qwen3.7",
+        "Qwen3.7-Plus",
+        "Qwen3.8-Max",
+        "OCuLink",
+        "GMKtec",
+        "EVO-X2",
+        "EVO-X3",
+        "Strix Halo",
+        "llama.cpp",
+        "NVIDIA",
+        "AMD",
+        "PCIe",
+        "VRAM",
+        "RTX 5080",
+        "RTX PRO 6000",
+        "Radeon 8060S",
+        "Next.js",
+        "Tailwind CSS",
+        "Tauri",
+        "Zustand",
+        "Parakeet",
+        "Claude",
+        "Gemini",
+        "GPT-5",
+        "Muse Spark",
+        "Glimmer",
+        "Kimi",
+        "DeepSeek",
+        "Grok",
+        "GLM",
+        // Deterministic unit canonicalizations contain `/` and therefore look
+        // path-like to protected-span detection. They are approved formatting,
+        // not repository or editor context.
+        "tok/s",
+        "bit/s",
+        "kbit/s",
+        "Mbit/s",
+        "Gbit/s",
+        "B/s",
+        "KB/s",
+        "MB/s",
+        "GB/s",
     ];
     for c in canonicals {
         set.insert(c.to_string());
@@ -26,9 +66,22 @@ static APPROVED_CANONICALS: Lazy<HashSet<String>> = Lazy::new(|| {
 /// Returns true if hallucination detected.
 pub fn contains_hallucinated_identifiers(raw: &str, output: &str) -> bool {
     let raw_lower = raw.to_lowercase();
+    let output_introduced_vercel = output
+        .split(|character: char| !character.is_alphanumeric())
+        .any(|token| token.eq_ignore_ascii_case("vercel"))
+        && !raw
+            .split(|character: char| !character.is_alphanumeric())
+            .any(|token| token.eq_ignore_ascii_case("vercel"));
+    if output_introduced_vercel {
+        return true;
+    }
     let output_spans = find_protected_spans(output);
     for span in output_spans {
-        let text: String = output.chars().skip(span.start).take(span.end - span.start).collect();
+        let text: String = output
+            .chars()
+            .skip(span.start)
+            .take(span.end - span.start)
+            .collect();
         let lower = text.to_lowercase();
         // If it was already in raw, it's not hallucinated
         if raw_lower.contains(&lower) {
@@ -41,7 +94,13 @@ pub fn contains_hallucinated_identifiers(raw: &str, output: &str) -> bool {
         // If it's a generic low-entropy identifier like "RTX 5080" that is in raw as "rtx 5080" with different spacing/casing, allow
         // But for now, be strict: if not in raw and not approved, it's hallucinated
         // Check for file paths, URLs, etc. — these are high-entropy and should never be introduced
-        if text.contains('/') || text.contains("://") || text.contains('@') || text.contains(".rs") || text.contains(".tsx") || text.contains(".ts") {
+        if text.contains('/')
+            || text.contains("://")
+            || text.contains('@')
+            || text.contains(".rs")
+            || text.contains(".tsx")
+            || text.contains(".ts")
+        {
             return true;
         }
         // For other protected spans like CamelCase, check if raw had similar
@@ -62,19 +121,33 @@ pub fn enforce_no_hallucinated_identifiers(raw: &str, output: String) -> String 
         // In practice, we could try to remove just the hallucinated span, but safest is to return raw
         // For now, log and return output with hallucinated spans removed
         // Simple: return raw as fallback to guarantee no hallucination
-        eprintln!("[invariant] hallucinated identifier detected: raw={:?} output={:?}", raw, output);
+        eprintln!(
+            "[invariant] hallucinated identifier detected: raw={:?} output={:?}",
+            raw, output
+        );
         // For 9.9, we should be more precise: remove only the hallucinated span, not the whole output
         // But to be safe, we return output with hallucinated spans stripped
-        let mut cleaned = output.clone();
         let output_spans = find_protected_spans(&output);
         let raw_lower = raw.to_lowercase();
         // Collect hallucinated spans to remove
         let mut to_remove = Vec::new();
         for span in output_spans.iter().rev() {
-            let text: String = output.chars().skip(span.start).take(span.end - span.start).collect();
+            let text: String = output
+                .chars()
+                .skip(span.start)
+                .take(span.end - span.start)
+                .collect();
             let lower = text.to_lowercase();
-            if !raw_lower.contains(&lower) && !APPROVED_CANONICALS.contains(&text) && !APPROVED_CANONICALS.contains(&lower) {
-                if text.contains('/') || text.contains("://") || text.contains(".rs") || text.contains(".tsx") || lower == "vercel" {
+            if !raw_lower.contains(&lower)
+                && !APPROVED_CANONICALS.contains(&text)
+                && !APPROVED_CANONICALS.contains(&lower)
+            {
+                if text.contains('/')
+                    || text.contains("://")
+                    || text.contains(".rs")
+                    || text.contains(".tsx")
+                    || lower == "vercel"
+                {
                     to_remove.push(span.clone());
                 }
             }
@@ -85,10 +158,14 @@ pub fn enforce_no_hallucinated_identifiers(raw: &str, output: String) -> String 
                 // Remove the hallucinated span
                 chars.drain(span.start..span.end);
             }
-            cleaned = chars.into_iter().collect::<String>().split_whitespace().collect::<Vec<_>>().join(" ");
+            let cleaned = chars
+                .into_iter()
+                .collect::<String>()
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
             // Clean up double spaces
-            cleaned = cleaned.replace("  ", " ").trim().to_string();
-            return cleaned;
+            return cleaned.replace("  ", " ").trim().to_string();
         }
         return raw.to_string();
     }

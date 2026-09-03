@@ -50,6 +50,31 @@ fn build_native_page_context() {
         manifest.join("native/SendKey.swift"),
         manifest.join("native/Calendar.swift"),
         manifest.join("native/MeetingAudio.swift"),
+        manifest.join("src/audio_toolkit/audio/enhancer.swift"),
+        // Automation engine (deterministic voice actions). SuperflowCLI.swift
+        // is excluded: it carries @main for the standalone CLI binary and must
+        // not be linked into the app archive.
+        manifest.join("src/automations/ActionRegistry.swift"),
+        manifest.join("src/automations/ActionRouter.swift"),
+        manifest.join("src/automations/AgentOrchestrator.swift"),
+        manifest.join("src/automations/AppleScriptRunner.swift"),
+        manifest.join("src/automations/AutomationError.swift"),
+        manifest.join("src/automations/AutomationModels.swift"),
+        manifest.join("src/automations/AutomationServiceHandler.swift"),
+        manifest.join("src/automations/CalendarAutomation.swift"),
+        manifest.join("src/automations/Confirmation.swift"),
+        manifest.join("src/automations/GeminiPlanner.swift"),
+        manifest.join("src/automations/JSONValue.swift"),
+        manifest.join("src/automations/MailAutomation.swift"),
+        manifest.join("src/automations/NotesAutomation.swift"),
+        manifest.join("src/automations/ObservationReducer.swift"),
+        manifest.join("src/automations/PlanDecoder.swift"),
+        manifest.join("src/automations/PlanExecutor.swift"),
+        manifest.join("src/automations/Planner.swift"),
+        manifest.join("src/automations/RemindersAutomation.swift"),
+        manifest.join("src/automations/RuntimeRequirements.swift"),
+        manifest.join("src/automations/SuperflowAutomationRuntime.swift"),
+        manifest.join("src/automations/TemplateResolver.swift"),
     ];
     let output_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let archive = output_dir.join("libsuperflow_page_context.a");
@@ -120,6 +145,7 @@ fn build_native_page_context() {
     println!("cargo:rustc-link-lib=framework=EventKit");
     println!("cargo:rustc-link-lib=framework=CoreAudio");
     println!("cargo:rustc-link-lib=framework=AVFoundation");
+    println!("cargo:rustc-link-lib=framework=AudioToolbox");
 }
 
 /// Stage the MSVC runtime DLLs into `transcribe-libs/` for app-local deployment.

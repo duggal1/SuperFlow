@@ -189,12 +189,6 @@ pub fn has_strong_slack_signal(text: &str) -> bool {
 
     for (index, word) in words.iter().enumerate() {
         let normalized = normalized_word(word);
-        let core = trim_token_punctuation(word);
-        if (core.starts_with('@') || core.starts_with('#'))
-            && valid_slack_name(core.trim_start_matches(['@', '#']))
-        {
-            return true;
-        }
 
         if matches!(
             normalized.as_str(),
@@ -316,7 +310,7 @@ fn normalize_spoken_slack_segment(text: &str, slack_message: bool) -> String {
     output
 }
 
-fn normalize_spoken_slack_words(text: &str, slack_message: bool) -> String {
+fn normalize_spoken_slack_words(text: &str, _slack_message: bool) -> String {
     let trimmed = text.trim();
     if trimmed.is_empty() {
         return text.to_string();
@@ -365,17 +359,6 @@ fn normalize_spoken_slack_words(text: &str, slack_message: bool) -> String {
             .is_some_and(|candidate| valid_spoken_slack_name(candidate))
         {
             output.push(with_slack_sigil(words[index + 1], '#'));
-            index += 2;
-            continue;
-        }
-
-        if normalized == "at"
-            && slack_message
-            && words
-                .get(index + 1)
-                .is_some_and(|candidate| valid_spoken_slack_name(candidate))
-        {
-            output.push(with_slack_sigil(words[index + 1], '@'));
             index += 2;
             continue;
         }

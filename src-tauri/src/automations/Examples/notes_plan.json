@@ -1,0 +1,14 @@
+{
+  "steps": [
+    {
+      "id": "create_note",
+      "service": "notes",
+      "action": "create",
+      "parameters": {
+        "title": "ASR Research",
+        "body": "Research local ASR model benchmarks."
+      },
+      "taskStatus": "Created ASR research note capturing local benchmarks cleanly and concisely today"
+    }
+  ]
+}

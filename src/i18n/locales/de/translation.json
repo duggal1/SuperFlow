@@ -426,6 +426,10 @@
         "title": "Sprachaktivitätserkennung (VAD)",
         "description": "Filtert Stille aus Aufnahmen. Streamingfähige Modelle verwenden ein längeres VAD-Ende; das Deaktivieren von VAD nimmt Rohaudio auf."
       },
+      "audioEnhancement": {
+        "title": "Audioverbesserung",
+        "description": "Entfernt Hintergrundgeräusche und verstärkt Ihre Stimme vor der Transkription. Hilft in lauter Umgebung und bei leiser oder geflüsterter Sprache."
+      },
       "fillerWordRemoval": {
         "title": "Füllwörter entfernen",
         "description": "Entfernt häufige Verzögerungslaute aus Transkriptionen. Deaktivieren Sie diese Option, um sie beizubehalten."

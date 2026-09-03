@@ -18,8 +18,19 @@
     "aiCleanup": "Prompt Engineering",
     "history": "History",
     "meeting": "Meeting",
+    "agents": "Agents",
     "debug": "Debug",
     "about": "About"
+  },
+  "agents": {
+    "title": "Agents",
+    "subtitle": "The most powerful way to do professional work with your voice",
+    "google": "Google",
+    "microsoft": "Microsoft",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connected": "Connected",
+    "notConnected": "Not connected"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -98,14 +109,6 @@
       "cohere-int8": {
         "name": "Cohere",
         "description": "A large, slower, but very accurate multilingual model."
-      },
-      "granite-speech-5-0-470m-turboctc-nc": {
-        "name": "Granite Speech 5.0 470M TurboCTC",
-        "description": "IBM's newest streaming model — tiny, low-latency, 5.00% WER"
-      },
-      "granite-speech-5-0-470m-turboctc-coreml-q8": {
-        "name": "Granite Speech 5.0 470M TurboCTC CoreML Q8",
-        "description": "Apple Silicon CoreML — 8-bit, streaming, ultra low-latency"
       }
     },
     "errors": {
@@ -457,6 +460,10 @@
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
         "description": "Filter silence from recordings. Streaming-capable models use a longer VAD tail; disabling VAD records raw audio."
+      },
+      "audioEnhancement": {
+        "title": "Audio Enhancement",
+        "description": "Removes background noise and boosts your voice before transcription. Helps in noisy places and with quiet or whispered speech."
       },
       "fillerWordRemoval": {
         "title": "Remove Filler Words",
