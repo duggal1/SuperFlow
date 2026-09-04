@@ -193,8 +193,10 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     );
     let history_manager =
         Arc::new(HistoryManager::new(app_handle).expect("Failed to initialize history manager"));
-    let tts_manager =
-        Arc::new(crate::managers::tts::TtsManager::new(app_handle).expect("Failed to initialize TTS manager"));
+    let tts_manager = Arc::new(
+        crate::managers::tts::TtsManager::new(app_handle)
+            .expect("Failed to initialize TTS manager"),
+    );
 
     // Initialize the transcribe-cpp native backend (logging + backend module
     // registration) once, before any whisper model is loaded.
@@ -222,6 +224,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(history_manager.clone());
     app_handle.manage(tts_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
+
+    // Load the engine and its generation pipeline off the first-preview path.
+    tauri::async_runtime::spawn(async move {
+        if let Err(error) = tts_manager.warm().await {
+            log::warn!("pocket-tts warmup failed: {error:#}");
+        }
+    });
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command

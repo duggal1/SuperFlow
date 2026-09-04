@@ -1,8 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { invoke } from "@tauri-apps/api/core"
-import { convertFileSrc } from "@tauri-apps/api/core"
+import { Channel, invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
@@ -10,7 +9,7 @@ import { IOSSpinner } from "@/components/shared/global-spinner"
 import { useIsLight } from "@/lib/utils/theme"
 import { Orb } from "./orb"
 import { PocketVoicePicker, type PocketVoice } from "./pocket-voice-picker"
-import { Pause, Play, Download } from "lucide-react"
+import { Square, Play, Download } from "lucide-react"
 
 type TtsStatus = {
   engine_available: boolean
@@ -25,6 +24,16 @@ type TtsDownloadProgress = {
   percent: number
 }
 
+type TtsStreamEvent =
+  | { event: "started"; sample_rate: number }
+  | { event: "chunk"; samples: number[] }
+  | { event: "finished"; duration_ms: number; first_audio_ms: number }
+
+type TtsSynthesisSummary = {
+  duration_ms: number
+  first_audio_ms: number
+}
+
 const PLACEHOLDER_TEXT = "Hello! I'm your on-device voice — ready to help you get things done."
 
 export function TtsVoiceSection() {
@@ -34,14 +43,19 @@ export function TtsVoiceSection() {
   const [text, setText] = React.useState(PLACEHOLDER_TEXT)
   const [isDownloading, setIsDownloading] = React.useState(false)
   const [isSynthesizing, setIsSynthesizing] = React.useState(false)
-  const [audioSrc, setAudioSrc] = React.useState<string | null>(null)
+  const [hasPreview, setHasPreview] = React.useState(false)
+  const [firstAudioMs, setFirstAudioMs] = React.useState<number | null>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [voices, setVoices] = React.useState<PocketVoice[]>([])
   const [voiceId, setVoiceId] = React.useState<string>("alba")
-  const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  const audioContextRef = React.useRef<AudioContext | null>(null)
+  const audioChunksRef = React.useRef<Float32Array[]>([])
+  const scheduledSourcesRef = React.useRef<Set<AudioBufferSourceNode>>(new Set())
+  const nextStartTimeRef = React.useRef(0)
+  const streamCompleteRef = React.useRef(false)
+  const playbackGenerationRef = React.useRef(0)
   const mountedRef = React.useRef(true)
-  const synthTimerRef = React.useRef<number | null>(null)
 
   const orbColors = React.useMemo<[string, string]>(
     () => ["#BCCFF7", "#144FFF"],
@@ -60,20 +74,29 @@ export function TtsVoiceSection() {
     }
   }, [])
 
+  const stopPlayback = React.useCallback(() => {
+    playbackGenerationRef.current += 1
+    for (const source of scheduledSourcesRef.current) {
+      try {
+        source.stop()
+      } catch {
+        // The source may already have ended.
+      }
+    }
+    scheduledSourcesRef.current.clear()
+    nextStartTimeRef.current = 0
+    if (mountedRef.current) setIsPlaying(false)
+  }, [])
+
   React.useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
-      if (synthTimerRef.current !== null) {
-        window.clearTimeout(synthTimerRef.current)
-        synthTimerRef.current = null
-      }
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.removeAttribute("src")
-      }
+      stopPlayback()
+      void audioContextRef.current?.close()
+      audioContextRef.current = null
     }
-  }, [])
+  }, [stopPlayback])
 
   const refreshVoices = React.useCallback(async () => {
     try {
@@ -92,6 +115,10 @@ export function TtsVoiceSection() {
   const handleVoiceChange = React.useCallback(async (id: string) => {
     if (!mountedRef.current) return
     const prev = voiceId
+    stopPlayback()
+    audioChunksRef.current = []
+    setHasPreview(false)
+    setFirstAudioMs(null)
     setVoiceId(id)
     try {
       await invoke("tts_set_voice", { voice: id })
@@ -100,7 +127,7 @@ export function TtsVoiceSection() {
       setVoiceId(prev)
       setError(String(e))
     }
-  }, [voiceId])
+  }, [stopPlayback, voiceId])
 
   React.useEffect(() => {
     let cancelled = false
@@ -156,34 +183,101 @@ export function TtsVoiceSection() {
     if (!mountedRef.current) return
     setError(null)
     setIsSynthesizing(true)
+    setHasPreview(false)
+    setFirstAudioMs(null)
+    stopPlayback()
+    audioChunksRef.current = []
+    streamCompleteRef.current = false
     try {
-      const filePath = await invoke<string>("tts_synthesize", { text: trimmed })
-      if (!mountedRef.current) return
-      const assetUrl = convertFileSrc(filePath, "asset")
-      setAudioSrc(assetUrl)
-      if (synthTimerRef.current !== null) window.clearTimeout(synthTimerRef.current)
-      synthTimerRef.current = window.setTimeout(() => {
-        synthTimerRef.current = null
-        if (!mountedRef.current || !audioRef.current) return
-        audioRef.current.src = assetUrl
-        audioRef.current.load()
-        void audioRef.current.play().catch(() => {})
-      }, 50)
+      const context = audioContextRef.current ?? new AudioContext({ sampleRate: 24_000 })
+      audioContextRef.current = context
+      await context.resume()
+      nextStartTimeRef.current = context.currentTime
+      const generation = playbackGenerationRef.current
+      const channel = new Channel<TtsStreamEvent>()
+      channel.onmessage = (event) => {
+        if (!mountedRef.current || generation !== playbackGenerationRef.current) return
+        if (event.event === "started") {
+          setIsPlaying(true)
+          return
+        }
+        if (event.event === "finished") {
+          streamCompleteRef.current = true
+          setHasPreview(true)
+          setFirstAudioMs(event.first_audio_ms)
+          if (scheduledSourcesRef.current.size === 0) setIsPlaying(false)
+          return
+        }
+
+        const samples = Float32Array.from(event.samples, (sample) => sample / 32_768)
+        audioChunksRef.current.push(samples)
+        const buffer = context.createBuffer(1, samples.length, event.samples.length > 0 ? 24_000 : context.sampleRate)
+        buffer.copyToChannel(samples, 0)
+        const source = context.createBufferSource()
+        source.buffer = buffer
+        source.connect(context.destination)
+        const startAt = Math.max(context.currentTime + 0.025, nextStartTimeRef.current)
+        nextStartTimeRef.current = startAt + buffer.duration
+        scheduledSourcesRef.current.add(source)
+        source.onended = () => {
+          scheduledSourcesRef.current.delete(source)
+          if (
+            mountedRef.current &&
+            generation === playbackGenerationRef.current &&
+            streamCompleteRef.current &&
+            scheduledSourcesRef.current.size === 0
+          ) {
+            setIsPlaying(false)
+          }
+        }
+        source.start(startAt)
+      }
+      const summary = await invoke<TtsSynthesisSummary>("tts_synthesize", {
+        text: trimmed,
+        onEvent: channel,
+      })
+      if (mountedRef.current) {
+        setHasPreview(true)
+        setFirstAudioMs(summary.first_audio_ms)
+      }
     } catch (e) {
+      stopPlayback()
       if (mountedRef.current) setError(String(e))
     } finally {
       if (mountedRef.current) setIsSynthesizing(false)
     }
-  }, [text])
+  }, [stopPlayback, text])
 
   const togglePlay = React.useCallback(() => {
-    if (!audioRef.current || !audioSrc) return
     if (isPlaying) {
-      audioRef.current.pause()
-    } else {
-      void audioRef.current.play().catch(() => {})
+      stopPlayback()
+      return
     }
-  }, [isPlaying, audioSrc])
+    const context = audioContextRef.current
+    const chunks = audioChunksRef.current
+    if (!context || chunks.length === 0) return
+    stopPlayback()
+    const generation = playbackGenerationRef.current
+    const sampleCount = chunks.reduce((total, chunk) => total + chunk.length, 0)
+    const samples = new Float32Array(sampleCount)
+    let offset = 0
+    for (const chunk of chunks) {
+      samples.set(chunk, offset)
+      offset += chunk.length
+    }
+    const buffer = context.createBuffer(1, samples.length, 24_000)
+    buffer.copyToChannel(samples, 0)
+    const source = context.createBufferSource()
+    source.buffer = buffer
+    source.connect(context.destination)
+    scheduledSourcesRef.current.add(source)
+    source.onended = () => {
+      scheduledSourcesRef.current.delete(source)
+      if (mountedRef.current && generation === playbackGenerationRef.current) setIsPlaying(false)
+    }
+    setIsPlaying(true)
+    void context.resume().then(() => source.start())
+  }, [isPlaying, stopPlayback])
 
   const isDownloaded = status?.model_downloaded === true
   const showProgress = isDownloading && progress !== null
@@ -236,7 +330,7 @@ export function TtsVoiceSection() {
       {!isDownloaded ? (
         <div className="flex flex-col gap-3 pt-1">
           <p className={`text-xs leading-4 ${isLight ? "text-stone-600" : "text-stone-400"}`}>
-            Download this to get started. Only 200 MB at BF16 with 8 voices included.
+            Download the on-device model and eight prepared voices to get started.
           </p>
           {showProgress && (
             <div className={`flex flex-col gap-1.5 rounded-lg px-3 py-2.5 ${isLight ? "bg-stone-50" : "bg-[#32302d]"}`}>
@@ -290,46 +384,38 @@ export function TtsVoiceSection() {
               size="sm"
               onClick={handleSynthesize}
               disabled={isSynthesizing || !text.trim()}
-              icon={isSynthesizing ? <IOSSpinner size={12} /> : isPlaying ? <Pause size={14} /> : <Play size={14} />}
+              icon={isSynthesizing ? <IOSSpinner size={12} /> : <Play size={14} />}
             >
-              {isSynthesizing ? "Synthesizing…" : audioSrc ? "Regenerate" : "Play"}
+              {isSynthesizing ? "Streaming…" : hasPreview ? "Regenerate" : "Play"}
             </Button>
-            {audioSrc && (
+            {hasPreview && (
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={togglePlay}
-                icon={isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                icon={isPlaying ? <Square size={14} /> : <Play size={14} />}
               >
-                {isPlaying ? "Pause" : "Play preview"}
+                {isPlaying ? "Stop" : "Play preview"}
               </Button>
             )}
-            <span className={`ml-auto text-[11px] ${isLight ? "text-stone-400" : "text-stone-500"}`}>CPU · 24 kHz</span>
+            <span className={`ml-auto text-[11px] ${isLight ? "text-stone-400" : "text-stone-500"}`}>
+              {firstAudioMs === null ? "Metal · 24 kHz" : `First audio · ${firstAudioMs} ms`}
+            </span>
           </div>
 
-          <audio
-            ref={audioRef}
-            className="hidden"
-            crossOrigin="anonymous"
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={() => setIsPlaying(false)}
-            onError={() => setError("Audio playback failed")}
-          />
-
-          {audioSrc && (
+          {hasPreview && (
             <div className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${isLight ? "bg-stone-50" : "bg-[#32302d]"}`}>
               <button
                 type="button"
                 onClick={togglePlay}
                 className={`flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full ${isLight ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                aria-label={isPlaying ? "Pause" : "Play"}
+                aria-label={isPlaying ? "Stop" : "Play"}
               >
-                {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+                {isPlaying ? <Square className="size-3.5" /> : <Play className="size-4" />}
               </button>
               <div className="min-w-0 flex-1">
-                <p className={`truncate text-xs font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}>preview.wav</p>
-                <p className={`text-[11px] ${isLight ? "text-stone-500" : "text-stone-400"}`}>On-device · Pocket TTS</p>
+                <p className={`truncate text-xs font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}>Voice preview</p>
+                <p className={`text-[11px] ${isLight ? "text-stone-500" : "text-stone-400"}`}>On-device · Streaming PCM</p>
               </div>
               <span className={`shrink-0 text-[11px] ${isPlaying ? "text-blue-600" : isLight ? "text-stone-400" : "text-stone-500"}`}>
                 {isPlaying ? "Playing" : "Ready"}

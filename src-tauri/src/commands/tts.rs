@@ -1,16 +1,17 @@
 use std::sync::Arc;
 
-use tauri::{AppHandle, State};
+use tauri::{ipc::Channel, AppHandle, State};
 
-use crate::managers::tts::{TtsDownloadProgress, TtsStatus, TtsVoice};
+use crate::managers::tts::{
+    TtsDownloadProgress, TtsStatus, TtsStreamEvent, TtsSynthesisSummary, TtsVoice,
+};
 
 #[tauri::command]
 #[specta::specta]
 pub async fn tts_status(
-    app_handle: AppHandle,
     tts_manager: State<'_, Arc<crate::managers::tts::TtsManager>>,
 ) -> Result<TtsStatus, String> {
-    Ok(tts_manager.status(&app_handle))
+    Ok(tts_manager.status())
 }
 
 #[tauri::command]
@@ -28,18 +29,14 @@ pub async fn tts_download_model(
 #[tauri::command]
 #[specta::specta]
 pub async fn tts_synthesize(
-    app_handle: AppHandle,
     tts_manager: State<'_, Arc<crate::managers::tts::TtsManager>>,
     text: String,
-) -> Result<String, String> {
-    let manager = tts_manager.inner().clone();
-    let handle = app_handle.clone();
-    // Synthesis is blocking (spawns crispasr subprocess) — keep it off the async runtime
-    let path = tokio::task::spawn_blocking(move || manager.synthesize(&handle, text))
+    on_event: Channel<TtsStreamEvent>,
+) -> Result<TtsSynthesisSummary, String> {
+    tts_manager
+        .synthesize_stream(text, on_event)
         .await
-        .map_err(|e| format!("synthesize task failed: {e}"))?
-        .map_err(|e| e.to_string())?;
-    Ok(path.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
 }
 
 /// Pocket-TTS preset voices (Kyutai catalog) pulled from the real backend.

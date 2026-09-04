@@ -1286,9 +1286,9 @@ async ttsDownloadModel() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async ttsSynthesize(text: string) : Promise<Result<string, string>> {
+async ttsSynthesize(text: string, onEvent: TAURI_CHANNEL<TtsStreamEvent>) : Promise<Result<TtsSynthesisSummary, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("tts_synthesize", { text }) };
+    return { status: "ok", data: await TAURI_INVOKE("tts_synthesize", { text, onEvent }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1752,13 +1752,8 @@ export type StreamWorkKind = "transcribing" | "polishing" | "finalizing"
 export type Theme = "system" | "light" | "dark"
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 export type TtsStatus = { engine_available: boolean; model_downloaded: boolean; model_size_bytes: number; downloading: boolean }
-/**
- * One Pocket-TTS preset voice (Kyutai catalog). The `novc` checkpoint ships
- * a single default voice; these eight presets are the selection layer.
- * Selection persists locally; the engine receives `--voice` only when it
- * resolves to a real GGUF pack / reference WAV on disk, otherwise the
- * default-voice path runs unchanged.
- */
+export type TtsStreamEvent = { event: "started"; sample_rate: number } | { event: "chunk"; samples: number[] } | { event: "finished"; duration_ms: number; first_audio_ms: number }
+export type TtsSynthesisSummary = { duration_ms: number; first_audio_ms: number }
 export type TtsVoice = { id: string; name: string }
 export type TypingTool = "auto" | "wtype" | "kwtype" | "dotool" | "ydotool" | "xdotool"
 /**
