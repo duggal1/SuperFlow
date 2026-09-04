@@ -6,6 +6,9 @@ mod resampler;
 mod utils;
 mod visualizer;
 
+// The apple-voice microphone-mode API is macOS-only (backed by enhancer.swift);
+// the commands layer returns an error on every other platform.
+#[cfg(target_os = "macos")]
 pub use apple_voice::{active_microphone_mode, preferred_microphone_mode, show_microphone_modes};
 pub use device::{
     list_input_devices, list_output_devices, safe_macos_input_device_name, CpalDeviceInfo,
