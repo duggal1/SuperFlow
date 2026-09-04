@@ -119,7 +119,7 @@ export function PocketVoicePicker({
                 "w-full rounded-md border px-2 py-1.5 text-sm outline-none",
                 isLight
                   ? "border-stone-200/70 bg-stone-50 text-stone-900 placeholder:text-stone-400 focus:border-blue-500"
-                  : "border-white/[0.06] bg-white/[0.04] text-stone-100 placeholder:text-stone-500 focus:border-blue-600",
+                  : "border-white/[0.06] bg-[#363230] text-stone-100 placeholder:text-stone-500 focus:border-blue-600",
               )}
             />
           </div>
@@ -145,8 +145,8 @@ export function PocketVoicePicker({
                     }}
                     className={cn(
                       "flex w-full cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-left transition-colors",
-                      isLight ? "hover:bg-stone-100/80" : "hover:bg-white/[0.08]",
-                      isSelected && (isLight ? "bg-stone-100/80" : "bg-white/[0.08]"),
+                      isLight ? "hover:bg-stone-100/80" : "hover:bg-stone-700",
+                      isSelected && (isLight ? "bg-stone-100/80" : "bg-stone-700"),
                     )}
                   >
                     <span className="relative size-8 shrink-0 overflow-visible">

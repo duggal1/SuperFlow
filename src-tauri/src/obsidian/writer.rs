@@ -376,7 +376,6 @@ mod tests {
             success_message:
                 "Captured your follow-up with Maya Chen in Obsidian, due tomorrow at 5 PM."
                     .to_string(),
-            open_after_write: None,
         }
     }
 

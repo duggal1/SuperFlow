@@ -261,8 +261,8 @@ pub async fn parse_automation_intent(
         if resp.status == "continue" || resp.status == "done" {
             // Synthesize missing taskStatus for robustness (Gemini occasionally omits despite prompt) — keeps hook alive
             for s in &mut resp.steps {
-                if s.taskStatus.is_none() {
-                    s.taskStatus = Some(format!("Executed automation step {} via {}.{} with validated parameters successfully", s.id, s.service.as_str(), s.action));
+                if s.task_status.is_none() {
+                    s.task_status = Some(format!("Executed automation step {} via {}.{} with validated parameters successfully", s.id, s.service.as_str(), s.action));
                 }
             }
             return Ok(Some(resp));
@@ -280,14 +280,14 @@ pub async fn parse_automation_intent(
                     )
                 {
                     for s in &mut steps {
-                        if s.taskStatus.is_none() {
-                            s.taskStatus = Some(format!("Executed automation step {} via {}.{} with validated parameters successfully", s.id, s.service.as_str(), s.action));
+                        if s.task_status.is_none() {
+                            s.task_status = Some(format!("Executed automation step {} via {}.{} with validated parameters successfully", s.id, s.service.as_str(), s.action));
                         }
                     }
                     return Ok(Some(PlannerResponse {
                         status: "done".into(),
                         steps,
-                        finalMessage: val
+                        final_message: val
                             .get("finalMessage")
                             .and_then(|v| v.as_str())
                             .map(|s| s.to_string())
@@ -310,13 +310,13 @@ pub async fn parse_automation_intent(
             if let Ok(mut single) =
                 serde_json::from_value::<crate::automation::AutomationStep>(val.clone())
             {
-                if single.taskStatus.is_none() {
-                    single.taskStatus = Some(format!("Executed automation step {} via {}.{} with validated parameters successfully", single.id, single.service.as_str(), single.action));
+                if single.task_status.is_none() {
+                    single.task_status = Some(format!("Executed automation step {} via {}.{} with validated parameters successfully", single.id, single.service.as_str(), single.action));
                 }
                 return Ok(Some(PlannerResponse {
                     status: "done".into(),
                     steps: vec![single],
-                    finalMessage: None,
+                    final_message: None,
                 }));
             }
         }

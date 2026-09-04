@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button"
 import { IOSSpinner } from "@/components/shared/global-spinner"
 import { useIsLight } from "@/lib/utils/theme"
 import { Orb } from "./orb"
+import { LiveWaveform } from "./waveform"
 import { PocketVoicePicker, type PocketVoice } from "./pocket-voice-picker"
 import { Square, Play, Download } from "lucide-react"
 
@@ -34,7 +35,7 @@ type TtsSynthesisSummary = {
   first_audio_ms: number
 }
 
-const PLACEHOLDER_TEXT = "Hello! I'm your on-device voice — ready to help you get things done."
+const PLACEHOLDER_TEXT = "Hey! I'm your voice. Just tell me what you're working on, and we will take it from there."
 
 export function TtsVoiceSection() {
   const isLight = useIsLight()
@@ -44,7 +45,6 @@ export function TtsVoiceSection() {
   const [isDownloading, setIsDownloading] = React.useState(false)
   const [isSynthesizing, setIsSynthesizing] = React.useState(false)
   const [hasPreview, setHasPreview] = React.useState(false)
-  const [firstAudioMs, setFirstAudioMs] = React.useState<number | null>(null)
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [voices, setVoices] = React.useState<PocketVoice[]>([])
@@ -118,7 +118,6 @@ export function TtsVoiceSection() {
     stopPlayback()
     audioChunksRef.current = []
     setHasPreview(false)
-    setFirstAudioMs(null)
     setVoiceId(id)
     try {
       await invoke("tts_set_voice", { voice: id })
@@ -184,7 +183,6 @@ export function TtsVoiceSection() {
     setError(null)
     setIsSynthesizing(true)
     setHasPreview(false)
-    setFirstAudioMs(null)
     stopPlayback()
     audioChunksRef.current = []
     streamCompleteRef.current = false
@@ -204,7 +202,6 @@ export function TtsVoiceSection() {
         if (event.event === "finished") {
           streamCompleteRef.current = true
           setHasPreview(true)
-          setFirstAudioMs(event.first_audio_ms)
           if (scheduledSourcesRef.current.size === 0) setIsPlaying(false)
           return
         }
@@ -232,13 +229,12 @@ export function TtsVoiceSection() {
         }
         source.start(startAt)
       }
-      const summary = await invoke<TtsSynthesisSummary>("tts_synthesize", {
+      await invoke<TtsSynthesisSummary>("tts_synthesize", {
         text: trimmed,
         onEvent: channel,
       })
       if (mountedRef.current) {
         setHasPreview(true)
-        setFirstAudioMs(summary.first_audio_ms)
       }
     } catch (e) {
       stopPlayback()
@@ -330,7 +326,7 @@ export function TtsVoiceSection() {
       {!isDownloaded ? (
         <div className="flex flex-col gap-3 pt-1">
           <p className={`text-xs leading-4 ${isLight ? "text-stone-600" : "text-stone-400"}`}>
-            Download the on-device model and eight prepared voices to get started.
+            Download the on-device model and four prepared voices to get started.
           </p>
           {showProgress && (
             <div className={`flex flex-col gap-1.5 rounded-lg px-3 py-2.5 ${isLight ? "bg-stone-50" : "bg-[#32302d]"}`}>
@@ -369,7 +365,7 @@ export function TtsVoiceSection() {
               className={`w-full resize-none rounded-lg border px-3 py-2.5 text-sm leading-5 outline-none transition-colors placeholder:text-stone-400 ${
                 isLight
                   ? "border-stone-200 bg-white text-stone-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  : "border-white/[0.06] bg-[#32302d] text-stone-100 focus:border-blue-600"
+                  : "border-white/[0.06] bg-[#363230] text-stone-100 focus:border-blue-600"
               }`}
             />
             <div className="flex items-center justify-between">
@@ -398,29 +394,15 @@ export function TtsVoiceSection() {
                 {isPlaying ? "Stop" : "Play preview"}
               </Button>
             )}
-            <span className={`ml-auto text-[11px] ${isLight ? "text-stone-400" : "text-stone-500"}`}>
-              {firstAudioMs === null ? "Metal · 24 kHz" : `First audio · ${firstAudioMs} ms`}
-            </span>
           </div>
 
           {hasPreview && (
-            <div className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${isLight ? "bg-stone-50" : "bg-[#32302d]"}`}>
-              <button
-                type="button"
-                onClick={togglePlay}
-                className={`flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full ${isLight ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                aria-label={isPlaying ? "Stop" : "Play"}
-              >
-                {isPlaying ? <Square className="size-3.5" /> : <Play className="size-4" />}
-              </button>
-              <div className="min-w-0 flex-1">
-                <p className={`truncate text-xs font-medium ${isLight ? "text-stone-900" : "text-stone-100"}`}>Voice preview</p>
-                <p className={`text-[11px] ${isLight ? "text-stone-500" : "text-stone-400"}`}>On-device · Streaming PCM</p>
-              </div>
-              <span className={`shrink-0 text-[11px] ${isPlaying ? "text-blue-600" : isLight ? "text-stone-400" : "text-stone-500"}`}>
-                {isPlaying ? "Playing" : "Ready"}
-              </span>
-            </div>
+            <LiveWaveform
+              processing={isPlaying || isSynthesizing}
+              barColor="#fafaf9"
+              height={44}
+              className="w-full"
+            />
           )}
         </div>
       )}

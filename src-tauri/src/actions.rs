@@ -1203,7 +1203,7 @@ async fn run_voice_command(
             crate::overlay::show_automation_success_overlay(app, &report);
             if wav_saved {
                 let summary = report
-                    .finalMessage
+                    .final_message
                     .clone()
                     .unwrap_or_else(|| format!("Automation: {} steps", report.observations.len()));
                 let _ = history.save_entry(

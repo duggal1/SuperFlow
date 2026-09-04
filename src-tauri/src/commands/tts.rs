@@ -62,7 +62,10 @@ pub async fn tts_set_voice(
     tts_manager: State<'_, Arc<crate::managers::tts::TtsManager>>,
     voice: String,
 ) -> Result<(), String> {
-    tts_manager.set_voice(voice).map_err(|e| e.to_string())
+    tts_manager
+        .select_voice(voice)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Expose the progress event name for specta generation (frontend can listen to it)

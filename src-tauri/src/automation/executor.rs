@@ -15,7 +15,7 @@ pub async fn execute_steps(
     let mut observations: Vec<StepObservation> = prior_observations.to_vec();
     let mut seen_ids: std::collections::HashSet<String> = prior_observations
         .iter()
-        .map(|o| o.stepID.clone())
+        .map(|o| o.step_id.clone())
         .collect();
     let mut new_observations = Vec::new();
 
@@ -48,7 +48,7 @@ pub async fn execute_steps(
             })?;
 
         // Confirmation check (deterministic)
-        let must_confirm = step.requiresConfirmation.unwrap_or(matches!(
+        let must_confirm = step.requires_confirmation.unwrap_or(matches!(
             def.risk,
             crate::automation::ActionRisk::ExternalWrite
                 | crate::automation::ActionRisk::Destructive
@@ -64,11 +64,11 @@ pub async fn execute_steps(
         // Execute
         let output = execute_single(&step.service, &step.action, &resolved_params).await?;
         let obs = StepObservation {
-            stepID: step.id.clone(),
+            step_id: step.id.clone(),
             service: step.service.clone(),
             action: step.action.clone(),
             output,
-            taskStatus: step.taskStatus.clone(),
+            task_status: step.task_status.clone(),
         };
         observations.push(obs.clone());
         new_observations.push(obs);
@@ -153,7 +153,7 @@ fn resolve_string(
         let obs = observations
             .iter()
             .rev()
-            .find(|o| o.stepID == step_id)
+            .find(|o| o.step_id == step_id)
             .ok_or_else(|| AutomationErrorResult {
                 ok: false,
                 error: "unresolved_reference".into(),

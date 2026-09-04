@@ -20,6 +20,7 @@ import { getLanguageDirection } from "@/lib/utils/rtl";
 import { Button } from "@/components/ui/Button";
 import { LiveWaveform } from "@/components/waves/live-waveform";
 import { IOSSpinner } from "@/components/shared/global-spinner";
+import { speakAgentStatus, stopAgentSpeech } from "./speak-status";
 
 type OverlayState =
   | "recording"
@@ -41,6 +42,9 @@ type OverlayState =
   | "obsidian_success"
   | "obsidian_clarify"
   | "obsidian_failure"
+  | "automation_processing"
+  | "automation_success"
+  | "automation_failure"
   | "ai_notice";
 
 interface CalendarSuccessPayload {
@@ -62,6 +66,16 @@ interface ObsidianSuccessPayload {
   path: string;
   task_status: string;
   success_message: string;
+}
+
+interface AutomationStepPayload {
+  step_id: string;
+  task_status: string;
+}
+
+interface AutomationReportPayload {
+  observations: Array<{ taskStatus?: string }>;
+  finalMessage: string | null;
 }
 
 export const LOADING_STATES: readonly string[] = [
@@ -391,6 +405,8 @@ const RecordingOverlay: React.FC = () => {
           resetResultCard();
           resetCancelToast();
           setAiCleanupNotice(null);
+          // A new dictation interrupts any spoken agent status.
+          stopAgentSpeech();
         }
 
         await syncLanguageFromSettings();
@@ -537,6 +553,7 @@ const RecordingOverlay: React.FC = () => {
           setCalendarFailure(null);
           setPendingCalendarTranscript(null);
           setClarifyInput("");
+          void speakAgentStatus(event.payload.success_message);
         },
       );
       const unlistenCalendarClarify = await listen<string>(
@@ -545,6 +562,7 @@ const RecordingOverlay: React.FC = () => {
           setCalendarClarify(event.payload);
           setCalendarSuccess(null);
           setCalendarFailure(null);
+          void speakAgentStatus(event.payload);
           // Keep pending transcript for when user answers; if not set, use the clarify question's context
           // The processing title already holds the original transcript
         },
@@ -557,6 +575,7 @@ const RecordingOverlay: React.FC = () => {
           setCalendarClarify(null);
           setPendingCalendarTranscript(null);
           setClarifyInput("");
+          void speakAgentStatus(event.payload);
         },
       );
 
@@ -575,6 +594,7 @@ const RecordingOverlay: React.FC = () => {
           setObsidianFailure(null);
           setPendingObsidianTranscript(null);
           setClarifyInput("");
+          void speakAgentStatus(event.payload.success_message);
         },
       );
       const unlistenObsidianClarify = await listen<string>(
@@ -583,6 +603,7 @@ const RecordingOverlay: React.FC = () => {
           setObsidianClarify(event.payload);
           setObsidianSuccess(null);
           setObsidianFailure(null);
+          void speakAgentStatus(event.payload);
         },
       );
       const unlistenObsidianFailure = await listen<string>(
@@ -593,6 +614,29 @@ const RecordingOverlay: React.FC = () => {
           setObsidianClarify(null);
           setPendingObsidianTranscript(null);
           setClarifyInput("");
+          void speakAgentStatus(event.payload);
+        },
+      );
+      const unlistenAutomationStep = await listen<AutomationStepPayload>(
+        "automation-step",
+        (event) => {
+          void speakAgentStatus(event.payload.task_status);
+        },
+      );
+      const unlistenAutomationSuccess = await listen<AutomationReportPayload>(
+        "automation-success",
+        (event) => {
+          const report = event.payload;
+          void speakAgentStatus(
+            report.finalMessage ??
+              `Automation finished: ${report.observations.length} steps`,
+          );
+        },
+      );
+      const unlistenAutomationFailure = await listen<string>(
+        "automation-failure",
+        (event) => {
+          void speakAgentStatus(event.payload);
         },
       );
 
@@ -611,6 +655,9 @@ const RecordingOverlay: React.FC = () => {
         unlistenObsidianSuccess();
         unlistenObsidianClarify();
         unlistenObsidianFailure();
+        unlistenAutomationStep();
+        unlistenAutomationSuccess();
+        unlistenAutomationFailure();
         unlistenResult();
         unlistenCancelToast();
         unlistenAiNotice();

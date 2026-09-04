@@ -42,8 +42,8 @@ pub struct ObsidianCreateRequest {
     pub branch: Option<String>,
     #[serde(default, rename = "fileKey")]
     pub file_key: Option<String>,
-    #[serde(default)]
-    pub vaultPath: Option<String>,
+    #[serde(default, rename = "vaultPath")]
+    pub vault_path: Option<String>,
     #[serde(default)]
     pub mode: Option<String>,
     #[serde(default)]
@@ -68,8 +68,6 @@ pub struct ObsidianCreateRequest {
     pub sources: Option<Vec<ObsidianSource>>,
     pub task_status: String,
     pub success_message: String,
-    #[serde(default)]
-    pub openAfterWrite: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,7 +105,6 @@ pub struct ValidatedObsidianNote {
     pub sources: Option<Vec<ObsidianSource>>,
     pub task_status: String,
     pub success_message: String,
-    pub open_after_write: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -464,7 +461,7 @@ pub fn validate_create_request(
     }
 
     Ok(ValidatedObsidianNote {
-        vault_path: req.vaultPath.clone(),
+        vault_path: req.vault_path.clone(),
         kind: kind.clone(),
         title: title.to_string(),
         branch,
@@ -486,7 +483,6 @@ pub fn validate_create_request(
         sources: req.sources.clone(),
         task_status: task_status,
         success_message: success.to_string(),
-        open_after_write: req.openAfterWrite,
     })
 }
 
@@ -607,7 +603,7 @@ mod tests {
             title: "Maya Chen — Follow-up".to_string(),
             branch: Some("Tasks".to_string()),
             file_key: None,
-            vaultPath: None,
+            vault_path: None,
             mode: None,
             summary: None,
             date: None,
@@ -629,7 +625,6 @@ mod tests {
             success_message:
                 "Captured your follow-up with Maya Chen in Obsidian, due tomorrow at 5 PM."
                     .to_string(),
-            openAfterWrite: None,
         }
     }
 

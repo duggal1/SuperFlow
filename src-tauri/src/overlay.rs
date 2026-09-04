@@ -774,15 +774,6 @@ pub fn show_obsidian_failure_overlay(app_handle: &AppHandle, message: String) {
     });
 }
 
-pub fn show_automation_processing_overlay(app_handle: &AppHandle, title: &str) {
-    show_overlay_state_forced(app_handle, "automation_processing");
-    let handle = app_handle.clone();
-    let title = title.to_string();
-    let _ = app_handle.run_on_main_thread(move || {
-        let _ = handle.emit_to("recording_overlay", "automation-processing", title);
-    });
-}
-
 pub fn show_automation_success_overlay(
     app_handle: &AppHandle,
     report: &crate::automation::ExecutionReport,
@@ -800,6 +791,18 @@ pub fn show_automation_failure_overlay(app_handle: &AppHandle, message: String) 
     let handle = app_handle.clone();
     let _ = app_handle.run_on_main_thread(move || {
         let _ = handle.emit_to("recording_overlay", "automation-failure", message);
+    });
+}
+
+/// Live per-step progress inside the bounded agent loop: the frontend speaks
+/// the step status through the selected voice and the pill shows generic
+/// processing. Terminal states stay on automation-success/failure.
+pub fn show_automation_step_overlay(app_handle: &AppHandle, step_id: &str, task_status: &str) {
+    show_overlay_state_forced(app_handle, "automation_processing");
+    let handle = app_handle.clone();
+    let payload = serde_json::json!({ "step_id": step_id, "task_status": task_status });
+    let _ = app_handle.run_on_main_thread(move || {
+        let _ = handle.emit_to("recording_overlay", "automation-step", payload);
     });
 }
 

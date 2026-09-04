@@ -33,35 +33,56 @@ pub struct AutomationStep {
     pub service: AutomationService,
     pub action: String,
     pub parameters: serde_json::Value,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub taskStatus: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub requiresConfirmation: Option<bool>,
+    #[serde(
+        default,
+        rename = "taskStatus",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub task_status: Option<String>,
+    #[serde(
+        default,
+        rename = "requiresConfirmation",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub requires_confirmation: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlannerResponse {
     pub status: String, // "continue" | "done"
     pub steps: Vec<AutomationStep>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub finalMessage: Option<String>,
+    #[serde(
+        default,
+        rename = "finalMessage",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub final_message: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepObservation {
-    pub stepID: String,
+    #[serde(rename = "stepID")]
+    pub step_id: String,
     pub service: AutomationService,
     pub action: String,
     pub output: serde_json::Value,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub taskStatus: Option<String>,
+    #[serde(
+        default,
+        rename = "taskStatus",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub task_status: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionReport {
     pub observations: Vec<StepObservation>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub finalMessage: Option<String>,
+    #[serde(
+        default,
+        rename = "finalMessage",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub final_message: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -318,7 +339,7 @@ pub fn validate_planner_response(resp: &PlannerResponse) -> Result<(), Automatio
         }
         // safety: externalWrite must have requiresConfirmation true if present or else we will enforce later
         if def.risk == ActionRisk::ExternalWrite || def.risk == ActionRisk::Destructive {
-            if step.requiresConfirmation == Some(false) {
+            if step.requires_confirmation == Some(false) {
                 return Err(AutomationErrorResult {
                     ok: false,
                     error: "validation_error".into(),
@@ -333,7 +354,7 @@ pub fn validate_planner_response(resp: &PlannerResponse) -> Result<(), Automatio
         }
         // taskStatus validation — per-step sharp audit: 10-15 words, DJ-edit clean, not generic.
         // This is the hook you asked for: each step's status is reported alongside its action.
-        if let Some(ts) = &step.taskStatus {
+        if let Some(ts) = &step.task_status {
             let wc = ts.split_whitespace().count();
             if wc < 10 || wc > 15 {
                 return Err(AutomationErrorResult {
@@ -441,11 +462,11 @@ pub fn reduce_observations(obs: &[StepObservation]) -> Vec<StepObservation> {
     }
     obs.iter()
         .map(|o| StepObservation {
-            stepID: o.stepID.clone(),
+            step_id: o.step_id.clone(),
             service: o.service.clone(),
             action: o.action.clone(),
             output: reduce_value(o.output.clone()),
-            taskStatus: o.taskStatus.clone(),
+            task_status: o.task_status.clone(),
         })
         .collect()
 }
@@ -543,11 +564,26 @@ pub async fn handle_automation_transcript(
             executor::execute_steps(&ai_output.steps, &observations, app.cloned()).await;
         match exec_result {
             Ok(new_obs) => {
+                // Live voice feed: surface each finished step's status before
+                // the next round plans. Terminal speech rides automation-success.
+                if let Some(handle) = app {
+                    for obs in &new_obs {
+                        if let Some(task_status) = obs.task_status.as_deref() {
+                            if !task_status.trim().is_empty() {
+                                crate::overlay::show_automation_step_overlay(
+                                    handle,
+                                    &obs.step_id,
+                                    task_status,
+                                );
+                            }
+                        }
+                    }
+                }
                 observations.extend(new_obs);
                 if ai_output.status == "done" {
                     return AutomationHandleResult::Success(ExecutionReport {
                         observations,
-                        finalMessage: ai_output.finalMessage,
+                        final_message: ai_output.final_message,
                     });
                 }
                 // else continue loop — next Gemini call will see observations
