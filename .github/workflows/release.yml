@@ -142,18 +142,32 @@ jobs:
         with:
           script: |
             const tag = '${{ needs.guard.outputs.tag }}'
-            // If a release for this tag already exists (e.g. a re-run), reuse it
-            // rather than failing; stale assets are purged in the next step.
+            // Find any release (draft or published) bound to this tag name.
+            // getReleaseByTag alone can 404 after a force-moved tag (the old
+            // release stays bound to the deleted tag object), which would
+            // silently create a duplicate release — so fall back to listing.
+            let existing
             try {
               const { data } = await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 tag
               })
-              console.log(`Reusing existing release ${data.id} for tag ${tag}`)
-              return data.id
+              existing = data
             } catch (err) {
               if (err.status !== 404) throw err
+            }
+            if (!existing) {
+              const { data: releases } = await github.rest.repos.listReleases({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100
+              })
+              existing = releases.find((r) => r.tag_name === tag)
+            }
+            if (existing) {
+              console.log(`Reusing existing release ${existing.id} for tag ${tag}`)
+              return existing.id
             }
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
@@ -255,7 +269,10 @@ jobs:
   verify-release:
     name: Verify release assets
     permissions:
-      contents: read
+      # contents:write is required because the release is still a DRAFT —
+      # GitHub rejects asset listing on drafts for read-only tokens
+      # ("Resource not accessible by integration").
+      contents: write
     needs: [guard, create-release, publish-tauri]
     runs-on: ubuntu-latest
     steps:
