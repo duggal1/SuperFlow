@@ -1,6 +1,6 @@
 [package]
 name = "superflow"
-version = "1.0.0"
+version = "1.0.1"
 description = "SuperFlow"
 authors = ["cjpais"]
 edition = "2021"

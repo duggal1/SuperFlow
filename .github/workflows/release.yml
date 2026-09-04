@@ -1,47 +1,197 @@
 name: "Release"
 
-on: workflow_dispatch
+# Releases are cut by pushing a version tag (e.g. v1.2.3). The tag IS the
+# release contract: every build job checks out the exact tagged commit, so the
+# binaries attached to a release can never drift from the code the tag names.
+#
+# workflow_dispatch remains available for convenience. It derives the tag from
+# tauri.conf.json, refuses to reuse an existing tag (the root cause of the
+# stale v1.0.0 release), and creates the tag at the dispatched SHA before any
+# build starts.
+#
+# Guards enforced before the expensive cross-platform matrix runs:
+#   1. Tag name must equal "v" + the version in src-tauri/tauri.conf.json.
+#   2. The version must be identical in tauri.conf.json, Cargo.toml, and
+#      Cargo.lock.
+#   3. The checked-out commit must be the tagged commit (tag-push events).
+#   4. Any pre-existing assets on the draft release (left over from an aborted
+#      run) are deleted before new builds upload — a published release can
+#      never carry binaries built from an older commit.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
 
 jobs:
-  create-release:
-    permissions:
-      contents: write
+  guard:
+    name: Verify release alignment
     runs-on: ubuntu-latest
     outputs:
-      release-id: ${{ steps.create-release.outputs.result }}
-      version: ${{ steps.get-version.outputs.version }}
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      build-ref: ${{ steps.meta.outputs.build-ref }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      - name: Get version from tauri.conf.json
-        id: get-version
+      - name: Compute tag and version
+        id: meta
         shell: bash
         run: |
-          VERSION=$(grep -o '"version": "[^"]*"' src-tauri/tauri.conf.json | cut -d'"' -f4)
-          echo "Application version from tauri.conf.json: $VERSION"
+          set -euo pipefail
+          VERSION=$(grep -o '"version": "[^"]*"' src-tauri/tauri.conf.json | head -1 | cut -d'"' -f4)
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::Could not read version from src-tauri/tauri.conf.json" >&2
+            exit 1
+          fi
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            BUILD_REF="${{ github.ref }}"
+          else
+            TAG="v${VERSION}"
+            BUILD_REF="refs/tags/${TAG}"
+          fi
+          echo "Release version: $VERSION  tag: $TAG  build ref: $BUILD_REF"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "build-ref=$BUILD_REF" >> "$GITHUB_OUTPUT"
 
-      - name: Create Draft Release
+      - name: Enforce tag ↔ version ↔ Cargo alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.meta.outputs.version }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+
+          if [[ "$TAG" != "v${VERSION}" ]]; then
+            echo "::error::Tag '$TAG' does not match app version 'v${VERSION}'. Bump the version or re-tag." >&2
+            exit 1
+          fi
+
+          CARGO_VERSION=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml | head -1)
+          if [[ "$CARGO_VERSION" != "$VERSION" ]]; then
+            echo "::error::Version drift: tauri.conf.json=$VERSION but Cargo.toml=$CARGO_VERSION. Sync all version declarations." >&2
+            exit 1
+          fi
+
+          LOCK_VERSION=$(awk '/^name = "superflow"$/{getline; sub(/^version = "/, ""); sub(/"$/, ""); print; exit}' src-tauri/Cargo.lock)
+          if [[ "$LOCK_VERSION" != "$VERSION" ]]; then
+            echo "::error::Version drift: tauri.conf.json=$VERSION but Cargo.lock=$LOCK_VERSION. Run 'cargo update -p superflow'." >&2
+            exit 1
+          fi
+
+          echo "All version declarations agree: $VERSION"
+
+      - name: Enforce tag-to-commit binding (tag push)
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.meta.outputs.tag }}"
+          TAGGED_COMMIT=$(git rev-parse "${TAG}^{commit}")
+          CHECKED_OUT=$(git rev-parse HEAD)
+          if [[ "$TAGGED_COMMIT" != "$CHECKED_OUT" ]]; then
+            echo "::error::Tag $TAG points at $TAGGED_COMMIT but the build checked out $CHECKED_OUT" >&2
+            exit 1
+          fi
+          echo "Tag $TAG resolves to the checked-out commit $CHECKED_OUT"
+
+      - name: Refuse to reuse an existing tag (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.meta.outputs.tag }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists on origin. Reusing it would attach stale code to this release (this is exactly how the v1.0.0 release shipped old binaries). Delete the tag first: git push origin :refs/tags/${TAG}" >&2
+            exit 1
+          fi
+
+  create-release:
+    name: Create draft release
+    permissions:
+      contents: write
+    needs: guard
+    runs-on: ubuntu-latest
+    outputs:
+      release-id: ${{ steps.create-release.outputs.result }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.guard.outputs.build-ref }}
+          fetch-depth: 0
+
+      - name: Create release tag (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.guard.outputs.tag }}"
+          git tag "$TAG" "$GITHUB_SHA" -m "Release $TAG (built from $GITHUB_SHA)"
+          git push origin "$TAG"
+          echo "Created tag $TAG at $GITHUB_SHA"
+
+      - name: Create draft release
         id: create-release
         uses: actions/github-script@v9
         with:
           script: |
+            const tag = '${{ needs.guard.outputs.tag }}'
+            // If a release for this tag already exists (e.g. a re-run), reuse it
+            // rather than failing; stale assets are purged in the next step.
+            try {
+              const { data } = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag
+              })
+              console.log(`Reusing existing release ${data.id} for tag ${tag}`)
+              return data.id
+            } catch (err) {
+              if (err.status !== 404) throw err
+            }
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `v${{ steps.get-version.outputs.version }}`,
-              name: `v${{ steps.get-version.outputs.version }}`,
+              tag_name: tag,
+              name: tag,
               draft: true,
               prerelease: false,
               generate_release_notes: true
             })
             return data.id
 
+      - name: Purge stale assets from previous runs
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const releaseId = Number('${{ steps.create-release.outputs.result }}')
+            const { data: assets } = await github.rest.repos.listReleaseAssets({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+              per_page: 100
+            })
+            for (const asset of assets) {
+              console.log(`Deleting stale asset: ${asset.name}`)
+              await github.rest.repos.deleteReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                asset_id: asset.id
+              })
+            }
+            if (assets.length === 0) console.log('No stale assets found — clean release.')
+
   publish-tauri:
+    name: Build ${{ matrix.target }}
     permissions:
       contents: write
-    needs: create-release
+    needs: [guard, create-release]
     strategy:
       fail-fast: false
       matrix:
@@ -95,7 +245,54 @@ jobs:
       asset-name-pattern: ${{ matrix.asset-name-pattern }}
       upload-artifacts: false
       release-id: ${{ needs.create-release.outputs.release-id }}
+      # Build the exact tagged commit — never a branch head, never a moving ref.
+      ref: ${{ needs.guard.outputs.build-ref }}
       # Releases always build from scratch — never restore the Rust cache, so a
       # stale cached native lib can never be linked into a shipped artifact.
       no-cache: true
     secrets: inherit
+
+  verify-release:
+    name: Verify release assets
+    permissions:
+      contents: read
+    needs: [guard, create-release, publish-tauri]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert every platform artifact landed
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const releaseId = Number('${{ needs.create-release.outputs.release-id }}')
+            const tag = '${{ needs.guard.outputs.tag }}'
+            const { data: assets } = await github.rest.repos.listReleaseAssets({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+              per_page: 100
+            })
+            const names = assets.map((a) => a.name)
+            console.log(`Release ${tag} (${assets.length} assets):`)
+            for (const n of names) console.log(`  - ${n}`)
+
+            const required = [
+              { suffix: '.dmg', label: 'macOS disk image' },
+              { suffix: '.app.tar.gz', label: 'macOS updater archive' },
+              { suffix: '.exe', label: 'Windows NSIS installer' },
+              { suffix: '.msi', label: 'Windows MSI' },
+              { suffix: '.AppImage', label: 'Linux AppImage' },
+              { suffix: '.deb', label: 'Linux deb' },
+              { suffix: '.rpm', label: 'Linux rpm' },
+              { exact: 'latest.json', label: 'Updater manifest' }
+            ]
+            const missing = []
+            for (const r of required) {
+              const ok = r.exact
+                ? names.includes(r.exact)
+                : names.some((n) => n.endsWith(r.suffix))
+              if (!ok) missing.push(r.label)
+            }
+            if (missing.length > 0) {
+              throw new Error(`Release ${tag} is incomplete, missing: ${missing.join(', ')}. Do NOT publish.`)
+            }
+            console.log(`All platform artifacts present. Review the draft and publish ${tag} to make it the latest release.`)
