@@ -549,6 +549,25 @@ jobs:
           chmod +x "$tools_dir/linuxdeploy-${arch}.AppImage"
           "$tools_dir/linuxdeploy-${arch}.AppImage" --appimage-extract-and-run --version
 
+      - name: Resolve Tauri build args (macOS sidecar config)
+        id: tauri-args
+        shell: bash
+        run: |
+          set -euo pipefail
+          args="${{ inputs.build-args }}"
+          if [[ "${{ inputs.platform }}" == *"macos"* ]]; then
+            # tauri.macos.conf.json declares the Granite audio.cpp sidecar
+            # (bundle.externalBin). Tauri never auto-merges platform configs,
+            # and nothing passed --config before — so CI compiled the sidecar
+            # and then shipped a .app WITHOUT it, while local `tauri dev`
+            # survived via dev-only fallback paths (binaries dir, Homebrew,
+            # PATH). That is the exact "works locally, transcription dead in
+            # the .dmg" failure. Merge the config explicitly for macOS builds.
+            args="$args --config $GITHUB_WORKSPACE/src-tauri/tauri.macos.conf.json"
+          fi
+          echo "Tauri build args: $args"
+          echo "args=$args" >> "$GITHUB_OUTPUT"
+
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
         env:
@@ -585,7 +604,7 @@ jobs:
           releaseName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
           releaseId: ${{ inputs.release-id }}
           assetNamePattern: ${{ steps.patch-release-name.outputs.platform }}
-          args: ${{ inputs.build-args }}
+          args: ${{ steps.tauri-args.outputs.args }}
 
       # tauri-action uploads release assets before returning. All AppImage
       # filtering therefore happens inside linuxdeploy above; this verifies the
@@ -620,6 +639,26 @@ jobs:
               exit 1
             fi
           )
+
+      - name: Verify audio.cpp sidecar bundled (macOS)
+        if: contains(inputs.platform, 'macos')
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$(find src-tauri/target -name "*.app" -type d | head -1)"
+          if [ -z "$APP" ]; then
+            echo "ERROR: no .app bundle found under src-tauri/target" >&2
+            exit 1
+          fi
+          echo "Auditing app bundle: $APP"
+          SIDECAR="$(find "$APP/Contents" -name 'audiocpp_cli*' -type f | head -1 || true)"
+          if [ -z "$SIDECAR" ]; then
+            echo "ERROR: audiocpp_cli sidecar missing from $APP — transcription would be dead in this artifact." >&2
+            echo "The build must merge src-tauri/tauri.macos.conf.json (bundle.externalBin)." >&2
+            find "$APP/Contents/MacOS" -maxdepth 1 >&2 || true
+            exit 1
+          fi
+          echo "OK: sidecar present at $SIDECAR"
 
       - name: Verify macOS dylib bundling
         if: inputs.target == 'x86_64-apple-darwin'

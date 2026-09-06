@@ -173,7 +173,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col p-6 gap-4 inset-0 sidebar-material">
+    <div className="flex h-full w-full flex-col gap-4 overflow-hidden bg-transparent p-6">
       <div className="flex flex-col items-center gap-2 shrink-0">
         <SuperFlowTextLogo size={22} />
         <p className="text-text/70 max-w-md font-medium mx-auto">
@@ -181,7 +181,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
         </p>
       </div>
 
-      <div className="max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0">
+      <div className="max-w-[600px] w-full mx-auto text-center flex-1 flex flex-col min-h-0 overflow-y-auto bg-transparent">
         <div className="space-y-6 pb-6">
           {models.some((m: ModelInfo) => m.is_downloaded) && (
             <div className="space-y-3">

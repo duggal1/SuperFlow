@@ -264,11 +264,17 @@ mod imp {
         std::ptr::null_mut()
     }
 
-    pub fn init(app: &AppHandle) {
-        if APP_HANDLE.set(app.clone()).is_err() {
-            return; // already installed
-        }
+    /// First install failure logs an actionable warning (a fresh .dmg install
+    /// is a brand-new TCC identity, separate from the dev binary); later
+    /// attempts stay quiet so the log isn't spammed on every session start.
+    static INSTALL_WARNED: AtomicBool = AtomicBool::new(false);
 
+    /// Attempt tap installation. No-op once armed, so safe to call repeatedly
+    /// (boot, permission grant, every session start). Returns tap state.
+    fn install_tap_port() -> bool {
+        if TAP_PORT.get().is_some() {
+            return true;
+        }
         // Session-level tap, head-insert. It passes through every event except
         // deliberate session controls that must not also reach the focused app.
         // keyDown drives cancel; keyUp/flagsChanged maintain the held-key map
@@ -284,17 +290,26 @@ mod imp {
             )
         };
         if port.is_null() {
-            warn!(
-                "Escape watcher: CGEventTapCreate failed (Accessibility permission missing?) — \
-                 keyboard cancel falls back to the configured binding"
-            );
-            return;
+            if !INSTALL_WARNED.swap(true, Ordering::Relaxed) {
+                warn!(
+                    "Escape watcher: CGEventTapCreate failed — Accessibility permission is \
+                     missing for THIS build (a fresh .dmg install is a new TCC identity, \
+                     separate from the dev binary). Hands-free Enter / Control-tap to finish \
+                     will not work until granted in System Settings → Privacy & Security → \
+                     Accessibility. Retrying automatically."
+                );
+            } else {
+                log::debug!(
+                    "Escape watcher: tap install retry failed (Accessibility still missing?)"
+                );
+            }
+            return false;
         }
         let _ = TAP_PORT.set(TapPort(
             std::ptr::NonNull::new(port).expect("non-null checked above"),
         ));
 
-        let app_handle = app.clone();
+        let app_handle = APP_HANDLE.get().cloned();
         std::thread::Builder::new()
             .name("escape-cancel-tap".into())
             .spawn(move || unsafe {
@@ -315,10 +330,29 @@ mod imp {
             .map(|_| ())
             .map_err(|e| error!("Escape watcher: failed to spawn tap thread: {e}"))
             .ok();
+        true
+    }
+
+    pub fn init(app: &AppHandle) {
+        let _ = APP_HANDLE.set(app.clone());
+        install_tap_port();
+    }
+
+    /// Re-attempt tap installation after Accessibility is granted. No-op once
+    /// armed — safe to call repeatedly. Returns whether the tap is armed.
+    pub fn ensure_tap_installed() -> bool {
+        install_tap_port()
     }
 
     pub fn set_session_active(active: bool) {
         SESSION_ACTIVE.store(active, Ordering::Relaxed);
+        if active {
+            // The tap is created at boot, possibly before the user grants
+            // Accessibility — and a .dmg install is a new TCC identity versus
+            // the dev binary. Retry on every session start so granting
+            // permission takes effect without an app restart.
+            install_tap_port();
+        }
     }
 
     pub fn set_hands_free_active(active: bool) {
@@ -402,13 +436,16 @@ mod imp {
 }
 
 #[cfg(target_os = "macos")]
-pub use imp::{init, set_hands_free_active, set_session_active};
+pub use imp::{ensure_tap_installed, init, set_hands_free_active, set_session_active};
 
 #[cfg(not(target_os = "macos"))]
 pub mod imp_stub {
     pub fn init(_app: &tauri::AppHandle) {}
+    pub fn ensure_tap_installed() -> bool {
+        true
+    }
     pub fn set_session_active(_active: bool) {}
     pub fn set_hands_free_active(_active: bool) {}
 }
 #[cfg(not(target_os = "macos"))]
-pub use imp_stub::{init, set_hands_free_active, set_session_active};
+pub use imp_stub::{ensure_tap_installed, init, set_hands_free_active, set_session_active};

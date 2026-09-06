@@ -210,6 +210,17 @@ pub fn initialize_shortcuts(app: AppHandle) -> Result<(), String> {
     app.manage(ShortcutsInitialized);
     crate::secure_input::reconcile_fallback(&app);
 
+    // The session tap is created at boot, possibly before Accessibility is
+    // granted (a fresh .dmg is a new TCC identity versus the dev binary). The
+    // frontend calls this command after permissions are confirmed, so retry
+    // here — hands-free Enter / Control-tap starts working without a restart.
+    #[cfg(target_os = "macos")]
+    if !crate::escape_cancel::ensure_tap_installed() {
+        log::warn!(
+            "Shortcuts initialized, but the hands-free finish tap is still down (Accessibility not granted to this build). Grant it in System Settings → Privacy & Security → Accessibility."
+        );
+    }
+
     log::info!("Shortcuts initialized successfully");
     Ok(())
 }

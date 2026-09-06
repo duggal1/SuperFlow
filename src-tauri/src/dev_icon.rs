@@ -2,10 +2,11 @@
 //!
 //! Dev runs (`tauri dev`) execute an unbundled binary — no `.app`, so macOS
 //! would show a generic executable icon and process name. Packaged builds
-//! carry `icon.icns`, but the product look is the painted tile below, so both
-//! paths render the same identity: an Apple-style rounded square in
-//! stone-950 with the embedded `logo.svg` centered on it, plus a best-effort
-//! bundle-name override while unbundled.
+//! already carry the product `icon.icns`, which is also what the Dock shows
+//! while the app is pinned but not running — so they must keep it while
+//! running too. Painting a second tile at runtime with different padding or
+//! scale would make the running Dock icon look larger/fatter than the pinned
+//! one, therefore the paint below only applies to unbundled (dev) runs.
 //!
 //! The SVG is compiled into the binary, so nothing depends on the source
 //! checkout existing at runtime.
@@ -23,7 +24,7 @@ const LOGO_SVG: &str = include_str!("../../public/logo.svg");
 const TILE: f64 = 1024.0;
 /// Apple's squircle corner ratio for app tiles.
 const CORNER_RADIUS_RATIO: f64 = 0.2237;
-/// stone-950 (#0c0a09) — matches the packaged app icon background.
+/// Dev-tile background (stone-950 #0c0a09) for unbundled runs.
 const STONE_950: (f64, f64, f64) = (
     0x0c as f64 / 255.0,
     0x0a as f64 / 255.0,
@@ -54,8 +55,29 @@ fn apply_display_name() {
     }
 }
 
+/// True when the current executable runs from inside a packaged `.app`
+/// bundle (`…/SuperFlow.app/Contents/MacOS/superflow`). Unbundled dev runs
+/// (`target/debug/superflow`) have no `.app` ancestor.
+fn is_bundled_app() -> bool {
+    std::env::current_exe().is_ok_and(|exe| {
+        exe.components()
+            .any(|component| component.as_os_str().to_string_lossy().ends_with(".app"))
+    })
+}
+
 pub fn apply() {
     apply_display_name();
+
+    // A packaged run lives inside `SuperFlow.app/Contents/MacOS/…` and already
+    // shows `icon.icns` in the Dock while pinned. Overriding it here with a
+    // runtime-painted tile (full-bleed 1024 canvas, stone-950, 54% mark) uses
+    // different padding/scale than the bundled set, so the icon visibly grows
+    // fatter the moment the app starts and shrinks back on quit. Skip the
+    // paint when bundled so running and pinned share the exact same asset;
+    // unbundled dev runs still get the painted identity below.
+    if is_bundled_app() {
+        return;
+    }
 
     unsafe {
         let data = NSData::with_bytes(LOGO_SVG.as_bytes());

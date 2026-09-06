@@ -566,6 +566,10 @@ mod tests {
         );
     }
 
+    // These two tests exercise the macOS-only session transaction machinery
+    // (GmailTransaction / active_session / transition), so they are compiled
+    // only where those items exist — the CI rust-tests job runs on Linux.
+    #[cfg(target_os = "macos")]
     #[test]
     fn transaction_only_invalidates_its_own_session() {
         let _test_guard = TEST_LOCK.lock().unwrap();
@@ -592,6 +596,7 @@ mod tests {
         *ACTIVE_SESSION.lock().unwrap() = None;
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn sending_transition_is_atomic() {
         let _test_guard = TEST_LOCK.lock().unwrap();
