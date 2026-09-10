@@ -169,6 +169,16 @@ fn load_tray_icon(resolved_icon_path: tauri::Result<PathBuf>) -> tauri::Result<I
     Image::from_path(&resolved_icon_path).map(Image::to_owned)
 }
 
+/// Resolve + load the startup tray icon. Returns the io/path error instead of
+/// panicking so a broken resource dir can never abort app launch (the tray
+/// just starts without an icon and later updates still work).
+pub fn load_initial_icon(app: &AppHandle, icon_path: &str) -> tauri::Result<Image<'static>> {
+    load_tray_icon(
+        app.path()
+            .resolve(icon_path, tauri::path::BaseDirectory::Resource),
+    )
+}
+
 pub fn tray_tooltip() -> String {
     version_label()
 }

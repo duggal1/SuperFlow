@@ -51,7 +51,6 @@ use managers::model::ModelManager;
 use managers::transcription::TranscriptionManager;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::sync::Arc;
-use tauri::image::Image;
 pub use transcription_coordinator::TranscriptionCoordinator;
 
 use tauri::tray::TrayIconBuilder;
@@ -258,16 +257,19 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Choose the appropriate initial icon based on theme
     let initial_icon_path = tray::get_icon_path(initial_theme, tray::TrayIconState::Idle, false);
 
-    let mut tray_builder = TrayIconBuilder::new()
-        .icon(
-            Image::from_path(
-                app_handle
-                    .path()
-                    .resolve(initial_icon_path, tauri::path::BaseDirectory::Resource)
-                    .unwrap(),
-            )
-            .unwrap(),
-        )
+    let mut tray_builder = TrayIconBuilder::new();
+    // A missing/unresolvable tray icon must never abort startup (seen as a
+    // SIGABRT at launch when the resource dir can't be determined, e.g.
+    // running straight off a mounted .dmg). Start icon-less and log instead.
+    match tray::load_initial_icon(app_handle, initial_icon_path) {
+        Ok(icon) => {
+            tray_builder = tray_builder.icon(icon);
+        }
+        Err(e) => {
+            log::error!("Tray icon '{initial_icon_path}' unavailable, starting without one: {e}");
+        }
+    }
+    tray_builder = tray_builder
         .tooltip(tray::tray_tooltip())
         .icon_as_template(true);
 
@@ -1029,11 +1031,6 @@ pub fn run(cli_args: CliArgs) {
                     .min_inner_size(680.0, 570.0)
                     .resizable(true)
                     .maximizable(true)
-                    // TEMP DIAGNOSTIC: forward webview page errors to a local
-                    // listener while debugging the blank-window issue.
-                    .initialization_script(
-                        "['error','unhandledrejection'].forEach(t => window.addEventListener(t, e => { const m = t === 'error' ? (e.message + ' @ ' + e.filename + ':' + e.lineno + ':' + e.colno) : String(e.reason && (e.reason.stack || e.reason)); navigator.sendBeacon('http://127.0.0.1:9911/x', m); }, true));",
-                    )
                     .visible(false);
 
             if let Some(data_dir) = portable::data_dir() {
