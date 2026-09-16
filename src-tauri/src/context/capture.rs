@@ -45,9 +45,14 @@ pub fn capture_recording_context(
     capture_developer_context: bool,
 ) -> RecordingContext {
     let snapshot = capture_snapshot();
+    // Centralized code-intel guard: `resolve_project` already encodes the
+    // master toggle AND the feature toggle (see `actions.rs`), so false
+    // short-circuits here before any filesystem touch. No verified context →
+    // no project root, no developer context, zero scanning.
     let project_root = resolve_project
-        .then(|| crate::file_refs::project_root_for_snapshot(&snapshot))
-        .flatten();
+        .then(|| crate::code_intel::get_code_intel_context(&snapshot, true))
+        .flatten()
+        .map(|ctx| ctx.project_root);
     let developer = capture_developer_context
         .then(|| {
             project_root

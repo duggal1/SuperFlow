@@ -442,6 +442,10 @@
         "title": "Smarta filreferenser",
         "description": "Vid diktering i en terminal eller editor ersätts talade filnamn som \"hero dot tsx\" med riktiga projektsökvägar. Fungerar offline."
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

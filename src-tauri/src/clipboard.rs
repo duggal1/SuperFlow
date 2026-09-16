@@ -51,6 +51,16 @@ fn finish_clipboard_paste(
     paste_result
 }
 
+/// Race-guard decision: restore the saved clipboard only while it still holds
+/// the payload we published. `current` is the clipboard text observed just
+/// before restoring (`None` = unreadable or non-text content).
+///
+/// If the user copied something new mid-paste, their content wins and we leave
+/// it untouched — restoration must never clobber a newer user copy.
+fn should_restore_clipboard(current: Option<&str>, payload: &str) -> bool {
+    current == Some(payload)
+}
+
 /// Pastes text using the clipboard: saves current content, writes text, sends paste keystroke, restores clipboard.
 fn paste_via_clipboard(
     text: &str,
@@ -101,7 +111,19 @@ fn paste_via_clipboard(
         Ok(())
     })();
 
+    // The payload now sitting on the clipboard. Restoration below only fires
+    // while this exact value is still there (see `should_restore_clipboard`).
+    let payload = text.to_string();
     finish_clipboard_paste(paste_result, paste_delay_after_ms, || {
+        // Restore on every exit path (success or key-injection failure), but
+        // never clobber a newer user copy: if the clipboard no longer holds
+        // our payload, the user (or another app) changed it mid-paste and
+        // their content wins.
+        let current = clipboard.read_text().ok();
+        if !should_restore_clipboard(current.as_deref(), &payload) {
+            info!("Clipboard changed during paste; leaving the newer content untouched");
+            return;
+        }
         // Restore original clipboard content even when key injection failed.
         // Text takes priority so this path stays identical to the previous behavior;
         // an image is only restored when the clipboard held no text at all, which is
@@ -1204,5 +1226,28 @@ e.g. 28:1 28:0 means pressing on the Enter button on a standard US keyboard.
 
         assert_eq!(result.unwrap_err(), "input failed");
         assert!(restored.get());
+    }
+
+    #[test]
+    fn restore_guard_keeps_payload_only_while_untouched() {
+        // Clipboard still holds our payload → restore the saved value.
+        assert!(should_restore_clipboard(
+            Some("transcript text"),
+            "transcript text"
+        ));
+        // User copied something new mid-paste → leave it alone.
+        assert!(!should_restore_clipboard(
+            Some("user's newer copy"),
+            "transcript text"
+        ));
+        // Non-text (image) or unreadable clipboard → never clobber.
+        assert!(!should_restore_clipboard(None, "transcript text"));
+        // Empty clipboard (payload already consumed elsewhere) → leave it.
+        assert!(!should_restore_clipboard(Some(""), "transcript text"));
+        // Repeated transcriptions: each payload only restores itself.
+        assert!(!should_restore_clipboard(
+            Some("second transcript"),
+            "first transcript"
+        ));
     }
 }

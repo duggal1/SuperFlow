@@ -442,6 +442,10 @@
         "title": "Inteligentne odwołania do plików",
         "description": "Podczas dyktowania w terminalu lub edytorze wypowiadane nazwy plików, np. hero dot tsx, są zastępowane prawdziwymi ścieżkami projektu. Działa offline."
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

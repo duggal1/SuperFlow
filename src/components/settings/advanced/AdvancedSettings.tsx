@@ -18,6 +18,7 @@ import { useSettings } from "../../../hooks/useSettings";
 import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
 import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { AudioEnhancement } from "../AudioEnhancement";
+import { CodeIntelligence } from "../CodeIntelligence";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
 import { ShowLiveStreaming } from "../ShowLiveStreaming";
@@ -48,6 +49,7 @@ export const AdvancedSettings: React.FC = () => {
       <SettingsGroup title={t("settings.advanced.groups.transcription")}>
         <VoiceActivityDetection descriptionMode="tooltip" grouped={true} />
         <AudioEnhancement descriptionMode="tooltip" grouped={true} />
+        <CodeIntelligence descriptionMode="tooltip" grouped={true} />
         <ShowLiveStreaming descriptionMode="tooltip" grouped={true} />
         <CustomWords descriptionMode="tooltip" grouped />
       </SettingsGroup>

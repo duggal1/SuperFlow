@@ -442,6 +442,10 @@
         "title": "Chytré odkazy na soubory",
         "description": "Při diktování do terminálu nebo editoru se vyslovené názvy souborů (např. hero dot tsx) nahradí skutečnými cestami projektu. Funguje offline."
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

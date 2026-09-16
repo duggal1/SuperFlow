@@ -442,6 +442,10 @@
         "title": "Slimme bestandsverwijzingen",
         "description": "Bij dicteren in een terminal of editor worden gesproken bestandsnamen zoals \"hero dot tsx\" vervangen door echte projectpaden. Werkt offline."
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

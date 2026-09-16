@@ -442,6 +442,10 @@
         "title": "Riferimenti intelligenti ai file",
         "description": "Detta in un terminale o editor: i nomi dei file dettati come \"hero dot tsx\" vengono sostituiti con i percorsi reali del progetto. Funziona offline."
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

@@ -179,6 +179,8 @@ const settingUpdaters: {
     commands.changeTechLexiconEnabledSetting(value as boolean),
   smart_file_references_enabled: (value) =>
     commands.changeSmartFileReferencesEnabledSetting(value as boolean),
+  code_intelligence_enabled: (value) =>
+    commands.changeCodeIntelligenceEnabledSetting(value as boolean),
   live_punctuation_enabled: (value) =>
     commands.changeLivePunctuationEnabledSetting(value as boolean),
   show_live_streaming: (value) =>

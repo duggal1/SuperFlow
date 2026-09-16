@@ -434,6 +434,19 @@ async changeSmartFileReferencesEnabledSetting(enabled: boolean) : Promise<Result
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Master authorization gate for code-file intelligence (default on).
+ * When disabled, no repository detection, filesystem scan, path indexing,
+ * or code-file matching may run.
+ */
+async changeCodeIntelligenceEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_code_intelligence_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeLivePunctuationEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_live_punctuation_enabled_setting", { enabled }) };
@@ -1469,6 +1482,12 @@ tech_lexicon_enabled?: boolean;
  * project when dictating into a terminal or editor. Local-only.
  */
 smart_file_references_enabled?: boolean; 
+/**
+ * Master authorization gate for code-file intelligence. When false, no
+ * repository detection, filesystem scan, path indexing, or code-file
+ * matching may run (checked first, before any FS touch).
+ */
+code_intelligence_enabled?: boolean; 
 /**
  * Live punctuation, grammar, and formatting (sentence casing, terminal
  * marks, numerics, currency/units, lists, inline code). Deterministic,

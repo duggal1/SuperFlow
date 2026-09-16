@@ -182,26 +182,48 @@ fn shortcut_parts(binding: &str) -> HashSet<String> {
         .collect()
 }
 
+/// Secondary key distinguishing the hands-free chord, or the single hands-free
+/// key itself. Two accepted forms:
+///
+/// - legacy combo: standard + exactly one extra key (`fn` → `fn+ctrl`);
+/// - single key: one configurable key alone (`fn`), toggling hands-free
+///   (press → listen, press again / Enter → submit) without holding.
+///
+/// Either way the binding must differ from the standard transcription shortcut
+/// (sharing one physical key between hold-to-talk and tap-to-toggle is
+/// ambiguous), and from the meeting shortcut (checked by callers).
 fn hands_free_secondary_key(standard: &str, hands_free: &str) -> Result<String, String> {
     let standard_parts = shortcut_parts(standard);
     let hands_free_parts = shortcut_parts(hands_free);
-    if standard_parts.is_empty() || !standard_parts.is_subset(&hands_free_parts) {
-        return Err(
-            "Hands-free transcription must include the standard transcription shortcut".to_string(),
-        );
+    if hands_free_parts.is_empty() {
+        return Err("Hands-free transcription shortcut cannot be empty".to_string());
     }
-
-    let additional = hands_free_parts
-        .difference(&standard_parts)
-        .cloned()
-        .collect::<Vec<_>>();
-    if additional.len() != 1 {
+    if hands_free_parts == standard_parts {
         return Err(
-            "Hands-free transcription must add exactly one key to the standard transcription shortcut"
+            "Hands-free transcription must be different from the standard transcription shortcut"
                 .to_string(),
         );
     }
-    Ok(additional[0].clone())
+    if !standard_parts.is_empty() && standard_parts.is_subset(&hands_free_parts) {
+        let additional = hands_free_parts
+            .difference(&standard_parts)
+            .cloned()
+            .collect::<Vec<_>>();
+        if additional.len() != 1 {
+            return Err(
+                "Hands-free transcription must add exactly one key to the standard transcription shortcut"
+                    .to_string(),
+            );
+        }
+        return Ok(additional[0].clone());
+    }
+    if hands_free_parts.len() == 1 {
+        return Ok(hands_free_parts.iter().next().cloned().unwrap());
+    }
+    Err(
+        "Hands-free transcription must be a single key or the standard transcription shortcut plus one key"
+            .to_string(),
+    )
 }
 
 fn change_standard_transcribe_binding(
@@ -219,7 +241,14 @@ fn change_standard_transcribe_binding(
         &previous_standard.current_binding,
         &previous_hands_free.current_binding,
     )?;
-    let new_hands_free = crate::settings::compose_hands_free_binding(&new_standard, &secondary);
+    // Single-key hands-free bindings survive standard-shortcut changes
+    // untouched; combo bindings are recomposed onto the new standard chord.
+    let single_key_form = shortcut_parts(&previous_hands_free.current_binding).len() == 1;
+    let new_hands_free = if single_key_form {
+        previous_hands_free.current_binding.clone()
+    } else {
+        crate::settings::compose_hands_free_binding(&new_standard, &secondary)
+    };
     if let Some(meeting) = settings.bindings.get(MEETING_TRANSCRIBE_BINDING_ID) {
         ensure_meeting_shortcut_is_distinct(
             &meeting.current_binding,
@@ -1227,6 +1256,19 @@ mod hands_free_tests {
     }
 
     #[test]
+    fn hands_free_shortcut_accepts_a_single_key() {
+        // Single-key form: tap toggles hands-free without holding or combos.
+        assert_eq!(
+            hands_free_secondary_key("option+space", "fn").unwrap(),
+            "fn"
+        );
+        assert_eq!(
+            hands_free_secondary_key("ctrl+space", "command").unwrap(),
+            "command"
+        );
+    }
+
+    #[test]
     fn hands_free_shortcut_rejects_duplicates_and_unrelated_chords() {
         assert!(hands_free_secondary_key("fn", "fn").is_err());
         assert!(hands_free_secondary_key("fn", "option+space").is_err());
@@ -1620,6 +1662,21 @@ pub fn change_smart_file_references_enabled_setting(
 ) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.smart_file_references_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Master authorization gate for code-file intelligence (default on).
+/// When disabled, no repository detection, filesystem scan, path indexing,
+/// or code-file matching may run.
+#[tauri::command]
+#[specta::specta]
+pub fn change_code_intelligence_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.code_intelligence_enabled = enabled;
     settings::write_settings(&app, settings);
     Ok(())
 }

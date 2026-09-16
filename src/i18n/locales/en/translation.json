@@ -493,6 +493,10 @@
         "title": "Smart File References",
         "description": "Resolves only explicit spoken file names like \"hero dot tsx\" to verified project paths. It never guesses a file from vague context."
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs. When on, intelligence still requires a supported app and a verified project."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

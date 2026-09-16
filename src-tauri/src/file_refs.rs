@@ -12,7 +12,6 @@
 //! are eligible. Duplicate basenames resolve only when git activity singles
 //! one out; vague phrases never introduce a filename or extension.
 
-use crate::context::types::{ContextSnapshot, Surface};
 use log::debug;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -30,6 +29,8 @@ const EXTENSIONS: &[&str] = &[
 ];
 
 /// Directories never indexed (dependency/output noise).
+/// Mirrors [`crate::code_intel::IGNORED_DIRS`]; kept local so the indexer's
+/// behavior is visible next to the walker. Keep the two lists in sync.
 const IGNORED_DIRS: &[&str] = &[
     ".git",
     "node_modules",
@@ -44,6 +45,8 @@ const IGNORED_DIRS: &[&str] = &[
     "__pycache__",
     "coverage",
     ".cache",
+    ".parcel-cache",
+    ".vercel",
     ".turbo",
     ".output",
     ".svelte-kit",
@@ -61,19 +64,8 @@ const INDEX_TTL: Duration = Duration::from_secs(30);
 /// an activity *hint*, never a gate; staleness only weakens boosts.
 const GIT_TTL: Duration = Duration::from_secs(15);
 
-/// Terminal apps whose foreground shell's cwd is the active project.
-const TERMINAL_BUNDLE_IDS: &[&str] = &[
-    "com.apple.Terminal",
-    "com.mitchellh.ghostty",
-    "com.googlecode.iterm2",
-    "dev.warp.Warp-Stable",
-    "net.kovidgoyal.kitty",
-    "io.alacritty",
-    "com.github.wez.wezterm",
-    "org.wezterm",
-];
-
 /// Editor bundle prefixes whose recent-workspace storage we can read.
+/// VS Code (incl. Insiders) + Cursor only — never VSCodium or other editors.
 const EDITOR_STORAGE: &[(&str, &str)] = &[
     (
         "com.microsoft.VSCode",
@@ -87,90 +79,49 @@ const EDITOR_STORAGE: &[(&str, &str)] = &[
         "com.todesktop.230313mzl4w4u92",
         "Library/Application Support/Cursor/User/globalStorage/storage.json",
     ),
-    (
-        "com.vscodium.codium",
-        "Library/Application Support/VSCodium/User/globalStorage/storage.json",
-    ),
 ];
 
-pub(crate) fn project_root_for_snapshot(snapshot: &ContextSnapshot) -> Option<PathBuf> {
+/// Fail-closed entry point. Delegates to the centralized
+/// [`crate::code_intel::get_code_intel_context`] guard with the feature
+/// treated as enabled — production callers that own settings gate earlier
+/// (see `capture_recording_context`), so a disabled master toggle performs
+/// zero filesystem work. See `code_intel` for the invariant.
+#[cfg(test)]
+pub(crate) fn project_root_for_snapshot(
+    snapshot: &crate::context::types::ContextSnapshot,
+) -> Option<PathBuf> {
     // Gmail/Slack never get file rewriting — chat/email text must stay prose.
-    if matches!(snapshot.surface, Surface::Gmail | Surface::Slack) {
+    if matches!(
+        snapshot.surface,
+        crate::context::types::Surface::Gmail | crate::context::types::Surface::Slack
+    ) {
         return None;
     }
-    cached_cd_root(|| {
-        // Terminal/Editor: bundle-specific root (shell hook / BFS / editor storage).
-        if let Some(bundle) = snapshot.bundle_id.as_deref() {
-            if let Some(root) = project_root(bundle) {
-                return Some(root);
-            }
-        }
-        // Thunder-fast path first: app cwd already inside a git/Cargo/npm
-        // project (dev launches, `bun run dev`) costs zero process spawns.
-        // Only when that misses do we pay for ps+lsof to find the live shell.
-        repo_root_from_cwd_if_project()
-            .or_else(newest_shell_project_root)
-            .or_else(repo_root_from_cwd)
-    })
-}
-
-/// Short-TTL cache for CD-folder resolution. Repeated dictations in the same
-/// session resolve in microseconds; the folder rarely changes mid-session and
-/// the index itself revalidates against disk anyway.
-const CD_TTL: Duration = Duration::from_secs(5);
-type CdCache = Mutex<Option<(Instant, PathBuf)>>;
-static CD_ROOT_CACHE: Lazy<Mutex<Option<CdCache>>> = Lazy::new(|| Mutex::new(None));
-
-#[cfg(test)]
-fn reset_cd_cache() {
-    *CD_ROOT_CACHE.lock().unwrap() = None;
-}
-
-fn cached_cd_root(resolve: impl FnOnce() -> Option<PathBuf>) -> Option<PathBuf> {
-    let mut guard = CD_ROOT_CACHE.lock().ok()?;
-    let cache = guard.get_or_insert_with(|| Mutex::new(None));
-    let mut slot = cache.lock().ok()?;
-    if let Some((at, root)) = slot.as_ref() {
-        if at.elapsed() < CD_TTL && root.is_dir() {
-            return Some(root.clone());
-        }
-    }
-    let root = resolve()?;
-    *slot = Some((Instant::now(), root.clone()));
-    Some(root)
+    crate::code_intel::get_code_intel_context(snapshot, true).map(|ctx| ctx.project_root)
 }
 
 // -----------------------------------------------------------------
-// Project root resolution
+// Workdir resolution (raw material for the `code_intel` guard)
 // -----------------------------------------------------------------
+//
+// These functions return the *working directory* only — anchoring it to a
+// marker-verified repository root, canonicalizing, and enforcing the app
+// allowlist all happen in `crate::code_intel::get_code_intel_context`.
+// Nothing here may fall back to the app's own cwd, `$HOME`, `/`, a stale
+// cache, or a system-wide shell search: unresolvable → `None` (fail closed).
 
-fn project_root(bundle_id: &str) -> Option<PathBuf> {
-    if TERMINAL_BUNDLE_IDS.contains(&bundle_id) {
-        terminal_project_root()
-    } else {
-        editor_project_root(bundle_id)
-    }
-}
-
+/// Current terminal working directory: fresh shell-hook marker wins
+/// (pane/window-accurate); otherwise the newest shell under an allowlisted
+/// terminal app's process subtree (macOS). No system-wide search, no cwd
+/// fallback. The guard anchors the result to a real repository root.
 #[cfg(target_os = "macos")]
-fn terminal_project_root() -> Option<PathBuf> {
-    // Level-2 anchor: an installed shell integration publishes the live PWD.
-    // It is pane/window-accurate in a way the process-tree BFS below cannot
-    // be, so when fresh it wins outright; otherwise we fall back to BFS.
-    if let Some(root) = hook_project_root() {
-        return Some(root);
+pub(crate) fn terminal_workdir() -> Option<PathBuf> {
+    if let Some(cwd) = hook_project_root() {
+        return Some(cwd);
     }
     let procs = list_processes()?;
-    // Terminal app processes: comm is the executable name (max 16 chars).
-    let terminal_names: &[&str] = &[
-        "terminal",
-        "ghostty",
-        "iterm2",
-        "warp",
-        "kitty",
-        "alacritty",
-        "wezterm",
-    ];
+    // Allowlisted terminal app processes only (comm = executable name).
+    let terminal_names: &[&str] = &["terminal", "ghostty"];
     let mut queue: VecDeque<i32> = procs
         .iter()
         .filter(|p| {
@@ -182,14 +133,15 @@ fn terminal_project_root() -> Option<PathBuf> {
         .map(|p| p.pid)
         .collect();
 
-    if !queue.is_empty() {
-        if let Some(root) = newest_shell_cwd_descendants(&mut queue, &procs) {
-            return Some(root);
-        }
+    if queue.is_empty() {
+        return None;
     }
-    // Terminal app not found by name (tmux detached, unusual build) or no
-    // shell under it: take the newest shell process anywhere.
-    newest_shell_cwd_anywhere(&procs).or_else(repo_root_from_cwd)
+    newest_shell_cwd_descendants(&mut queue, &procs)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn terminal_workdir() -> Option<PathBuf> {
+    hook_project_root()
 }
 
 /// BFS descendants of `queue` looking for the newest shell, then its cwd.
@@ -227,74 +179,16 @@ fn newest_shell_cwd_descendants(queue: &mut VecDeque<i32>, procs: &[ProcInfo]) -
     process_cwd(shell.pid).filter(|p| p.is_dir())
 }
 
-/// Newest shell process anywhere in the process table (no terminal-app seed
-/// required). Covers tmux sessions, agent processes that re-parented their
-/// shell, and terminals whose executable name changed.
-#[cfg(target_os = "macos")]
-fn newest_shell_cwd_anywhere(procs: &[ProcInfo]) -> Option<PathBuf> {
-    pick_newest_shell(procs).and_then(|shell| process_cwd(shell.pid).filter(|p| p.is_dir()))
-}
-
-/// Surface-agnostic CD-folder resolution used when the snapshot degraded.
-#[cfg(target_os = "macos")]
-fn newest_shell_project_root() -> Option<PathBuf> {
-    let procs = list_processes()?;
-    newest_shell_cwd_anywhere(&procs)
-}
-
-#[cfg(not(target_os = "macos"))]
-fn newest_shell_project_root() -> Option<PathBuf> {
-    None
-}
-
 /// Pure selection: the newest shell-looking process. Testable without lsof.
+/// Test-only: production resolution is scoped to allowlisted terminal
+/// subtrees (`terminal_workdir`), never a system-wide newest-shell search.
+#[cfg(test)]
 fn pick_newest_shell(procs: &[ProcInfo]) -> Option<&ProcInfo> {
     const SHELL_NAMES: &[&str] = &["zsh", "bash", "fish", "pwsh", "nu", "sh"];
     procs
         .iter()
         .filter(|p| SHELL_NAMES.iter().any(|n| p.comm.eq_ignore_ascii_case(n)))
         .max_by_key(|p| p.order)
-}
-
-fn repo_root_from_cwd() -> Option<PathBuf> {
-    // Cheap fallback for dev / when the shell integration is not installed:
-    // walk up from the app's current working directory. Prefer the git repo
-    // root (so we index the whole SuperFlow workspace, not just src-tauri),
-    // then fall back to Cargo / package.json markers for non-git projects.
-    let cwd = std::env::current_dir().ok()?;
-    for anc in cwd.ancestors() {
-        if anc.join(".git").exists() {
-            return Some(anc.to_path_buf());
-        }
-    }
-    for anc in cwd.ancestors() {
-        if anc.join("Cargo.toml").exists() || anc.join("package.json").exists() {
-            return Some(anc.to_path_buf());
-        }
-    }
-    // Last resort: the cwd itself if it looks like a project.
-    cwd.is_dir().then_some(cwd)
-}
-
-/// Zero-spawn variant: only returns a root when the process cwd already sits
-/// inside an obvious project (git/Cargo/npm). Returns None fast otherwise so
-/// the slower live-shell lookup can take over.
-fn repo_root_from_cwd_if_project() -> Option<PathBuf> {
-    let cwd = std::env::current_dir().ok()?;
-    let in_project = cwd.ancestors().take(4).any(|anc| {
-        anc.join(".git").exists()
-            || anc.join("Cargo.toml").exists()
-            || anc.join("package.json").exists()
-    });
-    if !in_project {
-        return None;
-    }
-    repo_root_from_cwd()
-}
-
-#[cfg(not(target_os = "macos"))]
-fn terminal_project_root() -> Option<PathBuf> {
-    hook_project_root().or_else(repo_root_from_cwd)
 }
 
 /// Newest working directory published by the optional SuperFlow shell
@@ -380,7 +274,11 @@ fn process_cwd(pid: i32) -> Option<PathBuf> {
 }
 
 /// Last active workspace folder from the editor's storage.json.
-fn editor_project_root(bundle_id: &str) -> Option<PathBuf> {
+/// Last-active workspace folder from the editor's `storage.json`. Only the
+/// live `lastActiveWindow.folder` is trusted — never the history list (stale
+/// workspace from another session). Single root only; multi-root workspaces
+/// resolve to the last-active folder, ambiguous/missing → `None`.
+pub(crate) fn editor_workspace_root(bundle_id: &str) -> Option<PathBuf> {
     let home = std::env::var("HOME").ok()?;
     let (_, rel) = EDITOR_STORAGE
         .iter()
@@ -392,17 +290,7 @@ fn editor_project_root(bundle_id: &str) -> Option<PathBuf> {
     let folder_uri = value
         .pointer("/windowsState/lastActiveWindow/folder")
         .and_then(|v| v.as_str())
-        .map(str::to_string)
-        .or_else(|| {
-            // Fall back to the most recent entry in history.
-            value
-                .pointer("/history/recentlyOpenedPathsList")
-                .and_then(|v| v.as_array())
-                .and_then(|list| list.first())
-                .and_then(|e| e.get("folderUri"))
-                .and_then(|v| v.as_str())
-                .map(str::to_string)
-        })?;
+        .map(str::to_string)?;
 
     uri_to_path(&folder_uri).filter(|p| p.is_dir())
 }
@@ -501,44 +389,88 @@ fn project_index(root: &Path) -> Option<PathIndex> {
     Some(index)
 }
 
+/// Files larger than this are never indexed (generated blobs, dumps, media).
+const MAX_INDEX_FILE_BYTES: u64 = 8 * 1024 * 1024;
+
 fn walk(root: &Path, dir: &Path, depth: usize, out: &mut PathIndex) {
-    if depth > MAX_WALK_DEPTH || out.files.len() >= MAX_INDEX_FILES {
-        return;
-    }
-    let Ok(read) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for entry in read.flatten() {
-        let Ok(file_type) = entry.file_type() else {
+    // `dir`/`depth` are kept for call-site stability; traversal is handled by
+    // the `ignore` walker below (respects `.gitignore`, never follows symlinks).
+    let _ = (dir, depth);
+    let walker = ignore::WalkBuilder::new(root)
+        .hidden(true)
+        .git_ignore(true)
+        .git_global(false)
+        .git_exclude(false)
+        .require_git(false)
+        .parents(false)
+        .follow_links(false)
+        .max_depth(Some(MAX_WALK_DEPTH))
+        .filter_entry(|entry| {
+            if entry.depth() == 0 {
+                return true;
+            }
+            // Prune dependency/output noise before descending.
+            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                if let Some(name) = entry.file_name().to_str() {
+                    if IGNORED_DIRS.contains(&name) {
+                        return false;
+                    }
+                }
+            }
+            true
+        })
+        .build();
+    for entry in walker {
+        if out.files.len() >= MAX_INDEX_FILES {
+            break;
+        }
+        let Ok(entry) = entry else {
             continue;
         };
-        let name = entry.file_name();
-        let name = name.to_string_lossy();
-        if file_type.is_dir() {
-            if !IGNORED_DIRS.contains(&name.as_ref()) && !name.starts_with('.') {
-                // Record the folder itself (folder awareness), then descend.
-                let dir_rel = entry
-                    .path()
-                    .strip_prefix(root)
-                    .map(|p| p.to_string_lossy().replace('\\', "/"))
-                    .unwrap_or_else(|_| name.to_string());
+        if entry.depth() == 0 {
+            continue;
+        }
+        // Never follow symlinks: a link escaping the repository would pull
+        // outside files into the index (fail closed — skip the entry).
+        if entry.file_type().map(|t| t.is_symlink()).unwrap_or(false) {
+            continue;
+        }
+        let path = entry.path();
+        let rel = path
+            .strip_prefix(root)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_default();
+        if rel.is_empty() || crate::code_intel::is_excluded_rel(&rel) {
+            continue;
+        }
+        // `rel` comes from `strip_prefix(root)` over a no-follow walker, so it
+        // is contained by construction. Per-match containment (with symlink
+        // resolution) is enforced in `resolve_references` before emitting.
+        if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                 out.dirs.push(DirEntry {
                     name_lower: name.to_lowercase(),
-                    rel: dir_rel,
+                    rel,
                 });
-                walk(root, &entry.path(), depth + 1, out);
             }
-        } else if file_type.is_file() {
-            if is_sensitive_file_name(&name) {
+        } else if entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
+            if is_sensitive_file_name(name) {
                 continue;
             }
-            let rel = entry
-                .path()
-                .strip_prefix(root)
-                .map(|p| p.to_string_lossy().replace('\\', "/"))
-                .unwrap_or_else(|_| name.to_string());
-            let name_lower = name.to_lowercase();
-            out.files.push(FileEntry { rel, name_lower });
+            if entry
+                .metadata()
+                .map(|m| m.len() > MAX_INDEX_FILE_BYTES)
+                .unwrap_or(false)
+            {
+                continue;
+            }
+            out.files.push(FileEntry {
+                rel,
+                name_lower: name.to_lowercase(),
+            });
         }
     }
 }
@@ -845,8 +777,17 @@ fn detect_folder_reference(
 /// project. Vague phrases are deliberately not inferred: only a filename and
 /// extension the speaker actually said may introduce a project path.
 /// Returned paths are formatted for AI agents (`@/…` for frontend, full `rel` for Rust).
+///
+/// Containment is enforced by construction: `root` must canonicalize to a real
+/// directory, and every emitted match is re-verified with
+/// [`crate::code_intel::resolve_within_root`] (rejects `..`, absolute paths,
+/// symlink escapes). Unverifiable → left untouched, never emitted.
 pub fn resolve_references(root: &Path, text: &str) -> Option<String> {
-    let index = project_index(root)?;
+    let canonical_root = crate::code_intel::canonicalize_strict(root)?;
+    if !canonical_root.is_dir() {
+        return None;
+    }
+    let index = project_index(&canonical_root)?;
     let words: Vec<&str> = text.split_whitespace().collect();
     let cleaned: Vec<String> = words.iter().map(|w| clean_token(w)).collect();
     let mut out: Vec<String> = Vec::with_capacity(words.len());
@@ -855,11 +796,22 @@ pub fn resolve_references(root: &Path, text: &str) -> Option<String> {
 
     while i < words.len() {
         if let Some((span, rel)) = detect_reference(&words, &cleaned, i, &index.files, root) {
+            // Prove the match stays inside the verified root before emitting.
+            if crate::code_intel::resolve_within_root(&canonical_root, &rel).is_none() {
+                out.push(words[i].to_string());
+                i += 1;
+                continue;
+            }
             out.push(format_path_for_agent(&rel));
             i += span;
             replaced = true;
         } else if let Some((span, rel)) = detect_folder_reference(&words, &cleaned, i, &index.dirs)
         {
+            if crate::code_intel::resolve_within_root(&canonical_root, &rel).is_none() {
+                out.push(words[i].to_string());
+                i += 1;
+                continue;
+            }
             out.push(format_dir_path_for_agent(&rel));
             i += span;
             replaced = true;
@@ -1060,6 +1012,7 @@ fn detect_reference(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::context::types::{ContextSnapshot, Surface};
     use std::sync::atomic::{AtomicU64, Ordering};
 
     /// Process-unique scratch dir. Nanoseconds alone are insufficient:
@@ -1266,6 +1219,60 @@ mod tests {
     }
 
     #[test]
+    fn sibling_repo_files_are_invisible() {
+        // `secret.rs` exists ONLY in repo B: resolving inside repo A must
+        // never surface it, and each repo resolves its own copy of shared names.
+        let a = unique_temp_dir("sibling_a");
+        let b = unique_temp_dir("sibling_b");
+        std::fs::create_dir_all(a.join("src")).unwrap();
+        std::fs::create_dir_all(b.join("src")).unwrap();
+        std::fs::write(a.join("src/shared.rs"), "").unwrap();
+        std::fs::write(b.join("src/shared.rs"), "").unwrap();
+        std::fs::write(b.join("src/only_in_b.rs"), "").unwrap();
+        assert_eq!(
+            resolve_in(&a, "open shared dot rs").as_deref(),
+            Some("open `src/shared.rs`")
+        );
+        assert_eq!(
+            resolve_in(&b, "open shared dot rs").as_deref(),
+            Some("open `src/shared.rs`")
+        );
+        assert_eq!(resolve_in(&a, "open only in b dot rs"), None);
+        assert!(
+            resolve_in(&b, "open only in b dot rs").is_some_and(|o| o.contains("src/only_in_b.rs"))
+        );
+    }
+
+    #[test]
+    fn symlink_entries_never_escape_the_index() {
+        let base = unique_temp_dir("symlink_idx");
+        let root = base.join("root");
+        let outside = base.join("outside");
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+        std::fs::write(root.join("src/real.rs"), "").unwrap();
+        std::fs::write(outside.join("smuggled.rs"), "").unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(outside.join("smuggled.rs"), root.join("src/link.rs")).unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&outside, root.join("src/outdir")).unwrap();
+        let index = project_index(&root).expect("index must build");
+        assert!(
+            index.files.iter().any(|e| e.rel == "src/real.rs"),
+            "real file must be indexed"
+        );
+        assert!(
+            !index.files.iter().any(|e| e.rel.contains("smuggled")),
+            "symlinked file must not be indexed"
+        );
+        assert!(
+            !index.dirs.iter().any(|e| e.rel.contains("outdir")),
+            "symlinked dir must not be indexed"
+        );
+        assert_eq!(resolve_in(&root, "open smuggled dot rs"), None);
+    }
+
+    #[test]
     fn shell_hook_marker_resolves_while_fresh_and_expires() {
         let base = tempfile::TempDir::new().unwrap();
         let proj = base.path().join("proj");
@@ -1307,47 +1314,52 @@ mod tests {
         }
     }
 
+    /// Nearest ancestor of the crate carrying `.git` — the live SuperFlow
+    /// checkout on whatever machine runs the suite (no hardcoded home paths).
+    fn live_repo_root() -> PathBuf {
+        let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        loop {
+            if dir.join(".git").exists() {
+                return dir;
+            }
+            assert!(dir.pop(), "test must run inside the superflow repo");
+        }
+    }
+
     #[test]
-    fn aggressive_live_repo_end_to_end_degraded_snapshot() {
-        // FULL live pipeline on the REAL repo, no fixtures:
-        // degraded snapshot (AX dead) -> CD folder -> resolve -> exact paths <100ms.
-        let root = PathBuf::from("/Users/harshitduggal/workspace/SuperFLow-macos");
-        // Step 1: worst case - context agent died, surface degraded to Other, no bundle id.
-        let (root_ms, resolved_root) = min_ms_of(5, || {
-            reset_cd_cache();
-            let mut snap = ContextSnapshot::other("Unknown");
-            snap.surface = Surface::Other;
-            snap.bundle_id = None;
-            project_root_for_snapshot(&snap)
-                .unwrap_or_else(|| panic!("degraded snapshot MUST still find CD folder"))
-        });
-        println!(
-            "CD folder: {} (best-of-3 {root_ms}ms)",
-            resolved_root.display()
-        );
-        assert!(
-            resolved_root.join(".git").exists(),
-            "must land on git repo root"
-        );
-        assert!(
-            root_ms < 100,
-            "CD resolution must be <100ms, got {root_ms}ms"
-        );
-        // Warm cache must be effectively free.
+    fn degraded_snapshot_resolves_nothing_fail_closed() {
+        // Fail closed: a degraded snapshot (AX dead, no bundle id) must NOT
+        // fall back to cwd scanning, system-wide shells, or stale caches.
+        // No valid context → zero filesystem intelligence.
         let mut snap = ContextSnapshot::other("Unknown");
         snap.surface = Surface::Other;
         snap.bundle_id = None;
-        let t_warm = std::time::Instant::now();
-        assert_eq!(
-            project_root_for_snapshot(&snap),
-            Some(resolved_root.clone())
-        );
-        let warm_ms = t_warm.elapsed().as_millis();
-        println!("CD folder cached: {warm_ms}ms");
-        assert!(
-            warm_ms < 5,
-            "cached CD resolution must be <5ms, got {warm_ms}ms"
-        );
+        assert_eq!(project_root_for_snapshot(&snap), None);
+        // Unsupported apps are denied even with a developer-looking surface.
+        for bundle in [
+            "com.google.Chrome",
+            "com.apple.Safari",
+            "com.tinyspeck.slackmacgap",
+            "com.googlecode.iterm2",
+            "dev.warp.Warp-Stable",
+            "com.vscodium.codium",
+        ] {
+            let mut snap = ContextSnapshot::other("Unknown");
+            snap.surface = Surface::Terminal;
+            snap.bundle_id = Some(bundle.to_string());
+            assert_eq!(
+                project_root_for_snapshot(&snap),
+                None,
+                "{bundle} must be denied"
+            );
+        }
+    }
+
+    #[test]
+    fn aggressive_live_repo_end_to_end_degraded_snapshot() {
+        // FULL live pipeline on the REAL repo, no fixtures:
+        // explicit verified root -> resolve -> exact paths <100ms.
+        let root = live_repo_root();
 
         // Step 2: user's exact mangled transcript against REAL files.
         let transcript = "Open Router.ts from IntelliGent folder and fix file reps.rs to correctly handle App.tsx and update actions.t actions.rs for Ghostty";
@@ -1408,9 +1420,24 @@ mod tests {
 
     #[test]
     fn aggressive_folder_awareness_real_repo_and_garbage() {
-        // BRUTAL folder-awareness battery on the REAL repo.
-        let root = PathBuf::from("/Users/harshitduggal/workspace/SuperFLow-macos");
-        reset_cd_cache();
+        // Folder-awareness battery on a fixture mirroring the real repo shape
+        // (no hardcoded home paths — portable across machines).
+        let root = unique_temp_dir("folder_repo");
+        for dir in [
+            "src-tauri/src/catalog",
+            "src-tauri/src/intelligence",
+            "src-tauri/src/managers",
+            "src-tauri/src/commands",
+            "src/components",
+            "src-tauri/src/audio_toolkit",
+            "src-tauri/src/voice_terminal",
+            "src/overlay",
+        ] {
+            std::fs::create_dir_all(root.join(dir)).unwrap();
+        }
+        std::fs::write(root.join("src-tauri/src/settings.rs"), "").unwrap();
+        std::fs::create_dir_all(root.join("node_modules/react")).unwrap();
+        std::fs::create_dir_all(root.join("vendor")).unwrap();
         INDEX_CACHE.lock().unwrap().clear();
 
         // 1. Real spoken forms -> exact folder pathnames with trailing slash.
@@ -1500,7 +1527,6 @@ mod tests {
 
         // 7. Cold timing incl. fresh index build (min-of-3 against load noise).
         let (cold_ms, _) = min_ms_of(5, || {
-            reset_cd_cache();
             INDEX_CACHE.lock().unwrap().clear();
             resolve_references(&root, "go to catalog folder").expect("cold folder resolve")
         });
@@ -1546,24 +1572,19 @@ mod tests {
         assert_eq!(project_root_for_snapshot(&snap), None);
         snap.surface = Surface::Slack;
         assert_eq!(project_root_for_snapshot(&snap), None);
-        // Degraded Other snapshot must STILL resolve a CD folder (dev machine).
+        // Fail closed: a degraded snapshot (no bundle, unknown app) must NOT
+        // fall back to cwd scanning or shell discovery — even when the
+        // process happens to run inside a git checkout.
         let other = ContextSnapshot::other("Unknown");
-        if std::env::current_dir()
-            .ok()
-            .is_some_and(|d| d.join(".git").exists())
-        {
-            assert!(
-                project_root_for_snapshot(&other).is_some(),
-                "degraded snapshot must fall back to cwd git root"
-            );
-        }
+        assert_eq!(project_root_for_snapshot(&other), None);
     }
 
     #[test]
     fn brutal_real_workspace_deterministic_tree() {
         // BRUTAL real-life test against the actual SuperFlow repo on disk - not a toy.
-        // Verifies: CD detection, thunder-fast tree, garbage ignore, exact deterministic path mapping.
-        let root = PathBuf::from("/Users/harshitduggal/workspace/SuperFLow-macos");
+        // Verifies: thunder-fast tree, garbage ignore, exact deterministic path mapping.
+        // The checkout is located portably (no hardcoded home paths).
+        let root = live_repo_root();
         assert!(
             root.join(".git").exists(),
             "real workspace must exist for brutal test"
@@ -1686,23 +1707,16 @@ mod tests {
             resolve_references(&root, "hero dot tsx").is_none(),
             "hero.tsx must not hallucinate"
         );
-        // 7. CD folder fallback: repo_root_from_cwd must find repo when hook/BFS fail
-        let fallback = repo_root_from_cwd();
-        assert!(fallback.is_some(), "repo_root_from_cwd must succeed");
-        let fb = fallback.unwrap();
-        assert!(
-            fb.join(".git").exists()
-                || fb.join("Cargo.toml").exists()
-                || fb.join("package.json").exists(),
-            "fallback must be project root: {}",
-            fb.display()
-        );
+        // 7. Repository anchoring: a nested cwd inside the checkout anchors to
+        // the repo root; a bare non-project dir anchors to nothing (fail closed).
+        let nested = root.join("src-tauri/src");
         assert_eq!(
-            fb,
-            root,
-            "fallback must be workspace root for this test, got {}",
-            fb.display()
+            crate::code_intel::anchor_repo_root(&nested),
+            Some(crate::code_intel::canonicalize_strict(&root).unwrap())
         );
+        let bare = unique_temp_dir("anchor_bare");
+        std::fs::create_dir_all(&bare).unwrap();
+        assert_eq!(crate::code_intel::anchor_repo_root(&bare), None);
     }
 
     #[test]

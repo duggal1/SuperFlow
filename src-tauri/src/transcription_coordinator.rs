@@ -10,6 +10,10 @@ use tauri::{AppHandle, Manager};
 const DEBOUNCE: Duration = Duration::from_millis(30);
 const RELEASE_GRACE: Duration = Duration::from_millis(50);
 const FN_DOUBLE_TAP_WINDOW: Duration = Duration::from_millis(350);
+/// Minimum time between a hands-free start and a same-key submit. Key-repeat
+/// bursts arrive milliseconds apart while a genuine submit follows speech
+/// (seconds later), so this rejects repeats without touching real toggles.
+const HANDS_FREE_SUBMIT_GRACE: Duration = Duration::from_millis(300);
 pub const HANDS_FREE_BINDING_ID: &str = "hands_free_transcribe";
 pub const MEETING_BINDING_ID: &str = "meeting_transcribe";
 const STANDARD_BINDING_ID: &str = "transcribe";
@@ -57,14 +61,29 @@ enum HandsFreeAction {
     Passthrough,
     Start,
     Promote,
+    Stop,
     Ignore,
 }
 
+/// Single-key hands-free state machine (no hold, no double-tap, no combo):
+///
+/// - idle + key press → `Start` (begin continuous listening)
+/// - hands-free listening + same key press → `Stop` (submit), guarded by
+///   `release_seen` (a release must occur between presses, rejecting key
+///   repeat) and `HANDS_FREE_SUBMIT_GRACE` (rejects auto-repeat bursts)
+/// - hands-free listening + Enter → submit via `CompleteHandsFree`
+///   (escape_cancel tap / pill button)
+///
+/// Press-and-hold (push-to-talk) is a separate path (`classify_ptt_event`)
+/// and never reaches `Stop`: releases of the hands-free key are `Ignore`.
 fn classify_hands_free_event(
     binding_id: &str,
     is_pressed: bool,
     recording_binding: Option<&str>,
     recording_is_hands_free: bool,
+    release_seen: bool,
+    started_at: Option<Instant>,
+    now: Instant,
 ) -> HandsFreeAction {
     if binding_id == HANDS_FREE_BINDING_ID {
         if !is_pressed {
@@ -73,6 +92,16 @@ fn classify_hands_free_event(
         return match recording_binding {
             None => HandsFreeAction::Start,
             Some(STANDARD_BINDING_ID) if !recording_is_hands_free => HandsFreeAction::Promote,
+            _ if recording_is_hands_free => {
+                let elapsed_ok = started_at
+                    .map(|t| now.duration_since(t) >= HANDS_FREE_SUBMIT_GRACE)
+                    .unwrap_or(true);
+                if release_seen && elapsed_ok {
+                    HandsFreeAction::Stop
+                } else {
+                    HandsFreeAction::Ignore
+                }
+            }
             _ => HandsFreeAction::Ignore,
         };
     }
@@ -141,6 +170,11 @@ impl TranscriptionCoordinator {
                 let mut last_press: Option<Instant> = None;
                 let mut last_standard_press: Option<Instant> = None;
                 let mut pending_release: Option<PendingRelease> = None;
+                // Single-key hands-free toggle guards (see
+                // `classify_hands_free_event`): a submit press counts only
+                // after a release was observed and the submit grace elapsed.
+                let mut hands_free_release_seen = true;
+                let mut hands_free_started_at: Option<Instant> = None;
 
                 loop {
                     let cmd = if let Some(pending) = &pending_release {
@@ -191,12 +225,23 @@ impl TranscriptionCoordinator {
                                 } => (Some(binding_id.as_str()), *hands_free),
                                 _ => (None, false),
                             };
+                            let now = Instant::now();
+                            // A release of the hands-free key arms the next
+                            // same-key press to submit (key repeat, which
+                            // arrives without an intervening release, can
+                            // never submit by itself).
+                            if binding_id == HANDS_FREE_BINDING_ID && !is_pressed {
+                                hands_free_release_seen = true;
+                            }
 
                             match classify_hands_free_event(
                                 &binding_id,
                                 is_pressed,
                                 recording_binding,
                                 recording_is_hands_free,
+                                hands_free_release_seen,
+                                hands_free_started_at,
+                                now,
                             ) {
                                 HandsFreeAction::Start => {
                                     pending_release = None;
@@ -210,6 +255,8 @@ impl TranscriptionCoordinator {
                                             }
                                         ) {
                                             crate::escape_cancel::set_hands_free_active(true);
+                                            hands_free_release_seen = false;
+                                            hands_free_started_at = Some(now);
                                         }
                                     }
                                     continue;
@@ -221,6 +268,25 @@ impl TranscriptionCoordinator {
                                     }
                                     crate::escape_cancel::set_hands_free_active(true);
                                     crate::overlay::show_hands_free_overlay(&app);
+                                    hands_free_release_seen = false;
+                                    hands_free_started_at = Some(now);
+                                    continue;
+                                }
+                                HandsFreeAction::Stop => {
+                                    // Same-key (or Enter-equivalent) submit:
+                                    // stop the hands-free recording, which
+                                    // runs the normal transcribe+paste finish.
+                                    pending_release = None;
+                                    hands_free_release_seen = true;
+                                    hands_free_started_at = None;
+                                    if let Stage::Recording {
+                                        binding_id: active,
+                                        hands_free: true,
+                                    } = &stage
+                                    {
+                                        let active_binding = active.clone();
+                                        stop(&app, &mut stage, &active_binding, &hotkey_string);
+                                    }
                                     continue;
                                 }
                                 HandsFreeAction::Ignore => continue,
@@ -398,6 +464,8 @@ impl TranscriptionCoordinator {
                             recording_was_active,
                         } => {
                             pending_release = None;
+                            hands_free_release_seen = true;
+                            hands_free_started_at = None;
                             crate::escape_cancel::set_hands_free_active(false);
                             // Don't reset during processing — wait for the pipeline to finish.
                             if !matches!(stage, Stage::Processing)
@@ -413,6 +481,8 @@ impl TranscriptionCoordinator {
                         }
                         Command::CompleteHandsFree => {
                             pending_release = None;
+                            hands_free_release_seen = true;
+                            hands_free_started_at = None;
                             if let Stage::Recording {
                                 binding_id,
                                 hands_free: true,
@@ -536,10 +606,47 @@ mod tests {
         assert!(!is_transcribe_binding("cancel"));
     }
 
+    fn hf(
+        binding_id: &str,
+        is_pressed: bool,
+        recording_binding: Option<&str>,
+        recording_is_hands_free: bool,
+    ) -> HandsFreeAction {
+        classify_hands_free_event(
+            binding_id,
+            is_pressed,
+            recording_binding,
+            recording_is_hands_free,
+            true,
+            None,
+            Instant::now(),
+        )
+    }
+
+    fn hf_guarded(
+        binding_id: &str,
+        is_pressed: bool,
+        recording_binding: Option<&str>,
+        recording_is_hands_free: bool,
+        release_seen: bool,
+        started_at: Option<Instant>,
+        now: Instant,
+    ) -> HandsFreeAction {
+        classify_hands_free_event(
+            binding_id,
+            is_pressed,
+            recording_binding,
+            recording_is_hands_free,
+            release_seen,
+            started_at,
+            now,
+        )
+    }
+
     #[test]
     fn hands_free_chord_promotes_the_standard_recording() {
         assert_eq!(
-            classify_hands_free_event(
+            hf(
                 HANDS_FREE_BINDING_ID,
                 true,
                 Some(STANDARD_BINDING_ID),
@@ -552,7 +659,7 @@ mod tests {
     #[test]
     fn primary_key_events_never_finish_a_hands_free_recording() {
         assert_eq!(
-            classify_hands_free_event(
+            hf(
                 HANDS_FREE_BINDING_ID,
                 false,
                 Some(STANDARD_BINDING_ID),
@@ -561,11 +668,11 @@ mod tests {
             HandsFreeAction::Ignore
         );
         assert_eq!(
-            classify_hands_free_event(STANDARD_BINDING_ID, false, Some(STANDARD_BINDING_ID), true),
+            hf(STANDARD_BINDING_ID, false, Some(STANDARD_BINDING_ID), true),
             HandsFreeAction::Ignore
         );
         assert_eq!(
-            classify_hands_free_event(STANDARD_BINDING_ID, true, Some(STANDARD_BINDING_ID), true),
+            hf(STANDARD_BINDING_ID, true, Some(STANDARD_BINDING_ID), true),
             HandsFreeAction::Ignore
         );
     }
@@ -573,8 +680,96 @@ mod tests {
     #[test]
     fn hands_free_chord_can_start_directly_when_idle() {
         assert_eq!(
-            classify_hands_free_event(HANDS_FREE_BINDING_ID, true, None, false),
+            hf(HANDS_FREE_BINDING_ID, true, None, false),
             HandsFreeAction::Start
+        );
+    }
+
+    #[test]
+    fn single_key_press_starts_and_same_key_submits() {
+        // idle + press → listening (no hold, no double-tap, no combo).
+        assert_eq!(
+            hf(HANDS_FREE_BINDING_ID, true, None, false),
+            HandsFreeAction::Start
+        );
+        // Listening + same key after release + grace → submit.
+        let now = Instant::now();
+        let started = now - Duration::from_millis(5000);
+        assert_eq!(
+            hf_guarded(
+                HANDS_FREE_BINDING_ID,
+                true,
+                Some(HANDS_FREE_BINDING_ID),
+                true,
+                true,
+                Some(started),
+                now,
+            ),
+            HandsFreeAction::Stop
+        );
+    }
+
+    #[test]
+    fn hands_free_key_repeat_never_submits() {
+        let now = Instant::now();
+        // No release observed since start (held-key auto-repeat) → ignore,
+        // even after the grace period.
+        assert_eq!(
+            hf_guarded(
+                HANDS_FREE_BINDING_ID,
+                true,
+                Some(HANDS_FREE_BINDING_ID),
+                true,
+                false,
+                Some(now - Duration::from_secs(5)),
+                now,
+            ),
+            HandsFreeAction::Ignore
+        );
+        // Release seen but inside the submit grace (repeat burst tail) → ignore.
+        assert_eq!(
+            hf_guarded(
+                HANDS_FREE_BINDING_ID,
+                true,
+                Some(HANDS_FREE_BINDING_ID),
+                true,
+                true,
+                Some(now - Duration::from_millis(50)),
+                now,
+            ),
+            HandsFreeAction::Ignore
+        );
+        // Releases themselves never submit.
+        assert_eq!(
+            hf_guarded(
+                HANDS_FREE_BINDING_ID,
+                false,
+                Some(HANDS_FREE_BINDING_ID),
+                true,
+                true,
+                Some(now - Duration::from_secs(5)),
+                now,
+            ),
+            HandsFreeAction::Ignore
+        );
+    }
+
+    #[test]
+    fn hands_free_key_submits_a_promoted_session() {
+        // Standard-key recording promoted to hands-free also submits on the
+        // hands-free key (Enter/Control remain alternatives).
+        let now = Instant::now();
+        assert_eq!(
+            hf_guarded(
+                HANDS_FREE_BINDING_ID,
+                true,
+                Some(STANDARD_BINDING_ID),
+                true,
+                true,
+                Some(now - Duration::from_secs(5)),
+                now,
+            ),
+            HandsFreeAction::Stop
         );
     }
 

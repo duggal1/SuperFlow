@@ -442,6 +442,10 @@
         "title": "הפניות קבצים חכמות",
         "description": "בעת הכתבה למסוף או לעורך, שמות קבצים מדוברים כמו hero dot tsx מוחלפים בנתיבי פרויקט אמיתיים. עובד ללא אינטרנט."
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

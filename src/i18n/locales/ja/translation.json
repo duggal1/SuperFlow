@@ -442,6 +442,10 @@
         "title": "スマートファイル参照",
         "description": "ターミナルやエディタに音声入力する際、話したファイル名が実在するプロジェクトのパスに変換されます。オフラインで動作します。"
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

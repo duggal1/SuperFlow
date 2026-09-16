@@ -442,6 +442,10 @@
         "title": "स्मार्ट फाइल सन्दर्भ",
         "description": "टर्मिनल वा सम्पादकमा बोल्दा भनिएका फाइल नाम जस्तै hero dot tsx वास्तविक परियोजना मार्गले बदलिन्छ। अफलाइन काम गर्छ।"
       },
+      "codeIntelligence": {
+        "title": "Code Intelligence",
+        "description": "Master switch for code-file intelligence. When off, no repository detection, file scanning, or file matching runs."
+      },
       "livePunctuation": {
         "title": "Live Punctuation",
         "description": "Formats dictation as you speak: sentence casing, periods, question marks, numbers, currency and units. Formal also restores commas.",

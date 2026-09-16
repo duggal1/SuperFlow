@@ -659,6 +659,11 @@ pub struct AppSettings {
     /// project when dictating into a terminal or editor. Local-only.
     #[serde(default = "default_smart_file_references_enabled")]
     pub smart_file_references_enabled: bool,
+    /// Master authorization gate for code-file intelligence. When false, no
+    /// repository detection, filesystem scan, path indexing, or code-file
+    /// matching may run (checked first, before any FS touch).
+    #[serde(default = "default_code_intelligence_enabled")]
+    pub code_intelligence_enabled: bool,
     /// Live punctuation, grammar, and formatting (sentence casing, terminal
     /// marks, numerics, currency/units, lists, inline code). Deterministic,
     /// fully local, enabled by default.
@@ -799,6 +804,10 @@ fn default_live_punctuation_enabled() -> bool {
 }
 
 fn default_smart_file_references_enabled() -> bool {
+    true
+}
+
+fn default_code_intelligence_enabled() -> bool {
     true
 }
 
@@ -1357,6 +1366,7 @@ pub fn get_default_settings() -> AppSettings {
         custom_filler_words: None,
         tech_lexicon_enabled: default_tech_lexicon_enabled(),
         smart_file_references_enabled: default_smart_file_references_enabled(),
+        code_intelligence_enabled: default_code_intelligence_enabled(),
         live_punctuation_enabled: default_live_punctuation_enabled(),
         punctuation_style: PunctuationStyle::default(),
         transcribe_accelerator: TranscribeAcceleratorSetting::default(),

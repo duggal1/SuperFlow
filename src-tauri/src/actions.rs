@@ -534,17 +534,21 @@ async fn process_transcription_output_with_context(
 
     // Resolve a filename only when the transcript itself contains an explicit
     // spoken file reference. Editor text and repository identifiers are never
-    // allowed to rewrite or append to ordinary speech.
-    if let Some(resolved) = context
-        .as_ref()
-        .and_then(|context| context.project_root.as_deref())
-        .and_then(|root| crate::file_refs::resolve_references(root, &final_text))
-    {
-        debug!(
-            "Smart file reference resolved in {} characters",
-            final_text.len()
-        );
-        final_text = resolved;
+    // allowed to rewrite or append to ordinary speech. Gated on the master
+    // code-intelligence toggle AND the smart-file-references toggle: the
+    // project root alone (possibly resolved for awareness) is not permission.
+    if settings.code_intelligence_enabled && settings.smart_file_references_enabled {
+        if let Some(resolved) = context
+            .as_ref()
+            .and_then(|context| context.project_root.as_deref())
+            .and_then(|root| crate::file_refs::resolve_references(root, &final_text))
+        {
+            debug!(
+                "Smart file reference resolved in {} characters",
+                final_text.len()
+            );
+            final_text = resolved;
+        }
     }
 
     // User-defined shortcuts: expand spoken references ("my design prompt",
@@ -1566,9 +1570,10 @@ impl ShortcutAction for TranscribeAction {
                     }
                 }
                 rm.begin_context_capture(
-                    settings.smart_file_references_enabled
-                        || settings.intelligence_awareness_enabled,
-                    settings.intelligence_awareness_enabled,
+                    settings.code_intelligence_enabled
+                        && (settings.smart_file_references_enabled
+                            || settings.intelligence_awareness_enabled),
+                    settings.code_intelligence_enabled && settings.intelligence_awareness_enabled,
                 );
                 debug!(
                     "Recording request accepted in {:?}; waiting for first microphone samples",

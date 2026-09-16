@@ -456,6 +456,10 @@ fn scan_symbols(path: &Path) -> Option<Vec<RawSymbol>> {
     // Check deadline via cache lookup - if we are already near deadline, skip
     // This is called from enhance_symbols which already checks deadline per file
     let (mtime, size) = file_meta(path)?;
+    // Huge/generated files never provide symbol context (bounded reads only).
+    if size > crate::code_intel::MAX_READ_BYTES {
+        return None;
+    }
     let key = path.to_string_lossy().to_string();
     {
         let cache = SYMBOL_CACHE.lock().ok()?;
@@ -644,8 +648,11 @@ struct FileHit {
 /// inlined (so anchors are `` `path` `` tokens). Returns an enhanced string
 /// only when something deterministic changed.
 pub fn maybe_enhance(root: &Path, text: &str, focused_buffer: Option<&str>) -> Option<String> {
+    // Containment by construction: the root must canonicalize, and every
+    // anchor/file read below is re-verified against it.
+    let canonical_root = crate::code_intel::canonicalize_strict(root)?;
     let lower = text.to_ascii_lowercase();
-    let files = collect_resolved_files(root, text);
+    let files = collect_resolved_files(&canonical_root, text);
     let mut out = text.to_string();
 
     // --- Symbol awareness ---
@@ -663,8 +670,8 @@ pub fn maybe_enhance(root: &Path, text: &str, focused_buffer: Option<&str>) -> O
             Severity::Warning
         };
         if let Some(buffer) = focused_buffer {
-            if let Some(diag) =
-                latest_diagnostic(buffer, severity).and_then(|d| normalize_diag_rel(d, &files))
+            if let Some(diag) = latest_diagnostic(buffer, severity)
+                .and_then(|d| normalize_diag_rel(d, &files, &canonical_root))
             {
                 let label = if diag.severity == Severity::Error {
                     "Error"
@@ -691,7 +698,11 @@ pub fn maybe_enhance(root: &Path, text: &str, focused_buffer: Option<&str>) -> O
 /// Map a tool-emitted path onto this project: relative paths must exist under
 /// the root; absolute paths only survive when they terminate at one of the
 /// transcript's resolved files (foreign repos are rejected).
-fn normalize_diag_rel(mut diag: Diagnostic, files: &[FileHit]) -> Option<Diagnostic> {
+fn normalize_diag_rel(
+    mut diag: Diagnostic,
+    files: &[FileHit],
+    canonical_root: &Path,
+) -> Option<Diagnostic> {
     diag.rel_path = diag.rel_path.replace('\\', "/");
     if let Some(stripped) = diag.rel_path.strip_prefix("./") {
         diag.rel_path = stripped.to_string();
@@ -702,7 +713,16 @@ fn normalize_diag_rel(mut diag: Diagnostic, files: &[FileHit]) -> Option<Diagnos
         return None;
     }
     if diag.rel_path.starts_with('/') {
-        let hit = files.iter().find(|f| diag.rel_path.ends_with(&f.rel))?;
+        // Absolute tool output: the location must canonical-resolve inside
+        // the verified root AND terminate at an anchored file. Foreign-repo
+        // locations that merely share a filename suffix are rejected.
+        let canonical_diag = crate::code_intel::verify_absolute_within_root(
+            canonical_root,
+            Path::new(&diag.rel_path),
+        )?;
+        let hit = files
+            .iter()
+            .find(|f| diag.rel_path.ends_with(&f.rel) && canonical_diag.ends_with(&f.rel))?;
         diag.rel_path = hit.rel.clone();
     } else if let Some(hit) = files
         .iter()
@@ -727,6 +747,7 @@ fn truncate(s: &str, max_chars: usize) -> String {
 }
 
 fn collect_resolved_files(root: &Path, text: &str) -> Vec<FileHit> {
+    // `root` must already be canonical (see `maybe_enhance`).
     let mut hits = Vec::new();
     for caps in BACKTICK_RE.captures_iter(text) {
         let tok = &caps[1];
@@ -738,7 +759,12 @@ fn collect_resolved_files(root: &Path, text: &str) -> Vec<FileHit> {
             Some(clean) => ("src/", clean),
             None => ("", tok),
         };
-        let abs = root.join(base).join(rel);
+        // Transcript-controlled tokens must prove containment (rejects
+        // `` `../../etc/passwd` `` and absolute-path injection) before any read.
+        let rel_joined = format!("{base}{rel}");
+        let Some(abs) = crate::code_intel::resolve_within_root(root, &rel_joined) else {
+            continue;
+        };
         if abs.is_file() {
             hits.push(FileHit {
                 abs,
@@ -882,13 +908,23 @@ mod tests {
         ))
     }
 
-    const REPO: &str = "/Users/harshitduggal/workspace/SuperFLow-macos";
+    /// Nearest ancestor of the crate carrying `.git` — the live SuperFlow
+    /// checkout on whatever machine runs the suite (no hardcoded home paths).
+    fn live_repo_root() -> PathBuf {
+        let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        loop {
+            if dir.join(".git").exists() {
+                return dir;
+            }
+            assert!(dir.pop(), "test must run inside the superflow repo");
+        }
+    }
 
     #[test]
     fn rust_symbol_resolves_inline_on_real_repo() {
         // Real file: src-tauri/src/intelligence/router.rs has compose_aware_reply.
         let text = "In `src-tauri/src/intelligence/router.rs` fix the compose aware reply function";
-        let out = maybe_enhance(Path::new(REPO), text, None).expect("must enhance");
+        let out = maybe_enhance(&live_repo_root(), text, None).expect("must enhance");
         assert!(out.contains("`compose_aware_reply`"), "{out}");
         assert!(
             !out.contains("compose aware reply "),
@@ -897,7 +933,7 @@ mod tests {
         // Hook word preserved.
         assert!(out.contains("function"), "{out}");
         // Idempotent/deterministic.
-        let out2 = maybe_enhance(Path::new(REPO), text, None).unwrap();
+        let out2 = maybe_enhance(&live_repo_root(), text, None).unwrap();
         assert_eq!(out, out2);
     }
 
@@ -913,6 +949,44 @@ mod tests {
         let text = "In `@/server/session.ts` fix the create session function";
         let out = maybe_enhance(&dir, text, None).expect("must enhance");
         assert!(out.contains("`createSession`"), "{out}");
+    }
+
+    #[test]
+    fn backtick_traversal_anchor_never_reads_outside_root() {
+        let dir = unique_tmp("traversal");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("ok.rs"), "pub fn ok() {}\n").unwrap();
+        for evil in [
+            "fix the `../../etc/passwd` function",
+            "fix the `/etc/passwd` function",
+            "In `../outside.rs` fix the ok function",
+        ] {
+            assert_eq!(
+                maybe_enhance(&dir, evil, None),
+                None,
+                "{evil} must stay untouched"
+            );
+        }
+        // The legitimate anchor in the same tree still resolves.
+        let out = maybe_enhance(&dir, "In `ok.rs` fix the ok function", None)
+            .expect("legit anchor must enhance");
+        assert!(out.contains("`ok`"), "{out}");
+    }
+
+    #[test]
+    fn oversized_files_provide_no_symbol_context() {
+        let dir = unique_tmp("oversize");
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut big = String::from("pub fn tiny_target() {}\n");
+        while big.len() <= crate::code_intel::MAX_READ_BYTES as usize {
+            big.push_str("// padding to exceed the read cap\n");
+        }
+        std::fs::write(dir.join("big.rs"), &big).unwrap();
+        assert_eq!(
+            maybe_enhance(&dir, "In `big.rs` fix the tiny target function", None),
+            None,
+            "oversized files must be skipped"
+        );
     }
 
     #[test]
@@ -935,13 +1009,13 @@ mod tests {
     #[test]
     fn unknown_symbol_stays_untouched() {
         let text = "In `src-tauri/src/intelligence/router.rs` fix the zzz nonexistent function";
-        assert_eq!(maybe_enhance(Path::new(REPO), text, None), None);
+        assert_eq!(maybe_enhance(&live_repo_root(), text, None), None);
     }
 
     #[test]
     fn no_hook_no_change() {
         let text = "make the button slightly smaller in `src/App.tsx`";
-        assert_eq!(maybe_enhance(Path::new(REPO), text, None), None);
+        assert_eq!(maybe_enhance(&live_repo_root(), text, None), None);
     }
 
     #[test]
@@ -953,7 +1027,7 @@ mod tests {
                       95 |     let gain: f32 = \"x\";\n\
                          |                     ^^^ expected `f32`, found `&str`\n";
         let text = "please fix the error in `src-tauri/src/audio_feedback.rs`";
-        let out = maybe_enhance(Path::new(REPO), text, Some(buffer)).expect("must attach");
+        let out = maybe_enhance(&live_repo_root(), text, Some(buffer)).expect("must attach");
         let hits = out.matches("Error at").count();
         assert_eq!(hits, 1, "{out}");
         assert!(
@@ -966,14 +1040,14 @@ mod tests {
     #[test]
     fn error_without_buffer_is_silent() {
         let text = "please fix the error in `src-tauri/src/audio_feedback.rs`";
-        assert_eq!(maybe_enhance(Path::new(REPO), text, None), None);
+        assert_eq!(maybe_enhance(&live_repo_root(), text, None), None);
     }
 
     #[test]
     fn error_from_other_repo_never_attaches() {
         let buffer = "error[E0432]: unresolved import\n --> /Users/x/other-proj/src/gone.rs:7:5\n";
         let text = "fix the error in `src-tauri/src/audio_feedback.rs`";
-        assert_eq!(maybe_enhance(Path::new(REPO), text, Some(buffer)), None);
+        assert_eq!(maybe_enhance(&live_repo_root(), text, Some(buffer)), None);
     }
 
     #[test]
@@ -982,17 +1056,17 @@ mod tests {
         // Says "error" but buffer only has warning -> no attach.
         let t_err = "fix the error in `src-tauri/src/audio_feedback.rs`";
         assert_eq!(
-            maybe_enhance(Path::new(REPO), t_err, Some(warn_buffer)),
+            maybe_enhance(&live_repo_root(), t_err, Some(warn_buffer)),
             None
         );
         // Says warning + anchors the file -> attaches as Warning.
         let t_warn = "fix this warning in `src-tauri/src/main.rs`";
-        let out = maybe_enhance(Path::new(REPO), t_warn, Some(warn_buffer)).expect("warn attach");
+        let out = maybe_enhance(&live_repo_root(), t_warn, Some(warn_buffer)).expect("warn attach");
         assert!(out.contains("Warning at"), "{out}");
         // Anchor-less warning dictation stays silent (determinism gate).
         assert_eq!(
             maybe_enhance(
-                Path::new(REPO),
+                &live_repo_root(),
                 "fix this warning please",
                 Some(warn_buffer)
             ),
@@ -1006,7 +1080,7 @@ mod tests {
         let mut best = u128::MAX;
         for _ in 0..3 {
             let t = Instant::now();
-            let r = maybe_enhance(Path::new(REPO), text, None);
+            let r = maybe_enhance(&live_repo_root(), text, None);
             best = best.min(t.elapsed().as_millis());
             assert!(r.is_some());
         }
@@ -1055,10 +1129,12 @@ mod tests {
             "export default function App() {}\n",
         )
         .unwrap();
-        let buffer = "/Users/someone/else/src/App.tsx\n\
-                        45:3  warning  'x' is defined but never used  @typescript-eslint/no-unused-vars\n";
+        let buffer = format!(
+            "{}\n45:3  warning  'x' is defined but never used  @typescript-eslint/no-unused-vars\n",
+            dir.join("src/App.tsx").display()
+        );
         let text = "fix this warning in `@/App.tsx`";
-        let out = maybe_enhance(&dir, text, Some(buffer)).expect("eslint attach");
+        let out = maybe_enhance(&dir, text, Some(buffer.as_str())).expect("eslint attach");
         assert!(out.contains("`src/App.tsx:45:3`"), "{out}");
         assert!(out.contains("'x' is defined but never used"), "{out}");
     }

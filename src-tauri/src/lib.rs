@@ -8,6 +8,12 @@ mod calendar;
 mod catalog;
 pub mod cli;
 mod clipboard;
+/// Deterministic symbol/error enhancement over verified file anchors.
+/// Not called from production paths yet — compiled and covered by its test
+/// suite so the containment hardening stays verified.
+#[allow(dead_code)]
+mod code_context;
+mod code_intel;
 mod commands;
 mod context;
 mod dev_icon;
@@ -744,6 +750,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_tech_lexicon_enabled_setting,
             shortcut::change_smart_file_references_enabled_setting,
+            shortcut::change_code_intelligence_enabled_setting,
             shortcut::change_live_punctuation_enabled_setting,
             shortcut::change_show_live_streaming_setting,
             shortcut::change_punctuation_style_setting,
