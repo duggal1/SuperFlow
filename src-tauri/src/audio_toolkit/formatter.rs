@@ -3059,6 +3059,15 @@ fn ordinal_cue_at(text: &str, tokens: &[TokenSpan], index: usize) -> Option<Ordi
         let cardinal = normalized_word(span_text(text, next.span));
         let value = cardinal_value(&cardinal)?;
         (value, index + 2, next.span.end)
+    } else if let Some(value) = cardinal_value(&word).filter(|_| {
+        span_text(text, token.span)
+            .chars()
+            .last()
+            .is_some_and(|ch| matches!(ch, ',' | ':' | ')'))
+    }) {
+        // Cardinal labels need explicit spoken punctuation. Bare "one two
+        // three" is a number sequence, not permission to invent list items.
+        (value, index + 1, token.span.end)
     } else {
         return None;
     };
@@ -4090,6 +4099,16 @@ mod tests {
             normalize_numerics("meet at twenty three thirty pm"),
             "meet at twenty three thirty pm"
         );
+    }
+
+    #[test]
+    fn punctuated_cardinal_cues_create_lists_without_rewriting_number_sequences() {
+        let input = "one, improve grammar, two, repair paste, three, normalize numbers";
+        let out = format_layout(input);
+        assert!(out.contains("1. Improve grammar."), "{out}");
+        assert!(out.contains("2. Repair paste."), "{out}");
+        assert!(out.contains("3. Normalize numbers."), "{out}");
+        assert_eq!(format_layout("one two three"), "one two three");
     }
 
     #[test]
