@@ -530,11 +530,14 @@ fn normalize_numerics(text: &str) -> String {
                     follower_index,
                 )
                 .is_some();
-            let allow_thousands = number.had_large_scale
-                || (number.value >= 100_000
-                    && (!original_token.contains(',') || !is_currency));
-            let compact = (!is_year
-                && (number.had_large_scale || number.value >= 1_000_000 || allow_thousands))
+            // K notation is useful for genuinely large thousands (100K, 200K),
+            // but turning ordinary amounts like "$2,000" into "$2K" is a
+            // readability regression. Million+ magnitudes stay compact.
+            let allow_thousands = number.value >= 100_000
+                && (number.had_large_scale
+                    || !original_token.contains(',')
+                    || !is_currency);
+            let compact = (!is_year && (number.value >= 1_000_000 || allow_thousands))
                 .then(|| compact_quantity(number.value, allow_thousands))
                 .flatten();
             let number_text = match (&fraction, compact_scale.as_deref()) {
@@ -3983,6 +3986,7 @@ mod tests {
             ("three billion", "3B"),
             ("two million", "2M"),
             ("one hundred thousand", "100K"),
+            ("two thousand dollars", "$2,000"),
             ("100000", "100K"),
             ("100,000", "100K"),
             ("200,000 users", "200K users"),

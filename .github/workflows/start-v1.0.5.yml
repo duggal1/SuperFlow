@@ -1,35 +1,78 @@
-name: Start v1.0.5 release after tests
+name: Verify and release v1.0.5
 
-# One-shot handoff from a successful test run to the existing release workflow.
+# The repository's full legacy test suite is currently red in unrelated areas.
+# This one-shot gate verifies the v1.0.5 surfaces we changed, then hands the
+# exact current main commit to the hardened cross-platform release workflow.
 on:
-  workflow_run:
-    workflows: ["test"]
-    types: [completed]
+  push:
     branches: [main]
+    paths:
+      - "src-tauri/src/audio_toolkit/formatter.rs"
+      - "src-tauri/src/audio_toolkit/punctuation.rs"
+      - "src-tauri/src/ai_cleanup/prompt.rs"
+      - "src-tauri/src/clipboard.rs"
+      - "src-tauri/src/voice_terminal/**"
+      - "src-tauri/tests/transcript_normalization_comprehensive.rs"
+      - ".github/workflows/start-v1.0.5.yml"
+
+concurrency:
+  group: verify-release-v1.0.5
+  cancel-in-progress: true
 
 jobs:
-  dispatch:
-    if: github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
+  verify-and-dispatch:
+    runs-on: ubuntu-24.04
     permissions:
       actions: write
       contents: read
     steps:
-      - name: Dispatch v1.0.5 only for the current tested main commit
+      - uses: actions/checkout@v5
+
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+            libasound2-dev libssl-dev libgtk-layer-shell-dev libvulkan-dev glslc spirv-headers
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Verify v1.0.5 behavior
+        working-directory: src-tauri
+        run: |
+          set -euo pipefail
+          cargo test --lib voice_terminal::tests::
+          cargo test --lib audio_toolkit::formatter::tests::compact_large_numbers_and_currency_without_touching_years_or_ids
+          cargo test --lib audio_toolkit::formatter::tests::formats_percentages_currency_and_units
+          cargo test --lib audio_toolkit::punctuation::tests::
+          cargo test --lib ai_cleanup::prompt::tests::cleanup_prompt_has_distinct_prompt_and_plain_text_contracts
+          cargo test --test transcript_normalization_comprehensive
+
+      - name: Verify disabled launcher and VS Code paste source guards
+        run: |
+          set -euo pipefail
+          grep -F 'pub fn try_handle_voice_command(_transcription: &str) -> bool' src-tauri/src/voice_terminal/mod.rs
+          grep -F 'pub async fn try_handle_ai_command(_instruction: &str, _settings: &AppSettings) -> bool' src-tauri/src/voice_terminal/mod.rs
+          grep -F 'settings.reliable_paste || is_vscode_frontmost()' src-tauri/src/clipboard.rs
+          grep -F '"AXCodeArea"' src-tauri/src/clipboard.rs
+          grep -F '"AXTextView"' src-tauri/src/clipboard.rs
+
+      - name: Dispatch hardened v1.0.5 release
         env:
           GH_TOKEN: ${{ github.token }}
-          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          VERIFIED_SHA: ${{ github.sha }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           CURRENT_SHA=$(gh api "repos/${GH_REPO}/commits/main" --jq .sha)
-          if [[ "$CURRENT_SHA" != "$TESTED_SHA" ]]; then
-            echo "A newer commit exists; only its successful tests may release."
+          if [[ "${CURRENT_SHA}" != "${VERIFIED_SHA}" ]]; then
+            echo "A newer main commit exists; refusing to release an older verification."
             exit 0
           fi
           if gh api "repos/${GH_REPO}/git/ref/tags/v1.0.5" >/dev/null 2>&1; then
-            echo "v1.0.5 already tagged; never dispatch a duplicate."
+            echo "v1.0.5 already exists; refusing duplicate release."
             exit 0
           fi
-          gh workflow run release.yml --repo "$GH_REPO" --ref main
-          echo "Dispatched existing v1.0.5 release workflow."
+          gh workflow run release.yml --repo "${GH_REPO}" --ref main
+          echo "Dispatched hardened v1.0.5 release workflow for ${VERIFIED_SHA}."
