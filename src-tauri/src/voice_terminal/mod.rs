@@ -24,6 +24,7 @@ mod tests {
             "open 4 codex terminals",
             "Open Cloud Code, open Codex",
             "please open a thousand Claude Code terminals",
+            "Use Codex to describe my existing code without launching anything",
         ] {
             assert!(!try_handle_voice_command(spoken), "{spoken}");
         }
