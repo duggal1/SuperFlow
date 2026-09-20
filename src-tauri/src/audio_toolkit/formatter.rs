@@ -524,8 +524,15 @@ fn normalize_numerics(text: &str) -> String {
                 matches!(ch, '$' | '€' | '£' | '₹' | '¥' | '₩')
             });
             let is_year = is_calendar_year(&words, index, follower_index, number.value);
+            let is_currency = inline_currency.is_some()
+                || crate::audio_toolkit::normalization::currency_symbol(
+                    &words,
+                    follower_index,
+                )
+                .is_some();
             let allow_thousands = number.had_large_scale
-                || (number.value >= 100_000 && !original_token.contains(','));
+                || (number.value >= 100_000
+                    && (!original_token.contains(',') || !is_currency));
             let compact = (!is_year
                 && (number.had_large_scale || number.value >= 1_000_000 || allow_thousands))
                 .then(|| compact_quantity(number.value, allow_thousands))
@@ -3968,6 +3975,9 @@ mod tests {
             ("two million", "2M"),
             ("one hundred thousand", "100K"),
             ("100000", "100K"),
+            ("100,000", "100K"),
+            ("200,000 users", "200K users"),
+            ("200,000 dollars", "$200,000"),
             ("two hundred thousand dollars", "$200K"),
             ("three billion dollars", "$3B"),
             ("$100000", "$100K"),
@@ -4016,7 +4026,7 @@ mod tests {
         }
 
         assert_eq!(normalize_numerics("twenty thousand users"), "20,000 users");
-        assert_eq!(normalize_numerics("200,000 users"), "200,000 users");
+        assert_eq!(normalize_numerics("200,000 users"), "200K users");
     }
 
     #[test]
