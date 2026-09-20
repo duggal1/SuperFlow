@@ -240,6 +240,8 @@ mod comprehensive_normalization_tests {
     }
 }
 
+use superflow_app_lib::audio_toolkit::formatter;
+
 #[test]
 fn critical_hardware_identifiers_never_get_comma_separators() {
     // CRITICAL: GPU model numbers are identifiers, NOT quantities
