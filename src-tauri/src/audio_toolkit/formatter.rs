@@ -429,12 +429,43 @@ fn try_parse_time(words: &[&str], start: usize) -> Option<(String, usize)> {
     Some((formatted, index - start + suffix_words))
 }
 
+/// Typed decimals followed by an explicit magnitude have exact compact
+/// notation; ordinary decimals and versions stay on the existing path.
+fn compact_decimal_scale(words: &[&str], start: usize) -> Option<(String, usize)> {
+    let decimal = number_clean(words.get(start)?);
+    let (whole, fractional) = decimal.split_once('.')?;
+    if whole.is_empty()
+        || fractional.is_empty()
+        || !whole.chars().all(|ch| ch.is_ascii_digit())
+        || !fractional.chars().all(|ch| ch.is_ascii_digit())
+    {
+        return None;
+    }
+    let suffix = match number_clean(words.get(start + 1)?) .as_str() {
+        "thousand" => "K",
+        "million" => "M",
+        "billion" => "B",
+        "trillion" => "T",
+        _ => return None,
+    };
+    let currency = crate::audio_toolkit::normalization::currency_symbol(words, start + 2);
+    let used = 2 + currency.map_or(0, |(_, count)| count);
+    let prefix = currency.map_or("", |(symbol, _)| symbol);
+    let rendered = format!("{prefix}{decimal}{suffix}");
+    Some((with_consumed_suffix(rendered, words, start, used), used))
+}
+
 fn normalize_numerics(text: &str) -> String {
     let words: Vec<&str> = text.split_whitespace().collect();
     let mut out: Vec<String> = Vec::with_capacity(words.len());
     let mut index = 0usize;
 
     while index < words.len() {
+        if let Some((formatted, consumed)) = compact_decimal_scale(&words, index) {
+            out.push(formatted);
+            index += consumed;
+            continue;
+        }
         if let Some((formatted, consumed)) = try_parse_time(&words, index) {
             out.push(formatted);
             index += consumed;
@@ -3924,6 +3955,8 @@ mod tests {
             ("$100,000", "$100,000"),
             ("$200,000", "$200,000"),
             ("2.5 million dollars", "$2.5M"),
+            ("two point five million dollars", "$2.5M"),
+            ("2.5 billion users", "2.5B users"),
             ("in 2026", "in 2026"),
             ("RTX 5000", "RTX 5000"),
             ("one two three", "one two three"),
