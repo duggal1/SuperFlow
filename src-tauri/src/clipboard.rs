@@ -14,6 +14,20 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 #[cfg(target_os = "linux")]
 use crate::utils::{is_kde_wayland, is_wayland};
 
+/// VS Code's editor can consume the pasteboard after the legacy 60 ms
+/// restoration delay; use receipt-sequenced paste for this surface.
+#[cfg(target_os = "macos")]
+fn is_vscode_frontmost() -> bool {
+    crate::context::detector::frontmost_app()
+        .and_then(|app| app.bundle_id)
+        .is_some_and(|id| id.starts_with("com.microsoft.VSCode"))
+}
+
+#[cfg(target_os = "windows")]
+fn is_vscode_frontmost() -> bool {
+    false
+}
+
 fn with_enigo<T>(
     app_handle: &AppHandle,
     f: impl FnOnce(&mut Enigo) -> Result<T, String>,
@@ -862,7 +876,7 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
             // clipboard handling) asynchronously; on failure fall through to
             // the legacy path untouched.
             #[cfg(any(target_os = "macos", target_os = "windows"))]
-            if settings.reliable_paste {
+            if settings.reliable_paste || is_vscode_frontmost() {
                 let reliable_result = with_enigo(&app_handle, |enigo| {
                     crate::paste_tx::try_reliable_paste(
                         &text,
@@ -931,7 +945,7 @@ pub fn paste_exact(text: String, app_handle: AppHandle) -> Result<(), String> {
         )?,
         PasteMethod::CtrlV | PasteMethod::CtrlShiftV | PasteMethod::ShiftInsert => {
             #[cfg(any(target_os = "macos", target_os = "windows"))]
-            if settings.reliable_paste {
+            if settings.reliable_paste || is_vscode_frontmost() {
                 let result = with_enigo(&app_handle, |enigo| {
                     crate::paste_tx::try_reliable_paste(
                         &text,
@@ -1100,7 +1114,12 @@ mod pasteable_target {
     pub fn role_is_pasteable(role: &str) -> bool {
         matches!(
             role,
-            "AXTextField" | "AXTextArea" | "AXComboBox" | "AXSearchField"
+            "AXTextField"
+                | "AXTextArea"
+                | "AXTextView"
+                | "AXCodeArea"
+                | "AXComboBox"
+                | "AXSearchField"
         )
     }
 }
@@ -1120,6 +1139,15 @@ pub fn is_pasteable_target_focused() -> bool {
 mod tests {
     use super::*;
     use std::cell::Cell;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn code_editor_accessibility_roles_are_pasteable() {
+        assert!(pasteable_target::role_is_pasteable("AXTextView"));
+        assert!(pasteable_target::role_is_pasteable("AXCodeArea"));
+        assert!(!pasteable_target::role_is_pasteable("AXWebArea"));
+        assert!(!pasteable_target::role_is_pasteable("AXScrollArea"));
+    }
 
     #[cfg(target_os = "linux")]
     const YDOTOOL_0_1_8_HELP: &str = r#"

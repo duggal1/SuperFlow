@@ -204,6 +204,42 @@ fn parse_decimal_digits(words: &[&str], start: usize) -> Option<(String, usize)>
     (!digits.is_empty()).then_some((digits, used))
 }
 
+/// Compact only exact quantities: no rounding, fabricated precision, or
+/// changes to small identifiers, years, or already-grouped thousands.
+fn compact_quantity(value: u128, allow_thousands: bool) -> Option<String> {
+    for (scale, suffix) in [
+        (1_000_000_000_000u128, "T"),
+        (1_000_000_000u128, "B"),
+        (1_000_000u128, "M"),
+        (1_000u128, "K"),
+    ] {
+        if value < scale || (scale == 1_000 && !allow_thousands) {
+            continue;
+        }
+        let whole = value / scale;
+        let remainder = value % scale;
+        if remainder == 0 {
+            return Some(format!("{whole}{suffix}"));
+        }
+        for precision in 1..=3u32 {
+            let power = 10u128.pow(precision);
+            let Some(scaled) = remainder.checked_mul(power) else {
+                continue;
+            };
+            if scaled % scale == 0 {
+                let decimals = scaled / scale;
+                let trimmed = format!("{decimals:0width$}", width = precision as usize)
+                    .trim_end_matches('0')
+                    .to_string();
+                if !trimmed.is_empty() {
+                    return Some(format!("{whole}.{trimmed}{suffix}"));
+                }
+            }
+        }
+    }
+    None
+}
+
 fn group_digits(value: u128) -> String {
     let raw = value.to_string();
     let bytes = raw.as_bytes();
@@ -452,15 +488,38 @@ fn normalize_numerics(text: &str) -> String {
 
             let follower_index = index + used;
             let sign_prefix = if sign { "-" } else { "" };
+            let original_token = words[number_start];
+            let inline_currency = original_token.chars().next().filter(|ch| {
+                matches!(ch, '$' | '€' | '£' | '₹' | '¥' | '₩')
+            });
+            let is_year = is_calendar_year(&words, index, follower_index, number.value);
+            let allow_thousands = number.had_large_scale
+                || (number.value >= 100_000 && !original_token.contains(','));
+            let compact = (!is_year
+                && (number.had_large_scale || number.value >= 1_000_000 || allow_thousands))
+                .then(|| compact_quantity(number.value, allow_thousands))
+                .flatten();
             let number_text = match (&fraction, compact_scale.as_deref()) {
                 (Some(digits), Some(scale)) => {
-                    format!("{sign_prefix}{}.{} {scale}", number.value, digits)
+                    let suffix = match scale {
+                        "thousand" => "K",
+                        "million" => "M",
+                        "billion" => "B",
+                        "trillion" => "T",
+                        _ => scale,
+                    };
+                    if matches!(scale, "thousand" | "million" | "billion" | "trillion") {
+                        format!("{sign_prefix}{}.{}{suffix}", number.value, digits)
+                    } else {
+                        format!("{sign_prefix}{}.{} {scale}", number.value, digits)
+                    }
                 }
                 (Some(digits), None) => format!("{sign_prefix}{}.{}", number.value, digits),
-                (None, _) if is_calendar_year(&words, index, follower_index, number.value) => {
-                    format!("{sign_prefix}{}", number.value)
-                }
-                (None, _) => format!("{sign_prefix}{}", group_digits(number.value)),
+                (None, _) if is_year => format!("{sign_prefix}{}", number.value),
+                (None, _) => format!(
+                    "{sign_prefix}{}",
+                    compact.unwrap_or_else(|| group_digits(number.value))
+                ),
             };
 
             if let Some((symbol, currency_words)) =
@@ -470,9 +529,20 @@ fn normalize_numerics(text: &str) -> String {
                 let rendered = if symbol == "₹" && fraction.is_none() && compact_scale.is_none() {
                     format!("{sign_prefix}{symbol}{}", group_indian_digits(number.value))
                 } else {
-                    format!("{symbol}{number_text}")
+                    format!("{sign_prefix}{symbol}{}", number_text.trim_start_matches('-'))
                 };
                 out.push(with_consumed_suffix(rendered, &words, index, used));
+                index += used;
+                continue;
+            }
+
+            if let Some(symbol) = inline_currency {
+                out.push(with_consumed_suffix(
+                    format!("{sign_prefix}{symbol}{}", number_text.trim_start_matches('-')),
+                    &words,
+                    index,
+                    used,
+                ));
                 index += used;
                 continue;
             }
@@ -3755,7 +3825,7 @@ mod tests {
         );
         assert_eq!(
             normalize_values("32,000,000,000 dollars"),
-            "$32,000,000,000"
+            "$32B"
         );
         for identifier in [
             "RTX 5000",
@@ -3839,20 +3909,43 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn compact_large_numbers_and_currency_without_touching_years_or_ids() {
+        for (input, expected) in [
+            ("two trillion", "2T"),
+            ("three billion", "3B"),
+            ("two million", "2M"),
+            ("one hundred thousand", "100K"),
+            ("100000", "100K"),
+            ("two hundred thousand dollars", "$200K"),
+            ("three billion dollars", "$3B"),
+            ("$100000", "$100K"),
+            ("$100,000", "$100,000"),
+            ("$200,000", "$200,000"),
+            ("2.5 million dollars", "$2.5M"),
+            ("in 2026", "in 2026"),
+            ("RTX 5000", "RTX 5000"),
+            ("one two three", "one two three"),
+        ] {
+            assert_eq!(normalize_values(input), expected, "{input}");
+        }
+    }
+
     #[test]
     fn formats_decimals_and_large_numbers() {
         assert_eq!(normalize_numerics("one point five rem"), "1.5rem");
         assert_eq!(
             normalize_numerics("we made two hundred thousand dollars"),
-            "we made $200,000"
+            "we made $200K"
         );
         assert_eq!(
             normalize_numerics("about one million users"),
-            "about 1,000,000 users"
+            "about 1M users"
         );
         assert_eq!(
             normalize_numerics("the project costs one point five million dollars"),
-            "the project costs $1.5 million"
+            "the project costs $1.5M"
         );
     }
 
@@ -3903,7 +3996,7 @@ mod tests {
     fn formats_extended_numeric_grammar_without_losing_punctuation() {
         assert_eq!(
             normalize_numerics("two hundreed thousand dollars,"),
-            "$200,000,"
+            "$200K,"
         );
         assert_eq!(normalize_numerics("negative twenty five percent"), "-25%");
         assert_eq!(normalize_numerics("point five per cent"), "0.5%");
@@ -3911,7 +4004,7 @@ mod tests {
         assert_eq!(normalize_numerics("five gigabytes"), "5 GB");
         assert_eq!(
             normalize_numerics("one trillion dollars"),
-            "$1,000,000,000,000"
+            "$1T"
         );
     }
 

@@ -83,7 +83,11 @@ fn apply_formal_commas(sentence: &str) -> String {
             if FORMAL_LEADING_MARKERS.contains(&lowered_first.as_str()) {
                 // Recase the marker's canonical form with the original casing
                 // pattern preserved by capitalize_first below anyway.
-                words.push(format!("{word},"));
+                words.push(if word.ends_with(',') {
+                    word.to_string()
+                } else {
+                    format!("{word},")
+                });
                 continue;
             }
         }
@@ -225,6 +229,10 @@ mod tests {
     fn formal_restores_light_commas() {
         assert_eq!(
             punctuate("so we ship it today", PunctuationStyle::Formal),
+            "So, we ship it today."
+        );
+        assert_eq!(
+            punctuate("so, we ship it today", PunctuationStyle::Formal),
             "So, we ship it today."
         );
         assert_eq!(

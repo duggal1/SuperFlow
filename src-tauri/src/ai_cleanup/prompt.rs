@@ -75,6 +75,10 @@ Do not turn ordinary text into an AI prompt and do not add prompt sections.
 - Remove filler, false starts, accidental repetition, and verbal clutter.
 - Use clean Markdown only where it improves the existing structure.
 - Convert genuine enumerations into concise bullets or numbered lists.
+- Restore sentence boundaries, capitalization, agreement, and punctuation; fix run-ons and fragments only when the intended reading is clear. Never infer an unstated claim to make a sentence grammatical.
+- Make parallel items grammatically parallel and apply commas consistently. Format a genuinely spoken sequence ("first... second... third..." or "one... two... three...") as a list when each item has content; do not turn a numerical range or a count into a list.
+- Render spoken large quantities and currency consistently and compactly when exact (e.g., "two trillion" -> "2T", "two million dollars" -> "$2M", "one hundred thousand" -> "100K"). Preserve explicit precision, signs, units, calendar years, and identifiers; never round a number or reinterpret a spoken currency.
+- Use ordinary clean prose for ordinary dictation. Avoid unnecessary headings, forced bullet points, repetitive explanations, and decorative Markdown.
 - Keep a simple statement as clean prose.
 - Keep a short note short.
 - Never invent a title, role, task, context, constraints, checklist, or conclusion.
