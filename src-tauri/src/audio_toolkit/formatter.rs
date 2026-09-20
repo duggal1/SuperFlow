@@ -654,6 +654,24 @@ fn ensure_terminal(sentence: &str) -> String {
     }
 }
 
+/// A decimal quantity like "2.5 million dollars" must be handled before
+/// version-span masking; the version detector also recognizes bare "2.5".
+fn normalize_decimal_magnitudes(text: &str) -> String {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let mut output = Vec::with_capacity(words.len());
+    let mut index = 0;
+    while index < words.len() {
+        if let Some((rendered, consumed)) = compact_decimal_scale(&words, index) {
+            output.push(rendered);
+            index += consumed;
+        } else {
+            output.push(words[index].to_string());
+            index += 1;
+        }
+    }
+    output.join(" ")
+}
+
 pub fn normalize_values(text: &str) -> String {
     let structurally_repaired =
         crate::audio_toolkit::text::repair_structural_token_boundaries(text);
@@ -662,6 +680,7 @@ pub fn normalize_values(text: &str) -> String {
     let structurally_repaired = normalize_parameter_counts(&structurally_repaired);
     let structurally_repaired = normalize_moe_parameter_counts(&structurally_repaired);
     let structurally_repaired = normalize_decimal_percentages(&structurally_repaired);
+    let structurally_repaired = normalize_decimal_magnitudes(&structurally_repaired);
     let hardware_protected = protect_hardware_identifiers(&structurally_repaired);
     // Numeric formatting must never inspect the internals of an already-valid
     // version, filename, model identifier, URL, path, or quantization token.
