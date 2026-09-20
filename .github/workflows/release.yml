@@ -123,7 +123,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          ref: ${{ needs.guard.outputs.build-ref }}
+          # Manual dispatch creates the tag in the next step: check out the
+          # dispatched commit first, then build against the newly created tag.
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || needs.guard.outputs.build-ref }}
           fetch-depth: 0
 
       - name: Create release tag (manual dispatch)
@@ -313,3 +315,26 @@ jobs:
               throw new Error(`Release ${tag} is incomplete, missing: ${missing.join(', ')}. Do NOT publish.`)
             }
             console.log(`All platform artifacts present. Review the draft and publish ${tag} to make it the latest release.`)
+
+  publish-v1-0-5:
+    name: Publish verified v1.0.5
+    # Explicitly requested release; other versions retain draft-and-review.
+    if: needs.guard.outputs.tag == 'v1.0.5'
+    needs: [guard, create-release, verify-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish only after all platform artifacts are verified
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const releaseId = Number('${{ needs.create-release.outputs.release-id }}')
+            const { data } = await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: releaseId,
+              draft: false,
+              prerelease: false
+            })
+            console.log('Published verified release:', data.html_url)

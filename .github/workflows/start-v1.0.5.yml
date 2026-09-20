@@ -1,0 +1,35 @@
+name: Start v1.0.5 release after tests
+
+# One-shot handoff from a successful test run to the existing release workflow.
+on:
+  workflow_run:
+    workflows: ["test"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  dispatch:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Dispatch v1.0.5 only for the current tested main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          CURRENT_SHA=$(gh api "repos/${GH_REPO}/commits/main" --jq .sha)
+          if [[ "$CURRENT_SHA" != "$TESTED_SHA" ]]; then
+            echo "A newer commit exists; only its successful tests may release."
+            exit 0
+          fi
+          if gh api "repos/${GH_REPO}/git/ref/tags/v1.0.5" >/dev/null 2>&1; then
+            echo "v1.0.5 already tagged; never dispatch a duplicate."
+            exit 0
+          fi
+          gh workflow run release.yml --repo "$GH_REPO" --ref main
+          echo "Dispatched existing v1.0.5 release workflow."
