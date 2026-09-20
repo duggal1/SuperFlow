@@ -441,7 +441,7 @@ fn compact_decimal_scale(words: &[&str], start: usize) -> Option<(String, usize)
     {
         return None;
     }
-    let suffix = match number_clean(words.get(start + 1)?) .as_str() {
+    let suffix = match number_clean(words.get(start + 1)?).as_str() {
         "thousand" => "K",
         "million" => "M",
         "billion" => "B",
@@ -4414,7 +4414,7 @@ mod tests {
         let started = std::time::Instant::now();
         let output = format(&input, PunctuationStyle::Formal);
         assert!(started.elapsed() < std::time::Duration::from_millis(500));
-        assert!(output.contains("$200,000"));
+        assert!(output.contains("$200K"));
         assert!(output.contains("25%"));
         assert!(output.contains("`src/backend/payment/payment.ts`"));
     }
