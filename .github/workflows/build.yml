@@ -205,6 +205,22 @@ jobs:
           sudo apt install vulkan-sdk -y
           sudo apt-get install -y mesa-vulkan-drivers
 
+      # llama-cpp-sys-2's vendored cpp-httplib links OpenSSL::SSL on macOS.
+      # Homebrew does not link openssl@3 into the default prefix, so CMake's
+      # FindOpenSSL otherwise sees an incomplete install and generation fails.
+      - name: Install OpenSSL for macOS llama.cpp
+        if: contains(inputs.platform, 'macos')
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install openssl@3
+          prefix="$(brew --prefix openssl@3)"
+          test -f "$prefix/lib/libssl.dylib"
+          test -f "$prefix/lib/libcrypto.dylib"
+          echo "CMAKE_PREFIX_PATH=$prefix" >> "$GITHUB_ENV"
+          echo "OPENSSL_ROOT_DIR=$prefix" >> "$GITHUB_ENV"
+          echo "OPENSSL_DIR=$prefix" >> "$GITHUB_ENV"
+
       - name: install frontend dependencies
         if: ${{ !(contains(inputs.platform, 'windows') && contains(inputs.target, 'aarch64')) }}
         run: bun install
