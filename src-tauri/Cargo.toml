@@ -20,7 +20,7 @@ name = "superflow_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-# Opt-in diagnostic / benchmark binaries under src/bin. They link the heavy
+# Opt-in diagnostic / benchmark binaries under dev-bin. They link the heavy
 # transcription backends and are excluded from the default `cargo build`,
 # `tauri build`, and `cargo test` so the app build stays lean and CI test/lint
 # jobs don't depend on native backend linkage. Build one with e.g.
@@ -205,22 +205,38 @@ transcribe-cpp = { version = "0.2.0", default-features = false, features = [
 # dir and fails with a symlink collision. Unifying the source removes the dup.
 # Diagnostic / benchmark binaries. Kept out of the default build via
 # `required-features` so `tauri build` and `cargo test` (which otherwise build
-# every target under src/bin) don't pull in the transcription backends solely
+# every target under dev-bin) don't pull in the transcription backends solely
 # for dev tooling. Enable with `--features dev-bins`.
 [[bin]]
 name = "aggressive_formatter_test"
+path = "dev-bin/aggressive_formatter_test.rs"
 required-features = ["dev-bins"]
 
 [[bin]]
 name = "parakeet_geom_benchmark"
+path = "dev-bin/parakeet_geom_benchmark.rs"
 required-features = ["dev-bins"]
 
 [[bin]]
 name = "parakeet_stream_benchmark"
+path = "dev-bin/parakeet_stream_benchmark.rs"
 required-features = ["dev-bins"]
 
 [[bin]]
 name = "ultra_brutal_validation"
+path = "dev-bin/ultra_brutal_validation.rs"
+required-features = ["dev-bins"]
+
+# Keep developer-only diagnostics outside src/bin: Tauri's Nix bundler
+# otherwise discovers and tries to package them even without dev-bins enabled.
+[[bin]]
+name = "sample_test"
+path = "dev-bin/sample_test.rs"
+required-features = ["dev-bins"]
+
+[[bin]]
+name = "tech_test"
+path = "dev-bin/tech_test.rs"
 required-features = ["dev-bins"]
 
 [patch.crates-io]
