@@ -16,6 +16,8 @@ on:
       - "src-tauri/src/voice_terminal/**"
       - "src-tauri/tests/transcript_normalization_comprehensive.rs"
       - ".github/workflows/start-v1.0.5.yml"
+      - ".github/workflows/build.yml"
+      - ".github/workflows/release.yml"
 
 concurrency:
   group: verify-release-v1.0.5
