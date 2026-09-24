@@ -134,6 +134,8 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ needs.guard.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "$TAG" "$GITHUB_SHA" -m "Release $TAG (built from $GITHUB_SHA)"
           git push origin "$TAG"
           echo "Created tag $TAG at $GITHUB_SHA"
