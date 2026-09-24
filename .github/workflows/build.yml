@@ -221,6 +221,34 @@ jobs:
           echo "OPENSSL_ROOT_DIR=$prefix" >> "$GITHUB_ENV"
           echo "OPENSSL_DIR=$prefix" >> "$GITHUB_ENV"
 
+      # llama-cpp-sys-2 0.1.154's bundled cpp-httplib sees libcrypto but
+      # does not import OpenSSL::SSL on current macOS runners. Installing
+      # OpenSSL alone does not fix the missing CMake target. Correct the
+      # vendored dependency before its build script configures CMake.
+      - name: Repair vendored llama.cpp OpenSSL target discovery (macOS)
+        if: contains(inputs.platform, 'macos')
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fetch --manifest-path src-tauri/Cargo.toml --locked
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          registry = Path.home() / ".cargo" / "registry" / "src"
+          matches = list(registry.glob("*/llama-cpp-sys-2-0.1.154/llama.cpp/vendor/cpp-httplib/CMakeLists.txt"))
+          if len(matches) != 1:
+              raise SystemExit(f"Expected one pinned llama-cpp-sys-2 0.1.154 CMake file, found {len(matches)}: {matches}")
+          path = matches[0]
+          source = path.read_text()
+          anchor = "target_link_libraries(${TARGET} PUBLIC OpenSSL::SSL OpenSSL::Crypto)"
+          if source.count(anchor) != 1:
+              raise SystemExit("Pinned cpp-httplib OpenSSL link layout changed; refusing an unverified patch")
+          source = source.replace(anchor, "find_package(OpenSSL REQUIRED COMPONENTS SSL Crypto)\n" + anchor)
+          path.write_text(source)
+          print(f"Patched {path} to require both OpenSSL imported targets")
+          PY
+
       - name: install frontend dependencies
         if: ${{ !(contains(inputs.platform, 'windows') && contains(inputs.target, 'aarch64')) }}
         run: bun install
